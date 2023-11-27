@@ -15,9 +15,8 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 
 from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
-    delete_item,
     get_first_item,
-    get_last_item, get_value,
+    get_value,
     parse_last_core_output
 )
 
@@ -209,20 +208,15 @@ class SentryReporter:
             info[LAST_CORE_OUTPUT] = last_core_output.split('\n')  # split for better representation in the web view
 
             # check is it necessary to parse the last core output
-            exceptions = event.get(EXCEPTION, {})
-            gui_exception = get_last_item(exceptions.get(VALUES, []), {})
-            gui_exception_type = gui_exception.get(TYPE, None)
-            need_to_parse_core_output = gui_exception_type in self._types_that_requires_core_output_parse
+            exceptions = event.get(EXCEPTION, {}).get(VALUES, [])
+            exception_types = (e.get(TYPE) for e in exceptions)
+            need_to_parse_core_output = any(t in self._types_that_requires_core_output_parse for t in exception_types)
+
             if need_to_parse_core_output:
                 if last_core_exception := parse_last_core_output(last_core_output):
                     # create a core exception extracted from the last core output
                     core_exception = {TYPE: last_core_exception.type, VALUE: last_core_exception.message}
-
-                    # remove the stacktrace field as it doesn't give any useful information for the further
-                    # investigation
-                    delete_item(gui_exception, 'stacktrace')
-
-                    exceptions[VALUES] = [gui_exception, core_exception]
+                    exceptions.append(core_exception)
 
         event[CONTEXTS][REPORTER] = info
         event[CONTEXTS][BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}

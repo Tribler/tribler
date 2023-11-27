@@ -281,23 +281,17 @@ def test_send_last_core_output(sentry_reporter):
         'exception': {
             'values': [
                 {
-                    'module': 'tribler.gui.utilities',
                     TYPE: 'CreationTraceback',
                     VALUE: '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
-                    'mechanism': None
                 },
                 {
-                    'module': 'tribler.gui.exceptions',
                     TYPE: 'CoreCrashedError',
                     VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
-                    'mechanism': None,
-                    'stacktrace': {
-                        'frames': []
-                    }
                 }
             ]
         }
     }
+
     last_core_output = '''
 File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.8/lib/python3.8/asyncio/base_events.py", line 1461, in create_server
     sock.bind(sa)
@@ -305,16 +299,19 @@ OverflowError: bind(): port must be 0-65535.Sentry is attempting to send 1 pendi
 Waiting up to 2 seconds
 Press Ctrl-C to quit
     '''
+
     actual = sentry_reporter.send_event(event=event, last_core_output=last_core_output)
     expected = deepcopy(DEFAULT_EVENT)
 
     expected['exception'] = {
         'values': [
             {
-                'module': 'tribler.gui.exceptions',
+                TYPE: 'CreationTraceback',
+                VALUE: '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
+            },
+            {
                 TYPE: 'CoreCrashedError',
                 VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
-                'mechanism': None
             },
             {
                 TYPE: 'OverflowError',
