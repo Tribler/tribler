@@ -1,7 +1,9 @@
 import datetime
+from contextlib import suppress
 from typing import Optional
 
 from pony import orm
+from pony.orm import db_session, OperationalError
 
 from tribler.core.utilities.pony_utils import TrackedDatabase, get_or_create
 
@@ -11,6 +13,10 @@ class TagDatabase:
         self.instance = TrackedDatabase()
         self.define_binding(self.instance)
         self.instance.bind(provider='sqlite', filename=filename or ':memory:', create_db=True)
+        if create_tables:
+            with db_session, suppress(OperationalError):
+                cursor = self.instance.execute("ALTER TABLE TorrentTagOp ADD auto_generated INTEGER")
+                cursor.close()
         generate_mapping_kwargs['create_tables'] = create_tables
         self.instance.generate_mapping(**generate_mapping_kwargs)
 

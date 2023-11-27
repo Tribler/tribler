@@ -28,7 +28,6 @@ class EventRequestManager(QNetworkAccessManager):
     received_remote_query_results = pyqtSignal(object)
     core_connected = pyqtSignal(object)
     new_version_available = pyqtSignal(str)
-    discovered_channel = pyqtSignal(object)
     torrent_finished = pyqtSignal(object)
     low_storage_signal = pyqtSignal(object)
     tribler_shutdown_signal = pyqtSignal(str)
@@ -56,9 +55,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.notifier = notifier = Notifier()
         notifier.add_observer(notifications.events_start, self.on_events_start)
         notifier.add_observer(notifications.tribler_exception, self.on_tribler_exception)
-        notifier.add_observer(notifications.channel_entity_updated, self.on_channel_entity_updated)
         notifier.add_observer(notifications.tribler_new_version, self.on_tribler_new_version)
-        notifier.add_observer(notifications.channel_discovered, self.on_channel_discovered)
         notifier.add_observer(notifications.torrent_finished, self.on_torrent_finished)
         notifier.add_observer(notifications.low_space, self.on_low_space)
         notifier.add_observer(notifications.remote_query_results, self.on_remote_query_results)
@@ -87,14 +84,8 @@ class EventRequestManager(QNetworkAccessManager):
     def on_tribler_exception(self, error: dict):
         self.error_handler.core_error(ReportedError(**error))
 
-    def on_channel_entity_updated(self, channel_update_dict: dict):
-        self.node_info_updated.emit(channel_update_dict)
-
     def on_tribler_new_version(self, version: str):
         self.new_version_available.emit(version)
-
-    def on_channel_discovered(self, data: dict):
-        self.discovered_channel.emit(data)
 
     def on_torrent_finished(self, infohash: str, name: str, hidden: bool):
         self.torrent_finished.emit(dict(infohash=infohash, name=name, hidden=hidden))

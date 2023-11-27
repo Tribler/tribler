@@ -45,7 +45,6 @@ def sanitize_filename(filename: str) -> str:
 
 class CreateTorrentDialog(DialogContainer):
     create_torrent_notification = pyqtSignal(dict)
-    add_to_channel_selected = pyqtSignal(str)
 
     def __init__(self, parent):
         DialogContainer.__init__(self, parent)
@@ -61,7 +60,6 @@ class CreateTorrentDialog(DialogContainer):
         connect(self.dialog_widget.create_torrent_files_list.customContextMenuRequested, self.on_right_click_file_item)
         self.dialog_widget.create_torrent_files_list.clear()
         connect(self.dialog_widget.save_directory_chooser.clicked, self.on_select_save_directory)
-        self.dialog_widget.edit_channel_create_torrent_progress_label.setText("")
         self.dialog_widget.file_export_dir.setText(os.path.expanduser("~"))
         self.dialog_widget.adjustSize()
 
@@ -158,8 +156,6 @@ class CreateTorrentDialog(DialogContainer):
         if 'torrent' in result:
             self.create_torrent_notification.emit({"msg": tr("Torrent successfully created")})
             self.close_dialog()
-            if self.dialog_widget.add_to_channel_checkbox.isChecked():
-                self.add_to_channel_selected.emit(result['torrent'])
 
     def on_select_save_directory(self, checked):
         chosen_dir = QFileDialog.getExistingDirectory(

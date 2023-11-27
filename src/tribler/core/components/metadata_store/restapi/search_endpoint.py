@@ -64,9 +64,10 @@ class SearchEndpoint(MetadataEndpointBase):
             if "infohash" not in search_result:
                 continue
             with db_session:
-                content_items: typing.List[str] = self.tribler_db.get_objects(subject_type=ResourceType.TORRENT,
-                                                                              subject=search_result["infohash"],
-                                                                              predicate=ResourceType.CONTENT_ITEM)
+                content_items: typing.List[str] = self.tribler_db.knowledge.get_objects(
+                    subject_type=ResourceType.TORRENT,
+                    subject=search_result["infohash"],
+                    predicate=ResourceType.CONTENT_ITEM)
             if content_items:
                 for content_id in content_items:
                     content_to_torrents[content_id].append(search_result)

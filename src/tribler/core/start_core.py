@@ -72,10 +72,6 @@ def components_gen(config: TriblerConfig):
     if config.resource_monitor.enabled:
         yield ResourceMonitorComponent()
 
-    # The components below are skipped if config.gui_test_mode == True
-    if config.gui_test_mode:
-        return
-
     if config.libtorrent.enabled:
         yield SocksServersComponent()
 
@@ -83,6 +79,11 @@ def components_gen(config: TriblerConfig):
         yield TorrentCheckerComponent()
     if config.ipv8.enabled and config.torrent_checking.enabled and config.popularity_community.enabled:
         yield PopularityComponent()
+
+    # The components below are skipped if config.gui_test_mode == True
+    if config.gui_test_mode:
+        return
+
     if config.ipv8.enabled and config.tunnel_community.enabled:
         yield TunnelsComponent()
     if config.ipv8.enabled:

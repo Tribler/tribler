@@ -6,6 +6,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 from psutil import LINUX
 
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import (
@@ -15,22 +16,13 @@ from tribler.gui.defs import (
     ContentCategories,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
-from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
-from tribler.gui.widgets.tablecontentmodel import (
-    ChannelContentModel,
-    ChannelPreviewModel,
-    DiscoveredChannelsModel,
-    PersonalChannelsModel,
-    SearchResultsModel,
-    SimplifiedPersonalChannelsModel,
-)
+from tribler.gui.widgets.tablecontentmodel import ChannelContentModel, SearchResultsModel
 from tribler.gui.widgets.triblertablecontrollers import ContentTableViewController
 
-CHANNEL_COMMIT_DELAY = 30000  # milliseconds
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 
@@ -62,8 +54,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.chosen_dir = None
         self.dialog = None
         self.controller = None
-        self.commit_timer = None
-        self.autocommit_enabled = None
         self.channel_options_menu = None
 
         self.channels_stack = []
@@ -91,19 +81,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
                     obj.blockSignals(False)
 
         self.freeze_controls = freeze_controls_class
-        self.channel_description_container.setHidden(True)
 
         self.explanation_tooltip_button.setHidden(True)
 
     def hide_all_labels(self):
         self.edit_channel_contents_top_bar.setHidden(True)
-        self.subscription_widget.setHidden(True)
         self.channel_num_torrents_label.setHidden(True)
         self.channel_state_label.setHidden(True)
-
-    @property
-    def personal_channel_model(self):
-        return SimplifiedPersonalChannelsModel if self.autocommit_enabled else PersonalChannelsModel
 
     @property
     def model(self):
@@ -113,27 +97,8 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
     def root_model(self):
         return self.channels_stack[0] if self.channels_stack else None
 
-    def on_channel_committed(self, response):
-        if not response or not response.get("success", False):
-            return
-
-        if not self.autocommit_enabled:
-            self.commit_control_bar.setHidden(True)
-
-        if not self.model:
-            return
-
-        info = self.model.channel_info
-        if info.get("state") == "Personal" and info.get("dirty"):
-            self.model.reset()
-            self.update_labels()
-
-    # def commit_channels(self, checked=False):  # pylint: disable=W0613
-    #     request_manager.post("channels/mychannel/0/commit", on_success=self.on_channel_committed)
-
     def initialize_content_page(
             self,
-            autocommit_enabled=False,
             hide_xxx=None,
             controller_class=ContentTableViewController,
             categories=CATEGORY_SELECTOR_FOR_SEARCH_ITEMS,
@@ -150,7 +115,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.channel_back_button.setHidden(True)
         connect(self.channel_back_button.clicked, self.go_back)
         connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
-        self.commit_control_bar.setHidden(True)
 
         if LINUX:
             # On Linux, the default font sometimes does not contain the emoji characters.
@@ -158,52 +122,13 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         self.controller = controller_class(self.content_table, filter_input=self.channel_torrents_filter_input)
 
-        # Hide channel description on scroll
-        connect(self.controller.table_view.verticalScrollBar().valueChanged, self._on_table_scroll)
-
-        self.autocommit_enabled = autocommit_enabled
-        # if self.autocommit_enabled:
-        #     self._enable_autocommit_timer()
-
-        # New channel button
-        connect(self.new_channel_button.clicked, self.create_new_channel)
-        connect(self.content_table.channel_clicked, self.on_channel_clicked)
-        # connect(self.edit_channel_commit_button.clicked, self.commit_channels)
-
-        self.subscription_widget.initialize(self)
-
-        self.channel_options_menu = self.create_channel_options_menu()
-        self.channel_options_button.setMenu(self.channel_options_menu)
-        connect(self.channel_description_container.became_hidden, self.run_brain_dead_refresh)
-        connect(self.channel_description_container.description_changed, self._description_changed)
-
     def _description_changed(self):
-        # Initialize commit timer on channel description change
-        # if self.autocommit_enabled:
-        #     self.commit_timer.stop()
-        #     self.commit_timer.start(CHANNEL_COMMIT_DELAY)
         self.model.channel_info["dirty"] = True
         self.update_labels()
 
     def run_brain_dead_refresh(self):
         if self.model:
             self.controller.brain_dead_refresh()
-
-    def _on_table_scroll(self, event):  # pylint: disable=unused-argument
-        # Hide the description widget when the channel is scrolled down
-        if not self.model.data_items:
-            return
-
-        scrollbar = self.controller.table_view.verticalScrollBar()
-        container = self.channel_description_container
-
-        is_time_to_hide = scrollbar.minimum() < scrollbar.value() - 10 and scrollbar.maximum() > 100
-        is_time_to_show = scrollbar.minimum() == scrollbar.value()
-
-        if is_time_to_hide and not container.isHidden():
-            container.setHidden(True)
-        elif is_time_to_show and container.isHidden() and container.initialized:
-            container.setHidden(False)
 
     def on_category_selector_changed(self, ind):
         category = self.categories[ind] if ind else None
@@ -238,10 +163,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
         if structure_changed:
             self.window().add_to_channel_dialog.clear_channels_tree()
-
-        # if self.autocommit_enabled and dirty:
-        #     self.commit_timer.stop()
-        #     self.commit_timer.start(CHANNEL_COMMIT_DELAY)
 
         self.model.channel_info["dirty"] = dirty
         self.update_labels()
@@ -281,13 +202,11 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
     def disconnect_current_model(self):
         disconnect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
-        # disconnect(self.model.info_changed, self.on_model_info_changed)
         disconnect(self.model.query_complete, self.on_model_query_completed)
 
         self.controller.unset_model()  # Disconnect the selectionChanged signal
 
     def connect_current_model(self):
-        # connect(self.model.info_changed, self.on_model_info_changed)
         connect(self.model.query_complete, self.on_model_query_completed)
         connect(self.window().core_manager.events_manager.node_info_updated, self.model.update_node_info)
 
@@ -345,26 +264,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.connect_current_model()
             self.update_labels()
 
-    def on_channel_clicked(self, channel_dict):
-        self.initialize_with_channel(channel_dict)
-
-    def create_new_channel(self, checked):  # pylint: disable=W0613
-        NewChannelDialog(self, self.model.create_new_channel)
-
-    def initialize_with_channel(self, channel_info):
-        # Hide the edit controls by default, to prevent the user clicking the buttons prematurely
-        self.hide_all_labels()
-        # Turn off sorting by default to speed up SQL queries
-        if channel_info.get("state") == CHANNEL_STATE.PREVIEW.value:
-            self.push_channels_stack(ChannelPreviewModel(channel_info=channel_info))
-        else:
-            self.push_channels_stack(self.default_channel_model(channel_info=channel_info))
-        self.controller.set_model(self.model)
-        self.update_navigation_breadcrumbs()
-        self.controller.table_view.deselect_all_rows()
-        self.controller.table_view.resizeEvent(None)
-
-        self.content_table.setFocus()
 
     def update_navigation_breadcrumbs(self):
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
@@ -413,40 +312,19 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         personal = self.model.channel_info.get("state", None) == CHANNEL_STATE.PERSONAL.value
         root = self.current_level == 0
         legacy = self.model.channel_info.get("state", None) == CHANNEL_STATE.LEGACY.value
-        discovered = isinstance(self.model, DiscoveredChannelsModel)
-        personal_model = isinstance(self.model, PersonalChannelsModel)
         is_a_channel = self.model.channel_info.get("type", None) == CHANNEL_TORRENT
-        description_flag = self.model.channel_info.get("description_flag")
-        thumbnail_flag = self.model.channel_info.get("thumbnail_flag")
-        dirty = self.model.channel_info.get("dirty")
 
         self.update_navigation_breadcrumbs()
 
-        info = self.model.channel_info
         container = self.channel_description_container
-        if is_a_channel and (description_flag or thumbnail_flag or personal_model):
-            container.initialize_with_channel(info["public_key"], info["id"], edit=personal and personal_model)
-        else:
-            container.initialized = False
-            container.setHidden(True)
+        container.initialized = False
+        container.setHidden(True)
 
-        self.category_selector.setHidden(root and (discovered or personal_model))
-        # initialize the channel page
-
-        self.edit_channel_contents_top_bar.setHidden(not personal)
-        self.new_channel_button.setText(tr("NEW CHANNEL") if not is_a_channel and not folder else tr("NEW FOLDER"))
-        self.channel_options_button.setHidden(not personal_model or not personal or (root and not is_a_channel))
-        self.new_channel_button.setHidden(not personal_model or not personal)
-
-        self.channel_state_label.setText(self.model.channel_info.get("state", "This text should not ever be shown"))
+        self.category_selector.setHidden(root)
 
         self.subscription_widget.setHidden(not is_a_channel or personal or folder or legacy)
         if not self.subscription_widget.isHidden():
             self.subscription_widget.update_subscribe_button(self.model.channel_info)
-
-        self.channel_state_label.setHidden((root and not is_a_channel) or personal)
-
-        self.commit_control_bar.setHidden(self.autocommit_enabled or not dirty or not personal)
 
         if "total" in self.model.channel_info:
             self.channel_num_torrents_label.setHidden(False)

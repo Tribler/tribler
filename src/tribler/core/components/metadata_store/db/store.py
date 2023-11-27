@@ -468,7 +468,6 @@ class MetadataStore:
             self,
             metadata_type=None,
             channel_pk=None,
-            exclude_legacy=False,  # TODO: ensure this can be removed
             hide_xxx=False,
             origin_id=None,
             sort_by=None,

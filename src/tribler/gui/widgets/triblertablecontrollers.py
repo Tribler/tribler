@@ -10,8 +10,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
 
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
-from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -33,7 +32,6 @@ class TriblerTableViewController(QObject):
         self.table_view = table_view
         connect(self.table_view.verticalScrollBar().valueChanged, self._on_list_scroll)
 
-        connect(self.table_view.delegate.subscribe_control.clicked, self.table_view.on_subscribe_control_clicked)
         connect(self.table_view.delegate.download_button.clicked, self.table_view.start_download_from_index)
         connect(self.table_view.torrent_doubleclicked, self.table_view.start_download_from_dataitem)
 
@@ -223,54 +221,6 @@ class ContextMenuMixin:
                     item_index.model().data_items[item_index.row()],
                     lambda x: self.check_torrent_health(x, forced=True),
                 )
-        if num_selected == 1 and item_index.model().column_position.get(Column.SUBSCRIBED) is not None:
-            data_item = item_index.model().data_items[item_index.row()]
-            if data_item["type"] == CHANNEL_TORRENT and data_item["state"] != CHANNEL_STATE.PERSONAL.value:
-                self.add_menu_item(
-                    menu,
-                    tr("Unsubscribe channel") if data_item["subscribed"] else tr("Subscribe channel"),
-                    item_index.model().index(item_index.row(), item_index.model().column_position[Column.SUBSCRIBED]),
-                    self.table_view.delegate.subscribe_control.clicked.emit,
-                )
-
-        # Add menu separator for channel stuff
-        menu.addSeparator()
-
-        entries = [self.model.data_items[index.row()] for index in self.table_view.selectionModel().selectedRows()]
-
-        def on_add_to_channel(_):
-            def on_confirm_clicked(channel_id):
-                request_manager.post(f"channels/mychannel/{channel_id}/copy",
-                                     on_success=lambda _: self.table_view.window().tray_show_message(
-                                         tr("Channel update"), tr("Torrent(s) added to your channel")
-                                     ),
-                                     data=json.dumps(entries))
-
-            self.table_view.window().add_to_channel_dialog.show_dialog(
-                on_confirm_clicked, confirm_button_text=tr("Copy")
-            )
-
-        def on_move(_):
-            def on_confirm_clicked(channel_id):
-                changes_list = [
-                    {'public_key': entry['public_key'], 'id': entry['id'], 'origin_id': channel_id} for entry in entries
-                ]
-                self.model.remove_items(entries)
-                request_manager.patch("metadata", data=changes_list)
-
-            self.table_view.window().add_to_channel_dialog.show_dialog(
-                on_confirm_clicked, confirm_button_text=tr("Move")
-            )
-
-        if not self.model.edit_enabled:
-            if self.selection_can_be_added_to_channel():
-                self.add_menu_item(menu, tr(" Copy into personal channel"), item_index, on_add_to_channel)
-        else:
-            self.add_menu_item(menu, tr(" Move "), item_index, on_move)
-            self.add_menu_item(menu, tr(" Rename "), item_index, self._trigger_name_editor)
-            self.add_menu_item(menu, tr(" Change category "), item_index, self._trigger_category_editor)
-            menu.addSeparator()
-            self.add_menu_item(menu, tr(" Remove from channel"), item_index, self.table_view.on_delete_button_clicked)
 
         menu.exec_(QCursor.pos())
 
@@ -278,13 +228,6 @@ class ContextMenuMixin:
         action = QAction(name, self.table_view)
         connect(action.triggered, lambda _: callback(item_index))
         menu.addAction(action)
-
-    def selection_can_be_added_to_channel(self):
-        for row in self.table_view.selectionModel().selectedRows():
-            data_item = row.model().data_items[row.row()]
-            if dict_item_is_any_of(data_item, 'type', [REGULAR_TORRENT, CHANNEL_TORRENT, COLLECTION_NODE]):
-                return True
-        return False
 
 
 class PopularContentTableViewController(

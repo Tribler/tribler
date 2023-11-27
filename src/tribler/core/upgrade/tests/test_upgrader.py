@@ -10,6 +10,7 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session, select
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
@@ -99,11 +100,7 @@ def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair)
     db = mds.db
 
-    existing_indexes = [
-        'idx_channelnode__metadata_type__partial',
-        'idx_channelnode__metadata_subscribed__partial',
-        'idx_torrentstate__last_check__partial',
-    ]
+    existing_indexes = []
 
     removed_indexes = [
         'idx_channelnode__public_key',
@@ -119,8 +116,6 @@ def test_upgrade_pony_db_complete(upgrader, channels_dir, state_dir, trustchain_
     ]
 
     with db_session:
-        assert mds.TorrentMetadata.select().count() == 23
-        assert mds.ChannelMetadata.select().count() == 2
         assert mds.get_value("db_version") == str(CURRENT_DB_VERSION)
         for index_name in existing_indexes:
             assert list(db.execute(f'PRAGMA index_info("{index_name}")'))
@@ -160,7 +155,6 @@ def test_upgrade_pony_8to10(upgrader, channels_dir, mds_path, trustchain_keypair
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=10)
     with db_session:
         assert mds.get_value("db_version") == '10'
-        assert mds.ChannelNode.select().count() == 23
     mds.shutdown()
 
 
@@ -287,11 +281,7 @@ def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair
     mds = MetadataStore(mds_path, channels_dir, trustchain_keypair, check_tables=False, db_version=12)
     db = mds.db
 
-    existing_indexes = [
-        'idx_channelnode__metadata_type__partial',
-        'idx_channelnode__metadata_subscribed__partial',
-        'idx_torrentstate__last_check__partial',
-    ]
+    existing_indexes = ['idx_torrentstate__last_check__partial']
 
     removed_indexes = [
         'idx_channelnode__public_key',
@@ -307,8 +297,7 @@ def test_upgrade_pony12to13(upgrader, channels_dir, mds_path, trustchain_keypair
     ]
 
     with db_session:
-        assert mds.TorrentMetadata.select().count() == 23
-        assert mds.ChannelMetadata.select().count() == 2
+        assert mds.TorrentMetadata.select().count() == 21
         assert mds.get_value("db_version") == '13'
         for index_name in existing_indexes:
             assert list(db.execute(f'PRAGMA index_info("{index_name}")')), index_name

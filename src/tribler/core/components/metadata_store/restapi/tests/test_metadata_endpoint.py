@@ -1,7 +1,8 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock, AsyncMock
 
 import pytest
 
+from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint, TORRENT_CHECK_TIMEOUT
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -53,3 +54,33 @@ async def test_check_torrent_query(rest_api, udp_tracker, metadata_store):
     """
     infohash = b'a' * 20
     await do_request(rest_api, f"metadata/torrents/{infohash}/health?timeout=wrong_value&refresh=1", expected_code=400)
+
+
+async def test_get_popular_torrents(rest_api, endpoint, metadata_store):
+    """
+    Test that the endpoint responds with its known entries.
+    """
+    fake_entry = {
+                "name": "Torrent Name",
+                "category": "",
+                "infohash": "ab" * 20,
+                "size": 1,
+                "num_seeders": 1234,
+                "num_leechers": 123,
+                "last_tracker_check": 17000000,
+                "created": 15000000,
+                "tag_processor_version": 1,
+                "type": REGULAR_TORRENT,
+                "id": 0,
+                "origin_id": 0,
+                "public_key": "ab" * 64,
+                "status": 2,
+            }
+    fake_state = Mock(return_value=Mock(get_progress=Mock(return_value=0.5)))
+    metadata_store.get_entries = Mock(return_value=[Mock(to_simple_dict=Mock(return_value=fake_entry.copy()))])
+    endpoint.tag_rules_processor = Mock(process_queue=AsyncMock())
+    endpoint.download_manager.get_download = Mock(return_value=Mock(get_state=fake_state))
+    response = await do_request(rest_api, f"metadata/torrents/popular")
+
+    endpoint.tag_rules_processor.process_queue.assert_called_once()
+    assert response == {'results': [{**fake_entry, **{"progress": 0.5}}], 'first': 1, 'last': 50}

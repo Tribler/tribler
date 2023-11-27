@@ -264,14 +264,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 continue
 
             filter_match = self.window().downloads_filter_input.text().lower() in item.download_info["name"].lower()
-            is_channel = item.download_info["channel_download"]
-            if self.filter == DOWNLOADS_FILTER_CHANNELS:
-                hide = not (is_channel and filter_match)
-                item.setHidden(hide)
-            else:
-                filtered = DOWNLOADS_FILTER_DEFINITION[self.filter]
-                hide = item.get_status() not in filtered or not filter_match or is_channel
-                item.setHidden(hide)
+            filtered = DOWNLOADS_FILTER_DEFINITION[self.filter]
+            hide = item.get_status() not in filtered or not filter_match
+            item.setHidden(hide)
 
     def on_downloads_tab_button_clicked(self, button_name):
         self.filter = button_name2filter[button_name]
@@ -516,22 +511,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 tr("Torrent file exported"), tr("Torrent file exported to %s") % str(dest_path)
             )
 
-    def on_add_to_channel(self, checked):
-        def on_add_button_pressed(channel_id):
-            for item in self.selected_items:
-                infohash = item.infohash
-                name = item.download_info["name"]
-                request_manager.put(
-                    f"channels/mychannel/{channel_id}/torrents",
-                    on_success=lambda _: self.window().tray_show_message(
-                        tr("Channel update"),
-                        tr("Torrent(s) added to your channel")
-                    ),
-                    data={"uri": compose_magnetlink(infohash, name=name)}
-                )
-
-        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text=tr("Add torrent(s)"))
-
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
         if not item_clicked or not self.selected_items:
@@ -545,7 +524,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         start_action = QAction(tr("Start"), self)
         stop_action = QAction(tr("Stop"), self)
         remove_download_action = QAction(tr("Remove download"), self)
-        add_to_channel_action = QAction(tr("Add to my channel"), self)
         force_recheck_action = QAction(tr("Force recheck"), self)
         export_download_action = QAction(tr("Export .torrent file"), self)
         explore_files_action = QAction(tr("Explore files"), self)
@@ -560,7 +538,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_items))
         connect(stop_action.triggered, self.on_stop_download_clicked)
         stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_items))
-        connect(add_to_channel_action.triggered, self.on_add_to_channel)
         connect(remove_download_action.triggered, self.on_remove_download_clicked)
         connect(force_recheck_action.triggered, self.on_force_recheck_download)
         force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_items))
@@ -576,8 +553,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         menu.addAction(start_action)
         menu.addAction(stop_action)
 
-        menu.addSeparator()
-        menu.addAction(add_to_channel_action)
         menu.addSeparator()
         menu.addAction(remove_download_action)
         menu.addSeparator()

@@ -5,9 +5,7 @@ from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
-from tribler.gui.defs import COMMIT_STATUS_COMMITTED
+from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri
@@ -48,7 +46,6 @@ class TriblerContentTableView(QTableView):
     When the user reached the end of the table, it will ask the model for more items, and load them dynamically.
     """
 
-    channel_clicked = pyqtSignal(dict)
     torrent_clicked = pyqtSignal(dict)
     torrent_doubleclicked = pyqtSignal(dict)
     edited_metadata = pyqtSignal(dict)
@@ -182,19 +179,6 @@ class TriblerContentTableView(QTableView):
         for control in self.delegate.controls:
             control.rect = QRect()
 
-    def on_subscribe_control_clicked(self, index):
-        item = index.model().data_items[index.row()]
-        # skip LEGACY entries, regular torrents and personal channel
-        if 'subscribed' not in item or item['status'] == LEGACY_ENTRY or item['state'] == 'Personal':
-            return
-
-        status = int(item['subscribed'])
-
-        if status:
-            self.window().on_channel_unsubscribe(item)
-        else:
-            self.window().on_channel_subscribe(item)
-
     def on_edit_tags_clicked(self, index: QModelIndex) -> None:
         self.add_tags_dialog = EditMetadataDialog(self.window(), index)
         self.add_tags_dialog.show()
@@ -217,29 +201,11 @@ class TriblerContentTableView(QTableView):
             return
 
         data_item = self.model().data_items[item.row()]
-        # Safely determine if the thing is a channel. A little bit hackish
-        if data_item.get('type') in [CHANNEL_TORRENT, COLLECTION_NODE]:
-            self.channel_clicked.emit(data_item)
-        elif data_item.get('type') == REGULAR_TORRENT:
-            if not doubleclick:
-                self.torrent_clicked.emit(data_item)
-            else:
-                self.torrent_doubleclicked.emit(data_item)
 
-    def on_torrent_status_updated(self, json_result, index):
-        if not json_result:
-            return
-
-        if 'success' in json_result and json_result['success']:
-            index.model().data_items[index.row()]['status'] = json_result['new_status']
-
-            # Note: this should instead use signal and do not address the widget globally
-            # and properly handle entry removal
-            self.window().personal_channel_page.channel_dirty = (
-                    self.table_view.window().edit_channel_page.channel_dirty
-                    or json_result['new_status'] != COMMIT_STATUS_COMMITTED
-            )
-            self.window().personal_channel_page.update_channel_commit_views(deleted_index=index)
+        if not doubleclick:
+            self.torrent_clicked.emit(data_item)
+        else:
+            self.torrent_doubleclicked.emit(data_item)
 
     def on_delete_button_clicked(self, _index):
         self.model().delete_rows(self.selectionModel().selectedRows())

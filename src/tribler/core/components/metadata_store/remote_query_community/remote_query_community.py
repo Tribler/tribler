@@ -1,4 +1,5 @@
 import json
+import logging
 import struct
 import time
 from asyncio import Future
@@ -155,9 +156,6 @@ class RemoteQueryCommunity(TriblerCommunity):
         self.eva = EVAProtocol(self, self.on_receive, self.on_send_complete, self.on_error)
         self.remote_queries_in_progress = 0
         self.next_remote_query_num = count().__next__  # generator of sequential numbers, for logging & debug purposes
-
-        import logging
-        self.logger.setLevel(logging.DEBUG)
 
     async def on_receive(self, result: TransferResult):
         self.logger.debug(f"EVA data received: peer {hexlify(result.peer.mid)}, info {result.info}")

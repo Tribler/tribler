@@ -3,7 +3,6 @@ import os
 import signal
 import sys
 import time
-from base64 import b64encode
 from pathlib import Path
 from typing import Optional
 
@@ -47,9 +46,6 @@ from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import ProcessManager
 from tribler.core.utilities.rest_utils import (
-    FILE_SCHEME,
-    MAGNET_SCHEME,
-    scheme_from_url,
     url_is_valid_file,
     url_to_path,
 )
@@ -65,22 +61,15 @@ from tribler.gui.defs import (
     BUTTON_TYPE_NORMAL,
     CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
     DARWIN,
-    PAGE_CHANNEL_CONTENTS,
-    PAGE_DISCOVERED,
-    PAGE_DISCOVERING,
     PAGE_DOWNLOADS,
     PAGE_LOADING,
     PAGE_POPULAR,
     PAGE_SEARCH_RESULTS,
     PAGE_SETTINGS,
-    PAGE_TRUST,
-    PAGE_TRUST_GRAPH_PAGE,
     SHUTDOWN_WAITING_PERIOD,
 )
-from tribler.gui.dialogs.addtopersonalchanneldialog import AddToChannelDialog
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
-from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
@@ -105,10 +94,8 @@ from tribler.gui.utilities import (
     show_message_box,
     tr,
 )
-from tribler.gui.widgets.channelsmenulistwidget import ChannelsMenuListWidget
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
 from tribler.gui.widgets.tablecontentmodel import (
-    DiscoveredChannelsModel,
     PopularTorrentsModel,
 )
 from tribler.gui.widgets.triblertablecontrollers import (
@@ -215,7 +202,6 @@ class TriblerWindow(QMainWindow):
         self.start_download_dialog_active = False
         self.selected_torrent_files = []
         self.start_time = time.time()
-        self.token_refresh_timer = None
         self.shutdown_timer = None
         self.add_torrent_url_dialog_active = False
 
@@ -235,8 +221,6 @@ class TriblerWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         RequestManager.window = self
         self.tribler_status_bar.hide()
-
-        self.token_balance_widget.mouseReleaseEvent = self.on_token_balance_click
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
@@ -265,7 +249,6 @@ class TriblerWindow(QMainWindow):
 
         self.menu_buttons = [
             self.left_menu_button_downloads,
-            # self.left_menu_button_discovered,
             self.left_menu_button_popular,
         ]
 
@@ -276,18 +259,12 @@ class TriblerWindow(QMainWindow):
         self.settings_page.initialize_settings_page(version_history=self.version_history)
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
-        self.discovering_page.initialize_discovering_page()
-
-        self.discovered_page.initialize_content_page(hide_xxx=self.hide_xxx)
 
         self.popular_page.initialize_content_page(
             hide_xxx=self.hide_xxx,
             controller_class=PopularContentTableViewController,
             categories=CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
         )
-
-        self.trust_page.initialize_trust_page()
-        self.trust_graph_page.initialize_trust_graph()
 
         self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
@@ -315,7 +292,6 @@ class TriblerWindow(QMainWindow):
         self.debug_panel_button.setHidden(True)
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.token_balance_widget.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
         self.top_search_bar.setHidden(True)
@@ -366,24 +342,10 @@ class TriblerWindow(QMainWindow):
 
         self.show()
 
-        self.add_to_channel_dialog = AddToChannelDialog(self.window())
-
         self.add_torrent_menu = self.create_add_torrent_menu()
         self.add_torrent_button.setMenu(self.add_torrent_menu)
 
-        # self.channels_menu_list = self.findChild(ChannelsMenuListWidget, "channels_menu_list")
-        #
-        # connect(self.channels_menu_list.itemClicked, self.open_channel_contents_page)
-
-        # The channels content page is only used to show subscribed channels, so we always show xxx
-        # contents in it.
-        # connect(
-        #     self.core_manager.events_manager.node_info_updated,
-        #     lambda data: self.channels_menu_list.reload_if_necessary([data]),
-        # )
-        # connect(self.left_menu_button_new_channel.clicked, self.create_new_channel)
         connect(self.debug_panel_button.clicked, self.clicked_debug_panel_button)
-        connect(self.trust_graph_button.clicked, self.clicked_trust_graph_page_button)
 
         # Apply a custom style to our checkboxes, with custom images.
         stylesheet = self.styleSheet()
@@ -434,27 +396,6 @@ class TriblerWindow(QMainWindow):
 
         restore_size()
         restore_position()
-
-    # def create_new_channel(self, checked):
-    #     # TODO: DRY this with tablecontentmodel, possibly using QActions
-    #
-    #     def update_channels_state(_):
-    #         self.channels_menu_list.load_channels()
-    #         self.add_to_channel_dialog.clear_channels_tree()
-    #
-    #     def create_channel_callback(channel_name):
-    #         request_manager.post("channels/mychannel/0/channels", update_channels_state,
-    #                              data={"name": channel_name} if channel_name else None)
-    #
-    #     NewChannelDialog(self, create_channel_callback)
-
-    def open_channel_contents_page(self, channel_list_item):
-        if not channel_list_item.flags() & Qt.ItemIsEnabled:
-            return
-
-        self.channel_contents_page.initialize_root_model_from_channel_info(channel_list_item.channel_info)
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_CONTENTS)
-        self.deselect_all_menu_buttons()
 
     def update_tray_icon(self, use_monochrome_icon):
         if not QSystemTrayIcon.isSystemTrayAvailable() or not self.tray_icon:
@@ -510,7 +451,6 @@ class TriblerWindow(QMainWindow):
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
-        self.token_balance_widget.setHidden(True)
         self.debug_panel_button.setHidden(True)
         self.settings_button.setHidden(True)
         self.add_torrent_button.setHidden(True)
@@ -564,7 +504,6 @@ class TriblerWindow(QMainWindow):
 
         self.top_menu_button.setHidden(False)
         self.left_menu.setHidden(False)
-        # self.token_balance_widget.setHidden(False)  # restore it after the token balance calculation is fixed
         self.settings_button.setHidden(False)
         self.add_torrent_button.setHidden(False)
         self.top_search_bar.setHidden(False)
@@ -574,37 +513,12 @@ class TriblerWindow(QMainWindow):
         self.setAcceptDrops(True)
         self.setWindowTitle(f"Tribler {self.tribler_version}")
 
-        autocommit_enabled = (
-            get_gui_setting(self.gui_settings, "autocommit_enabled", True, is_bool=True) if self.gui_settings else True
-        )
-        self.channel_contents_page.initialize_content_page(autocommit_enabled=autocommit_enabled, hide_xxx=False)
-
-        # self.discovered_page.initialize_root_model(
-        #     DiscoveredChannelsModel(
-        #         channel_info={"name": tr("Discovered channels")}, endpoint_url="channels", hide_xxx=self.hide_xxx
-        #     )
-        # )
-        # connect(self.core_manager.events_manager.discovered_channel, self.discovered_page.model.on_new_entry_received)
-
         self.popular_page.initialize_root_model(
             PopularTorrentsModel(channel_info={"name": tr("Popular torrents")}, hide_xxx=self.hide_xxx)
         )
         self.popular_page.explanation_tooltip_button.setHidden(False)
 
-        # self.add_to_channel_dialog.load_channel(0)
-
-        if not self.gui_settings.value("first_discover", False) and not self.core_manager.use_existing_core:
-            connect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
-            self.window().gui_settings.setValue("first_discover", True)
-            self.discovering_page.is_discovering = True
-            self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
-        else:
-            self.clicked_menu_button_downloads()
-        # else:
-            # self.clicked_menu_button_discovered()
-            # self.left_menu_button_discovered.setChecked(True)
-
-        # self.channels_menu_list.load_channels()
+        self.clicked_menu_button_downloads()
 
         # Toggle debug if developer mode is enabled
         self.window().debug_panel_button.setHidden(not get_gui_setting(self.gui_settings, "debug", False, is_bool=True))
@@ -616,15 +530,6 @@ class TriblerWindow(QMainWindow):
     @property
     def hide_xxx(self):
         return get_gui_setting(self.gui_settings, "family_filter", True, is_bool=True)
-
-    def stop_discovering(self, response):
-        if not self.discovering_page.is_discovering:
-            return
-        disconnect(self.core_manager.events_manager.discovered_channel, self.stop_discovering)
-        self.discovering_page.is_discovering = False
-        if self.stackedWidget.currentIndex() == PAGE_DISCOVERING:
-            self.clicked_menu_button_discovered()
-            # self.left_menu_button_discovered.setChecked(True)
 
     def on_events_started(self, json_dict):
         self.setWindowTitle(f"Tribler {json_dict['version']}")
@@ -671,7 +576,6 @@ class TriblerWindow(QMainWindow):
             safe_seeding,
             destination,
             selected_files,
-            add_to_channel=False,
             callback=None,
     ):
         # Check if destination directory is writable
@@ -700,40 +604,6 @@ class TriblerWindow(QMainWindow):
 
         self.update_recent_download_locations(destination)
 
-        if add_to_channel:
-            self.show_add_torrent_to_channel_dialog_from_uri(uri)
-
-    def show_add_torrent_to_channel_dialog_from_uri(self, uri):
-        def on_add_button_pressed(channel_id):
-            post_data = {}
-            scheme = scheme_from_url(uri)
-            if scheme == FILE_SCHEME:
-                file_path = url_to_path(uri)
-                content = Path(file_path).read_bytes()
-                post_data['torrent'] = b64encode(content).decode('ascii')
-            elif scheme == MAGNET_SCHEME:
-                post_data['uri'] = uri
-
-            if post_data:
-                request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_success=lambda _: self.tray_show_message(tr("Channel update"),
-                                                                                tr("Torrent(s) added to your channel")),
-                                    data=post_data)
-
-        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
-
-    def show_add_torrent_to_channel_dialog_from_torrent_data(self, torrent_data):
-        def on_add_button_pressed(channel_id):
-            post_data = {'torrent': torrent_data}
-
-            if post_data:
-                request_manager.put(f"channels/mychannel/{channel_id}/torrents",
-                                    on_success=lambda _: self.tray_show_message(tr("Channel update"),
-                                                                                tr("Torrent(s) added to your channel")),
-                                    data=post_data)
-
-        self.window().add_to_channel_dialog.show_dialog(on_add_button_pressed, confirm_button_text="Add torrent")
-
     def on_new_version_available(self, version):
         self.upgrade_manager.on_new_version_available(tribler_window=self, new_version=version)
 
@@ -757,49 +627,6 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons()
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
-
-    def enable_token_balance_refresh(self):
-        # Set token balance refresh timer and load the token balance
-        self.token_refresh_timer = QTimer()
-        connect(self.token_refresh_timer.timeout, self.load_token_balance)
-        self.token_refresh_timer.start(2000)
-
-        self.load_token_balance()
-
-    def on_token_balance_click(self, _):
-        self.raise_window()
-        self.deselect_all_menu_buttons()
-        self.stackedWidget.setCurrentIndex(PAGE_TRUST)
-        self.load_token_balance()
-        self.trust_page.load_history()
-
-    def load_token_balance(self):
-        request_manager.get("bandwidth/statistics", self.received_bandwidth_statistics, capture_errors=False)
-
-    def received_bandwidth_statistics(self, statistics):
-        if not statistics or "statistics" not in statistics:
-            return
-
-        self.trust_page.received_bandwidth_statistics(statistics)
-
-        statistics = statistics["statistics"]
-        balance = statistics["total_given"] - statistics["total_taken"]
-        self.set_token_balance(balance)
-
-        # If trust page is currently visible, then load the graph as well
-        if self.stackedWidget.currentIndex() == PAGE_TRUST:
-            self.trust_page.load_history()
-
-    def set_token_balance(self, balance):
-        if abs(balance) > 1024 ** 4:  # Balance is over a TB
-            balance /= 1024.0 ** 4
-            self.token_balance_label.setText(f"{balance:.1f} TB")
-        elif abs(balance) > 1024 ** 3:  # Balance is over a GB
-            balance /= 1024.0 ** 3
-            self.token_balance_label.setText(f"{balance:.1f} GB")
-        else:
-            balance /= 1024.0 ** 2
-            self.token_balance_label.setText("%d MB" % balance)
 
     def on_system_tray_icon_activated(self, reason):
         if reason != QSystemTrayIcon.DoubleClick:
@@ -847,7 +674,6 @@ class TriblerWindow(QMainWindow):
 
         self.create_dialog = CreateTorrentDialog(self)
         connect(self.create_dialog.create_torrent_notification, self.on_create_torrent_updates)
-        connect(self.create_dialog.add_to_channel_selected, self.show_add_torrent_to_channel_dialog_from_torrent_data)
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):
@@ -895,8 +721,7 @@ class TriblerWindow(QMainWindow):
                     self.dialog.dialog_widget.anon_download_checkbox.isChecked(),
                     self.dialog.dialog_widget.safe_seed_checkbox.isChecked(),
                     self.dialog.dialog_widget.destination_input.currentText(),
-                    self.dialog.dialog_widget.files_list_view.get_selected_files_indexes(),
-                    add_to_channel=self.dialog.dialog_widget.add_to_channel_checkbox.isChecked(),
+                    self.dialog.dialog_widget.files_list_view.get_selected_files_indexes()
                 )
             else:
                 ConfirmationDialog.show_error(
@@ -936,25 +761,6 @@ class TriblerWindow(QMainWindow):
 
     def on_confirm_add_directory_dialog(self, action):
         if action == 0:
-            if self.dialog.checkbox.isChecked():
-                # TODO: add recursive directory scanning
-                def on_add_button_pressed(channel_id):
-                    if not Path(self.chosen_dir).is_dir():
-                        show_message_box(f'"{self.chosen_dir}" is not a directory')
-                        return
-
-                    request_manager.put(
-                        endpoint=f"channels/mychannel/{channel_id}/torrents",
-                        on_success=lambda _: self.tray_show_message(
-                            tr("Channels update"), tr("%s added to your channel") % self.chosen_dir
-                        ),
-                        data={"torrents_dir": self.chosen_dir}
-                    )
-
-                self.window().add_to_channel_dialog.show_dialog(
-                    on_add_button_pressed, confirm_button_text=tr("Add torrent(s)")
-                )
-
             for torrent_file in self.selected_torrent_files:
                 self.perform_start_download_request(
                     torrent_file.as_uri(),
@@ -1051,15 +857,6 @@ class TriblerWindow(QMainWindow):
             self.deselect_all_menu_buttons()
             self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
-    # def clicked_menu_button_discovered(self):
-    #     self.deselect_all_menu_buttons()
-    #     self.left_menu_button_discovered.setChecked(True)
-    #     if self.stackedWidget.currentIndex() == PAGE_DISCOVERED:
-    #         self.discovered_page.go_back_to_level(0)
-    #         self.discovered_page.reset_view()
-    #     self.stackedWidget.setCurrentIndex(PAGE_DISCOVERED)
-    #     self.discovered_page.content_table.setFocus()
-
     def clicked_menu_button_popular(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_popular.setChecked(True)
@@ -1068,10 +865,6 @@ class TriblerWindow(QMainWindow):
             self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
-
-    def clicked_trust_graph_page_button(self, _):
-        self.deselect_all_menu_buttons()
-        self.stackedWidget.setCurrentIndex(PAGE_TRUST_GRAPH_PAGE)
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
@@ -1121,10 +914,6 @@ class TriblerWindow(QMainWindow):
         self.core_manager.stop()
         self.downloads_page.stop_refreshing_downloads()
         request_manager.clear()
-
-        # Stop the token balance timer
-        if self.token_refresh_timer:
-            self.token_refresh_timer.stop()
 
     def closeEvent(self, close_event):
         self.close_tribler()
@@ -1185,58 +974,6 @@ class TriblerWindow(QMainWindow):
 
     def node_info_updated(self, node_info):
         self.core_manager.events_manager.node_info_updated.emit(node_info)
-
-    def on_channel_subscribe(self, channel_info):
-        patch_data = [{
-            "public_key": channel_info['public_key'],
-            "id": channel_info['id'],
-            "subscribed": True
-        }]
-        request_manager.patch("metadata", lambda data: self.node_info_updated(data[0]), data=patch_data)
-
-    def on_channel_unsubscribe(self, channel_info):
-        def _on_unsubscribe_action(action):
-            if action == 0:
-                patch_data = [{"public_key": channel_info['public_key'], "id": channel_info['id'], "subscribed": False}]
-                request_manager.patch("metadata", lambda data: self.node_info_updated(data[0]), data=patch_data)
-            if self.dialog:
-                self.dialog.close_dialog()
-                self.dialog = None
-
-        self.dialog = ConfirmationDialog(
-            self,
-            tr("Unsubscribe from channel"),
-            tr("Are you sure you want to <b>unsubscribe</b> from channel<br/>")
-            + '\"'
-            + f"<b>{channel_info['name']}</b>"
-            + '\"'
-            + tr("<br/>and remove its contents?"),
-            [(tr("UNSUBSCRIBE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
-        )
-        connect(self.dialog.button_clicked, _on_unsubscribe_action)
-        self.dialog.show()
-
-    def on_channel_delete(self, channel_info):
-        def _on_delete_action(action):
-            if action == 0:
-                delete_data = [{"public_key": channel_info['public_key'], "id": channel_info['id']}]
-                request_manager.delete("metadata", lambda data: self.node_info_updated(data[0]), data=delete_data)
-            if self.dialog:
-                self.dialog.close_dialog()
-                self.dialog = None
-
-        self.dialog = ConfirmationDialog(
-            self,
-            tr("Delete channel"),
-            tr("Are you sure you want to <b>delete</b> your personal channel<br/>")
-            + '\"'
-            + f"<b>{channel_info['name']}</b>"
-            + '\"'
-            + tr("<br/>and all its contents?"),
-            [(tr("DELETE"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
-        )
-        connect(self.dialog.button_clicked, _on_delete_action)
-        self.dialog.show()
 
     def on_skip_conversion_dialog(self, action):
         if action == 0:

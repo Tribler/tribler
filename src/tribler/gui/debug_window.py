@@ -115,10 +115,6 @@ class DebugWindow(QMainWindow):
         # Libtorrent tab
         self.init_libtorrent_tab()
 
-        # Channels tab
-        connect(self.window().channels_tab_widget.currentChanged, self.channels_tab_changed)
-        self.window().channels_tab_widget.setCurrentIndex(0)
-
         # Position to center
         frame_geometry = self.frameGeometry()
         screen = QDesktopWidget().screenNumber(QDesktopWidget().cursor().pos())
@@ -199,8 +195,6 @@ class DebugWindow(QMainWindow):
             self.load_libtorrent_data()
         elif index == 9:
             self.load_logs_tab()
-        elif index == 10:
-            self.channels_tab_changed(self.window().channels_tab_widget.currentIndex())
 
     def ipv8_tab_changed(self, index):
         if index == 0:
@@ -266,7 +260,6 @@ class DebugWindow(QMainWindow):
         self.create_and_add_widget_item("BEP33 support", has_bep33_support(), self.window().general_tree_widget)
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
-        self.create_and_add_widget_item("Number of channels", data["num_channels"], self.window().general_tree_widget)
         self.create_and_add_widget_item(
             "Database size", format_size(data["db_size"]), self.window().general_tree_widget
         )
@@ -943,31 +936,3 @@ class DebugWindow(QMainWindow):
                     torrent_file.write(json.dumps(data))
             except OSError as exc:
                 ConfirmationDialog.show_error(self.window(), "Error exporting file", str(exc))
-
-    def on_channels_peers(self, data):
-        widget = self.window().channels_peers_tree_widget
-        widget.clear()
-        if not data:
-            return
-
-        for c in data["channels_list"]:
-            channel_item = QTreeWidgetItem()
-            channel_item.setText(0, str(c["channel_name"]))
-            channel_item.setText(1, str(c["channel_pk"]))
-            channel_item.setText(2, str(c["channel_id"]))
-            channel_item.setData(3, Qt.DisplayRole, len(c["peers"]))  # Peers count
-            for p in c["peers"]:
-                peer_item = QTreeWidgetItem()
-                peer_item.setText(1, str(p[0]))  # Peer mid
-                peer_item.setData(4, Qt.DisplayRole, p[1])  # Peer age
-                channel_item.addChild(peer_item)
-            widget.addTopLevelItem(channel_item)
-
-    def load_channels_peers_tab(self):
-        request_manager.get("remote_query/channels_peers", self.on_channels_peers)
-
-    def channels_tab_changed(self, index):
-        if index == 0:
-            self.run_with_timer(self.load_channels_peers_tab)
-        elif index == 1:
-            pass

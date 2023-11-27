@@ -81,7 +81,9 @@ def read_payload_with_offset(data, offset=0):
 class SignedPayload(VariablePayload):
     names = ['metadata_type', 'reserved_flags', 'public_key']
     format_list = ['H', 'H', '64s']
-    signature = NULL_SIG
+    signature: bytes = NULL_SIG
+
+    public_key: bytes
 
     def serialized(self):
         return default_serializer.pack_serializable(self)

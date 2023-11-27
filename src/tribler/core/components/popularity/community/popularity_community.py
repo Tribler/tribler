@@ -67,23 +67,6 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
         self.discovery_booster = DiscoveryBooster()
         self.discovery_booster.apply(self)
 
-    def guess_address(self, interface):
-        # Address caching allows 100x speedup of EdgeWalk.take_step() in DiscoveryBooster, from 3.0 to 0.03 seconds.
-        # The overridden method can be removed after IPv8 adds internal caching of addresses.
-        now = time.time()
-        cache_lifetime = now - self.address_cache_created_at
-        if cache_lifetime > max_address_cache_lifetime:
-            self.address_cache.clear()
-            self.address_cache_created_at = now
-
-        result = self.address_cache.get(interface)
-        if result is not None:
-            return result
-
-        result = super().guess_address(interface)
-        self.address_cache[interface] = result
-        return result
-
     def introduction_request_callback(self, peer, dist, payload):
         super().introduction_request_callback(peer, dist, payload)
         # Send request to peer to send popular torrents
@@ -177,9 +160,7 @@ class PopularityCommunity(RemoteQueryCommunity, VersionCommunityMixin):
     def get_random_peers(self, sample_size=None):
         # Randomly sample sample_size peers from the complete list of our peers
         all_peers = self.get_peers()
-        if sample_size is not None and sample_size < len(all_peers):
-            return random.sample(all_peers, sample_size)
-        return all_peers
+        return random.sample(all_peers, min(sample_size or len(all_peers), len(all_peers)))
 
     def send_search_request(self, **kwargs):
         # Send a remote query request to multiple random peers to search for some terms

@@ -336,9 +336,6 @@ class TriblerUpgrader:
             db.execute(sql_create_partial_index_torrentstate_last_check)
             mds.create_torrentstate_triggers()
 
-            # db.execute(sql_create_partial_index_channelnode_metadata_type)
-            # db.execute(sql_create_partial_index_channelnode_subscribed)
-
             db_version.value = str(to_version)
 
     def do_upgrade_pony_db_14to15(self, mds: Optional[MetadataStore]):

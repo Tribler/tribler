@@ -34,8 +34,7 @@ async def test_get_tribler_statistics(rest_api):
     """
     stats = (await do_request(rest_api, 'statistics/tribler', expected_code=200))['tribler_statistics']
     assert 'db_size' in stats
-    assert 'num_channels' in stats
-    assert 'num_channels' in stats
+    assert 'num_torrents' in stats
 
 
 async def test_get_ipv8_statistics(rest_api):

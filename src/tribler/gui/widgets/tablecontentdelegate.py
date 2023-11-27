@@ -301,74 +301,6 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         return super().createEditor(parent, option, index)
 
 
-class ChannelStateMixin:
-    wait_png = QIcon(get_image_path("wait.png"))
-    share_icon = QIcon(get_image_path("share.png"))
-    downloading_icon = QIcon(get_image_path("downloads.png"))
-
-    @staticmethod
-    def get_indicator_rect(rect):
-        r = rect
-        indicator_border = 1
-        indicator_side = (r.height() if r.width() > r.height() else r.width()) - indicator_border * 2
-        y = int(r.top() + (r.height() - indicator_side) // 2)
-        x = r.left() + indicator_border
-        w = indicator_side
-        h = indicator_side
-        indicator_rect = QRect(x, y, w, h)
-        return indicator_rect
-
-    def draw_channel_state(self, painter, option, index, data_item):
-        # Draw empty cell as the background
-
-        self.paint_empty_background(painter, option)
-        text_rect = option.rect
-
-        if data_item['status'] == CHANNEL_STATE.LEGACY.value:
-            painter.drawText(text_rect, Qt.AlignCenter, "Legacy")
-            return True
-
-        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
-            return True
-        if data_item['state'] == CHANNEL_STATE.COMPLETE.value:
-            painter.drawText(text_rect, Qt.AlignCenter, "✔")
-            return True
-        if data_item['state'] == CHANNEL_STATE.PERSONAL.value:
-            self.share_icon.paint(painter, self.get_indicator_rect(option.rect))
-            return True
-        if data_item['state'] == CHANNEL_STATE.DOWNLOADING.value:
-            painter.drawText(text_rect, Qt.AlignCenter, "⏳")
-            return True
-        if data_item['state'] == CHANNEL_STATE.METAINFO_LOOKUP.value:
-            painter.drawText(text_rect, Qt.AlignCenter, "❓")
-            return True
-        if data_item['state'] == CHANNEL_STATE.UPDATING.value:
-            progress = data_item.get('progress')
-            if progress is not None:
-                draw_progress_bar(painter, option.rect, float(progress))
-            return True
-        return True
-
-
-class SubscribedControlMixin:
-    def draw_subscribed_control(self, painter, option, index, data_item):
-        # Draw empty cell as the background
-        self.paint_empty_background(painter, option)
-
-        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
-            return True
-        if data_item['status'] == LEGACY_ENTRY:
-            return True
-        if data_item['state'] == 'Personal':
-            return True
-
-        self.subscribe_control.paint(
-            painter, option.rect, index, toggled=data_item.get('subscribed'), hover=index == self.hover_index
-        )
-
-        return True
-
-
 class TagsMixin:
     edit_tags_icon = QIcon(get_image_path("edit_white.png"))
     edit_tags_icon_hover = QIcon(get_image_path("edit_orange.png"))
@@ -529,13 +461,6 @@ class RatingControlMixin:
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if 'type' in data_item and data_item['type'] != CHANNEL_TORRENT:
-            return True
-        if data_item['status'] == LEGACY_ENTRY:
-            return True
-
-        self.rating_control.paint(painter, option.rect, index, votes=data_item['votes'])
-
         return True
 
 
@@ -544,12 +469,7 @@ class CategoryLabelMixin:
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        if 'type' in data_item and data_item['type'] == CHANNEL_TORRENT:
-            if data_item['state'] == 'Personal':
-                category_txt = "\U0001F3E0"  # 'home' emoji
-            else:
-                category_txt = "🌐"
-        elif 'type' in data_item and data_item['type'] == COLLECTION_NODE:
+        if 'type' in data_item and data_item['type'] == COLLECTION_NODE:
             category_txt = "\U0001F4C1"  # 'folder' emoji
         else:
             # Precautions to safely draw wrong category descriptions
@@ -616,15 +536,11 @@ class TriblerContentDelegate(
     RatingControlMixin,
     DownloadControlsMixin,
     HealthLabelMixin,
-    ChannelStateMixin,
-    SubscribedControlMixin,
     TagsMixin,
 ):
     def __init__(self, table_view, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
-        self.subscribe_control = SubscribeToggleControl(Column.SUBSCRIBED)
-        self.rating_control = RatingControl(Column.VOTES)
 
         self.download_button = DownloadIconButton()
         self.ondemand_container = [self.download_button]
@@ -632,21 +548,16 @@ class TriblerContentDelegate(
         self.commit_control = CommitStatusControl(Column.STATUS)
         self.health_status_widget = HealthStatusControl(Column.HEALTH)
         self.controls = [
-            self.subscribe_control,
             self.download_button,
-            self.commit_control,
-            self.rating_control,
             self.health_status_widget,
         ]
         self.column_drawing_actions = [
-            (Column.SUBSCRIBED, self.draw_subscribed_control),
             (Column.NAME, self.draw_title_and_tags),
             (Column.VOTES, self.draw_rating_control),
             (Column.ACTIONS, self.draw_action_column),
             (Column.CATEGORY, self.draw_category_label),
             (Column.HEALTH, self.draw_health_column),
             (Column.STATUS, self.draw_commit_status_column),
-            (Column.STATE, self.draw_channel_state),
         ]
         self.table_view = table_view
 
@@ -700,95 +611,6 @@ class CategoryLabel(QObject):
 
             painter.setRenderHint(QPainter.Antialiasing)
             painter.drawRoundedRect(bezel_box, 20, 80, mode=Qt.RelativeSize)
-
-        painter.restore()
-
-
-class SubscribeToggleControl(QObject, CheckClickedMixin):
-    clicked = pyqtSignal(QModelIndex)
-
-    def __init__(self, column_name, parent=None):
-        QObject.__init__(self, parent=parent)
-        self.column_name = column_name
-        self.last_index = QModelIndex()
-
-        self._track_radius = 10
-        self._thumb_radius = 8
-        self._line_thickness = self._track_radius - self._thumb_radius
-        self._margin = max(0, self._thumb_radius - self._track_radius)
-        self._base_offset = max(self._thumb_radius, self._track_radius)
-
-        self._width = 4 * self._track_radius + 2 * self._margin
-        self._height = 2 * self._track_radius + 2 * self._margin
-
-        self._end_offset = {True: lambda: self._width - self._base_offset, False: lambda: self._base_offset}
-
-        self._offset = self._base_offset
-
-        self._thumb_color = {True: TRIBLER_PALETTE.highlightedText(), False: TRIBLER_PALETTE.light()}
-        self._track_color = {True: TRIBLER_PALETTE.highlight(), False: TRIBLER_PALETTE.dark()}
-        self._text_color = {True: TRIBLER_PALETTE.highlight().color(), False: TRIBLER_PALETTE.dark().color()}
-        self._thumb_text = {True: '✔', False: '✕'}
-        self._track_opacity = 0.8
-
-    def paint(self, painter, rect, index, toggled=False, hover=False):
-        data_item = index.model().data_items[index.row()]
-        complete = data_item.get('state') == CHANNEL_STATE.COMPLETE.value
-
-        painter.save()
-
-        x = int(rect.x() + (rect.width() - self._width) // 2)
-        y = int(rect.y() + (rect.height() - self._height) // 2)
-
-        offset = self._end_offset[toggled]()
-        p = painter
-
-        p.setRenderHint(QPainter.Antialiasing, True)
-        track_opacity = 1.0 if hover else self._track_opacity
-        thumb_opacity = 1.0
-        text_opacity = 1.0
-        track_brush = self._track_color[toggled]
-        thumb_brush = self._thumb_color[toggled]
-        text_color = self._text_color[toggled]
-
-        p.setBrush(track_brush)
-        p.setPen(QPen(track_brush.color(), 2))
-        if not complete and toggled:
-            p.setBrush(Qt.NoBrush)
-        p.setOpacity(track_opacity)
-        p.drawRoundedRect(
-            x,
-            y,
-            self._width - 2 * self._margin,
-            self._height - 2 * self._margin,
-            self._track_radius,
-            self._track_radius,
-        )
-        p.setPen(Qt.NoPen)
-
-        p.setBrush(thumb_brush)
-        p.setOpacity(thumb_opacity)
-        p.drawEllipse(
-            x + offset - self._thumb_radius,
-            y + self._base_offset - self._thumb_radius,
-            2 * self._thumb_radius,
-            2 * self._thumb_radius,
-        )
-        p.setPen(text_color)
-        p.setOpacity(text_opacity)
-        font = p.font()
-        font.setPixelSize(int(1.5 * self._thumb_radius))
-        p.setFont(font)
-        p.drawText(
-            QRectF(
-                x + offset - self._thumb_radius,
-                y + self._base_offset - self._thumb_radius,
-                2 * self._thumb_radius,
-                2 * self._thumb_radius,
-            ),
-            Qt.AlignCenter,
-            self._thumb_text[toggled],
-        )
 
         painter.restore()
 
@@ -921,33 +743,3 @@ class HealthStatusControl(HealthStatusDisplay, CheckClickedMixin):
         QObject.__init__(self, parent=parent)
         self.column_name = column_name
         self.last_index = QModelIndex()
-
-
-class RatingControl(QObject, CheckClickedMixin):
-    """
-    Controls for visualizing the votes and subscription information for channels.
-    """
-
-    rating_colors = {
-        "BACKGROUND": QColor("#444444"),
-        "FOREGROUND": QColor("#BBBBBB"),
-        # "SUBSCRIBED_HOVER": QColor("#FF5722"),
-    }
-
-    clicked = pyqtSignal(QModelIndex)
-
-    def __init__(self, column_name, parent=None):
-        QObject.__init__(self, parent=parent)
-        self.column_name = column_name
-        self.last_index = QModelIndex()
-        self.font = None
-        # For some reason, on MacOS default inter-character spacing for some symbols
-        # is too wide. We have to adjust it manually.
-        if DARWIN or WINDOWS:
-            self.font = QFont()
-            self.font.setLetterSpacing(QFont.PercentageSpacing, 60.0)
-
-    def paint(self, painter, rect, _index, votes=0):
-        lpad = "      "  # we pad it to move it closer to the center
-        draw_text(painter, rect, lpad + format_votes(1.0), color=self.rating_colors["BACKGROUND"], font=self.font)
-        draw_text(painter, rect, lpad + format_votes(votes), color=self.rating_colors["FOREGROUND"], font=self.font)

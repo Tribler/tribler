@@ -8,7 +8,6 @@ import pytest
 from pony.orm import db_session
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
-from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.restapi.rest.base_api_test import do_request
@@ -75,7 +74,7 @@ async def test_search_by_tags(rest_api):
             return None
         return {hexlify(os.urandom(20))}
 
-    with patch.object(TriblerDatabase, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
+    with patch.object(KnowledgeDataAccessLayer, 'get_subjects_intersection', wraps=mocked_get_subjects_intersection):
         parsed = await do_request(rest_api, 'search/local?txt_filter=needle&tags=real_tag', expected_code=200)
 
         assert len(parsed["results"]) == 0
@@ -232,12 +231,7 @@ def test_build_snippets_no_infohash(endpoint: SearchEndpoint):
     assert result == search_results
 
 
-@pytest.fixture
-def mock_gigachannel_community():
-    return Mock()
-
-
-async def test_create_remote_search_request(rest_api, mock_gigachannel_community):
+async def test_create_remote_search_request(rest_api, mock_popularity_community):
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -268,3 +262,16 @@ async def test_create_remote_search_request(rest_api, mock_gigachannel_community
         rest_api, f'search/remote?channel_pk={channel_pk}&metadata_type=torrent', request_type="PUT", expected_code=200
     )
     assert hexlify(sent['channel_pk']) == channel_pk
+
+
+async def test_create_remote_search_request_illegal(rest_api, mock_popularity_community):
+    """
+    Test that remote search call is sent on a REST API search request
+    """
+    response = await do_request(
+        rest_api,
+        f'search/remote?origin_id=a',
+        request_type="PUT",
+        expected_code=400
+    )
+    assert "error" in response

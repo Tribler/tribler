@@ -8,7 +8,8 @@ from pony import orm
 from pony.orm import db_session
 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict, TODELETE
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict, TODELETE, \
+    entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.utilities import random_infohash
@@ -29,6 +30,17 @@ def test_serialization(metadata_store):
     """
     torrent_metadata = metadata_store.TorrentMetadata.from_dict({"infohash": random_infohash()})
     assert torrent_metadata.serialized()
+
+
+def test_entries_to_chunk():
+    """
+    Test that calling entries_to_chunk with a start index >= the length of the metadata list raises an Exception.
+    """
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 0)
+
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 1)
 
 
 async def test_create_ffa_from_dict(metadata_store):
@@ -259,9 +271,7 @@ def test_get_entries(metadata_store):
     for _ in range(5):
         tlist.extend(
             [
-                metadata_store.TorrentMetadata(
-                    title='torrent%d' % torrent_ind, infohash=random_infohash(), size=123
-                )
+                metadata_store.TorrentMetadata(title=f'torrent{torrent_ind}', infohash=random_infohash(), size=123)
                 for torrent_ind in range(5)
             ]
         )

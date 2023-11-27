@@ -65,7 +65,6 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
     def initialize(self, hide_xxx=False):
         self.hide_xxx = hide_xxx
         self.results_page_content.initialize_content_page(hide_xxx=hide_xxx)
-        self.results_page_content.channel_torrents_filter_input.setHidden(True)
 
     @property
     def has_results(self):

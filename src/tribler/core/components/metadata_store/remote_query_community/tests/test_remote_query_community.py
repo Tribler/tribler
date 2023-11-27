@@ -14,13 +14,13 @@ from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW, LZ4_EMPTY_ARCHIVE
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, REGULAR_TORRENT, \
     NULL_KEY
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
     RemoteQueryCommunity,
-    sanitize_query,
+    sanitize_query, SelectResponsePayload,
 )
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.utilities.path_util import Path
@@ -132,6 +132,17 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         self.nodes[1].overlay.send_remote_select(self.nodes[0].my_peer, **kwargs_dict, processing_callback=callback)
         await self.deliver_messages(timeout=0.5)
         callback.assert_called()
+
+    async def test_remote_select_deprecated(self):
+        """
+        Test deprecated search keys receiving an empty archive response.
+        """
+        with self.assertReceivedBy(0, [SelectResponsePayload]) as responses:
+            self.overlay(0).send_remote_select(self.peer(1), subscribed=1)
+            await self.deliver_messages()
+        response, = responses
+
+        assert response.raw_blob == LZ4_EMPTY_ARCHIVE
 
     async def test_push_entry_update(self):
         """

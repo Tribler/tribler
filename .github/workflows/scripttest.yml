@@ -98,20 +98,3 @@ jobs:
           command: python ./scripts/experiments/tunnel_community/speed_test_exit.py --fragile
           duration: ${{inputs.duration}}
 
-      #seedbox
-
-      - name: generate_test_data.py
-        run: |
-          python ./scripts/seedbox/generate_test_data.py --destination=./test_data --count=10
-
-      - name: disseminator.py
-        uses: ./.github/actions/timeout
-        with:
-          command: python ./scripts/seedbox/disseminator.py --source=./test_data --fragile --testnet
-          duration: ${{inputs.duration}}
-
-      - name: seeder.py
-        uses: ./.github/actions/timeout
-        with:
-          command: python ./scripts/seedbox/seeder.py --source=./test_data --testnet
-          duration: ${{inputs.duration}}

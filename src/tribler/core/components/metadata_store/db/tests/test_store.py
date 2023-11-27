@@ -121,21 +121,68 @@ def test_process_forbidden_payload(metadata_store):
 @db_session
 def test_process_payload(metadata_store):
     sender_key = default_eccrypto.generate_key("curve25519")
-    for md_class in (
-            metadata_store.TorrentMetadata,
-    ):
-        node, node_payload = get_payloads(md_class, sender_key)
-        node_dict = node.to_dict()
-        node.delete()
+    node, node_payload = get_payloads(metadata_store.TorrentMetadata, sender_key)
+    node_payload.add_signature(sender_key)
+    node_dict = node.to_dict()
+    node.delete()
 
-        # Check if node metadata object is properly created on payload processing
-        result = metadata_store.process_payload(node_payload)[0]
+    # Check if node metadata object is properly created on payload processing
+    result, = metadata_store.process_payload(node_payload)
+    assert result.obj_state == ObjState.NEW_OBJECT
+    assert node_dict['metadata_type'] == result.md_obj.to_dict()['metadata_type']
 
-        assert result.obj_state == ObjState.NEW_OBJECT
-        assert node_dict['metadata_type'] == result.md_obj.to_dict()['metadata_type']
+    # Check that we flag this as duplicate in case we already know about the local node
+    result, = metadata_store.process_payload(node_payload)
+    assert result.obj_state == ObjState.DUPLICATE_OBJECT
 
-        # Check that nothing happens in case in case we already know about the local node
-        assert metadata_store.process_payload(node_payload) == []
+
+@db_session
+def test_process_payload_invalid_sig(metadata_store):
+    sender_key = default_eccrypto.generate_key("curve25519")
+    node, node_payload = get_payloads(metadata_store.TorrentMetadata, sender_key)
+    node_payload.add_signature(sender_key)
+    node_payload.signature = bytes(127 ^ byte for byte in node_payload.signature)
+    node.delete()
+
+    assert [] == metadata_store.process_payload(node_payload)
+
+
+@db_session
+def test_process_payload_invalid_metadata_type(metadata_store):
+    sender_key = default_eccrypto.generate_key("curve25519")
+    node, node_payload = get_payloads(metadata_store.TorrentMetadata, sender_key)
+    node_payload.metadata_type = -1
+    node.delete()
+
+    assert [] == metadata_store.process_payload(node_payload)
+
+
+@db_session
+def test_process_payload_skip_personal(metadata_store):
+    sender_key = default_eccrypto.generate_key("curve25519")
+    metadata_store.my_public_key_bin = sender_key.pub().key_to_bin()[10:]
+    node, node_payload = get_payloads(metadata_store.TorrentMetadata, sender_key)
+    node_payload.add_signature(sender_key)
+    node.delete()
+
+    assert [] == metadata_store.process_payload(node_payload)
+
+
+@db_session
+def test_process_payload_unsigned(metadata_store):
+    sender_key = default_eccrypto.generate_key("curve25519")
+    node, node_payload = get_payloads(metadata_store.TorrentMetadata, sender_key)
+    node_dict = node.to_dict()
+    infohash = node_dict['infohash']
+    node.delete()
+
+    # Check if node metadata object is properly created on payload processing
+    result, = metadata_store.process_payload(node_payload)
+    assert result.obj_state == ObjState.NEW_OBJECT
+    assert node_dict['metadata_type'] == result.md_obj.to_dict()['metadata_type']
+
+    # Check that nothing happens in case we don't know about the local node
+    assert metadata_store.process_payload(node_payload) == []
 
 
 @db_session
@@ -179,3 +226,15 @@ async def test_run_threaded(metadata_store):
 
     with pytest.raises(ThreadedTestException, match='^test exception$'):
         await run_threaded(metadata_store.db, f1, 1, 2, c=5, d=6)
+
+
+def test_get_entries_query_sort_by_size(metadata_store):
+    with db_session:
+        metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xab" * 20, "title": "abc", "size": 20})
+        metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xcd" * 20, "title": "def", "size": 1})
+        metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xef" * 20, "title": "ghi", "size": 10})
+
+        ordered1, ordered2, ordered3 = metadata_store.get_entries_query(sort_by="size", sort_desc=True)[:]
+        assert ordered1.size == 20
+        assert ordered2.size == 10
+        assert ordered3.size == 1

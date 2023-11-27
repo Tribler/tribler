@@ -75,21 +75,6 @@ def tdef_to_metadata_dict(tdef, category_filter: Category = None):
     }
 
 
-def generate_dict_from_pony_args(cls, skip_list=None, **kwargs):
-    """
-    Note: this is a way to manually define Pony entity default attributes in case we
-    have to generate the signature before creating an object
-    """
-    d = {}
-    skip_list = skip_list or []
-    for attr in cls._attrs_:  # pylint: disable=W0212
-        val = kwargs.get(attr.name, DEFAULT)
-        if attr.name in skip_list:
-            continue
-        d[attr.name] = attr.validate(val, entity=cls)
-    return d
-
-
 def entries_to_chunk(metadata_list, chunk_size, start_index=0, include_health=False):
     """
     Put serialized data of one or more metadata entries into a single binary chunk. The data is added
@@ -145,7 +130,7 @@ def entries_to_chunk(metadata_list, chunk_size, start_index=0, include_health=Fa
     return result, index + 1
 
 
-def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int):
+def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int):  # noqa: MC0001
     class TorrentMetadata(db.Entity):
         """
         This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.
@@ -211,16 +196,7 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
                 # We have to give the entry an unique sig to honor the DB constraints. We use the entry's id_
                 # as the sig to keep it unique and short. The uniqueness is guaranteed by DB as it already
                 # imposes uniqueness constraints on the id_+public_key combination.
-                if "id_" in kwargs:
-                    kwargs["signature"] = None
-                else:
-                    # Trying to create an FFA entry without specifying the id_ should be considered an error,
-                    # because assigning id_ automatically by clock breaks anonymity.
-                    # FFA entries should be "timeless" and anonymous.
-                    raise InvalidChannelNodeException(
-                        "Attempted to create %s free-for-all (unsigned) object without specifying id_ : "
-                        % str(self.__class__.__name__)
-                    )
+                kwargs["signature"] = None
 
             super().__init__(*args, **kwargs)
 

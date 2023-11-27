@@ -20,13 +20,10 @@ from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
 from tribler.gui.app_manager import AppManager
 from tribler.gui.dialogs.feedbackdialog import FeedbackDialog
-from tribler.gui.dialogs.new_channel_dialog import NewChannelDialog
-from tribler.gui.tests.gui_test_data import negative_token_balance_history
 from tribler.gui.tribler_app import TriblerApplication
 from tribler.gui.tribler_window import TriblerWindow
 from tribler.gui.utilities import connect
 from tribler.gui.widgets.loading_list_item import LoadingListItem
-from tribler.gui.widgets.tablecontentmodel import Column
 from tribler.gui.widgets.tagbutton import TagButton
 from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL, PreformattedTorrentFileTreeWidget
 
@@ -265,105 +262,48 @@ def get_index_of_row_column(table_view, row, column):
     return table_view.indexAt(QPoint(x, y))
 
 
-def tst_channels_widget(window, widget, widget_name, sort_column=1, test_filter=True, test_subscribe=True):
-    wait_for_list_populated(widget.content_table)
-    screenshot(window, name=f"{widget_name}-page")
-
-    # Sort
-    widget.content_table.sortByColumn(sort_column, 1)
-    wait_for_list_populated(widget.content_table)
-    screenshot(window, name=f"{widget_name}-sorted")
-    total = widget.content_table.model().channel_info.get("total")
-    if total is not None:
-        max_items = min(total, 50)
-        assert widget.content_table.verticalHeader().count() <= max_items
-
-    # Filter
-    if test_filter:
-        old_num_items = widget.content_table.verticalHeader().count()
-        widget.channel_torrents_filter_input.setText("nonrandom")
-        widget.controller.on_filter_input_return_pressed()
-        wait_for_list_populated(widget.content_table)
-        screenshot(window, name=f"{widget_name}-filtered")
-        assert widget.content_table.verticalHeader().count() <= old_num_items
-        widget.channel_torrents_filter_input.setText("")
-        widget.controller.on_filter_input_return_pressed()
-        wait_for_list_populated(widget.content_table)
-
-    if test_subscribe:
-        widget.content_table.sortByColumn(0, 0)
-        wait_for_list_populated(widget.content_table)
-        screenshot(window, name=f"{widget_name}-sorted-on-subscribe")
-        # Subscribe
-        index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.VOTES])
-        widget.content_table.on_subscribe_control_clicked(index)
-        QTest.qWait(200)
-
-        # Unsubscribe
-        widget.content_table.on_subscribe_control_clicked(index)
-        QTest.qWait(200)
-        screenshot(window, name=f"{widget_name}-unsubscribed")
-        window.dialog.button_clicked.emit(0)
-
-    # Test channel view
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
-    widget.content_table.on_table_item_clicked(index)
-    wait_for_list_populated(widget.content_table)
-    screenshot(window, name=f"{widget_name}-channel_loaded")
-
-    # Click the first torrent
-    index = get_index_of_row_column(widget.content_table, 0, widget.model.column_position[Column.NAME])
-    widget.content_table.on_table_item_clicked(index)
-    QTest.qWait(WAIT_INTERVAL_MSEC)
-    screenshot(window, name=f"{widget_name}-torrent_details")
-
-
-@pytest.mark.guitest
-def test_discovered_page(window):
-    QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
-    tst_channels_widget(window, window.discovered_page, "discovered_page", sort_column=2)
+def fake_core_response_popular(window):
+    widget = window.popular_page
+    wait_for_list_populated(widget.content_table, num_items=0)
+    widget.model.on_query_results({
+        'results': [
+            {
+                'name': 'Some Torrent',
+                'category': 'other',
+                'infohash': 'af' * 20,
+                'size': 1234,
+                'num_seeders': 1,
+                'num_leechers': 1000000,
+                'last_tracker_check': 1500000000,
+                'created': 1000000000,
+                'tag_processor_version': 5,
+                'type': 300,
+                'id': 1,
+                'origin_id': 0,
+                'public_key': '',
+                'status': 2,
+                'statements': [{
+                    'subject_type': 102,
+                    'object': '2023',
+                    'predicate': 101,
+                    'subject': 'ec34c231dde3e92d8d26a17c223152c8541295aa'
+                }, {
+                    'subject_type': 102,
+                    'object': 'Ubuntu',
+                    'predicate': 101,
+                    'subject': '382b14edddae478f2148d1ec7c6cc6311d261caf'
+                }]
+            }]
+    })
 
 
 @pytest.mark.guitest
 def test_popular_page(window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
     widget = window.popular_page
+    fake_core_response_popular(window)
     wait_for_list_populated(widget.content_table)
     screenshot(window, name="popular_page")
-
-
-def wait_for_thumbnail(chan_widget):
-    """ Wait for the thumbnail to be populated.
-
-    Args:
-        chan_widget: The channel widget to check
-    """
-    # Wait for the thumbnail to be populated in intervals of `DEFAULT_WAIT_INTERVAL_MSEC`
-    for _ in range(0, 1000 * DEFAULT_TIMEOUT_SEC, WAIT_INTERVAL_MSEC):
-        QTest.qWait(WAIT_INTERVAL_MSEC)
-        if chan_widget.channel_description_container.channel_thumbnail_bytes is not None:
-            return
-
-    # thumbnail was not populated in time, fail the test
-    raise TimeoutException(f"The thumbnail was not shown within {DEFAULT_TIMEOUT_SEC} seconds")
-
-
-@pytest.mark.guitest
-def test_edit_channel_torrents(window):
-    wait_for_list_populated(window.channels_menu_list)
-
-    idx = window.channels_menu_list.model().index(0, 0)
-    item_pos = window.channels_menu_list.visualRect(idx).center()
-    QTest.mouseClick(window.channels_menu_list.viewport(), Qt.LeftButton, pos=item_pos)
-    wait_for_list_populated(window.channel_contents_page.content_table)
-    screenshot(window, name="edit_channel_committed")
-
-    idx = window.channels_menu_list.model().index(1, 0)
-    item_pos = window.channels_menu_list.visualRect(idx).center()
-    QTest.mouseClick(window.channels_menu_list.viewport(), Qt.LeftButton, pos=item_pos)
-    wait_for_list_populated(window.channel_contents_page.content_table)
-    wait_for_thumbnail(window.channel_contents_page)
-    screenshot(window, name="edit_channel_thumbnail_description")
 
 
 @pytest.mark.guitest
@@ -399,8 +339,6 @@ def test_downloads(window):
     screenshot(window, name="downloads_active")
     QTest.mouseClick(window.downloads_inactive_button, Qt.LeftButton)
     screenshot(window, name="downloads_inactive")
-    QTest.mouseClick(window.downloads_channels_button, Qt.LeftButton)
-    screenshot(window, name="downloads_channels")
 
 
 @pytest.mark.guitest
@@ -451,14 +389,6 @@ def test_search(window):
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
     QTest.qWait(WAIT_INTERVAL_MSEC)
     screenshot(window, name="search_loading_page")
-    tst_channels_widget(
-        window,
-        window.search_results_page.results_page_content,
-        "search_results",
-        sort_column=2,
-        test_filter=False,
-        test_subscribe=False,
-    )
 
 
 @pytest.mark.guitest
@@ -632,38 +562,12 @@ def test_debug_pane(window):
 
 
 @pytest.mark.guitest
-@pytest.mark.skip(reason="This element not in UI anymore")
-def test_trust_page(window):
-    QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
-    wait_for_variable(window, "trust_page.history")
-    screenshot(window, name="trust_page_values")
-
-
-@pytest.mark.guitest
-@pytest.mark.skip(reason="This element not in UI anymore")
-def test_big_negative_token_balance(window):
-    QTest.mouseClick(window.token_balance_widget, Qt.LeftButton)
-    wait_for_variable(window, "trust_page.history")
-    window.trust_page.history = negative_token_balance_history
-    window.trust_page.plot_absolute_values()
-    screenshot(window, name="big_negative_token_balance")
-
-
-@pytest.mark.guitest
-def test_close_dialog_with_esc_button(window):
-    QTest.mouseClick(window.left_menu_button_new_channel, Qt.LeftButton)
-    screenshot(window, name="create_new_channel_dialog")
-    assert window.findChildren(NewChannelDialog)
-    QTest.keyPress(window, Qt.Key_Escape)
-    assert not window.findChildren(NewChannelDialog)
-
-
-@pytest.mark.guitest
 def test_tags_dialog(window):
     """
     Test the behaviour of the dialog where a user can edit tags.
     """
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    fake_core_response_popular(window)
     widget = window.popular_page
     wait_for_list_populated(widget.content_table)
 
@@ -757,6 +661,7 @@ def test_tags_dialog(window):
     assert not tags_input.hasFocus()
 
     # Click on a suggestion
+    widget.content_table.add_tags_dialog.on_received_tag_suggestions({"suggestions": ["Tribler"]})
     tag_suggestion_buttons = widget.content_table.add_tags_dialog.dialog_widget.suggestions.findChildren(TagButton)
     assert tag_suggestion_buttons
     QTest.mouseClick(tag_suggestion_buttons[0], Qt.LeftButton)
@@ -783,6 +688,7 @@ def test_no_tags(window):
     Test removing all tags from a content item.
     """
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
+    fake_core_response_popular(window)
     widget = window.popular_page
     wait_for_list_populated(widget.content_table)
 
