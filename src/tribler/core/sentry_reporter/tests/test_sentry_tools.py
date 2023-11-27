@@ -151,16 +151,27 @@ OBFUSCATED_STRINGS = [
 ]
 
 EXCEPTION_STRINGS = [
-    ('OverflowError: bind(): port must be 0-65535',
-     ('OverflowError', 'bind(): port must be 0-65535'),
-     ),
+    (
+        'OverflowError: bind(): port must be 0-65535',
+        (
+            'OverflowError',
+            'bind(): port must be 0-65535'
+        ),
+    ),
 
-    ("pony.orm.core.TransactionIntegrityError: MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
-     ('pony.orm.core.TransactionIntegrityError', "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"),
-     ),
+    (
+        "pony_orm.core.TransactionIntegrityError: MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
+        (
+            'pony_orm.core.TransactionIntegrityError',
+            "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"
+        ),
+    ),
 
+    # Strings thst should not be matched
     ('ERROR <exception_handler:100>', None),
     ('PyInstaller\loader\pyimod03_importers.py:495', None),
+    ('foo:bar: baz', None),
+    ('foo<bar>: baz', None),
 ]
 
 
