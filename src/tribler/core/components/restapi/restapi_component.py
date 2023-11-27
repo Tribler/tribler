@@ -77,7 +77,8 @@ class RESTComponent(Component):
         db_component = await self.maybe_component(DatabaseComponent)
 
         public_key = key_component.primary_key.key.pk if not isinstance(key_component, NoneComponent) else b''
-        self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(public_key))
+        self._events_endpoint = EventsEndpoint(notifier, public_key=hexlify(public_key),
+                                               exception_handler=default_core_exception_handler)
         self.root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
         torrent_checker = None if config.gui_test_mode else torrent_checker_component.torrent_checker

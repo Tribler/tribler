@@ -1,16 +1,14 @@
 import asyncio
 import json
-import shutil
 from asyncio import CancelledError, Event, create_task
 from contextlib import suppress
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from aiohttp import ClientSession
 
 from tribler.core import notifications
-from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
+from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler.core.components.restapi.rest.rest_endpoint import RESTStreamResponse
@@ -181,28 +179,25 @@ async def test_get_events_with_saved_errors(mocked_send_saved_errors, events_end
     assert mocked_send_saved_errors.called
 
 
-@patch('tribler.core.components.reporter.exception_handler.default_core_exception_handler', new=CoreExceptionHandler())
 @patch('tribler.core.components.restapi.rest.rest_endpoint.RESTStreamResponse', new_callable=AsyncMock)
-async def test_send_saved_errors_in_response(mocked_response: RESTStreamResponse, events_endpoint: EventsEndpoint,
-                                             tmp_path: Path):
+async def test_send_saved_errors_in_response(mocked_response: RESTStreamResponse,
+                                             events_endpoint: EventsEndpoint):
     """
     Test that send_saved_errors_in_response will send all saved errors
     and delete them from the file system.
     """
-    mocked_response.write = AsyncMock()
-    default_core_exception_handler.delete_saved_file = MagicMock()
+    events_endpoint.exception_handler = MagicMock()
+    events_endpoint.exception_handler.delete_saved_file = MagicMock()
 
     saved_error = ReportedError('type', 'text', {})
-    saved_error_path = saved_error.get_file_path_in_dir(tmp_path)
-    default_core_exception_handler.get_saved_errors = MagicMock(return_value=[(saved_error_path, saved_error)])
+    saved_error_path = Mock()
+    events_endpoint.exception_handler.get_saved_errors = MagicMock(return_value=[(saved_error_path, saved_error)])
 
+    mocked_response.write = AsyncMock()
     await events_endpoint.send_saved_errors_in_response(mocked_response)
 
     assert mocked_response.write.called
-    assert default_core_exception_handler.delete_saved_file.called
-
-    # clean up the tmp directory to prevent side effects
-    shutil.rmtree(tmp_path, ignore_errors=True)
+    assert events_endpoint.exception_handler.delete_saved_file.called
 
 
 async def test_on_tribler_exception_shutdown():

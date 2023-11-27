@@ -51,11 +51,12 @@ class EventsEndpoint(RESTEndpoint):
     """
     path = '/events'
 
-    def __init__(self, notifier: Notifier, public_key: str = None):
+    def __init__(self, notifier: Notifier, public_key: str = None, exception_handler=None):
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
         self.undelivered_error: Optional[MessageDict] = None
         self.public_key = public_key
+        self.exception_handler = exception_handler or default_core_exception_handler
         self.notifier = notifier
         self.queue = Queue()
         self.async_group.add_task(self.process_queue())
@@ -136,11 +137,13 @@ class EventsEndpoint(RESTEndpoint):
         """
         Send saved errors from the previous run to GUI in the response.
         """
-        unreported_errors_from_last_run = default_core_exception_handler.get_saved_errors()
-        for _, unreported_error in unreported_errors_from_last_run:
+        if not self.exception_handler:
+            return
+
+        for _, unreported_error in self.exception_handler.get_saved_errors():
             if unreported_error:
                 await response.write(self.encode_message(self.error_message(unreported_error)))
-                default_core_exception_handler.delete_saved_file(unreported_error)
+                self.exception_handler.delete_saved_file(unreported_error)
 
     async def process_queue(self):
         while True:
