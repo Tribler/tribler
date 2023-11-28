@@ -1,9 +1,12 @@
+from unittest.mock import patch
+
 import pytest
 
 from tribler.core.components.component import Component
 from tribler.core.components.exceptions import MissedDependency, MultipleComponentsFound, NoneComponent
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 
 
 class ComponentTestException(Exception):
@@ -44,6 +47,20 @@ async def test_session_start_shutdown(tribler_config):
         assert component.started_event.is_set()
         assert component.shutdown_was_executed
         assert component.stopped
+
+
+@patch('tribler.core.components.component.get_global_process_manager')
+async def test_session_start_database_corruption_detected(get_global_process_manager):
+    exception = DatabaseIsCorrupted('db_path_string')
+
+    class TestComponent(Component):
+        async def run(self):
+            raise exception
+
+    component = TestComponent()
+
+    await component.start()
+    get_global_process_manager().sys_exit.assert_called_once_with(99, exception)
 
 
 class ComponentA(Component):

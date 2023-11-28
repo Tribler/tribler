@@ -1,7 +1,7 @@
 import pytest
 
 from tribler.core.sentry_reporter.sentry_tools import (
-    _re_search_exception, delete_item,
+    _re_search_exception, _re_search_exception_exclusions, delete_item,
     distinct_by,
     extract_dict,
     format_version,
@@ -110,15 +110,27 @@ OBFUSCATED_STRINGS = [
 ]
 
 EXCEPTION_STRINGS = [
-    ('OverflowError: bind(): port must be 0-65535',
-     ('OverflowError', 'bind(): port must be 0-65535'),
-     ),
+    (
+        'OverflowError: bind(): port must be 0-65535',
+        (
+            'OverflowError',
+            'bind(): port must be 0-65535'
+        ),
+    ),
 
-    ("pony.orm.core.TransactionIntegrityError : MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
-     ('pony.orm.core.TransactionIntegrityError', "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"),
-     ),
+    (
+        "pony_orm.core.TransactionIntegrityError: MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE",
+        (
+            'pony_orm.core.TransactionIntegrityError',
+            "MiscData['db_version'] cannot be stored. IntegrityError: UNIQUE"
+        ),
+    ),
 
-    ('ERROR <exception_handler:100>', None)
+    # Strings thst should not be matched
+    ('ERROR <exception_handler:100>', None),
+    ('PyInstaller\loader\pyimod03_importers.py:495', None),
+    ('foo:bar: baz', None),
+    ('foo<bar>: baz', None),
 ]
 
 
@@ -137,6 +149,18 @@ def test_parse_last_core_output_re(given, expected):
         assert m.group(2) == exception_text
     else:  # no match
         assert m == expected
+
+
+EXCEPTION_EXCLUSIONS_STRINGS = [
+    'UserWarning',
+]
+
+
+@pytest.mark.parametrize('given', EXCEPTION_EXCLUSIONS_STRINGS)
+def test_re_search_exception_exclusions(given):
+    # Test that `_re_search_exception_exclusions` matches with the expected values from the
+    # `EXCEPTION_EXCLUSIONS_STRINGS`
+    assert _re_search_exception_exclusions.search(given)
 
 
 def test_parse_last_core_output():
@@ -169,4 +193,9 @@ def test_parse_last_core_output_no_match():
     # Test that `parse_last_core_output` returns None in the case there is no exceptions in the raw core output
 
     last_core_exception = parse_last_core_output('last core output without exceptions')
+    assert not last_core_exception
+
+
+def test_parse_last_core_output_exclusion():
+    last_core_exception = parse_last_core_output('UserWarning: You are using cryptography on a 32-bit Python on a...')
     assert not last_core_exception

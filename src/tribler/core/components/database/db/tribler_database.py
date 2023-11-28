@@ -34,7 +34,7 @@ class TriblerDatabase:
         filename = filename or MEMORY
         db_does_not_exist = filename == MEMORY or not os.path.isfile(filename)
 
-        self.instance.bind('sqlite', filename, create_db=db_does_not_exist)
+        self.instance.bind(provider='sqlite', filename=filename, create_db=db_does_not_exist)
         generate_mapping_kwargs['create_tables'] = create_tables
         self.instance.generate_mapping(**generate_mapping_kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)

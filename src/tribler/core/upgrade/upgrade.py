@@ -3,6 +3,7 @@ import os
 import shutil
 import time
 from configparser import MissingSectionHeaderError, ParsingError
+from functools import wraps
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
 
@@ -12,19 +13,21 @@ from pony.orm import db_session, delete
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import (
-    MetadataStore,
+    CURRENT_DB_VERSION, MetadataStore,
     sql_create_partial_index_channelnode_metadata_type,
     sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
-from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration, get_db_version
+from tribler.core.upgrade.db8_to_db10 import PonyToPonyMigration
 from tribler.core.upgrade.knowledge_to_triblerdb.migration import MigrationKnowledgeToTriblerDB
 from tribler.core.upgrade.tags_to_knowledge.migration import MigrationTagsToKnowledge
 from tribler.core.upgrade.tags_to_knowledge.previous_dbs.tags_db import TagDatabase
 from tribler.core.upgrade.tribler_db.migration_chain import TriblerDatabaseMigrationChain
 from tribler.core.utilities.configparser import CallbackConfigParser
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.pony_utils import get_db_version
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
 
 
@@ -70,6 +73,35 @@ def cleanup_noncompliant_channel_torrents(state_dir):
                                  file_path)
 
 
+def catch_db_is_corrupted_exception(upgrader_method):
+    # This decorator applied for TriblerUpgrader methods. It suppresses and remembers the DatabaseIsCorrupted exception.
+    # As a result, if one upgrade method raises an exception, the following upgrade methods are still executed.
+    #
+    # The reason for this is the following: it is possible that one upgrade method upgrades database A
+    # while the following upgrade method upgrades database B. If a corruption is detected in the database A,
+    # the database B still needs to be upgraded. So, we want to temporarily suppress the DatabaseIsCorrupted exception
+    # until all upgrades are executed.
+    #
+    # If an upgrade finds the database to be corrupted, the database is marked as corrupted. Then, the next upgrade
+    # will rename the corrupted database file (the get_db_version call handles this) and immediately return because
+    # there is no database to upgrade. So, if one upgrade function detects database corruption, all the following
+    # upgrade functions for this specific database will skip the actual upgrade. As a result, a new database with
+    # the current DB version will be created on the Tribler Core start.
+
+    @wraps(upgrader_method)
+    def new_method(*args, **kwargs):
+        try:
+            upgrader_method(*args, **kwargs)
+        except DatabaseIsCorrupted as exc:
+            self: TriblerUpgrader = args[0]
+            self._logger.exception(exc)
+
+            if not self._db_is_corrupted_exception:
+                self._db_is_corrupted_exception = exc  # Suppress and remember the exception to re-raise it later
+
+    return new_method
+
+
 class TriblerUpgrader:
 
     def __init__(self, state_dir: Path, channels_dir: Path, primary_key: LibNaCLSK, secondary_key: Optional[LibNaCLSK],
@@ -85,6 +117,7 @@ class TriblerUpgrader:
 
         self.failed = True
         self._pony2pony = None
+        self._db_is_corrupted_exception: Optional[DatabaseIsCorrupted] = None
 
     @property
     def shutting_down(self):
@@ -111,6 +144,12 @@ class TriblerUpgrader:
         migration_chain = TriblerDatabaseMigrationChain(self.state_dir)
         migration_chain.execute()
 
+        if self._db_is_corrupted_exception:
+            # The current code is executed in the worker's thread. After all upgrade methods are executed,
+            # we re-raise the delayed exception, and then it is received and handled in the main thread
+            # by the UpgradeManager.on_worker_finished signal handler.
+            raise self._db_is_corrupted_exception  # pylint: disable=raising-bad-type
+
     def remove_old_logs(self) -> Tuple[List[Path], List[Path]]:
         self._logger.info(f'Remove old logs')
 
@@ -132,14 +171,19 @@ class TriblerUpgrader:
 
         return removed_files, left_files
 
+    @catch_db_is_corrupted_exception
     def upgrade_tags_to_knowledge(self):
         self._logger.info('Upgrade tags to knowledge')
         migration = MigrationTagsToKnowledge(self.state_dir, self.secondary_key)
         migration.run()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_14to15(self):
         self._logger.info('Upgrade Pony DB from version 14 to version 15')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
+        if not mds_path.exists() or get_db_version(mds_path, CURRENT_DB_VERSION) > 14:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
 
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=14) if mds_path.exists() else None
@@ -148,10 +192,15 @@ class TriblerUpgrader:
         if mds:
             mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_13to14(self):
         self._logger.info('Upgrade Pony DB from version 13 to version 14')
         mds_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
         tagdb_path = self.state_dir / STATEDIR_DB_DIR / 'tags.db'
+
+        if not mds_path.exists() or get_db_version(mds_path, CURRENT_DB_VERSION) > 13:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
 
         mds = MetadataStore(mds_path, self.channels_dir, self.primary_key, disable_sync=True,
                             check_tables=False, db_version=13) if mds_path.exists() else None
@@ -164,6 +213,7 @@ class TriblerUpgrader:
         if tag_db:
             tag_db.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_12to13(self):
         """
         Upgrade GigaChannel DB from version 12 (7.9.x) to version 13 (7.11.x).
@@ -172,12 +222,16 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 12 to 13')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if database_path.exists():
-            mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
-                                disable_sync=True, check_tables=False, db_version=12)
-            self.do_upgrade_pony_db_12to13(mds)
-            mds.shutdown()
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 12:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
 
+        mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
+                            disable_sync=True, check_tables=False, db_version=12)
+        self.do_upgrade_pony_db_12to13(mds)
+        mds.shutdown()
+
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_11to12(self):
         """
         Upgrade GigaChannel DB from version 11 (7.8.x) to version 12 (7.9.x).
@@ -187,13 +241,16 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 11 to 12')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 11:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=11)
         self.do_upgrade_pony_db_11to12(mds)
         mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_10to11(self):
         """
         Upgrade GigaChannel DB from version 10 (7.6.x) to version 11 (7.7.x).
@@ -203,14 +260,17 @@ class TriblerUpgrader:
         self._logger.info('Upgrade Pony DB 10 to 11')
         # We have to create the Metadata Store object because Session-managed Store has not been started yet
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists():
-            return
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) > 10:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         # code of the migration
         mds = MetadataStore(database_path, self.channels_dir, self.primary_key,
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
 
+    @catch_db_is_corrupted_exception
     def upgrade_bw_accounting_db_8to9(self):
         """
         Upgrade the database with bandwidth accounting information from 8 to 9.
@@ -221,8 +281,10 @@ class TriblerUpgrader:
         to_version = 9
 
         database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
-        if not database_path.exists() or get_db_version(database_path) >= 9:
-            return  # No need to update if the database does not exist or is already updated
+        if not database_path.exists() or get_db_version(database_path, BandwidthDatabase.CURRENT_DB_VERSION) > 8:
+            # No need to update if the database does not exist or is already updated
+            return  # pragma: no cover
+
         self._logger.info('bw8->9')
         db = BandwidthDatabase(database_path, self.primary_key.key.pk)
 
@@ -376,6 +438,7 @@ class TriblerUpgrader:
             db_version = mds.MiscData.get(name="db_version")
             db_version.value = str(to_version)
 
+    @catch_db_is_corrupted_exception
     def upgrade_pony_db_8to10(self):
         """
         Upgrade GigaChannel DB from version 8 (7.5.x) to version 10 (7.6.x).
@@ -383,9 +446,11 @@ class TriblerUpgrader:
         """
         self._logger.info('Upgrading GigaChannel DB from version 8 to 10')
         database_path = self.state_dir / STATEDIR_DB_DIR / 'metadata.db'
-        if not database_path.exists() or get_db_version(database_path) >= 10:
+
+        if not database_path.exists() or get_db_version(database_path, CURRENT_DB_VERSION) >= 10:
             # Either no old db exists, or the old db version is up to date  - nothing to do
             return
+
         self._logger.info('8->10')
         # Otherwise, start upgrading
         self.update_status("STARTING")

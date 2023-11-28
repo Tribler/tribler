@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -10,13 +12,14 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 
+from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.process_manager import ProcessManager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 from tribler.gui.network.request_manager import SHUTDOWN_ENDPOINT, request_manager
-from tribler.gui.utilities import connect
+from tribler.gui.utilities import connect, show_message_corrupted_database_was_fixed
 
 API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core API port
 API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this number of seconds
@@ -288,6 +291,14 @@ class CoreManager(QObject):
     def on_core_finished(self, exit_code, exit_status):
         self._logger.info("Core process finished")
         self.core_running = False
+        self.core_connected = False
+        if exit_code == EXITCODE_DATABASE_IS_CORRUPTED:
+            self._logger.error(f"Core process crashed with code {exit_code}: the database is corrupted. "
+                               "Restarting Core...")
+            self.start_tribler_core()
+            show_message_corrupted_database_was_fixed()
+            return
+
         self.core_finished = True
         if self.shutting_down:
             if self.should_quit_app_on_core_finished:

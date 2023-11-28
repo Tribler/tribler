@@ -9,6 +9,9 @@ from typing import Optional, Set, TYPE_CHECKING, Type, Union
 from tribler.core.components.exceptions import ComponentStartupException, MissedDependency, NoneComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
+from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
+from tribler.core.utilities.process_manager import get_global_process_manager
 
 if TYPE_CHECKING:
     from tribler.core.components.session import Session, T
@@ -47,8 +50,26 @@ class Component:
             self._set_component_status(msg, logging.ERROR, exc_info=exc_info)
             self.failed = True
             self.started_event.set()
+
+            if isinstance(e, DatabaseIsCorrupted):
+                # When the database corruption is detected, we should stop the process immediately.
+                # Tribler GUI will restart the process and the database will be recreated.
+
+                # Usually we wrap an exception into ComponentStartupException, and allow
+                # CoreExceptionHandler.unhandled_error_observer to handle it after all components are started,
+                # but in this case we don't do it. The reason is that handling ComponentStartupException
+                # starts the shutting down of Tribler, and due to some obscure reasons it is not possible to
+                # raise any exception, even SystemExit, from CoreExceptionHandler.unhandled_error_observer when
+                # Tribler is shutting down. It looks like in this case unhandled_error_observer is called from
+                # Task.__del__ method and all exceptions that are raised from __del__ are ignored.
+                # See https://bugs.python.org/issue25489 for similar case.
+                process_manager = get_global_process_manager()
+                process_manager.sys_exit(EXITCODE_DATABASE_IS_CORRUPTED, e)
+                return  # Added for clarity; actually, the code raised SystemExit on the previous line
+
             if self.session.failfast:
                 raise e
+
             self.session.set_startup_exception(ComponentStartupException(self, e))
         self.started_event.set()
 

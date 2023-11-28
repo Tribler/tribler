@@ -328,7 +328,7 @@
     <message>
         <location filename="../widgets/downloadspage.py" line="483"/>
         <source>An error occurred when exporting the torrent file: %s</source>
-        <translation>Ошибка при экспорте торрент-файла:</translation>
+        <translation>Ошибка при экспорте торрент-файла: %s</translation>
     </message>
     <message>
         <location filename="../widgets/downloadspage.py" line="489"/>

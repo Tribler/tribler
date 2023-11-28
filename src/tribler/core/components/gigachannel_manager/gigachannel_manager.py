@@ -12,6 +12,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.metadata_store.db.orm_bindings.channel_node import COMMITTED
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.simpledefs import DownloadStatus
@@ -80,6 +81,8 @@ class GigaChannelManager(TaskManager):
                             channel.id_,
                             channel_download,
                         )
+        except DatabaseIsCorrupted:
+            raise  # re-raise this exception and terminate the Core process
         except Exception:
             self._logger.exception("Error when tried to resume personal channel seeding on GigaChannel Manager startup")
 

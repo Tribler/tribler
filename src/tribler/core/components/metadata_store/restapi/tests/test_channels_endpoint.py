@@ -1,9 +1,10 @@
 import base64
 import json
 from binascii import unhexlify
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.util import succeed
 from pony.orm import db_session
 
@@ -16,6 +17,7 @@ from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORR
 from tribler.core.components.metadata_store.restapi.channels_endpoint import ChannelsEndpoint, ERROR_INVALID_MAGNET_LINK
 from tribler.core.components.metadata_store.utils import RequestTimeoutException, tag_torrent
 from tribler.core.components.restapi.rest.base_api_test import do_request
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.unicode import hexlify
@@ -364,7 +366,7 @@ async def test_add_torrents_no_dir(my_channel, rest_api):
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=400,
+        expected_code=HTTP_BAD_REQUEST,
     )
 
 
@@ -378,7 +380,7 @@ async def test_add_torrents_recursive_no_dir(my_channel, rest_api):
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=400,
+        expected_code=HTTP_BAD_REQUEST,
     )
 
 
@@ -405,7 +407,7 @@ async def test_add_torrent_missing_torrent(my_channel, rest_api):
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=400,
+        expected_code=HTTP_BAD_REQUEST,
     )
 
 
@@ -470,7 +472,7 @@ async def test_add_torrent_invalid_uri(my_channel, rest_api):
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=400,
+        expected_code=HTTP_BAD_REQUEST,
     )
 
 
@@ -526,7 +528,7 @@ async def test_add_torrent_from_magnet_error(my_channel, mock_dlmgr, rest_api):
         f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
         request_type='PUT',
         post_data=post_params,
-        expected_code=400,
+        expected_code=HTTP_BAD_REQUEST,
     )
     assert response['error'] == ERROR_INVALID_MAGNET_LINK.format(invalid_magnet_link)
 
@@ -613,7 +615,7 @@ async def test_get_channel_thumbnail(rest_api, metadata_store):
 
 
 async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_channel,
-                                   rest_api):  # pylint: disable=redefined-outer-name
+                                   rest_api):
     """
     Test whether tags are correctly returned over the REST API
     """
@@ -631,7 +633,7 @@ async def test_get_my_channel_tags(metadata_store, mock_dlmgr_get_download, my_c
 
 
 async def test_get_my_channel_tags_xxx(metadata_store, tribler_db, mock_dlmgr_get_download, my_channel,
-                                       rest_api):  # pylint: disable=redefined-outer-name
+                                       rest_api):
     """
     Test whether XXX tags are correctly filtered
     """
@@ -656,3 +658,17 @@ async def test_get_my_channel_tags_xxx(metadata_store, tribler_db, mock_dlmgr_ge
     print(json_dict)
     tag_statements = [s for s in json_dict["results"][0]["statements"] if s["predicate"] == ResourceType.TAG]
     assert len(tag_statements) == 1
+
+
+async def test_timeout_for_metainfo_request(my_channel, rest_api, mock_dlmgr):
+    """ Test that in the case of a timeout, the client receives HTTP_BAD_REQUEST """
+    mock_dlmgr.get_metainfo = AsyncMock(return_value=None)
+    await do_request(
+        rest_api,
+        f'channels/{hexlify(my_channel.public_key)}/{my_channel.id_}/torrents',
+        request_type='PUT',
+        post_data={'uri': 'magnet:?xt=urn:btih:1111111111111111111111111111111111111111'},
+        expected_code=HTTP_BAD_REQUEST,
+    )
+
+    assert mock_dlmgr.get_metainfo.called

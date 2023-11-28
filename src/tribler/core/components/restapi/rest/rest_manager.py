@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import ssl
 import traceback
@@ -23,9 +22,6 @@ from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
-
-
-SITE_START_TIMEOUT = 5.0  # seconds
 
 
 logger = logging.getLogger(__name__)
@@ -71,9 +67,7 @@ async def error_middleware(request, handler):
             'message': http_error.text,
         }}, status=HTTP_REQUEST_ENTITY_TOO_LARGE)
     except Exception as e:
-        logger.exception(e)
         full_exception = traceback.format_exc()
-
         default_core_exception_handler.unhandled_error_observer(None, {'exception': e, 'should_stop': False})
 
         return RESTResponse({"error": {
@@ -162,10 +156,7 @@ class RESTManager:
         self._logger.info(f"Starting HTTP REST API server on port {api_port}...")
 
         try:
-            # The self.site.start() is expected to start immediately. It looks like on some machines, it hangs.
-            # The timeout is added to prevent the hypothetical hanging.
-            await asyncio.wait_for(self.site.start(), timeout=SITE_START_TIMEOUT)
-
+            await self.site.start()
         except BaseException as e:
             self._logger.exception(f"Can't start HTTP REST API on port {api_port}: {e.__class__.__name__}: {e}")
             raise

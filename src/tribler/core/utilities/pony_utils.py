@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import sys
 import threading
@@ -9,6 +10,7 @@ from asyncio import get_event_loop
 from dataclasses import dataclass
 from io import StringIO
 from operator import attrgetter
+from pathlib import Path
 from types import FrameType
 from typing import Callable, Dict, Iterable, Optional, Type, TypeVar
 from weakref import WeakSet
@@ -17,7 +19,18 @@ from pony import orm
 from pony.orm import core
 from pony.orm.core import Database, select
 from pony.orm.dbproviders import sqlite
-from pony.utils import localbase
+from pony.utils import cut_traceback, localbase
+from tribler.core.utilities.db_corruption_handling import sqlite_replacement
+from tribler.core.utilities.db_corruption_handling.base import handle_db_if_corrupted
+
+# Inject sqlite replacement to PonyORM sqlite database provider to use augmented version of Connection and Cursor
+# classes that handle database corruption errors. All connection and cursor methods, such as execute and fetchone,
+# raise DatabaseIsCorrupted exception if the database is corrupted. Also, the marker file with ".is_corrupted"
+# extension is created alongside the corrupted database file. As a result of exception, the Tribler Core immediately
+# stops with the error code 99. Tribler GUI handles this error code by showing the message to the user and automatically
+# restarting the Core. After the Core is restarted, the database is re-created from scratch.
+sqlite.sqlite = sqlite_replacement
+
 
 SLOW_DB_SESSION_DURATION_THRESHOLD = 1.0
 
@@ -33,6 +46,33 @@ E = TypeVar('E', bound=core.Entity)
 
 def iterable(cls: Type[E]) -> Iterable[E]:
     return cls
+
+
+def table_exists(cursor: sqlite_replacement.Cursor, table_name: str) -> bool:
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+    return cursor.fetchone() is not None
+
+
+def get_db_version(db_path, default: int = None) -> int:
+    handle_db_if_corrupted(db_path)
+    version = None
+
+    if db_path.exists():
+        with contextlib.closing(sqlite_replacement.connect(db_path)) as connection:
+            with connection:
+                cursor = connection.cursor()
+                if table_exists(cursor, 'MiscData'):
+                    cursor.execute("SELECT value FROM MiscData WHERE name == 'db_version'")
+                    row = cursor.fetchone()
+                    version = int(row[0]) if row else None
+
+    if version is not None:
+        return version
+
+    if default is not None:
+        return default
+
+    raise RuntimeError(f'The version value is not found in database {db_path}')
 
 
 # pylint: disable=bad-staticmethod-argument
@@ -139,6 +179,8 @@ Queries statistics for the entire application:
 
 
 class TriblerDbSession(core.DBSessionContextManager):
+    track_slow_db_sessions = False
+
     def __init__(self, *args, duration_threshold: Optional[float] = None, **kwargs):
         super().__init__(*args, **kwargs)
         # `duration_threshold` specifies how long db_session should be to trigger the long db_session warning.
@@ -151,15 +193,41 @@ class TriblerDbSession(core.DBSessionContextManager):
         if is_top_level_db_session:
             self._start_tracking()
 
+    def __exit__(self, exc_type=None, exc=None, tb=None):
+        try:
+            super().__exit__(exc_type, exc, tb)
+        finally:
+            was_top_level_db_session = core.local.db_session is None
+            if was_top_level_db_session:
+                self._stop_tracking()
+
     def _start_tracking(self):
         for db in databases_to_track:
-            # Clear the local statistics for all databases, so we can accumulate new local statistics in db_session
+            # Clear the local statistics for all databases, so we can accumulate new local statistics in db session
             db.merge_local_stats()
 
+        # If the tracking of slow db_sessions is not enabled, we still create the DbSessionInfo instance, but without
+        # the current db session stack. It is fast, and this way it is easier to avoid race conditions for the case
+        # when the track_slow_db_sessions value is changed on the fly during the db session execution.
         local.db_session_info = DbSessionInfo(
-            current_db_session_stack=self._extract_stack(),
+            current_db_session_stack=self._extract_stack() if self.track_slow_db_sessions else None,
             start_time=time.time()
         )
+
+    def _stop_tracking(self):
+        info: DbSessionInfo = local.db_session_info
+        local.db_session_info = None
+
+        if info.current_db_session_stack is None:
+            # The tracking of slow db sessions was not enabled when the db session was started, so we skip analyzing it
+            return
+
+        start_time = info.start_time
+        db_session_duration = time.time() - start_time
+
+        threshold = SLOW_DB_SESSION_DURATION_THRESHOLD if self.duration_threshold is None else self.duration_threshold
+        if db_session_duration > threshold:
+            self._log_warning(db_session_duration, info)
 
     @staticmethod
     def _extract_stack() -> traceback.StackSummary:
@@ -184,25 +252,6 @@ class TriblerDbSession(core.DBSessionContextManager):
                                                capture_locals=False, lookup_lines=False)
         stack.reverse()
         return stack
-
-    def __exit__(self, exc_type=None, exc=None, tb=None):
-        try:
-            super().__exit__(exc_type, exc, tb)
-        finally:
-            was_top_level_db_session = core.local.db_session is None
-            if was_top_level_db_session:
-                self._stop_tracking()
-
-    def _stop_tracking(self):
-        info: DbSessionInfo = local.db_session_info
-        local.db_session_info = None
-
-        start_time = info.start_time
-        db_session_duration = time.time() - start_time
-
-        threshold = SLOW_DB_SESSION_DURATION_THRESHOLD if self.duration_threshold is None else self.duration_threshold
-        if db_session_duration > threshold:
-            self._log_warning(db_session_duration, info)
 
     def _log_warning(self, db_session_duration: float, info: DbSessionInfo):
         db_session_query_statistics = self._summarize_stat(db.local_stats for db in databases_to_track)
@@ -268,15 +317,15 @@ class TriblerDbSession(core.DBSessionContextManager):
         return result
 
 
-class PatchedSQLiteProvider(sqlite.SQLiteProvider):
+class TriblerSQLiteProvider(sqlite.SQLiteProvider):
+
+    # It is impossible to override the __init__ method without breaking the `SQLiteProvider.get_pool` method's logic.
+    # Therefore, we don't initialize a new attribute `_acquire_time` inside a class constructor method.
+    # Instead, we set its initial value at a class level.
     _acquire_time: float = 0  # A time when the current provider were able to acquire the database lock
 
-    # It is impossible to override the __init__ method of `SQLiteProvider` without breaking
-    # the `SQLiteProvider.get_pool` method's logic. Therefore, we don't initialize
-    # a new attribute `_acquire_time` inside a class constructor method;
-    # instead, we set its initial value at a class level.
-
     def acquire_lock(self):
+        # Adds tracking of a db_session's lock wait duration and lock acquire count
         t1 = time.time()
         super().acquire_lock()
         info = local.db_session_info
@@ -288,6 +337,7 @@ class PatchedSQLiteProvider(sqlite.SQLiteProvider):
             info.lock_wait_total_duration += lock_wait_duration
 
     def release_lock(self):
+        # Adds tracking of a db_session's total lock hold duration
         super().release_lock()
         info = local.db_session_info
         if info is not None:
@@ -297,18 +347,34 @@ class PatchedSQLiteProvider(sqlite.SQLiteProvider):
 
 
 db_session = TriblerDbSession()
+orm.db_session = orm.core.db_session = db_session
 
 
 class TrackedDatabase(Database):
-    # If a developer what to track the slow execution of the database, he should create an instance of TriblerDatabase
-    # instead of the usual pony.orm.Database.
+    # TriblerDatabase extends the functionality of the Database class in the following ways:
+    # * It adds handling the case when the database file is corrupted
+    # * It accumulates and shows statistics on slow database queries
 
     def __init__(self):
         databases_to_track.add(self)
         super().__init__()
 
+    @cut_traceback
+    def bind(self, **kwargs):
+        provider = kwargs.pop('provider', None)
+        if provider and provider != 'sqlite':
+            raise TypeError(f"Invalid 'provider' argument for TriblerDatabase: {provider!r}")
+
+        filename = kwargs.get('filename', None)
+        if filename and filename not in {':memory:', ':sharedmemory:'}:
+            db_path = Path(filename)
+            if not db_path.absolute():
+                raise ValueError(f"The 'filename' attribute is expected to be an absolute path. Got: {filename}")
+
+            handle_db_if_corrupted(db_path)
+
+        self._bind(TriblerSQLiteProvider, **kwargs)
+
 
 def track_slow_db_sessions():
-    # The method enables tracking of slow db_sessions
-    orm.db_session = orm.core.db_session = db_session
-    sqlite.provider_cls = PatchedSQLiteProvider
+    TriblerDbSession.track_slow_db_sessions = True

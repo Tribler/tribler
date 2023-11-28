@@ -193,7 +193,8 @@ def test_missed_key_in_translated_string(warning: Mock):
     # In this test, we pass the correct param 'key1' presented in the original string but missed in the translation.
     # The KeyError is intercepted, the original string is used instead of the translation, and the error is logged
     # as a warning.
-    assert s % {'key1': '123'} == 'original 123'
+    result = s % {'key1': '123'}
+    assert result == 'original 123'
 
     warning.assert_called_once_with('KeyError: No value provided for \'key2\' in translation "translated %(key2)s", '
                                     'original string: "original %(key1)s"')
@@ -238,3 +239,34 @@ def test_i18n_file_path_and_languages_content(mock_get_base_path, tmp_path):
     language_path.write_text(json.dumps(languages_json))
 
     assert languages_json == get_languages_file_content()
+
+
+@patch('tribler.gui.utilities.logger.warning')
+def test_wrong_parameters_in_translated_string(warning: Mock):
+    original_string = 'original: %s'
+    translated_string = 'translated'
+    s = TranslatedString(translated_string, original_string)
+
+    # In this test, we pass the correct positional param value '123' for a positional parameter that presents in the
+    # original string but is missed in the translation. The TypeError is intercepted; the original string is used
+    # instead of the translation, and the error is logged as a warning.
+    result = s % ('123',)
+    assert result == 'original: 123'
+
+    warning.assert_called_once_with('TypeError: Wrong number of parameters in translation "translated", '
+                                    'original string: "original: %s"')
+
+
+@patch('tribler.gui.utilities.logger.warning')
+def test_wrong_parameters_in_original_string(warning: Mock):
+    original_string = 'original'
+    translated_string = 'translated'
+    s = TranslatedString(translated_string, original_string)
+
+    # If neither translated nor original string have the matched number of positional parameters,
+    # then the TypeError exception is propagated.
+    with pytest.raises(TypeError, match='^not all arguments converted during string formatting$'):
+        _ = s % ('123',)
+
+    warning.assert_called_once_with('TypeError: Wrong number of parameters in translation "translated", '
+                                    'original string: "original"')

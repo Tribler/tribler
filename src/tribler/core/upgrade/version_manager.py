@@ -280,9 +280,10 @@ class VersionHistory:
                     code_version.should_be_copied = True
                     code_version.should_recreate_directory = True
                 else:
+                    prev_version_str = code_version.can_be_copied_from.version_str
                     self.logger.info(f"The state directory for the current version {code_version.version_str} "
-                                     f"is present, but the version does not listed in version history. Will not copy state "
-                                     f"from a previous version {code_version.can_be_copied_from.version_str}")
+                                     "is present, but the version does not listed in version history. "
+                                     f"Will not copy state from a previous version {prev_version_str}")
 
             else:
                 self.logger.info("Cannot find the previous suitable version to copy state directory")

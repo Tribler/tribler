@@ -10,6 +10,8 @@ from typing import Callable, Dict, Optional, Set, Tuple, Type
 from tribler.core.components.exceptions import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
+from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.process_manager import get_global_process_manager
 
 # There are some errors that we are ignoring.
@@ -93,12 +95,18 @@ class CoreExceptionHandler:
             should_stop = context.pop('should_stop', True)
             message = context.pop('message', 'no message')
             exception = context.pop('exception', None) or self._create_exception_from(message)
-            # Exception
-            text = str(exception)
+
+            self.logger.exception(f'{exception.__class__.__name__}: {exception}', exc_info=exception)
+
+            if isinstance(exception, DatabaseIsCorrupted):
+                process_manager.sys_exit(EXITCODE_DATABASE_IS_CORRUPTED, exception)
+                return  # Added for clarity; actually, the code raised SystemExit on the previous line
+
             if isinstance(exception, ComponentStartupException):
                 self.logger.info('The exception is ComponentStartupException')
                 should_stop = exception.component.tribler_should_stop_on_component_error
                 exception = exception.__cause__
+
             if isinstance(exception, NoCrashException):
                 self.logger.info('The exception is NoCrashException')
                 should_stop = False
@@ -113,7 +121,7 @@ class CoreExceptionHandler:
 
             reported_error = ReportedError(
                 type=exception.__class__.__name__,
-                text=text,
+                text=str(exception),
                 long_text=long_text,
                 context=str(context),
                 event=self.sentry_reporter.event_from_exception(exception) or {},

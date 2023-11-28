@@ -10,7 +10,7 @@ from tribler.core.utilities.process_manager.process import ProcessKind, TriblerP
 
 
 def test_tribler_process():
-    p = TriblerProcess.current_process(ProcessKind.Core, 123, manager=Mock())
+    p = TriblerProcess.current_process(manager=Mock(), kind=ProcessKind.Core, owns_lock=False, creator_pid=123)
     assert p.is_current_process()
     assert p.is_running()
 
@@ -26,14 +26,6 @@ def test_tribler_process():
               r"started='\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'\, api_port=123, duration='\d:\d{2}:\d{2}', " \
               r"exit_code=1\)$"
     assert re.match(pattern, str(p))
-
-
-@pytest.fixture(name='manager')
-def manager_fixture(tmp_path: Path) -> ProcessManager:
-    current_process = TriblerProcess.current_process(ProcessKind.Core)
-    process_manager = ProcessManager(tmp_path, current_process)
-    process_manager.connection = Mock()
-    return process_manager
 
 
 @pytest.fixture(name='current_process')
