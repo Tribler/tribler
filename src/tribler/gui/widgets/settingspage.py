@@ -79,6 +79,10 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         self.update_stacked_widget_height()
 
+    def showEvent(self, *args):
+        super().showEvent(*args)
+        self.window().settings_tab.process_button_click(self.window().settings_general_button)
+
     def on_channel_autocommit_checkbox_changed(self, _):
         self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
 

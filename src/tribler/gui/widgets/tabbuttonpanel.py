@@ -22,10 +22,14 @@ class TabButtonPanel(QWidget):
             connect(button.clicked_tab_button, self.on_tab_button_click)
 
     def on_tab_button_click(self, clicked_button):
-        gui_sentry_reporter.add_breadcrumb(message=f'{clicked_button.objectName()}.Click', category='UI', level='info')
+        self.process_button_click(clicked_button)
 
-        self.deselect_all_buttons(except_select=clicked_button)
-        self.clicked_tab_button.emit(clicked_button.objectName())
+    def process_button_click(self, button):
+        """ This method is called when a button is clicked."""
+        gui_sentry_reporter.add_breadcrumb(message=f'{button.objectName()}.Click', category='UI', level='info')
+
+        self.deselect_all_buttons(except_select=button)
+        self.clicked_tab_button.emit(button.objectName())
 
     def deselect_all_buttons(self, except_select=None):
         for button in self.buttons:
