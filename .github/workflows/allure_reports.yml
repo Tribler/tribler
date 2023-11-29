@@ -1,0 +1,74 @@
+name: Run tests and publish report
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+      matrix:
+        default: '{"os":["ubuntu-latest"]}'
+        type: string
+        required: false
+
+      ref:
+        default: ${{ github.ref }}
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{inputs.ref}}
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: requirements-test.txt
+          custom_cache_key_element: ${{inputs.ref}}
+
+      - name: Export env
+        uses: cardinalby/export-env-action@v2
+        with:
+          envFile: ./.github/workflows/vars/pytest.env
+          expand: true
+
+      - name: Run Pytest (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pytest ${PYTEST_CORE_ARGUMENTS_LINUX}
+          pytest ${PYTEST_TUNNELS_ARGUMENTS_LINUX}
+
+      - name: Load test report history
+        uses: actions/checkout@v3
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Build test report
+        uses: simple-elf/allure-report-action@v1.7
+        if: runner.os == 'Linux'
+        with:
+          gh_pages: gh-pages
+          allure_history: allure-history
+          allure_results: build/allure-results
+
+      - name: Publish test report
+        uses: peaceiris/actions-gh-pages@v3
+        if: runner.os == 'Linux'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history

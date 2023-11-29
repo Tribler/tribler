@@ -11,3 +11,6 @@ looptime==0.2 ; sys_platform != 'win32'
 
 # for pyqt5 test
 pytest-qt==4.2.0
+
+# allure
+allure-pytest==2.13.2
