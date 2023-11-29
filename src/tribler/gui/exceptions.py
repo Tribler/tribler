@@ -1,5 +1,4 @@
-class CoreError(Exception):
-    """This is the base class for exceptions that causes GUI shutdown"""
+from tribler.core.exceptions import CoreError
 
 
 class CoreConnectionError(CoreError):
