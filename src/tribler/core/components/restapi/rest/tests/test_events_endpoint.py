@@ -254,4 +254,3 @@ def test_on_tribler_exception_with_critical_error(mocked_save_to_file,
     assert mocked_save_to_file.called
     assert events_endpoint.undelivered_error
     assert events_endpoint.undelivered_error == events_endpoint.error_message(reported_error)
-

@@ -131,15 +131,12 @@ class EventsEndpoint(RESTEndpoint):
     def send_exception(self, reported_error: ReportedError):
         message = self.error_message(reported_error)
         self.send_event(message)
-        default_core_exception_handler.delete_saved_file(reported_error)
+        self.exception_handler.delete_saved_file(reported_error)
 
     async def send_saved_errors_in_response(self, response):
         """
         Send saved errors from the previous run to GUI in the response.
         """
-        if not self.exception_handler:
-            return
-
         for _, unreported_error in self.exception_handler.get_saved_errors():
             if unreported_error:
                 await response.write(self.encode_message(self.error_message(unreported_error)))
@@ -186,7 +183,7 @@ class EventsEndpoint(RESTEndpoint):
             self.send_exception(reported_error)
         else:
             if reported_error.should_stop:
-                default_core_exception_handler.save_to_file(reported_error)
+                self.exception_handler.save_to_file(reported_error)
             if not self.undelivered_error:
                 # If there are several undelivered errors, we store the first error as more important and skip other
                 self.undelivered_error = self.error_message(reported_error)
