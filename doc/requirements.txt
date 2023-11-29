@@ -1,4 +1,4 @@
-aiohttp==3.8.6
+aiohttp==3.9.0
 aiohttp_apispec==2.2.1
 pydantic==1.10.13
 pygments==2.15.0
