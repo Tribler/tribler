@@ -33,5 +33,9 @@ class TrustGraphException(TriblerException):
     """Exception specific to Trust graph."""
 
 
-class TriblerCoreTestException(TriblerException):
+class CoreError(TriblerException):
+    """This is the base class for exceptions that causes GUI shutdown"""
+
+
+class TriblerCoreTestException(CoreError):
     """Can be intentionally generated in Core by pressing Ctrl+Alt+Shift+C"""
