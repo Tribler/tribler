@@ -3,7 +3,7 @@ import random
 import string
 import time
 from asyncio import sleep
-from binascii import unhexlify
+from binascii import hexlify, unhexlify
 from operator import attrgetter
 from os import urandom
 from unittest.mock import Mock, patch
@@ -14,12 +14,13 @@ from pony.orm import db_session
 from pony.orm.dbapiprovider import OperationalError
 
 from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW, LZ4_EMPTY_ARCHIVE
+from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, REGULAR_TORRENT, \
+    NULL_KEY
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import (
     RemoteQueryCommunity,
-    sanitize_query,
+    sanitize_query, SelectResponsePayload,
 )
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.utilities.path_util import Path
@@ -34,18 +35,16 @@ def random_string():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=100))
 
 
-def add_random_torrent(metadata_cls, name="test", channel=None, seeders=None, leechers=None, last_check=None):
-    d = {"infohash": random_infohash(), "title": name, "tags": "", "size": 1234, "status": NEW}
-    if channel:
-        d.update({"origin_id": channel.id_})
+def add_random_torrent(metadata_cls, name="test", seeders=None, leechers=None, last_check=None):
+    d = {"infohash": random_infohash(), "public_key": NULL_KEY, "title": name, "tags": "", "size": 1234, "status": NEW}
     torrent_metadata = metadata_cls.from_dict(d)
-    torrent_metadata.sign()
     if seeders:
         torrent_metadata.health.seeders = seeders
     if leechers:
         torrent_metadata.health.leechers = leechers
     if last_check:
         torrent_metadata.health.last_check = last_check
+    return torrent_metadata
 
 
 class BasicRemoteQueryCommunity(RemoteQueryCommunity):
@@ -87,9 +86,6 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         self.count += 1
         return node
 
-    def channel_metadata(self, i):
-        return self.nodes[i].overlay.mds.ChannelMetadata
-
     def torrent_metadata(self, i):
         return self.nodes[i].overlay.mds.TorrentMetadata
 
@@ -100,17 +96,12 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         mds0 = self.nodes[0].overlay.mds
         mds1 = self.nodes[1].overlay.mds
 
-        # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
-
         # Fill Node 0 DB with channels and torrents
         with db_session:
-            channel = mds0.ChannelMetadata.create_channel("ubuntu channel", "ubuntu")
             for i in range(20):
                 add_random_torrent(
                     mds0.TorrentMetadata,
                     name=f"ubuntu {i}",
-                    channel=channel,
                     seeders=2 * i,
                     leechers=i,
                     last_check=int(time.time()) + i,
@@ -142,85 +133,16 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         await self.deliver_messages(timeout=0.5)
         callback.assert_called()
 
-    async def test_remote_select_query_back(self):
+    async def test_remote_select_deprecated(self):
         """
-        Test querying back preview contents for previously unknown channels.
+        Test deprecated search keys receiving an empty archive response.
         """
-        num_channels = 5
-        max_received_torrents_per_channel_query_back = 4
+        with self.assertReceivedBy(0, [SelectResponsePayload]) as responses:
+            self.overlay(0).send_remote_select(self.peer(1), subscribed=1)
+            await self.deliver_messages()
+        response, = responses
 
-        mds0 = self.nodes[0].overlay.mds
-        mds1 = self.nodes[1].overlay.mds
-
-        with db_session:
-            # Generate channels on Node 0
-            for _ in range(0, num_channels):
-                chan = mds0.ChannelMetadata.create_channel("channel", "")
-                # Generate torrents in each channel
-                for i in range(0, max_received_torrents_per_channel_query_back):
-                    torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=random_infohash())
-                    torrent.health.seeders = i
-
-        peer = self.nodes[0].my_peer
-        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-
-        await self.deliver_messages(timeout=0.5)
-
-        with db_session:
-            received_channels = list(mds1.ChannelMetadata.select(lambda g: g.title == "channel"))
-            assert len(received_channels) == num_channels
-            # For each unknown channel that we received, we should have queried the sender for 4 preview torrents.
-            received_torrents = list(mds1.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
-            assert num_channels * max_received_torrents_per_channel_query_back == len(received_torrents)
-            seeders = {t.health.seeders for t in received_torrents}
-            assert seeders == set(range(max_received_torrents_per_channel_query_back))
-
-    async def test_push_back_entry_update(self):
-        """
-        Test pushing back update for an entry.
-        Scenario: both hosts 0 and 1 have metadata entries for the same channel,
-        but host 1's version was created later (its timestamp is higher).
-        When host 1 queries -> host 0 for channel info, host 0 sends it back.
-        Upon receiving the response, host 1 sees that it has a newer version of the channel entry,
-        so it pushes it back to host 0.
-        """
-
-        mds0 = self.nodes[0].overlay.mds
-        mds1 = self.nodes[1].overlay.mds
-
-        # Create the old and new versions of the test channel
-        # We sign it with a different private key to prevent the special treatment
-        # of personal channels during processing interfering with the test.
-        fake_key = default_eccrypto.generate_key("curve25519")
-        with db_session:
-            chan = mds0.ChannelMetadata(infohash=random_infohash(), title="foo", sign_with=fake_key)
-            # pylint: disable=protected-access
-            chan_payload_old = chan._payload_class.from_signed_blob(chan.serialized())
-            chan.timestamp = chan.timestamp + 1
-            chan.sign(key=fake_key)
-            # pylint: disable=protected-access
-            chan_payload_updated = chan._payload_class.from_signed_blob(chan.serialized())
-            chan.delete()
-
-            # Add the older channel version to node 0
-            mds0.ChannelMetadata.from_payload(chan_payload_old)
-
-            # Add the updated channel version to node 1
-            mds1.ChannelMetadata.from_payload(chan_payload_updated)
-
-            # Just in case, assert the first node only got the older version for now
-            assert mds0.ChannelMetadata.get(timestamp=chan_payload_old.timestamp)
-
-        # Node 1 requests channel peers from node 0
-        peer = self.nodes[0].my_peer
-        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-        await self.deliver_messages(timeout=0.5)
-
-        with db_session:
-            # Check that node0 now got the updated version
-            assert mds0.ChannelMetadata.get(timestamp=chan_payload_updated.timestamp)
+        assert response.raw_blob == LZ4_EMPTY_ARCHIVE
 
     async def test_push_entry_update(self):
         """
@@ -238,10 +160,8 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         mds1 = self.nodes[1].overlay.mds
 
         with db_session:
-            chan = mds0.ChannelMetadata.create_channel(random_string(), "")
             torrent_infohash = random_infohash()
-            torrent = mds0.TorrentMetadata(origin_id=chan.id_, infohash=torrent_infohash, title='title1')
-            torrent.sign()
+            mds0.TorrentMetadata(infohash=torrent_infohash, public_key=NULL_KEY, title='title1')
 
         callback_called = asyncio.Event()
         processing_results = []
@@ -262,25 +182,6 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         assert obj.title == 'title1'
         assert obj.health.seeders == 0
 
-        with db_session:
-            torrent = mds0.TorrentMetadata.get(infohash=torrent_infohash)
-            torrent.timestamp += 1
-            torrent.title = 'title2'
-            torrent.sign()
-
-        processing_results = []
-        callback_called.clear()
-
-        self.nodes[1].overlay.send_remote_select(
-            peer, metadata_type=[REGULAR_TORRENT], infohash=torrent_infohash, processing_callback=callback
-        )
-
-        await callback_called.wait()
-
-        assert len(processing_results) == 1
-        obj = processing_results[0].md_obj
-        assert isinstance(obj, mds1.TorrentMetadata)
-        assert obj.health.seeders == 0
 
     async def test_remote_select_packets_limit(self):
         """
@@ -290,15 +191,15 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         mds0 = self.nodes[0].overlay.mds
         mds1 = self.nodes[1].overlay.mds
 
-        # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
-
         with db_session:
             for _ in range(0, 100):
-                mds0.ChannelMetadata.create_channel(random_string(), "")
+                md = add_random_torrent(mds0.TorrentMetadata, name=random_string())
+                key = default_eccrypto.generate_key("curve25519")
+                md.public_key = key.pub().key_to_bin()[10:]
+                md.signature = md.serialized(key)[-64:]
 
         peer = self.nodes[0].my_peer
-        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
+        kwargs_dict = {"metadata_type": [REGULAR_TORRENT]}
         self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
         # There should be an outstanding request in the list
         self.assertTrue(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
@@ -306,10 +207,10 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         await self.deliver_messages(timeout=1.5)
 
         with db_session:
-            received_channels = list(mds1.ChannelMetadata.select())
-            # We should receive less that 6 packets, so all the channels should not fit there.
-            received_channels_count = len(received_channels)
-            assert 40 < received_channels_count < 60
+            received_torrents = list(mds1.TorrentMetadata.select())
+            # We should receive less than 6 packets, so all the channels should not fit there.
+            received_torrents_count = len(received_torrents)
+            assert 40 <= received_torrents_count < 60
 
             # The list of outstanding requests should be empty
             self.assertFalse(self.nodes[1].overlay.request_cache._identifiers)  # pylint: disable=protected-access
@@ -350,28 +251,28 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         Check if a correct query with a match in our database returns a result.
         """
         with db_session:
-            channel = self.channel_metadata(0).create_channel("a channel", "")
-            add_random_torrent(self.torrent_metadata(0), name="a torrent", channel=channel)
+            add_random_torrent(self.torrent_metadata(0), name="torrent1")
+            add_random_torrent(self.torrent_metadata(0), name="torrent2")
 
         results = await self.overlay(0).process_rpc_query({})
         self.assertEqual(2, len(results))
 
-        channel_md, torrent_md = results if isinstance(results[0], self.channel_metadata(0)) else results[::-1]
-        self.assertEqual("a channel", channel_md.title)
-        self.assertEqual("a torrent", torrent_md.title)
+        torrent1_md, torrent2_md = results if results[0].title == "torrent1" else results[::-1]
+        self.assertEqual("torrent1", torrent1_md.title)
+        self.assertEqual("torrent2", torrent2_md.title)
 
     async def test_process_rpc_query_match_one(self):
         """
         Check if a correct query with one match in our database returns one result.
         """
         with db_session:
-            self.channel_metadata(0).create_channel("a channel", "")
+            add_random_torrent(self.torrent_metadata(0), name="a torrent")
 
         results = await self.overlay(0).process_rpc_query({})
         self.assertEqual(1, len(results))
 
-        (channel_md,) = results
-        self.assertEqual("a channel", channel_md.title)
+        (torrent_md,) = results
+        self.assertEqual("a torrent", torrent_md.title)
 
     async def test_process_rpc_query_match_none(self):
         """
@@ -398,8 +299,6 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         """
         Check if processing a request with invalid JSON causes a ValueError to be raised.
         """
-        with db_session:
-            self.channel_metadata(0).create_channel("a channel", "")
         query = b'{"id_":' + b'\x31' * 200 + b'}'
         with self.assertRaises(ValueError):
             parameters = self.overlay(0).parse_parameters(query)
@@ -426,9 +325,9 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         mds0 = self.nodes[0].overlay.mds
         mds1 = self.nodes[1].overlay.mds
 
-        value = urandom(20000)
+        value = urandom(10000)
         with db_session:
-            mds1.ChannelThumbnail(binary_data=value)
+            add_random_torrent(mds1.TorrentMetadata, name=hexlify(value))
 
         kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
         callback = Mock()
@@ -444,100 +343,7 @@ class TestRemoteQueryCommunity(TriblerTestBase):
             torrents1 = mds1.get_entries(**kwargs_dict)
             self.assertEqual(len(torrents0), len(torrents1))
 
-    async def test_remote_select_query_back_thumbs_and_descriptions(self):
-        """
-        Test querying back preview thumbnail and description for previously unknown and updated channels.
-        """
-        mds0 = self.nodes[0].overlay.mds
-        mds1 = self.nodes[1].overlay.mds
-
-        with db_session:
-            # Generate channels on Node 0
-            chan = mds0.ChannelMetadata.create_channel("channel", "")
-            mds0.ChannelThumbnail(
-                public_key=chan.public_key,
-                origin_id=chan.id_,
-                binary_data=urandom(2000),
-                data_type="image/png",
-                status=NEW,
-            )
-
-            mds0.ChannelDescription(
-                public_key=chan.public_key, origin_id=chan.id_, json_text='{"description_text": "foobar"}', status=NEW
-            )
-            chan.commit_all_channels()
-            chan_v = chan.timestamp
-
-        peer = self.nodes[0].my_peer
-        kwargs_dict = {"metadata_type": [CHANNEL_TORRENT]}
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-
-        await self.deliver_messages(timeout=0.5)
-
-        with db_session:
-            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel")
-            assert mds1.ChannelThumbnail.get()
-            assert mds1.ChannelDescription.get()
-
-        # Now test querying for updated version of description/thumbnail
-        with db_session:
-            thumb = mds0.ChannelThumbnail.get()
-            new_pic_bytes = urandom(2500)
-            thumb.update_properties({"binary_data": new_pic_bytes})
-            descr = mds0.ChannelDescription.get()
-            descr.update_properties({"json_text": '{"description_text": "yummy"}'})
-
-            chan = mds0.ChannelMetadata.get()
-            chan.commit_all_channels()
-            chan_v2 = chan.timestamp
-            assert chan_v2 > chan_v
-
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-
-        await self.deliver_messages(timeout=1)
-
-        with db_session:
-            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel")
-            assert mds1.ChannelThumbnail.get().binary_data == new_pic_bytes
-            assert mds1.ChannelDescription.get().json_text == '{"description_text": "yummy"}'
-
-        # Test querying for missing dependencies (e.g. thumbnails and descriptions lost due to transfer errors)
-        with db_session:
-            mds1.ChannelThumbnail.get().delete()
-            mds1.ChannelDescription.get().delete()
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-
-        await self.deliver_messages(timeout=1)
-
-        with db_session:
-            mds1.ChannelThumbnail.get()
-            mds1.ChannelDescription.get()
-
-        # Test that we're only going to query for updated objects and skip old ones
-        with db_session:
-            chan = mds0.ChannelMetadata.get()
-            mds0.TorrentMetadata(public_key=chan.public_key, origin_id=chan.id_, infohash=random_infohash(), status=NEW)
-
-            chan.commit_all_channels()
-            chan_v3 = chan.timestamp
-            assert chan_v3 > chan_v2
-
-        self.nodes[0].overlay.eva_send_binary = Mock()
-
-        self.nodes[1].overlay.send_remote_select(peer, **kwargs_dict)
-        await self.deliver_messages(timeout=1)
-
-        # Big transfer should not have been called, because we only queried for updated version of the thumbnail
-        self.nodes[0].overlay.eva_send_binary.assert_not_called()
-
-        with db_session:
-            assert mds1.ChannelMetadata.get(lambda g: g.title == "channel").timestamp == chan_v3
-
     async def test_drop_silent_peer(self):
-
-        # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
-
         kwargs_dict = {"txt_filter": "ubuntu*"}
 
         basic_path = 'tribler.core.components.metadata_store.remote_query_community.remote_query_community'
@@ -553,9 +359,6 @@ class TestRemoteQueryCommunity(TriblerTestBase):
 
     async def test_dont_drop_silent_peer_on_empty_response(self):
         # Test that even in the case of an empty response packet, remove_peer is not called on timeout
-
-        # We do not want the query back mechanism to interfere with this test
-        self.nodes[1].overlay.rqc_settings.max_channel_query_back = 0
 
         was_called = []
 
@@ -575,9 +378,9 @@ class TestRemoteQueryCommunity(TriblerTestBase):
         # Test requesting usage of EVA for sending multiple smaller entries
         with db_session:
             for _ in range(0, 10):
-                self.nodes[1].overlay.mds.ChannelThumbnail(binary_data=urandom(500))
+                add_random_torrent(self.nodes[1].overlay.mds.TorrentMetadata, name=hexlify(urandom(250)))
 
-        kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
+        kwargs_dict = {"metadata_type": [REGULAR_TORRENT]}
 
         self.nodes[1].overlay.eva.send_binary = Mock()
         self.nodes[0].overlay.send_remote_select(self.nodes[1].my_peer, **kwargs_dict, force_eva_response=True)

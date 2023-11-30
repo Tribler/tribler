@@ -62,7 +62,6 @@ class MetadataEndpointBase(RESTEndpoint):
             "txt_filter": parameters.get('txt_filter'),
             "hide_xxx": parse_bool(parameters.get('hide_xxx', False)),
             "category": parameters.get('category'),
-            "exclude_deleted": parse_bool(parameters.get('exclude_deleted', False)),
         }
         if 'tags' in parameters:
             sanitized['tags'] = parameters.getall('tags')

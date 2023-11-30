@@ -2,7 +2,7 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 
-from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
+from tribler.core.components.popularity.community.sync_strategy import RemovePeers
 from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
 
 

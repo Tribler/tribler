@@ -102,9 +102,6 @@ class StartDownloadDialog(DialogContainer):
         self.dialog_widget.safe_seed_checkbox.setChecked(
             self.window().tribler_settings['download_defaults']['safeseeding_enabled']
         )
-        self.dialog_widget.add_to_channel_checkbox.setChecked(
-            self.window().tribler_settings['download_defaults']['add_download_to_channel']
-        )
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())
 

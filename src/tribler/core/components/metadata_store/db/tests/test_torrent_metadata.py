@@ -1,17 +1,15 @@
+import os
 from datetime import datetime
 from time import time
 from unittest.mock import MagicMock, Mock
 
 import pytest
-from ipv8.keyvault.crypto import default_eccrypto
 from pony import orm
 from pony.orm import db_session
 
-from tribler.core.components.conftest import TEST_PERSONAL_KEY
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import TODELETE
-from tribler.core.components.metadata_store.db.orm_bindings.discrete_clock import clock
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict, TODELETE, \
+    entries_to_chunk
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
 from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
 from tribler.core.utilities.utilities import random_infohash
@@ -34,6 +32,17 @@ def test_serialization(metadata_store):
     assert torrent_metadata.serialized()
 
 
+def test_entries_to_chunk():
+    """
+    Test that calling entries_to_chunk with a start index >= the length of the metadata list raises an Exception.
+    """
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 0)
+
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 1)
+
+
 async def test_create_ffa_from_dict(metadata_store):
     """
     Test creating a free-for-all torrent entry
@@ -42,7 +51,9 @@ async def test_create_ffa_from_dict(metadata_store):
 
     with db_session:
         # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
-        signed_entry = metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
+        signed_md_dict = tdef_to_metadata_dict(tdef)
+        signed_md_dict.update({'public_key': os.urandom(64), 'signature': os.urandom(64)})
+        signed_entry = metadata_store.TorrentMetadata(**signed_md_dict)
         metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
         assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 0
 
@@ -104,10 +115,9 @@ def test_search_deduplicated(metadata_store):
     """
     Test SQL-query base deduplication of search results with the same infohash
     """
-    key2 = default_eccrypto.generate_key("curve25519")
     torrent = rnd_torrent()
     metadata_store.TorrentMetadata.from_dict(dict(torrent, title="foo bar 123"))
-    metadata_store.TorrentMetadata.from_dict(dict(torrent, title="eee 123", sign_with=key2))
+    metadata_store.TorrentMetadata.from_dict(dict(torrent, title="eee 123"))
     results = metadata_store.search_keyword("foo")[:]
     assert len(results) == 1
 
@@ -233,8 +243,8 @@ def test_get_entries_for_infohashes(metadata_store):
     infohash2 = random_infohash()
     infohash3 = random_infohash()
 
-    metadata_store.TorrentMetadata(title='title', infohash=infohash1, size=0, sign_with=TEST_PERSONAL_KEY)
-    metadata_store.TorrentMetadata(title='title', infohash=infohash2, size=0, sign_with=TEST_PERSONAL_KEY)
+    metadata_store.TorrentMetadata(title='title', infohash=infohash1, size=0)
+    metadata_store.TorrentMetadata(title='title', infohash=infohash2, size=0)
 
     def count(*args, **kwargs):
         return len(metadata_store.get_entries_query(*args, **kwargs))
@@ -256,20 +266,12 @@ def test_get_entries(metadata_store):
     """
     Test base method for getting torrents
     """
-    clock.clock = 0  # We want deterministic discrete clock values for tests
-
     # First we create a few channels and add some torrents to these channels
     tlist = []
-    keys = [*(default_eccrypto.generate_key('curve25519') for _ in range(4)), metadata_store.ChannelNode._my_key]
-    for ind, key in enumerate(keys):
-        metadata_store.ChannelMetadata(
-            title='channel%d' % ind, subscribed=(ind % 2 == 0), infohash=random_infohash(), num_entries=5, sign_with=key
-        )
+    for _ in range(5):
         tlist.extend(
             [
-                metadata_store.TorrentMetadata(
-                    title='torrent%d' % torrent_ind, infohash=random_infohash(), size=123, sign_with=key
-                )
+                metadata_store.TorrentMetadata(title=f'torrent{torrent_ind}', infohash=random_infohash(), size=123)
                 for torrent_ind in range(5)
             ]
         )
@@ -281,60 +283,6 @@ def test_get_entries(metadata_store):
 
     count = metadata_store.get_entries_count(metadata_type=REGULAR_TORRENT)
     assert count == 25
-
-    # Test fetching torrents in a channel
-    channel_pk = metadata_store.ChannelNode._my_key.pub().key_to_bin()[10:]
-
-    args = dict(channel_pk=channel_pk, hide_xxx=True, exclude_deleted=True, metadata_type=REGULAR_TORRENT)
-    torrents = metadata_store.get_entries_query(**args)[:]
-    assert tlist[-5:-2] == list(torrents)[::-1]
-
-    count = metadata_store.get_entries_count(**args)
-    assert count == 3
-
-    args = dict(sort_by='title', channel_pk=channel_pk, origin_id=0, metadata_type=REGULAR_TORRENT)
-    torrents = metadata_store.get_entries(first=1, last=10, **args)
-    assert len(torrents) == 5
-
-    count = metadata_store.get_entries_count(**args)
-    assert count == 5
-
-    # Test that channels get priority over torrents when querying for mixed content
-    args = dict(sort_by='size', sort_desc=True, channel_pk=channel_pk, origin_id=0)
-    torrents = metadata_store.get_entries(first=1, last=10, **args)
-    assert torrents[0].metadata_type == CHANNEL_TORRENT
-
-    args = dict(sort_by='size', sort_desc=False, channel_pk=channel_pk, origin_id=0)
-    torrents = metadata_store.get_entries(first=1, last=10, **args)
-    assert torrents[-1].metadata_type == CHANNEL_TORRENT
-
-    # Test getting entries by timestamp range
-    args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp", 3, 30),))
-    torrents = metadata_store.get_entries(first=1, last=10, **args)
-    assert sorted([t.timestamp for t in torrents]) == list(range(25, 30))
-
-    # Test catching SQL injection
-    args = dict(channel_pk=channel_pk, origin_id=0, attribute_ranges=(("timestamp < 3 and g.timestamp", 3, 30),))
-    with pytest.raises(AttributeError):
-        metadata_store.get_entries(**args)
-
-    # Test getting entry by id_
-    with db_session:
-        entry = metadata_store.TorrentMetadata(id_=123, infohash=random_infohash())
-    args = dict(channel_pk=channel_pk, id_=123)
-    torrents = metadata_store.get_entries(first=1, last=10, **args)
-    assert list(torrents) == [entry]
-
-    # Test getting complete channels
-    with db_session:
-        complete_chan = metadata_store.ChannelMetadata(
-            infohash=random_infohash(), title='bla', local_version=222, timestamp=222
-        )
-        incomplete_chan = metadata_store.ChannelMetadata(
-            infohash=random_infohash(), title='bla', local_version=222, timestamp=223
-        )
-        channels = metadata_store.get_entries(complete_channel=True)
-        assert [complete_chan] == channels
 
 
 @db_session
@@ -352,31 +300,6 @@ def test_get_entries_health_checked_after(metadata_store):
     # Check that only the more recently checked torrent is returned, because we limited the selection by time
     torrents = metadata_store.get_entries(health_checked_after=t2.health.last_check + 1)
     assert torrents == [t1]
-
-
-@db_session
-def test_metadata_conflicting(metadata_store):
-    tdict = dict(rnd_torrent(), title="lakes sheep", tags="video", infohash=b'\x00\xff')
-    md = metadata_store.TorrentMetadata.from_dict(tdict)
-    assert not md.metadata_conflicting(tdict)
-    assert md.metadata_conflicting(dict(tdict, title="bla"))
-    tdict.pop('title')
-    assert not md.metadata_conflicting(tdict)
-
-
-@db_session
-def test_update_properties(metadata_store):
-    """
-    Test the updating of several properties of a TorrentMetadata object
-    """
-    metadata = metadata_store.TorrentMetadata(title='foo', infohash=random_infohash())
-    orig_timestamp = metadata.timestamp
-
-    # Test updating the status only
-    assert metadata.update_properties({"status": 456}).status == 456
-    assert orig_timestamp == metadata.timestamp
-    assert metadata.update_properties({"title": "bar"}).title == "bar"
-    assert metadata.timestamp > orig_timestamp
 
 
 @db_session

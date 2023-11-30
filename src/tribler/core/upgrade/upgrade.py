@@ -11,11 +11,9 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session, delete
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.metadata_store.db.store import (
     CURRENT_DB_VERSION, MetadataStore,
-    sql_create_partial_index_channelnode_metadata_type,
-    sql_create_partial_index_channelnode_subscribed,
     sql_create_partial_index_torrentstate_last_check,
 )
 from tribler.core.upgrade.config_converter import convert_config_to_tribler76
@@ -337,9 +335,6 @@ class TriblerUpgrader:
                 db.execute('UPDATE "TorrentState" SET "has_data" = 1 WHERE last_check > 0')
             db.execute(sql_create_partial_index_torrentstate_last_check)
             mds.create_torrentstate_triggers()
-
-            db.execute(sql_create_partial_index_channelnode_metadata_type)
-            db.execute(sql_create_partial_index_channelnode_subscribed)
 
             db_version.value = str(to_version)
 

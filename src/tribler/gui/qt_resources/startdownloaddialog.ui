@@ -417,25 +417,6 @@ background: yellow;
         </property>
        </widget>
       </item>
-      <item>
-       <widget class="QCheckBox" name="add_to_channel_checkbox">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Add to my channel</string>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>

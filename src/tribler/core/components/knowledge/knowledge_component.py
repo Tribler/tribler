@@ -5,7 +5,6 @@ from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.community.knowledge_community import KnowledgeCommunity
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
-from tribler.core.components.metadata_store.utils import generate_test_channels
 
 
 class KnowledgeComponent(Component):
@@ -38,9 +37,6 @@ class KnowledgeComponent(Component):
         self.rules_processor.start()
 
         self._ipv8_component.initialise_community_by_default(self.community)
-
-        if self.session.config.gui_test_mode:
-            generate_test_channels(mds_component.mds, db_component.db)
 
     async def shutdown(self):
         await super().shutdown()

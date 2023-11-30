@@ -60,7 +60,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().download_location_chooser_button.clicked, self.on_choose_download_dir_clicked)
         connect(self.window().watch_folder_chooser_button.clicked, self.on_choose_watch_dir_clicked)
 
-        connect(self.window().channel_autocommit_checkbox.stateChanged, self.on_channel_autocommit_checkbox_changed)
         connect(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
         connect(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
@@ -83,9 +82,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
     def showEvent(self, *args):
         super().showEvent(*args)
         self.window().settings_tab.process_button_click(self.window().settings_general_button)
-
-    def on_channel_autocommit_checkbox_changed(self, _):
-        self.window().gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
 
     def on_family_filter_checkbox_changed(self, _):
         self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
@@ -176,16 +172,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().download_settings_anon_seeding_checkbox.setChecked(
             settings['download_defaults']['safeseeding_enabled']
         )
-        self.window().download_settings_add_to_channel_checkbox.setChecked(
-            settings['download_defaults']['add_download_to_channel']
-        )
         self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
         self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
-
-        # Channel settings
-        self.window().channel_autocommit_checkbox.setChecked(
-            get_gui_setting(gui_settings, "autocommit_enabled", True, is_bool=True)
-        )
 
         # Tags settings
         self.window().disable_tags_checkbox.setChecked(
@@ -499,9 +487,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         settings_data['download_defaults'][
             'safeseeding_enabled'
         ] = self.window().download_settings_anon_seeding_checkbox.isChecked()
-        settings_data['download_defaults'][
-            'add_download_to_channel'
-        ] = self.window().download_settings_add_to_channel_checkbox.isChecked()
 
         settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
         settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())
@@ -536,7 +521,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
         gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
-        gui_settings.setValue("autocommit_enabled", self.window().channel_autocommit_checkbox.isChecked())
         gui_settings.setValue("ask_download_settings", self.window().always_ask_location_checkbox.isChecked())
         gui_settings.setValue("use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked())
         gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())

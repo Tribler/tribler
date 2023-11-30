@@ -4,7 +4,7 @@ from PyQt5.QtCore import QDir
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 
-from tribler.gui.defs import BUTTON_TYPE_NORMAL, PAGE_EDIT_CHANNEL_TORRENTS
+from tribler.gui.defs import BUTTON_TYPE_NORMAL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
@@ -19,7 +19,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self.channel_identifier = None
         self.dialog = None
         self.selected_item_index = -1
         self.initialized = False
@@ -43,9 +42,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
             connect(self.window().edit_channel_create_torrent_button.clicked, self.on_create_clicked)
 
             self.initialized = True
-
-    def on_create_torrent_manage_back_clicked(self, checked):
-        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
 
     def on_choose_files_clicked(self, checked):
         filenames, _ = QFileDialog.getOpenFileNames(self.window(), "Please select the files", QDir.homePath())
@@ -104,19 +100,6 @@ class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
         if not result:
             return
         self.window().edit_channel_create_torrent_button.setEnabled(True)
-        if 'torrent' in result:
-            self.add_torrent_to_channel(result['torrent'])
-
-    def add_torrent_to_channel(self, torrent):
-        request_manager.put("mychannel/torrents", self.on_torrent_to_channel_added, data={"torrent": torrent})
-
-    def on_torrent_to_channel_added(self, result):
-        if not result:
-            return
-        self.window().edit_channel_create_torrent_progress_label.hide()
-        if 'added' in result:
-            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
-            self.window().personal_channel_page.load_my_torrents()
 
     def on_remove_entry(self):
         self.window().create_torrent_files_list.takeItem(self.selected_item_index)

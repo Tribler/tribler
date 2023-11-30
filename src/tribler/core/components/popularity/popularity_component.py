@@ -1,10 +1,10 @@
 from ipv8.peerdiscovery.network import Network
 
 from tribler.core.components.component import Component
-from tribler.core.components.gigachannel.community.sync_strategy import RemovePeers
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.popularity.community.sync_strategy import RemovePeers
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 
@@ -29,7 +29,8 @@ class PopularityComponent(Component):
                                         settings=config.popularity_community,
                                         rqc_settings=config.remote_query_community,
                                         metadata_store=metadata_store_component.mds,
-                                        torrent_checker=torrent_checker_component.torrent_checker)
+                                        torrent_checker=torrent_checker_component.torrent_checker,
+                                        notifier=self.session.notifier)
         self.community = community
 
         self._ipv8_component.initialise_community_by_default(community, default_random_walk_max_peers=30)

@@ -15,8 +15,6 @@ from tribler.core.check_os import (
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
-from tribler.core.components.gigachannel.gigachannel_component import GigaChannelComponent
-from tribler.core.components.gigachannel_manager.gigachannel_manager_component import GigachannelManagerComponent
 from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
 from tribler.core.components.gui_process_watcher.gui_process_watcher_component import GuiProcessWatcherComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -69,16 +67,10 @@ def components_gen(config: TriblerConfig):
 
     if config.libtorrent.enabled:
         yield LibtorrentComponent()
-    if config.ipv8.enabled and config.chant.enabled:
-        yield GigaChannelComponent()
     if config.ipv8.enabled:
         yield BandwidthAccountingComponent()
     if config.resource_monitor.enabled:
         yield ResourceMonitorComponent()
-
-    # The components below are skipped if config.gui_test_mode == True
-    if config.gui_test_mode:
-        return
 
     if config.libtorrent.enabled:
         yield SocksServersComponent()
@@ -87,6 +79,11 @@ def components_gen(config: TriblerConfig):
         yield TorrentCheckerComponent()
     if config.ipv8.enabled and config.torrent_checking.enabled and config.popularity_community.enabled:
         yield PopularityComponent()
+
+    # The components below are skipped if config.gui_test_mode == True
+    if config.gui_test_mode:
+        return
+
     if config.ipv8.enabled and config.tunnel_community.enabled:
         yield TunnelsComponent()
     if config.ipv8.enabled:
@@ -94,8 +91,6 @@ def components_gen(config: TriblerConfig):
     yield WatchFolderComponent()
     if config.general.version_checker_enabled:
         yield VersionCheckComponent()
-    if config.chant.enabled and config.chant.manager_enabled and config.libtorrent.enabled:
-        yield GigachannelManagerComponent()
 
 
 async def core_session(config: TriblerConfig, components: List[Component]) -> int:

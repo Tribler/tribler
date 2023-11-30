@@ -26,7 +26,7 @@ class HTTPRequestCache(RandomNumberCache):
 
     def add_response(self, payload):
         self.response[payload.part] = payload.response
-        if len(self.response) == payload.total:
+        if len(self.response) == payload.total and not self.response_future.done():
             self.response_future.set_result(b''.join([t[1] for t in sorted(self.response.items())]))
             return True
         return False

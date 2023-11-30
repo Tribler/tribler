@@ -10,13 +10,11 @@ from typing import Callable, Dict, List
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
+from tribler.core.components.metadata_store.db.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
 from tribler.core.utilities.search_utils import item_rank
-from tribler.core.utilities.simpledefs import CHANNELS_VIEW_UUID, CHANNEL_STATE
+from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
-from tribler.gui.defs import BITTORRENT_BIRTHDAY, COMMIT_STATUS_TODELETE, HEALTH_CHECKING
+from tribler.gui.defs import BITTORRENT_BIRTHDAY, HEALTH_CHECKING
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
@@ -438,11 +436,9 @@ class ChannelContentModel(RemoteTableModel):
         self.edit_tags_rects: Dict[QModelIndex, QRectF] = {}
         self.download_popular_content_rects: Dict[QModelIndex, List[QRectF]] = {}
 
-        # Current channel attributes. This is intentionally NOT copied, so local changes
-        # can propagate to the origin, e.g. parent channel.
-        self.channel_info = channel_info or {"name": "My channels", "status": 123}
+        self.channel_info = channel_info
 
-        self.endpoint_url_override = endpoint_url
+        self.endpoint_url = endpoint_url
 
         # Load the initial batch of entries
         self.perform_initial_query()
@@ -450,13 +446,6 @@ class ChannelContentModel(RemoteTableModel):
     @property
     def edit_enabled(self):
         return False
-
-    @property
-    def endpoint_url(self):
-        return self.endpoint_url_override or "channels/%s/%i" % (
-            self.channel_info["public_key"],
-            self.channel_info["id"],
-        )
 
     def headerData(self, num, orientation, role=None):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -502,7 +491,7 @@ class ChannelContentModel(RemoteTableModel):
                 column_type == Column.SIZE
                 and "torrents" not in self.columns
                 and "torrents" in item
-                and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, SNIPPET)
+                and item["type"] in (COLLECTION_NODE, SNIPPET)
         ):
             if item["type"] == SNIPPET:
                 return ""
@@ -646,12 +635,6 @@ class ChannelContentModel(RemoteTableModel):
         self.on_query_results(response, remote=True)
 
 
-class ChannelPreviewModel(ChannelContentModel):
-    def perform_query(self, **kwargs):
-        kwargs["remote"] = True
-        super().perform_query(**kwargs)
-
-
 class SearchResultsModel(ChannelContentModel):
     def __init__(self, original_query, **kwargs):
         self.original_query = original_query
@@ -712,91 +695,5 @@ class PopularTorrentsModel(ChannelContentModel):
     columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
 
     def __init__(self, *args, **kwargs):
-        kwargs["endpoint_url"] = 'channels/popular_torrents'
-        super().__init__(*args, **kwargs)
-
-
-class DiscoveredChannelsModel(ChannelContentModel):
-    columns_shown = (Column.SUBSCRIBED, Column.NAME, Column.STATE, Column.TORRENTS, Column.VOTES, Column.CREATED)
-
-    @property
-    def default_sort_column(self):
-        return self.columns_shown.index(Column.VOTES)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Subscribe to new channels updates notified over the Events endpoint
-        self.remote_queries.add(CHANNELS_VIEW_UUID)
-
-
-class PersonalChannelsModel(ChannelContentModel):
-    columns_shown = (
-        Column.ACTIONS,
-        Column.CATEGORY,
-        Column.NAME,
-        Column.SIZE,
-        Column.HEALTH,
-        Column.CREATED,
-        Column.STATUS,
-    )
-
-    def __init__(self, *args, **kwargs):
-        kwargs["hide_xxx"] = kwargs.get("hide_xxx", False)
-        super().__init__(*args, **kwargs)
-        self.columns[self.column_position[Column.CATEGORY]].qt_flags |= Qt.ItemIsEditable
-        self.columns[self.column_position[Column.NAME]].qt_flags |= Qt.ItemIsEditable
-
-    def delete_rows(self, rows):
-        patch_data = []
-        delete_data = []
-        for entry in [row.model().data_items[row.row()] for row in rows]:
-            if entry["status"] == NEW:
-                delete_data.append({"public_key": entry['public_key'], "id": entry['id']})
-            else:
-                patch_data.append(
-                    {"public_key": entry['public_key'], "id": entry['id'], "status": COMMIT_STATUS_TODELETE}
-                )
-
-        # We don't wait for the Core to report back and emit
-        # the info_changed signal speculativley to prevent the race condition between
-        # Python object deletion and PyQT one. Otherwise, if the users e.g. clicks the back
-        # button, by the moment the request callback triggers some actions on the model,
-        # QT could have already deleted the underlying model object, which will result in
-        # "wrapped C/C++ object has been deleted" error (see e.g. https://github.com/Tribler/tribler/issues/6083)
-
-        if patch_data:
-            self.remove_items(patch_data)
-            request_manager.patch("metadata", data=patch_data)
-
-        if delete_data:
-            self.remove_items(delete_data)
-            request_manager.delete("metadata", data=delete_data)
-
-    def create_new_channel(self, channel_name=None):
-        public_key = self.channel_info.get("public_key", '')
-        channel_id = self.channel_info.get("id", 0)
-
-        endpoint = self.endpoint_url_override or f"channels/{public_key}/{channel_id}"
-        postfix = "channels" if not channel_id else "collections"
-        request_manager.post(f'{endpoint}/{postfix}', self.on_create_query_results,
-                             data=json.dumps({"name": channel_name}) if channel_name else None)
-
-    def on_create_query_results(self, response, **kwargs):
-        # This is a hack to put the newly created object at the top of the table
-        kwargs["on_top"] = 1
-        self.on_query_results(response, **kwargs)
-        if not response or self.qt_object_destroyed:
-            return False
-        self.info_changed.emit(response['results'])
-
-    @property
-    def edit_enabled(self):
-        return self.channel_info.get("state", None) == "Personal"
-
-
-class SimplifiedPersonalChannelsModel(PersonalChannelsModel):
-    columns_shown = (Column.ACTIONS, Column.CATEGORY, Column.NAME, Column.SIZE, Column.HEALTH, Column.CREATED)
-
-    def __init__(self, *args, **kwargs):
-        kwargs["exclude_deleted"] = kwargs.get("exclude_deleted", True)
+        kwargs["endpoint_url"] = 'metadata/torrents/popular'
         super().__init__(*args, **kwargs)

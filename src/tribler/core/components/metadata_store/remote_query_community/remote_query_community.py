@@ -1,4 +1,5 @@
 import json
+import logging
 import struct
 import time
 from asyncio import Future
@@ -17,16 +18,15 @@ from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.ipv8.tribler_community import TriblerCommunity
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.metadata_store.db.orm_bindings.channel_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.components.metadata_store.db.store import MetadataStore
-from tribler.core.components.metadata_store.remote_query_community.payload_checker import ObjState
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
 from tribler.core.components.metadata_store.utils import RequestTimeoutException
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.unicode import hexlify
 
 BINARY_FIELDS = ("infohash", "channel_pk")
+DEPRECATED_PARAMETERS = ['subscribed', 'attribute_ranges', 'complete_channel']
 
 
 def sanitize_query(query_dict: Dict[str, Any], cap=100) -> Dict[str, Any]:
@@ -272,6 +272,11 @@ class RemoteQueryCommunity(TriblerCommunity):
     async def _on_remote_select_basic(self, peer, request_payload, force_eva_response=False):
         try:
             sanitized_parameters = self.parse_parameters(request_payload.json)
+            # Drop selects with deprecated queries
+            if any(param in sanitized_parameters for param in DEPRECATED_PARAMETERS):
+                self.logger.warning(f"Remote select with deprecated parameters: {sanitized_parameters}")
+                self.ez_send(peer, SelectResponsePayload(request_payload.id, LZ4_EMPTY_ARCHIVE))
+                return
             db_results = await self.process_rpc_query_rate_limited(sanitized_parameters)
 
             # When we send our response to a host, we open a window of opportunity
@@ -286,7 +291,7 @@ class RemoteQueryCommunity(TriblerCommunity):
     @lazy_wrapper(SelectResponsePayload)
     async def on_remote_select_response(self, peer, response_payload):
         """
-        Match the the response that we received from the network to a query cache
+        Match the response that we received from the network to a query cache
         and process it by adding the corresponding entries to the MetadataStore database.
         This processes both direct responses and pushback (updates) responses
         """
@@ -309,42 +314,14 @@ class RemoteQueryCommunity(TriblerCommunity):
         if isinstance(request, EvaSelectRequest) and not request.processing_results.done():
             request.processing_results.set_result(processing_results)
 
-        # If we know about updated versions of the received stuff, push the updates back
-        if isinstance(request, SelectRequest) and self.rqc_settings.push_updates_back_enabled:
-            newer_entities = [r.md_obj for r in processing_results if r.obj_state == ObjState.LOCAL_VERSION_NEWER]
-            self.send_db_results(peer, response_payload.id, newer_entities)
-
-        if self.rqc_settings.channel_query_back_enabled:
-            for result in processing_results:
-                # Query back the sender for preview contents for the new channels
-                # The fact that the object is previously unknown is indicated by process_payload in the
-                # .obj_state property of returned ProcessingResults objects.
-                if result.obj_state == ObjState.NEW_OBJECT and result.md_obj.metadata_type in (
-                        CHANNEL_TORRENT,
-                        COLLECTION_NODE,
-                ):
-                    request_dict = {
-                        "metadata_type": [COLLECTION_NODE, REGULAR_TORRENT],
-                        "channel_pk": result.md_obj.public_key,
-                        "origin_id": result.md_obj.id_,
-                        "first": 0,
-                        "last": self.rqc_settings.max_channel_query_back,
-                    }
-                    self.send_remote_select(peer=peer, **request_dict)
-
-                # Query back for missing dependencies, e.g. thumbnail/description.
-                # The fact that some dependency is missing is checked by the lower layer during
-                # the query to process_payload and indicated through .missing_deps property of the
-                # ProcessingResults objects returned by process_payload.
-                for dep_query_dict in result.missing_deps:
-                    self.send_remote_select(peer=peer, **dep_query_dict)
-
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
 
         # Remember that at least a single packet was received was received from the queried peer.
         if isinstance(request, SelectRequest):
             request.peer_responded = True
+
+        return processing_results
 
     def _on_query_timeout(self, request_cache):
         if not request_cache.peer_responded:

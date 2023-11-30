@@ -10,7 +10,7 @@ from tribler.core.components.database.db.layers.tests.test_knowledge_data_access
     TestKnowledgeAccessLayerBase
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.ipv8.adapters_tests import TriblerTestBase
-from tribler.core.components.metadata_store.db.orm_bindings.channel_node import NEW
+from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW
 from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.remote_query_community.remote_query_community import RemoteQueryCommunity
 from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
