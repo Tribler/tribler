@@ -119,6 +119,11 @@ Get in touch!
 
 We like to hear your feedback and suggestions. To reach out to us, you can join `our Discord server <https://discord.gg/UpPUcVGESe>`_ or create a post on `our forums <https://forum.tribler.org>`_.
 
+License
+=======
+
+This file is part of Tribler, Copyright 2004-2023. Tribler is licensed under the GNU General Public License, version 3 (GPL-3.0), as published by the Free Software Foundation on 29 June 2007. Tribler is free software: you can redistribute it and/or modify it under the terms of this license. Tribler is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  For more details, see the full terms and conditions in the `LICENSE.txt <LICENSE.txt>`_ file at the root of this repository, or visit https://www.gnu.org/licenses/gpl-3.0.html.
+
 
 .. |jenkins_build| image:: http://jenkins-ci.tribler.org/job/Test_tribler_main/badge/icon
     :target: http://jenkins-ci.tribler.org/job/Test_tribler_main/
