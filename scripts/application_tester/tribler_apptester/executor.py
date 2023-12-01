@@ -411,42 +411,20 @@ def exit_script():
         There are various actions possible that can occur with different probabilities.
         """
         action_name = self.weighted_choice(self.probabilities)
-        if not action_name:
-            self._logger.warning("No action available!")
-            return WaitAction(1000)
-
         self._logger.info("Random action: %s", action_name)
-        try:
-            action = None
-            if action_name == 'test_exception':
-                action = TestExceptionAction()
-            elif action_name == 'random_page':
-                action = RandomPageAction()
-            elif action_name == 'search':
-                action = RandomSearchAction()
-            elif action_name == 'start_download':
-                torrent_links = Path(__file__).parent / "data/torrent_links.txt"
-                action = StartRandomDownloadAction(torrent_links)
-            elif action_name == 'remove_download':
-                action = RemoveRandomDownloadAction()
-            elif action_name == 'explore_download':
-                action = ExploreDownloadAction()
-            elif action_name == 'screenshot':
-                action = ScreenshotAction()
-            elif action_name == 'start_vod':
-                action = StartVODAction()
-            elif action_name == 'change_anonymity':
-                action = ChangeAnonymityAction(allow_plain=self.allow_plain_downloads)
-            elif action_name == 'change_download_files':
-                action = ChangeDownloadFilesAction()
-        except Exception as e:
-            self._logger.exception(e)
-            return
-
-        if not action:
-            self._logger.error("Action %s does not exist", action)
-            action = WaitAction(1000)
-        return action
+        actions = {
+            'test_exception': TestExceptionAction,
+            'random_page': RandomPageAction,
+            'search': RandomSearchAction,
+            'start_download': lambda: StartRandomDownloadAction(Path(__file__).parent / "data/torrent_links.txt"),
+            'remove_download': RemoveRandomDownloadAction,
+            'explore_download': ExploreDownloadAction,
+            'screenshot': ScreenshotAction,
+            'start_vod': StartVODAction,
+            'change_anonymity': lambda: ChangeAnonymityAction(allow_plain=self.allow_plain_downloads),
+            'change_download_files': ChangeDownloadFilesAction
+        }
+        return actions.get(action_name, lambda: None)()
 
     async def perform_random_action(self):
         action = self.get_random_action()
