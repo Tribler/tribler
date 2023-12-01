@@ -58,7 +58,7 @@ def make_config(options) -> TriblerConfig:
     config.ipv8.address = options.ipv8_address
     config.dht.enabled = True
     config.tunnel_community.exitnode_enabled = bool(options.exit)
-    config.popularity_community.enabled = False
+    config.content_discovery_community.enabled = False
     config.tunnel_community.testnet = bool(options.testnet)
     config.chant.enabled = False
     config.bootstrap.enabled = False

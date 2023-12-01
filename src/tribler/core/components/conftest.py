@@ -36,7 +36,7 @@ def tribler_config(tmp_path) -> TriblerConfig:
     config.libtorrent.enabled = False
     config.libtorrent.dht_readiness_timeout = 0
     config.tunnel_community.enabled = False
-    config.popularity_community.enabled = False
+    config.content_discovery_community.enabled = False
     config.dht.enabled = False
     config.libtorrent.dht = False
     config.chant.enabled = False

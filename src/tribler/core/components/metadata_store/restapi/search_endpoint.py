@@ -15,7 +15,7 @@ from tribler.core.components.metadata_store.db.store import MetadataStore
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpointBase
 from tribler.core.components.metadata_store.restapi.metadata_schema import SearchMetadataParameters, MetadataSchema, \
     RemoteQueryParameters
-from tribler.core.components.popularity.community.popularity_community import PopularityCommunity
+from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTResponse
 from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it
@@ -31,7 +31,7 @@ class SearchEndpoint(MetadataEndpointBase):
     """
     path = '/search'
 
-    def __init__(self, popularity_community: PopularityCommunity, *args, **kwargs):
+    def __init__(self, popularity_community: ContentDiscoveryCommunity, *args, **kwargs):
         MetadataEndpointBase.__init__(self, *args, **kwargs)
         self.popularity_community = popularity_community
 

@@ -64,7 +64,7 @@ class TorrentChecker(TaskManager):
         self.udp_transport = None
 
         # We keep track of the results of popular torrents checked by you.
-        # The popularity community gossips this information around.
+        # The content_discovery community gossips this information around.
         self._torrents_checked: Optional[Dict[bytes, HealthInfo]] = None
 
     async def initialize(self):

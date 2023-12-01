@@ -18,8 +18,8 @@ from tribler.core.components.ipv8.settings import (
 )
 from tribler.core.components.key.settings import TrustchainSettings
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
-from tribler.core.components.metadata_store.remote_query_community.settings import RemoteQueryCommunitySettings
-from tribler.core.components.popularity.settings import PopularityCommunitySettings, ChantSettings
+from tribler.core.components.content_discovery.settings import ContentDiscoveryComponentConfig
+from tribler.core.components.metadata_store.settings import ChantSettings
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.components.torrent_checker.settings import TorrentCheckerSettings
@@ -53,8 +53,7 @@ class TriblerConfig(BaseSettings):
     download_defaults: DownloadDefaultsSettings = DownloadDefaultsSettings()
     api: APISettings = APISettings()
     resource_monitor: ResourceMonitorSettings = ResourceMonitorSettings()
-    popularity_community: PopularityCommunitySettings = PopularityCommunitySettings()
-    remote_query_community: RemoteQueryCommunitySettings = RemoteQueryCommunitySettings()
+    content_discovery_community: ContentDiscoveryComponentConfig = ContentDiscoveryComponentConfig()
 
     # Special configuration options related to the operation mode of the Core
     upgrader_enabled: bool = True
