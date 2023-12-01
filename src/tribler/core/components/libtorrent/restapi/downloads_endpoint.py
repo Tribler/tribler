@@ -292,8 +292,7 @@ class DownloadsEndpoint(RESTEndpoint):
         downloads_json = []
         downloads = self.download_manager.get_downloads()
         for download in downloads:
-            if download.hidden and not download.config.get_channel_download():
-                # We still want to send channel downloads since they are displayed in the GUI
+            if download.hidden:
                 continue
             state = download.get_state()
             tdef = download.get_def()
@@ -306,10 +305,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            if download.config.get_channel_download():
-                download_name = self.mds.ChannelMetadata.get_channel_name_cached(
-                    tdef.get_name_utf8(), tdef.get_infohash())
-            elif self.mds is None:
+            if self.mds is None:
                 download_name = tdef.get_name_utf8()
             else:
                 download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
@@ -347,8 +343,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "total_pieces": tdef.get_nr_pieces(),
                 "vod_mode": download.stream and download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
-                "time_added": download.config.get_time_added(),
-                "channel_download": download.config.get_channel_download()
+                "time_added": download.config.get_time_added()
             }
             if download.stream:
                 download_json.update({

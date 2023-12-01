@@ -141,18 +141,6 @@ class DownloadConfig:
         @return A list of file indexes. """
         return self.config['download_defaults']['selected_file_indexes']
 
-    def set_channel_download(self, value):
-        self.config['download_defaults']['channel_download'] = value
-
-    def get_channel_download(self):
-        return bool(self.config['download_defaults']['channel_download'])
-
-    def set_add_to_channel(self, value):
-        self.config['download_defaults']['add_to_channel'] = value
-
-    def get_add_to_channel(self):
-        return bool(self.config['download_defaults']['add_to_channel'])
-
     def set_bootstrap_download(self, value):
         self.config['download_defaults']['bootstrap_download'] = value
 

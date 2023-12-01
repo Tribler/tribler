@@ -443,13 +443,11 @@ async def test_readd_download_safe_seeding(fake_dlmgr):
 
 
 async def test_get_downloads_by_name(fake_dlmgr):
-    dl = await fake_dlmgr.start_download(torrent_file=TORRENT_UBUNTU_FILE, checkpoint_disabled=True)
+    await fake_dlmgr.start_download(torrent_file=TORRENT_UBUNTU_FILE, checkpoint_disabled=True)
     assert fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso")
-    assert not fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True)
     assert not fake_dlmgr.get_downloads_by_name("bla")
 
-    dl.config.set_channel_download(True)
-    assert fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso", channels_only=True)
+    assert fake_dlmgr.get_downloads_by_name("ubuntu-15.04-desktop-amd64.iso")
 
 
 async def test_check_for_dht_ready(fake_dlmgr):
