@@ -30,13 +30,6 @@ enabled = boolean(default=True)
 max_download_rate = integer(min=1, default=1000000)
 infohash = string(default='b496932f32daad964e1b63188faabf74d22b45ea')
 
-[chant]
-enabled = boolean(default=True)
-manager_enabled = boolean(default=True)
-channel_edit = boolean(default=False)
-channels_dir = string(default='channels')
-testnet = boolean(default=False)
-
 [torrent_checking]
 enabled = boolean(default=True)
 
@@ -67,8 +60,6 @@ saveas = string(default=None)
 seeding_mode = option('forever', 'never', 'ratio', 'time', default='forever')
 seeding_ratio = float(default=2.0)
 seeding_time = float(default=60)
-channel_download = boolean(default=False)
-add_download_to_channel = boolean(default=False)
 
 [ipv8]
 enabled = boolean(default=True)

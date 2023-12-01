@@ -9,7 +9,7 @@ import asyncio
 import base64
 import itertools
 import logging
-from asyncio import CancelledError, Future, iscoroutine, sleep, wait_for, get_running_loop
+from asyncio import CancelledError, Future, get_running_loop, iscoroutine, sleep, wait_for
 from collections import defaultdict
 from contextlib import suppress
 from enum import Enum
@@ -451,8 +451,7 @@ class Download(TaskManager):
         if downloaded > 0 and self.stream is not None and self.notifier is not None:
             name = self.tdef.get_name_as_unicode()
             infohash = self.tdef.get_infohash().hex()
-            hidden = self.hidden or self.config.get_channel_download()
-            self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=hidden)
+            self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=self.hidden)
 
     def update_lt_status(self, lt_status: lt.torrent_status):
         """ Update libtorrent stats and check if the download should be stopped."""
@@ -855,7 +854,7 @@ class Download(TaskManager):
             total += 1
         if total == 0:
             return 1.0
-        return have/total
+        return have / total
 
     def get_file_length(self, path: Path) -> int:
         """

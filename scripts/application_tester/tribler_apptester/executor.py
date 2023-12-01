@@ -19,18 +19,14 @@ from typing import Dict, Optional
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler_apptester.actions.change_anonymity_action import ChangeAnonymityAction
 from tribler_apptester.actions.change_download_files_action import ChangeDownloadFilesAction
-from tribler_apptester.actions.explore_channel_action import ExploreChannelAction
 from tribler_apptester.actions.explore_download_action import ExploreDownloadAction
-from tribler_apptester.actions.manage_channel_action import ManageChannelAction
 from tribler_apptester.actions.page_action import RandomPageAction
 from tribler_apptester.actions.remove_download_action import RemoveRandomDownloadAction
 from tribler_apptester.actions.screenshot_action import ScreenshotAction
-from tribler_apptester.actions.scroll_discovered_action import ScrollDiscoveredAction
 from tribler_apptester.actions.search_action import RandomSearchAction
 from tribler_apptester.actions.shutdown_action import ShutdownAction
 from tribler_apptester.actions.start_download_action import StartRandomDownloadAction
 from tribler_apptester.actions.start_vod_action import StartVODAction
-from tribler_apptester.actions.subscribe_unsubscribe_action import SubscribeUnsubscribeAction
 from tribler_apptester.actions.test_exception import TestExceptionAction
 from tribler_apptester.actions.wait_action import WaitAction
 from tribler_apptester.monitors.download_monitor import DownloadMonitor
@@ -415,50 +411,20 @@ def exit_script():
         There are various actions possible that can occur with different probabilities.
         """
         action_name = self.weighted_choice(self.probabilities)
-        if not action_name:
-            self._logger.warning("No action available!")
-            return WaitAction(1000)
-
         self._logger.info("Random action: %s", action_name)
-        try:
-            action = None
-            if action_name == 'test_exception':
-                action = TestExceptionAction()
-            elif action_name == 'random_page':
-                action = RandomPageAction()
-            elif action_name == 'search':
-                action = RandomSearchAction()
-            elif action_name == 'start_download':
-                torrent_links = Path(__file__).parent / "data/torrent_links.txt"
-                action = StartRandomDownloadAction(torrent_links)
-            elif action_name == 'remove_download':
-                action = RemoveRandomDownloadAction()
-            elif action_name == 'explore_download':
-                action = ExploreDownloadAction()
-            elif action_name == 'scroll_discovered':
-                action = ScrollDiscoveredAction()
-            elif action_name == 'explore_channel':
-                action = ExploreChannelAction()
-            elif action_name == 'screenshot':
-                action = ScreenshotAction()
-            elif action_name == 'start_vod':
-                action = StartVODAction()
-            elif action_name == 'change_anonymity':
-                action = ChangeAnonymityAction(allow_plain=self.allow_plain_downloads)
-            elif action_name == 'subscribe_unsubscribe':
-                action = SubscribeUnsubscribeAction()
-            elif action_name == 'change_download_files':
-                action = ChangeDownloadFilesAction()
-            elif action_name == 'manage_channel':
-                action = ManageChannelAction()
-        except Exception as e:
-            self._logger.exception(e)
-            return
-
-        if not action:
-            self._logger.error("Action %s does not exist", action)
-            action = WaitAction(1000)
-        return action
+        actions = {
+            'test_exception': TestExceptionAction(),
+            'random_page': RandomPageAction(),
+            'search': RandomSearchAction(),
+            'start_download': StartRandomDownloadAction(Path(__file__).parent / "data/torrent_links.txt"),
+            'remove_download': RemoveRandomDownloadAction(),
+            'explore_download': ExploreDownloadAction(),
+            'screenshot': ScreenshotAction(),
+            'start_vod': StartVODAction(),
+            'change_anonymity': ChangeAnonymityAction(allow_plain=self.allow_plain_downloads),
+            'change_download_files': ChangeDownloadFilesAction()
+        }
+        return actions.get(action_name)
 
     async def perform_random_action(self):
         action = self.get_random_action()

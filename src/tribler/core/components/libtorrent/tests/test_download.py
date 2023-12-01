@@ -9,6 +9,7 @@ from _pytest.logging import LogCaptureFixture
 from ipv8.util import succeed
 from libtorrent import bencode
 
+from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
@@ -311,7 +312,7 @@ def test_tracker_error_alert_unicode_decode_error(test_download: Download, caplo
     exception2 = UnicodeDecodeError('utf-8', b'\xc3\x28', 0, 1, 'invalid continuation byte (exception in .url)')
 
     mock_alert = MagicMock(__repr__=Mock(side_effect=exception1))
-    type(mock_alert).url=PropertyMock(side_effect=exception2)
+    type(mock_alert).url = PropertyMock(side_effect=exception2)
 
     test_download.process_alert(mock_alert, 'tracker_error_alert')
 
@@ -423,7 +424,7 @@ def test_on_metadata_received_alert_unicode_error(test_download, dual_movie_tdef
     test_download.tdef = dual_movie_tdef
     tracker = {'url': Mock(encode=Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))}
     test_download.handle = MagicMock(trackers=Mock(return_value=[tracker]),
-                           torrent_file=lambda: dual_movie_tdef.torrent_info)
+                                     torrent_file=lambda: dual_movie_tdef.torrent_info)
 
     test_download.on_metadata_received_alert(MagicMock())
 
@@ -709,6 +710,7 @@ def test_file_completion_partial(test_download: Download) -> None:
 
     def fake_has_piece(piece_index: int) -> bool:
         return piece_index > total_pieces / 2  # total_pieces // 2 will return True
+
     test_download.handle = MagicMock(have_piece=fake_has_piece)
 
     result = test_download.get_file_completion(Path("video.avi"))
@@ -794,3 +796,21 @@ def test_file_selected_directory(dual_movie_tdef: TorrentDef) -> None:
     download = Download(dual_movie_tdef, checkpoint_disabled=True)
 
     assert not download.is_file_selected(Path("data"))
+
+
+def test_on_torrent_finished_alert(test_download: Download):
+    """ Test if the torrent_finished notification is called when the torrent finishes."""
+
+    test_download.handle = Mock(is_valid=Mock(return_value=True))
+    test_download.notifier = MagicMock()
+    test_download.stream = Mock()
+    test_download.get_state = Mock(return_value=Mock(get_total_transferred=Mock(return_value=1)))
+
+    test_download.on_torrent_finished_alert(Mock())
+
+    # Check if the notification was called
+    assert test_download.notifier[notifications.torrent_finished].called_with(
+        infohash=test_download.tdef.get_infohash().hex(),
+        name=test_download.tdef.get_name_as_unicode(),
+        hidden=test_download.hidden
+    )

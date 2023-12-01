@@ -23,12 +23,6 @@ def test_downloadconfig(download_config, tmpdir):
     download_config.set_selected_files([1])
     assert download_config.get_selected_files() == [1]
 
-    download_config.set_channel_download(True)
-    assert download_config.get_channel_download()
-
-    download_config.set_add_to_channel(True)
-    assert download_config.get_add_to_channel()
-
     download_config.set_bootstrap_download(True)
     assert download_config.get_bootstrap_download()
 
