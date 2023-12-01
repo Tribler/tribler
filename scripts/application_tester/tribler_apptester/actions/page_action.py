@@ -8,12 +8,9 @@ class PageAction(ClickSequenceAction):
     This action goes to a specific page in Tribler.
     """
     BUTTONS_TO_PAGES = {
-        'discovered': ['window.left_menu_button_discovered'],
         'downloads': ['window.left_menu_button_downloads'],
         'search': [],
-        'token_balance': ['window.token_balance_widget'],
         'settings': ['window.settings_button'],
-        'market': [],
     }
 
     def __init__(self, page_name):
