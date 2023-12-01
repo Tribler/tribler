@@ -413,18 +413,18 @@ def exit_script():
         action_name = self.weighted_choice(self.probabilities)
         self._logger.info("Random action: %s", action_name)
         actions = {
-            'test_exception': TestExceptionAction,
-            'random_page': RandomPageAction,
-            'search': RandomSearchAction,
-            'start_download': lambda: StartRandomDownloadAction(Path(__file__).parent / "data/torrent_links.txt"),
-            'remove_download': RemoveRandomDownloadAction,
-            'explore_download': ExploreDownloadAction,
-            'screenshot': ScreenshotAction,
-            'start_vod': StartVODAction,
-            'change_anonymity': lambda: ChangeAnonymityAction(allow_plain=self.allow_plain_downloads),
-            'change_download_files': ChangeDownloadFilesAction
+            'test_exception': TestExceptionAction(),
+            'random_page': RandomPageAction(),
+            'search': RandomSearchAction(),
+            'start_download': StartRandomDownloadAction(Path(__file__).parent / "data/torrent_links.txt"),
+            'remove_download': RemoveRandomDownloadAction(),
+            'explore_download': ExploreDownloadAction(),
+            'screenshot': ScreenshotAction(),
+            'start_vod': StartVODAction(),
+            'change_anonymity': ChangeAnonymityAction(allow_plain=self.allow_plain_downloads),
+            'change_download_files': ChangeDownloadFilesAction()
         }
-        return actions.get(action_name, lambda: None)()
+        return actions.get(action_name)
 
     async def perform_random_action(self):
         action = self.get_random_action()
