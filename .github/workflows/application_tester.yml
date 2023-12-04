@@ -1,0 +1,78 @@
+name: GUI test
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        default: 3.8
+        type: string
+        required: false
+
+      matrix:
+        default: '{"os":["windows-latest", "macos-latest", "ubuntu-latest"]}'
+        type: string
+        required: false
+
+      ref:
+        default: ${{ github.ref }}
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(inputs.matrix)}}
+
+    defaults:
+      run:
+        shell: bash
+
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{inputs.ref}}
+
+      - name: Create python environment
+        uses: ./.github/actions/pyenv
+        with:
+          python-version: ${{inputs.python-version}}
+          requirements: requirements.txt
+          custom_cache_key_element: ${{inputs.ref}}
+
+      - name: Add Tribler to PYTHONPATH
+        uses: ./.github/actions/add-pythonpath
+        with:
+          path: ./src
+
+      - name: Add Application Tester to PYTHONPATH
+        uses: ./.github/actions/add-pythonpath
+        with:
+          path: ./scripts/application_tester
+
+      - name: Install dependencies (Win)
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/windows_dependencies
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt install pyqt5-dev-tools
+
+      - name: Setup headless display (Linux)
+        if: runner.os == 'Linux'
+        uses: pyvista/setup-headless-display-action@v1
+
+      - name: Application Tester
+        timeout-minutes: 5
+        env:
+          CORE_API_PORT: 20100
+        run: |
+          python ./scripts/application_tester/main.py -p "python src/run_tribler.py" --fragile -d 120
