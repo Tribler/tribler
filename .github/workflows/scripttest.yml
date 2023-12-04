@@ -41,10 +41,6 @@ jobs:
         run: |
           echo "PYTHONPATH=${PYTHONPATH}:./src" >> $GITHUB_ENV
 
-      - name: Add Application Tester to PYTHONPATH
-        run: |
-          echo "PYTHONPATH=${PYTHONPATH}:./scripts/application_tester" >> $GITHUB_ENV
-
       - name: run_bandwidth_crawler.py
         uses: ./.github/actions/timeout
         with:
@@ -59,24 +55,6 @@ jobs:
         with:
           command: python ./scripts/exit_node/run_exit_node.py --testnet --fragile
           duration: ${{inputs.duration}}
-
-      # install QT Linux dependencies and Headless Display for the correct work of the Application Tester
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt install pyqt5-dev-tools
-
-      - name: Setup headless display (Linux)
-        if: runner.os == 'Linux'
-        uses: pyvista/setup-headless-display-action@v1
-
-      - name: Application Tester
-        timeout-minutes: 1
-        env:
-          CORE_API_PORT: 20100
-        run: |
-          python ./scripts/application_tester/main.py -p "python src/run_tribler.py" --fragile -d 20
 
       #experiments
 

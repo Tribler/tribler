@@ -83,7 +83,7 @@ jobs:
 
   # ----------------------------------------------------------------------------
   # PR stage: Draft
-  coverage:
+  coverage_draft:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/coverage.yml
@@ -93,7 +93,7 @@ jobs:
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
 
-  guitest:
+  guitest_draft:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/guitest.yml
@@ -102,7 +102,16 @@ jobs:
       matrix: '{"os": ["windows-latest"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
-  scripttest:
+  application_tester_draft:
+    needs: [ changes, gatekeeper, env ]
+    if: ${{ needs.changes.outputs.src == 'true' || needs.changes.outputs.scripts == 'true'}}
+    uses: ./.github/workflows/application_tester.yml
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: '{"os": ["ubuntu-latest"]}'
+      ref: ${{needs.env.outputs.source-ref}}
+
+  scripttest_draft:
     needs: [ changes, gatekeeper, env ]
     if: ${{ needs.changes.outputs.scripts == 'true' }}
     uses: ./.github/workflows/scripttest.yml
@@ -122,13 +131,22 @@ jobs:
       matrix: '{"os": ["windows-latest", "macos-latest"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
-  guitest_nix:
+  guitest:
     needs: [ changes, gatekeeper, env ]
     if: ${{needs.changes.outputs.src == 'true' && !github.event.pull_request.draft}}
     uses: ./.github/workflows/guitest.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
       matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
+      ref: ${{needs.env.outputs.source-ref}}
+
+  application_tester:
+    needs: [ changes, gatekeeper, env ]
+    if: ${{ needs.changes.outputs.src == 'true' || needs.changes.outputs.scripts == 'true'}}
+    uses: ./.github/workflows/application_tester.yml
+    with:
+      python-version: ${{needs.env.outputs.python-version}}
+      matrix: '{"os": ["windows-latest", "macos-latest"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
   # build binaries
