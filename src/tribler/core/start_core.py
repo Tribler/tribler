@@ -40,6 +40,7 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities import slow_coro_detection
+from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind
 from tribler.core.utilities.process_manager.manager import setup_process_manager
@@ -195,7 +196,7 @@ def run_core(api_port: Optional[int], api_key: Optional[str], root_state_dir, pa
     if not current_process_owns_lock:
         msg = 'Another Core process is already running'
         logger.warning(msg)
-        process_manager.sys_exit(1, msg)
+        process_manager.sys_exit(EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING, msg)
 
     version_history = VersionHistory(root_state_dir)
     state_dir = version_history.code_version.directory
