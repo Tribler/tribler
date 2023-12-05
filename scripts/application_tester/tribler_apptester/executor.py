@@ -10,25 +10,13 @@ import sys
 import time
 from asyncio import Future, Task, create_task, get_event_loop, sleep, wait_for
 from base64 import b64encode
-from bisect import bisect
 from distutils.version import LooseVersion
-from pathlib import Path
-from random import choice, randint, random
+from random import choice
 from typing import Dict, Optional
 
 from tribler.core.config.tribler_config import TriblerConfig
-from tribler_apptester.actions.change_anonymity_action import ChangeAnonymityAction
-from tribler_apptester.actions.change_download_files_action import ChangeDownloadFilesAction
-from tribler_apptester.actions.explore_download_action import ExploreDownloadAction
-from tribler_apptester.actions.page_action import RandomPageAction
-from tribler_apptester.actions.remove_download_action import RemoveRandomDownloadAction
-from tribler_apptester.actions.screenshot_action import ScreenshotAction
-from tribler_apptester.actions.search_action import RandomSearchAction
+from tribler_apptester.action_selector import ActionSelector
 from tribler_apptester.actions.shutdown_action import ShutdownAction
-from tribler_apptester.actions.start_download_action import StartRandomDownloadAction
-from tribler_apptester.actions.start_vod_action import StartVODAction
-from tribler_apptester.actions.test_exception import TestExceptionAction
-from tribler_apptester.actions.wait_action import WaitAction
 from tribler_apptester.monitors.download_monitor import DownloadMonitor
 from tribler_apptester.monitors.ipv8_monitor import IPv8Monitor
 from tribler_apptester.monitors.resource_monitor import ResourceMonitor
@@ -58,7 +46,6 @@ class Executor(object):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.allow_plain_downloads = args.plain
         self.pending_tasks: Dict[bytes, Future] = {}  # Dictionary of pending tasks
-        self.probabilities = []
         self.apptester_start_time = time.time()
         self.tribler_start_time = None
         self.tribler_is_running = False
@@ -76,6 +63,7 @@ class Executor(object):
 
         self.tribler_config: Optional[TriblerConfig] = None
         self.request_manager = None
+        self.action_selector = ActionSelector()
 
     async def start(self):
         await self.start_tribler()
@@ -211,12 +199,10 @@ class Executor(object):
                     self._logger.info(f"Loaded API key: {config.api.key}")
                     return True
 
-        return True
+        return False
 
     def start_testing(self):
         self._logger.info("Opening Tribler code socket connection to port %d" % self.code_client.port)
-
-        self.determine_probabilities()
 
         self.start_monitors()
 
@@ -227,7 +213,7 @@ class Executor(object):
         await asyncio.sleep(ACTIONS_WARMUP_DELAY)
 
         while not self.shutting_down:
-            await self.perform_random_action()
+            self.perform_random_action()
             if self.shutting_down:
                 break
             await asyncio.sleep(DELAY_BETWEEN_ACTIONS)
@@ -236,24 +222,12 @@ class Executor(object):
 
         if self.tribler_is_running and not self.tribler_crashed:
             self._logger.info("Executing Shutdown action")
-            await self.perform_action(ShutdownAction())
+            self.execute_action(ShutdownAction())
 
-    def determine_probabilities(self):
-        self._logger.info("Determining probabilities of actions")
-        with open(Path(__file__).parent / "data/action_weights.txt", mode="r", encoding='utf-8') as f:
-            content = f.read()
-            for line in content.split('\n'):
-                if len(line) == 0:
-                    continue
-
-                if line.startswith('#'):
-                    continue
-
-                parts = line.split('=')
-                if len(parts) < 2:
-                    continue
-
-                self.probabilities.append((parts[0], int(parts[1])))
+    def perform_random_action(self):
+        if action := self.action_selector.get_random_action_with_probability():
+            self._logger.info(f"Random action: {action}")
+            self.execute_action(action)
 
     def start_monitors(self):
         if self.args.monitordownloads:
@@ -357,31 +331,14 @@ class Executor(object):
             task.set_result(None)  # should set exception instead, but it requries further refactoring
         create_task(self.stop(1))
 
-    def weighted_choice(self, choices):
-        if len(choices) == 0:
-            return None
-        values, weights = zip(*choices)
-        total = 0
-        cum_weights = []
-        for w in weights:
-            total += w
-            cum_weights.append(total)
-        x = random() * total
-        i = bisect(cum_weights, x)
-        return values[i]
-
-    def get_rand_bool(self):
-        return randint(0, 1) == 0
-
     def execute_action(self, action):
         """
         Execute a given action and return a Future that fires with the result of the action.
         """
-        self._logger.info("Executing action: %s" % action)
+        self._logger.info(f"Executing action: {action}")
 
         task_id = ''.join(choice('0123456789abcdef') for _ in range(10)).encode('utf-8')
-        task_future = Future()
-        self.pending_tasks[task_id] = task_future
+        self.pending_tasks[task_id] = Future()
 
         code = """return_value = ''
 app_tester_dir = %r
@@ -399,46 +356,6 @@ def exit_script():
         # Let Tribler execute this code
         self.execute_code(base64_code, task_id)
 
-        return task_future
-
     def execute_code(self, base64_code, task_id):
         self._logger.info("Executing code with task id: %s" % task_id.decode('utf-8'))
         self.code_client.run_code(base64_code, task_id)
-
-    def get_random_action(self):
-        """
-        This method returns a random action in Tribler.
-        There are various actions possible that can occur with different probabilities.
-        """
-        action_name = self.weighted_choice(self.probabilities)
-        self._logger.info("Random action: %s", action_name)
-        actions = {
-            'test_exception': TestExceptionAction(),
-            'random_page': RandomPageAction(),
-            'search': RandomSearchAction(),
-            'start_download': StartRandomDownloadAction(Path(__file__).parent / "data/torrent_links.txt"),
-            'remove_download': RemoveRandomDownloadAction(),
-            'explore_download': ExploreDownloadAction(),
-            'screenshot': ScreenshotAction(),
-            'start_vod': StartVODAction(),
-            'change_anonymity': ChangeAnonymityAction(allow_plain=self.allow_plain_downloads),
-            'change_download_files': ChangeDownloadFilesAction()
-        }
-        return actions.get(action_name)
-
-    async def perform_random_action(self):
-        action = self.get_random_action()
-        await self.perform_action(action)
-
-    def perform_action(self, action) -> Future:
-        if not self.tribler_is_running:
-            msg = "Cannot execute action: Tribler is not running"
-            self._logger.error(msg)
-            raise RuntimeError(msg)
-        try:
-            return self.execute_action(action)
-        except Exception as e:
-            self._logger.exception(e)
-        dummy_future = Future()
-        dummy_future.set_result(None)
-        return dummy_future
