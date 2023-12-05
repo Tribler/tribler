@@ -1,9 +1,0 @@
-test_exception=0
-random_page=20
-search=15
-start_download=15
-remove_download=5
-explore_download=10
-change_anonymity=5
-screenshot=5
-change_download_files=10
