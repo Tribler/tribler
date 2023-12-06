@@ -1,6 +1,8 @@
 """
 Author(s): Arno Bakker
 """
+from __future__ import annotations
+
 import itertools
 import logging
 from asyncio import get_running_loop
@@ -520,7 +522,7 @@ class TorrentDef:
             raise ValueError("File not found in single-file torrent")
 
 
-class TorrentDefNoMetainfo:
+class TorrentDefNoMetainfo(TorrentDef):
     """
     Instances of this class are used when working with a torrent def that contains no metainfo (yet), for instance,
     when starting a download with only an infohash. Other methods that are using this class do not distinguish between
@@ -528,60 +530,29 @@ class TorrentDefNoMetainfo:
     implemented.
     """
 
-    def __init__(self, infohash, name, url=None):
-        assert isinstance(infohash, bytes), f"INFOHASH has invalid type: {type(infohash)}"
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+    def __init__(self, infohash: bytes, name: bytes, url: bytes | None = None):
+        torrent_parameters = {
+            b'name': name
+        }
+        if url is not None:
+            torrent_parameters[b'urllist'] = [url]
+        super().__init__(torrent_parameters=torrent_parameters)
         self.infohash = infohash
-        self.name = name
-        self.url = url
 
-    def get_name(self):
-        return self.name
-
-    def get_infohash(self):
-        return self.infohash
-
-    def get_length(self, selectedfiles=None):  # pylint: disable=unused-argument
-        return 0
-
-    def get_metainfo(self):
+    def get_url(self) -> bytes | None:
+        if urllist := self.torrent_parameters.get(b'urllist'):
+            return urllist[0]
         return None
 
-    def get_url(self):
-        return self.url
+    @property
+    def torrent_info(self) -> lt.torrent_info | None:
+        return None
 
-    def is_multifile_torrent(self):
-        return False
+    def load_torrent_info(self) -> None:
+        pass
 
     def get_name_utf8(self):
-        """
-        Not all names are utf-8, attempt to construct it as utf-8 anyway.
-        """
-        return escape_as_utf8(self.name.encode('utf-8 ') if isinstance(self.name, str) else self.name)
+        return self.get_name()
 
     def get_name_as_unicode(self):
-        return ensure_unicode(self.name, 'utf-8')
-
-    def get_files(self, exts=None):
-        return []
-
-    def get_files_with_length(self, exts=None):
-        return []
-
-    def get_trackers(self) -> set:
-        """
-        Returns a flat set of all known trackers.
-
-        :return: all known trackers
-        :rtype: set
-        """
-        if self.url and self.url.startswith('magnet:'):
-            trackers = parse_magnetlink(self.url)[2]
-            return set(trackers)
-        return set()
-
-    def is_private(self):
-        return False
-
-    def get_nr_pieces(self):
-        return 0
+        return self.get_name()
