@@ -52,6 +52,51 @@ class TorrentsHealthPayload(VariablePayload):
                    random_torrent_tuples, popular_torrent_tuples)
 
 
-@dataclass(msg_id=2)
-class PopularTorrentsRequest:
-    pass
+@vp_compile
+class PopularTorrentsRequest(VariablePayload):
+    msg_id=2
+
+
+@vp_compile
+class VersionRequest(VariablePayload):
+    msg_id = 101
+
+
+@vp_compile
+class VersionResponse(VariablePayload):
+    msg_id = 102
+    format_list = ['varlenI', 'varlenI']
+    names = ['version', 'platform']
+
+    def fix_pack_version(self, value):
+        return value.encode('utf-8')
+
+    def fix_pack_platform(self, value):
+        return value.encode('utf-8')
+
+    @classmethod
+    def fix_unpack_version(cls, value):
+        return value.decode('utf-8')
+
+    @classmethod
+    def fix_unpack_platform(cls, value):
+        return value.decode('utf-8')
+
+
+@vp_compile
+class RemoteSelectPayload(VariablePayload):
+    msg_id = 201
+    format_list = ['I', 'varlenH']
+    names = ['id', 'json']
+
+
+@vp_compile
+class RemoteSelectPayloadEva(RemoteSelectPayload):
+    msg_id = 209
+
+
+@vp_compile
+class SelectResponsePayload(VariablePayload):
+    msg_id = 202
+    format_list = ['I', 'raw']
+    names = ['id', 'raw_blob']

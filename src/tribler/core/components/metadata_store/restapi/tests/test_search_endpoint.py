@@ -30,13 +30,13 @@ def needle_in_haystack_mds(metadata_store):
 
 
 @pytest.fixture
-def mock_popularity_community():
+def mock_content_discovery_community():
     return Mock()
 
 
 @pytest.fixture
-def endpoint(mock_popularity_community, needle_in_haystack_mds, tribler_db):
-    return SearchEndpoint(mock_popularity_community, needle_in_haystack_mds, tribler_db=tribler_db)
+def endpoint(mock_content_discovery_community, needle_in_haystack_mds, tribler_db):
+    return SearchEndpoint(mock_content_discovery_community, needle_in_haystack_mds, tribler_db=tribler_db)
 
 
 async def test_search_wrong_mdtype(rest_api):
@@ -231,7 +231,7 @@ def test_build_snippets_no_infohash(endpoint: SearchEndpoint):
     assert result == search_results
 
 
-async def test_create_remote_search_request(rest_api, mock_popularity_community):
+async def test_create_remote_search_request(rest_api, mock_content_discovery_community):
     """
     Test that remote search call is sent on a REST API search request
     """
@@ -244,7 +244,7 @@ async def test_create_remote_search_request(rest_api, mock_popularity_community)
         return request_uuid, peers
 
     # Test querying for keywords
-    mock_popularity_community.send_search_request = mock_send
+    mock_content_discovery_community.send_search_request = mock_send
     search_txt = "foo"
     await do_request(
         rest_api,
@@ -264,7 +264,7 @@ async def test_create_remote_search_request(rest_api, mock_popularity_community)
     assert hexlify(sent['channel_pk']) == channel_pk
 
 
-async def test_create_remote_search_request_illegal(rest_api, mock_popularity_community):
+async def test_create_remote_search_request_illegal(rest_api, mock_content_discovery_community):
     """
     Test that remote search call is sent on a REST API search request
     """

@@ -20,7 +20,7 @@ from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import Torr
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler.core.components.popularity.popularity_component import PopularityComponent
+from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.reporter.reporter_component import ReporterComponent
@@ -77,7 +77,7 @@ class RESTComponent(Component):
         libtorrent_component = await self.maybe_component(LibtorrentComponent)
         resource_monitor_component = await self.maybe_component(ResourceMonitorComponent)
         bandwidth_accounting_component = await self.maybe_component(BandwidthAccountingComponent)
-        popularity_component = await self.maybe_component(PopularityComponent)
+        content_discovery_component = await self.maybe_component(ContentDiscoveryComponent)
         knowledge_component = await self.maybe_component(KnowledgeComponent)
         tunnel_component = await self.maybe_component(TunnelsComponent)
         torrent_checker_component = await self.maybe_component(TorrentCheckerComponent)
@@ -108,7 +108,7 @@ class RESTComponent(Component):
         self.maybe_add(MetadataEndpoint, libtorrent_component.download_manager, torrent_checker,
                        metadata_store_component.mds, tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint, popularity_component.community,
+        self.maybe_add(SearchEndpoint, content_discovery_component.community,
                        metadata_store_component.mds, tribler_db=db_component.db)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 

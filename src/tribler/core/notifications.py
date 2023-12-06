@@ -64,7 +64,7 @@ def tribler_exception(error: dict):
     ...
 
 
-def popularity_community_unknown_torrent_added():
+def content_discovery_community_unknown_torrent_added():
     ...
 
 

@@ -23,7 +23,7 @@ from tribler.core.components.knowledge.knowledge_component import KnowledgeCompo
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.payout.payout_component import PayoutComponent
-from tribler.core.components.popularity.popularity_component import PopularityComponent
+from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
@@ -77,8 +77,8 @@ def components_gen(config: TriblerConfig):
 
     if config.torrent_checking.enabled:
         yield TorrentCheckerComponent()
-    if config.ipv8.enabled and config.torrent_checking.enabled and config.popularity_community.enabled:
-        yield PopularityComponent()
+    if config.ipv8.enabled and config.torrent_checking.enabled and config.content_discovery_community.enabled:
+        yield ContentDiscoveryComponent()
 
     # The components below are skipped if config.gui_test_mode == True
     if config.gui_test_mode:
