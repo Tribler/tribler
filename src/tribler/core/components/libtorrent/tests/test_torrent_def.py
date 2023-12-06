@@ -225,6 +225,9 @@ def test_torrent_no_metainfo():
     assert not tdef.is_private()
     assert tdef.get_name_utf8() == "video.avi"
     assert tdef.get_nr_pieces() == 0
+    assert tdef.torrent_info is None
+    tdef.load_torrent_info()
+    assert tdef.torrent_info is None
 
     torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
     assert len(torrent2.get_trackers()) == 0
