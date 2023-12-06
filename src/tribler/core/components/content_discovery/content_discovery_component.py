@@ -1,4 +1,5 @@
 from ipv8.peerdiscovery.churn import RandomChurn
+from ipv8.peerdiscovery.network import Network
 from tribler.core.components.component import Component
 from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
@@ -23,7 +24,7 @@ class ContentDiscoveryComponent(Component):
         self.community = ContentDiscoveryCommunity(ContentDiscoveryCommunity.settings_class(
             my_peer = self._ipv8_component.peer,
             endpoint = self._ipv8_component.ipv8.endpoint,
-            network = self._ipv8_component.ipv8.network,
+            network = Network(),
             maximum_payload_size = self.session.config.content_discovery_community.maximum_payload_size,
             metadata_store=metadata_store_component.mds,
             torrent_checker=torrent_checker_component.torrent_checker,
