@@ -11,7 +11,6 @@ from tribler_apptester.actions.remove_download_action import RemoveRandomDownloa
 from tribler_apptester.actions.screenshot_action import ScreenshotAction
 from tribler_apptester.actions.search_action import RandomSearchAction
 from tribler_apptester.actions.start_download_action import StartRandomDownloadAction
-from tribler_apptester.actions.start_vod_action import StartVODAction
 from tribler_apptester.actions.test_exception import TestExceptionAction
 
 
@@ -27,7 +26,6 @@ class ActionSelector:
             'remove_download': (lambda: RemoveRandomDownloadAction(), 5),
             'explore_download': (lambda: ExploreDownloadAction(), 10),
             'screenshot': (lambda: ScreenshotAction(), 5),
-            'start_vod': (lambda: StartVODAction(), 5),
             'change_anonymity': (lambda: ChangeAnonymityAction(allow_plain=True), 5),
             # See: https://github.com/Tribler/tribler/issues/7750
             # 'change_download_files': (lambda: ChangeDownloadFilesAction(), 10)
