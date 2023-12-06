@@ -3,6 +3,6 @@
 
 
 # These owners will be the default owners for everything in the repo.
-*       @Tribler/dev
+*       @Tribler/reviewers
 
 # Order is important; the last matching pattern takes the most precedence.
