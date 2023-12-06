@@ -29,7 +29,8 @@ class ActionSelector:
             'screenshot': (lambda: ScreenshotAction(), 5),
             'start_vod': (lambda: StartVODAction(), 5),
             'change_anonymity': (lambda: ChangeAnonymityAction(allow_plain=True), 5),
-            'change_download_files': (lambda: ChangeDownloadFilesAction(), 10)
+            # See: https://github.com/Tribler/tribler/issues/7750
+            # 'change_download_files': (lambda: ChangeDownloadFilesAction(), 10)
         }
 
     def get_random_action_with_probability(self) -> Optional[Action]:
