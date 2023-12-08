@@ -7,6 +7,7 @@ import traceback
 
 import psutil
 
+from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import show_system_popup
 
 logger = logging.getLogger(__name__)
@@ -45,17 +46,22 @@ def check_environment():
     check_read_write()
 
 
-def check_free_space():
-    logger.info('Check free space')
+def check_free_space(state_dir: Path):
+    """ Check if there is enough free space on the disk."""
+    logger.info(f'Checking free space for the folder: {state_dir}')
     try:
-        free_space = psutil.disk_usage(".").free / (1024 * 1024.0)
-        if free_space < 100:
+        usage = psutil.disk_usage(str(state_dir.absolute()))
+        usage_mb = usage.free / (1024 * 1024)
+        if usage_mb < 100:
             error_and_exit("Insufficient disk space",
                            "You have less than 100MB of usable disk space. " +
                            "Please free up some space and run Tribler again.")
+        logger.info(f'There is enough free space: {usage_mb:.0f} MB')
     except ImportError as ie:
         logger.error(ie)
         error_and_exit("Import Error", f"Import error: {ie}")
+    except OSError as e:
+        logger.exception(e)
 
 
 def set_process_priority(pid=None, priority_order=1):
