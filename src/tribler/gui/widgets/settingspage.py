@@ -272,11 +272,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             # eg text: "/home/<user>/.Tribler/v7.8   5 GB"
             state_dir = checkbox.text().rpartition("   ")[0]
             if not state_dir.startswith(root_version_dir):
-                return None  # safety check just for case
-            state_dir = state_dir[len(root_version_dir):]
-            if state_dir.startswith('/'):
-                state_dir = state_dir[1:]
-            return state_dir
+                return None  # safety check just in case
+            return Path(state_dir).parts[-1]
 
         dirs_selected_for_deletion = []
         for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
