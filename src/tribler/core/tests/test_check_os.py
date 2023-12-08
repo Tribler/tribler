@@ -4,8 +4,11 @@ from unittest.mock import MagicMock, Mock, patch
 import psutil
 import pytest
 
-from tribler.core.check_os import enable_fault_handler, error_and_exit, set_process_priority
+from tribler.core.check_os import check_free_space, enable_fault_handler, error_and_exit, set_process_priority
 from tribler.core.utilities.patch_import import patch_import
+from tribler.core.utilities.path_util import Path
+
+DISK_USAGE = 'tribler.core.check_os.psutil.disk_usage'
 
 
 # pylint: disable=import-outside-toplevel
@@ -72,3 +75,29 @@ def test_set_process_exception():
     with patch.object(psutil.Process, 'nice', new=Mock(side_effect=FileNotFoundError)):
         with pytest.raises(FileNotFoundError):
             set_process_priority()
+
+
+def test_check_free_space_sufficient():
+    # Test to ensure the function works correctly when there's sufficient disk space.
+    with patch(DISK_USAGE) as mock_usage:
+        mock_usage.return_value = MagicMock(free=1024 * 1024 * 200)  # Simulating 200MB of free space
+        check_free_space(Path("/path/to/dir"))
+
+
+def test_check_free_space_insufficient():
+    # Test to ensure the function raises an exception when there's insufficient disk space.
+    with patch(DISK_USAGE) as mock_usage, pytest.raises(SystemExit):
+        mock_usage.return_value = MagicMock(free=1024 * 1024 * 50)  # Simulating 50MB of free space
+        check_free_space(Path("/path/to/dir"))
+
+
+def test_check_free_space_import_error():
+    # Test to check the behavior when there's an ImportError.
+    with patch(DISK_USAGE, side_effect=ImportError("mock import error")), pytest.raises(SystemExit):
+        check_free_space(Path("/path/to/dir"))
+
+
+def test_check_free_space_os_error():
+    # Test to check the behavior when there's an OSError.
+    with patch(DISK_USAGE, side_effect=OSError("mock os error")):
+        check_free_space(Path("/path/to/dir"))

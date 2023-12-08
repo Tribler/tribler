@@ -53,7 +53,7 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir: Pat
     enable_fault_handler(root_state_dir)
     # Exit if we cant read/write files, etc.
     check_environment()
-    check_free_space()
+    check_free_space(root_state_dir)
 
     try:
         app_name = os.environ.get('TRIBLER_APP_NAME', 'triblerapp')
