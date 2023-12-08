@@ -4447,13 +4447,10 @@ background: none;</string>
   <slot>clicked_menu_button_subscriptions()</slot>
   <slot>on_search_text_change()</slot>
   <slot>clicked_menu_button_discovered()</slot>
-  <slot>clicked_menu_button_trust()</slot>
   <slot>on_settings_button_click()</slot>
-  <slot>on_trust_button_click()</slot>
   <slot>clicked_menu_button_search()</slot>
   <slot>clicked_force_shutdown()</slot>
   <slot>clicked_skip_conversion()</slot>
-  <slot>clicked_menu_button_trust_graph()</slot>
   <slot>clicked_menu_button_popular()</slot>
  </slots>
 </ui>

@@ -25,7 +25,7 @@ def verify_settings(settings_dict):
     Verify that the expected sections are present.
     """
     check_section = ['libtorrent', 'general', 'torrent_checking',
-                     'tunnel_community', 'api', 'trustchain', 'watch_folder']
+                     'tunnel_community', 'api', 'watch_folder']
 
     assert settings_dict['settings']
     for section in check_section:

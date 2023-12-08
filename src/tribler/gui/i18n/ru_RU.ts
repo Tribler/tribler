@@ -890,11 +890,6 @@ You can not undo this action.</source>
         <translation>Настройки Tribler</translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="224"/>
-        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
-        <translation>Этот граф построен по данным взаимодействия вашего Tribler с другими пользователями. Он показывает &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; взаимодействий &lt;strong&gt;%(num_users)s&lt;/strong&gt; пользователей.&lt;br/&gt;</translation>
-    </message>
-    <message>
         <location filename="../tribler_window.py" line="304"/>
         <source>Show Tribler window</source>
         <translation>Показать окно Tribler</translation>
@@ -1380,19 +1375,9 @@ New remote results received: %(num_remote_results)i</source>
         <translation>СКАЧАТЬ</translation>
     </message>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="172"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Когда Tribler скачивает торрент анонимно, Вы отдаёте &lt;span style=&quot; font-style:italic;&quot;&gt;трафик-токены&lt;/span&gt; тем другим пользователям Tribler, кто обеспечил Вашу анонимность. Когда другой пользователь Tribler скачивает торрент с Вашей машины, &lt;span style=&quot; font-style:italic;&quot;&gt;Вы&lt;/span&gt; получаете от него трафик-токены. Пользователи с более высоким балансом трафик-токенов получают преимущество в обслуживании при анонимном скачивании. &lt;/p&gt;&lt;p&gt;Цена анонимного трафика в трафик-токенах зависит от выбранного Вами уровня анонимности. По сути, уровень анонимности это число &lt;span style=&quot; font-style:italic;&quot;&gt;промежуточных узлов&lt;/span&gt;, используемых во время закачки. К примеру, на уровне анонимности &quot;3&quot; данные, передаваемые на Вашу машину пересылаются через компьютеры трёх других случайных пользователей Tribler. Увеличение уровня анонимности может добавить безопасности, но снижает производительность и увеличивает цену закачки в трафик-токенах.&lt;/p&gt;&lt;p&gt;К примеру, закачка &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайта&lt;/span&gt; видео через 1 промежуточный узел (т.е. &quot;уровень анонимности 1&quot;) &lt;span style=&quot; font-weight:600;&quot;&gt;1 Гигабайт&lt;/span&gt; обойдётся Вам в 1 Гбайт трафик-токенов. Ввод каждого дополнительного промежуточного узла удорожает трафик. Закачка того же 1 Гигабайта видео через три узла обойдётся уже в &lt;span style=&quot; font-weight:600;&quot;&gt;3 Гбайт&lt;/span&gt; трафик-токенов.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/trustexplanation.ui" line="255"/>
         <source>CLOSE</source>
         <translation>ЗАКРЫТЬ</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="137"/>
-        <source>Bandwidth Tokens</source>
-        <translation>Трафик-токены</translation>
     </message>
     <message>
         <location filename="../qt_resources/add_tags_dialog.ui" line="137"/>
@@ -2150,11 +2135,6 @@ High anonymity</source>
         <location filename="../qt_resources/mainwindow.ui" line="4361"/>
         <source>Trust statistics</source>
         <translation>Статистика доверия</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4486"/>
-        <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
-        <translation>Tribler зарабатывает репутацию для Вашего компьютера, предоставляя его в качестве промежуточного узла для анонимизации других пользователей. Это происходит в то время, когда Tribler простаивает.</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>
