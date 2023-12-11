@@ -24,18 +24,27 @@ class ChangeDownloadFilesAction(ActionSequence):
         self.add_action(WaitAction(2000))
         self.add_action(CustomAction("""
 tree_view = window.download_files_list
-if tree_view.topLevelItemCount() == 0:
+if tree_view.rowCount() == 0:
     exit_script()
-item = tree_view.topLevelItem(randint(0, tree_view.topLevelItemCount() - 1))
-check_state = Qt.Checked if item.checkState(CHECKBOX_COL) == Qt.Unchecked else Qt.Unchecked
-item.setCheckState(CHECKBOX_COL, check_state)
-QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTreeWidgetItem, item), Q_ARG(int, CHECKBOX_COL))
+tree_view.selectRow(0)
+item = tree_view.item(0, 1)
+QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTableWidgetItem, item))
+        """))
+        self.add_action(WaitAction(2000))
+        self.add_action(CustomAction("""
+tree_view = window.download_files_list
+if tree_view.rowCount() == 0:
+    exit_script()
+item = tree_view.item(randint(0, tree_view.rowCount() - 1), 0)
+check_state = Qt.Checked if item.checkState() == Qt.Unchecked else Qt.Unchecked
+item.setCheckState(check_state)
+QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTableWidgetItem, item))
         """))
 
     def required_imports(self):
         return [
             "from random import randint",
             "from PyQt5.QtCore import QMetaObject, Q_ARG, Qt",
-            "from PyQt5.QtWidgets import QTreeWidgetItem",
+            "from PyQt5.QtWidgets import QTableWidgetItem",
             "from tribler.gui.widgets.torrentfiletreewidget import CHECKBOX_COL"
         ]
