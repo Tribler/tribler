@@ -930,11 +930,6 @@ New remote results received: %(num_remote_results)i</source>
 收到新的远程结果：%(num_remote_results)i</translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="224"/>
-        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
-        <translation>下方的图表基于你与其他用户在网络中的交互历史。它显示了 &lt;strong&gt;%(num_users)s&lt;/strong&gt; 个用户所作的 &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; 项交互。&lt;br/&gt;</translation>
-    </message>
-    <message>
         <location filename="../dialogs/createtorrentdialog.py" line="56"/>
         <source>Please select the files</source>
         <translation>请选择文件</translation>
@@ -1203,11 +1198,6 @@ New remote results received: %(num_remote_results)i</source>
 <context>
     <name>Form</name>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="35"/>
-        <source>Form</source>
-        <translation>窗体</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="123"/>
         <source>Add torrent(s) to personal channel</source>
         <translation>添加种子到个人频道</translation>
@@ -1406,11 +1396,6 @@ New remote results received: %(num_remote_results)i</source>
         <location filename="../qt_resources/trustexplanation.ui" line="137"/>
         <source>Bandwidth Tokens</source>
         <translation>带宽代币</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="172"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;在 Tribler 进行匿名下载时你将补偿带宽给其他用户。当上传内容给其他（Tribler）用户时，你会挣到&lt;span style=&quot; font-style:italic;&quot;&gt;带宽代币&lt;/span&gt;。如果你积攒了越多的带宽代币，匿名下载时就可以受到越好的优待，从而提高下载速度。&lt;/p&gt;&lt;p&gt;你要支付给其他人的带宽代币确切数量，取决于使用的匿名级别。即是你下载期间的其他用户的数量，或称为&lt;span style=&quot; font-style:italic;&quot;&gt;跃点数&lt;/span&gt;。如果你以三个跃点进行匿名下载，加密数据将经由其他三个 Tribler 用户发送。跃点数的增加有利于匿名性，但也会消费更多的带宽代币。&lt;/p&gt;&lt;p&gt;例如，你要以一个跃点的匿名性下载 &lt;span style=&quot; font-weight:600;&quot;&gt;1 GB&lt;/span&gt; 的视频，你就支付价值 &lt;span style=&quot; font-weight:600;&quot;&gt;1 GB&lt;/span&gt; 的带宽代币。每额外增加一个跃点，就会增加一倍你需要支付的带宽代币。当你以三个跃点来下载同个文件，你就将支付 &lt;span style=&quot; font-weight:600;&quot;&gt;3 GB&lt;/span&gt; 的带宽代币。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../qt_resources/trustexplanation.ui" line="255"/>
@@ -2176,11 +2161,6 @@ High anonymity</source>
         <location filename="../qt_resources/mainwindow.ui" line="4361"/>
         <source>Trust statistics</source>
         <translation>信任统计信息</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4486"/>
-        <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
-        <translation>你可以通过向 Tribler 网络贡献带宽来构建信任。让 Tribler 待机运行就可以进行。</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>

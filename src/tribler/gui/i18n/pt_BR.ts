@@ -946,11 +946,6 @@ You can not undo this action.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="224"/>
-        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../dialogs/createtorrentdialog.py" line="56"/>
         <source>Please select the files</source>
         <translation type="unfinished"></translation>
@@ -1425,19 +1420,9 @@ New remote results received: %(num_remote_results)i</source>
         <translation>BAIXAR</translation>
     </message>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="137"/>
-        <source>Bandwidth Tokens</source>
-        <translation>Tokens de banda</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/trustexplanation.ui" line="172"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="255"/>
-        <source>CLOSE</source>
-        <translation>FECHAR</translation>
     </message>
     <message>
         <location filename="../qt_resources/feedback_dialog.ui" line="253"/>
@@ -2250,11 +2235,6 @@ High anonymity</source>
         <location filename="../qt_resources/mainwindow.ui" line="4361"/>
         <source>Trust statistics</source>
         <translation>Estatísticas de Confiança</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4486"/>
-        <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
-        <translation>Você pode ganhar confiança contribuindo banda para a rede Tribler. Faça isso simplesmente deixando o Tribler aberto</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>

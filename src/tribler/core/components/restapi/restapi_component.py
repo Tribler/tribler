@@ -6,6 +6,7 @@ from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.component import Component
+from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -20,7 +21,6 @@ from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import Torr
 from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
 from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
-from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.reporter.reporter_component import ReporterComponent
@@ -33,7 +33,6 @@ from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
 from tribler.core.components.restapi.rest.settings_endpoint import SettingsEndpoint
 from tribler.core.components.restapi.rest.shutdown_endpoint import ShutdownEndpoint
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
-from tribler.core.components.restapi.rest.trustview_endpoint import TrustViewEndpoint
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
 from tribler.core.utilities.unicode import hexlify
@@ -98,7 +97,6 @@ class RESTComponent(Component):
                        resource_monitor=resource_monitor_component.resource_monitor,
                        core_exception_handler=self._core_exception_handler)
         self.maybe_add(BandwidthEndpoint, bandwidth_accounting_component.community)
-        self.maybe_add(TrustViewEndpoint, bandwidth_accounting_component.database)
         self.maybe_add(DownloadsEndpoint, libtorrent_component.download_manager,
                        metadata_store=metadata_store_component.mds, tunnel_community=tunnel_community)
         self.maybe_add(CreateTorrentEndpoint, libtorrent_component.download_manager)

@@ -567,11 +567,6 @@ Tenga en cuenta que los valores decimales están truncados.</translation>
         <translation> Borrar del canal</translation>
     </message>
     <message>
-        <location filename="../widgets/trustgraphpage.py" line="224"/>
-        <source>The graph below is based on your historical interactions with other users in the network. It shows &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interactions made by &lt;strong&gt;%(num_users)s&lt;/strong&gt; users.&lt;br/&gt;</source>
-        <translation>El siguiente gráfico se basa en sus interacciones históricas con otros usuarios de la red. Muestra las &lt;strong&gt;%(num_interactions)s&lt;/strong&gt; interacciones realizadas por &lt;strong&gt;%(num_users)s&lt;/strong&gt; otros usuarios.&lt;br/&gt;</translation>
-    </message>
-    <message>
         <location filename="../dialogs/addtagsdialog.py" line="51"/>
         <source>Each tag should be at least %d characters and can be at most %d characters.</source>
         <translation type="obsolete">Cada etiqueta debe tener al menos %d caracteres y puede tener como máximo %d caracteres.</translation>
@@ -1218,11 +1213,6 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
         <translation>GUARDAR</translation>
     </message>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="255"/>
-        <source>CLOSE</source>
-        <translation>CERRAR</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="123"/>
         <source>Add torrent(s) to personal channel</source>
         <translation>Añadir torrent(s) al canal personal</translation>
@@ -1401,11 +1391,6 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
         <location filename="../qt_resources/trustexplanation.ui" line="137"/>
         <source>Bandwidth Tokens</source>
         <translation>Tokens de ancho de banda</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="172"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;En Tribler, compensas a otros usuarios por el ancho de banda que utilizas al descargar con anonimato. Cuando subes contenidos a otros usuarios (de Tribler), ganas &lt;span style=&quot; font-style:italic;&quot;&gt;tokens de ancho de banda&lt;/span&gt;. Si acumulas más tokens de ancho de banda, obtienes un trato preferente al descargar de forma anónima, lo que se traduce en mayores velocidades de descarga.&lt;/p&gt;&lt;p&gt;La cantidad exacta de tokens de ancho de banda que pagas a los demás, depende del nivel de anonimato. Esto es el número de otros usuarios, o &lt;span style=&quot; font-style:italic;&quot;&gt;saltos&lt;/span&gt;, que utilizas durante una descarga. Si descargas con tres saltos de anonimato, tus datos cifrados se envían a través de las máquinas de otros tres usuarios de Tribler. Aumentar el número de saltos beneficia el anonimato, pero te cuesta más tokens de ancho de banda.&lt;/p&gt;&lt;p&gt;P.ej., si descargas un &lt;span style=&quot; font-weight:600;&quot;&gt;1 gigabyte&lt;/span&gt; de vídeo con un salto de anonimato, pagas con &lt;span style=&quot; font-weight:600;&quot;&gt;1 gigabyte&lt;/span&gt; en tokens de ancho de banda. Cada salto adicional aumenta la cantidad de tokens de ancho de banda que tienes que pagar en &lt;span style=&quot; font-weight:600;&quot;&gt;3 gigabyte&lt;/span&gt; de tokens de ancho de banda en su lugar.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
         <location filename="../qt_resources/edit_metadata_dialog.ui" line="155"/>
@@ -2179,11 +2164,6 @@ Alto anonimato</translation>
         <location filename="../qt_resources/mainwindow.ui" line="4361"/>
         <source>Trust statistics</source>
         <translation>Estadísticas de confianza</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4426"/>
-        <source>Show trust graph</source>
-        <translation>Mostrar en un gráfico</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4486"/>

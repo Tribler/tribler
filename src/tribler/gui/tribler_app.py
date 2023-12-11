@@ -58,8 +58,6 @@ class TriblerApplication(QtSingleApplication):
 
         if '--testnet' in sys.argv[1:]:
             os.environ['TESTNET'] = "YES"
-        if '--trustchain-testnet' in sys.argv[1:]:
-            os.environ['TRUSTCHAIN_TESTNET'] = "YES"
         if '--chant-testnet' in sys.argv[1:]:
             os.environ['CHANT_TESTNET'] = "YES"
         if '--tunnel-testnet' in sys.argv[1:]:
