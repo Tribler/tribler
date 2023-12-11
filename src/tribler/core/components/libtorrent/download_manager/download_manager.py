@@ -546,35 +546,43 @@ class DownloadManager(TaskManager):
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
     async def start_download_from_uri(self, uri, config=None):
+        self._logger.info(f'Start download from URI: {uri}')
         scheme = scheme_from_url(uri)
 
         if scheme in (HTTP_SCHEME, HTTPS_SCHEME):
+            self._logger.info('Http(s) scheme detected')
             tdef = await TorrentDef.load_from_url(uri)
             return await self.start_download(tdef=tdef, config=config)
         if scheme == MAGNET_SCHEME:
+            self._logger.info('Magnet scheme detected')
             name, infohash, _ = parse_magnetlink(uri)
+            self._logger.info(f'Name: {name}. Infohash: {infohash}')
             if infohash is None:
                 raise RuntimeError("Missing infohash")
             if infohash in self.metainfo_cache:
+                self._logger.info('Metainfo found in cache')
                 tdef = TorrentDef.load_from_dict(self.metainfo_cache[infohash]['meta_info'])
             else:
+                self._logger.info('Metainfo not found in cache')
                 tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
             return await self.start_download(tdef=tdef, config=config)
         if scheme == FILE_SCHEME:
+            self._logger.info('File scheme detected')
             file = url_to_path(uri)
             return await self.start_download(torrent_file=file, config=config)
         raise Exception("invalid uri")
 
     async def start_download(self, torrent_file=None, tdef=None, config: DownloadConfig = None,
                              checkpoint_disabled=False, hidden=False) -> Download:
-        self._logger.debug(f'Starting download: filename: {torrent_file}, torrent def: {tdef}')
+        self._logger.info(f'Starting download: filename: {torrent_file}, torrent def: {tdef}')
         if config is None:
             config = DownloadConfig.from_defaults(self.download_defaults)
-            self._logger.debug('Use a default config.')
+            self._logger.info('Use a default config.')
 
         # the priority of the parameters is: (1) tdef, (2) torrent_file.
         # so if we have tdef, and torrent_file will be ignored, and so on.
         if tdef is None:
+            self._logger.info('Torrent def is None. Trying to load it from torrent file.')
             if torrent_file is None:
                 raise ValueError("Torrent file must be provided if tdef is not given")
             # try to get the torrent from the given torrent file
@@ -586,17 +594,21 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
 
         if download and infohash not in self.metainfo_requests:
+            self._logger.info('Download exists and metainfo is not requested.')
             new_trackers = list(tdef.get_trackers() - download.get_def().get_trackers())
             if new_trackers:
+                self._logger.info(f'New trackers: {new_trackers}')
                 self.update_trackers(tdef.get_infohash(), new_trackers)
             return download
 
         # Create the destination directory if it does not exist yet
         try:
-            if not config.get_dest_dir().is_dir():
-                os.makedirs(config.get_dest_dir())
+            destination_directory = config.get_dest_dir()
+            if not destination_directory.is_dir():
+                self._logger.info(f'Destination directory does not exist. Creating it: {destination_directory}')
+                os.makedirs(destination_directory)
         except OSError:
-            self._logger.error("Unable to create the download destination directory.")
+            self._logger.exception("Unable to create the download destination directory.")
 
         if config.get_time_added() == 0:
             config.set_time_added(int(timemod.time()))
@@ -611,12 +623,16 @@ class DownloadManager(TaskManager):
                             state_dir=self.state_dir,
                             download_manager=self,
                             dummy=self.dummy_mode)
+        self._logger.info(f'Download created: {download}')
         atp = download.get_atp()
+        self._logger.info(f'ATP: {atp}')
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
+            self._logger.info('Metainfo is not requested or download is the first in the queue.')
             self.downloads[infohash] = download
         if not self.dummy_mode:
+            self._logger.info('Dummy mode is disabled. Starting handle.')
             await self.start_handle(download, atp)
         return download
 
