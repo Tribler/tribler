@@ -1,3 +1,6 @@
+import sys
+from unittest.mock import patch
+
 import pytest
 
 from tribler.core.utilities.path_util import Path, tail
@@ -101,3 +104,17 @@ def test_size_folder(tribler_tmp_path: Path):
 
     assert tribler_tmp_path.size(include_dir_sizes=False) == 300
     assert tribler_tmp_path.size() >= 300
+
+
+@patch.object(sys, 'platform', 'win32')
+def test_fix_win_long_file_win():
+    """ Test that fix_win_long_file works correct on Windows"""
+    path = Path(r'C:\Users\User\AppData\Roaming\.Tribler\7.7')
+    assert Path.fix_win_long_file(path) == r'\\?\C:\Users\User\AppData\Roaming\.Tribler\7.7'
+
+
+@patch.object(sys, 'platform', 'linux')
+def test_fix_win_long_file_linux():
+    """ Test that fix_win_long_file works correct on Linux"""
+    path = Path('/home/user/.Tribler/7.7')
+    assert Path.fix_win_long_file(path) == '/home/user/.Tribler/7.7'
