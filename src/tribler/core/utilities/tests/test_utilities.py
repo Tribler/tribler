@@ -1,4 +1,5 @@
 import binascii
+import logging
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -8,16 +9,17 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
 from tribler.core.utilities.tracker_utils import add_url_params
 from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_positive_integers,
-                                              is_channel_public_key,
-                                              is_infohash, is_simple_match_query, is_valid_url, parse_magnetlink,
-                                              parse_query, parse_bool, random_infohash, safe_repr, show_system_popup, to_fts_query)
-
+                                              is_channel_public_key, is_infohash, is_simple_match_query, is_valid_url,
+                                              parse_bool, parse_magnetlink, parse_query, random_infohash, safe_repr,
+                                              show_system_popup, to_fts_query)
 
 # pylint: disable=import-outside-toplevel, import-error, redefined-outer-name
 # fmt: off
+logger = logging.getLogger(__name__)
+
 
 @pytest.fixture
-async def magnet_redirect_server(free_port):
+async def magnet_redirect_server_port(free_port):
     """
     Return a HTTP redirect server that redirects to a magnet.
     """
@@ -30,10 +32,17 @@ async def magnet_redirect_server(free_port):
     app.add_routes([web.get('/', redirect_handler)])
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
+
     http_server = web.TCPSite(runner, 'localhost', free_port)
+    logger.info(f'Starting a http server: {http_server.name}')
     await http_server.start()
+    logger.info(f'The http server has been started: {http_server.name}')
+
     yield free_port
+
+    logger.info(f'Stopping a http server: {http_server.name}')
     await http_server.stop()
+    logger.info(f'The http server has been stopped: {http_server.name}')
 
 
 def test_parse_magnetlink_lowercase():
@@ -88,17 +97,16 @@ def test_valid_url():
     assert is_valid_url(test_url4)
 
 
-async def test_http_get_with_redirect(magnet_redirect_server):
+async def test_http_get_with_redirect(magnet_redirect_server_port):
     """
     Test if http_get is working properly if url redirects to a magnet link.
     """
-    # Setup a redirect server which redirects to a magnet link
-    magnet_link = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-
-    test_url = "http://localhost:%d" % magnet_redirect_server
     async with ClientSession() as session:
-        response = await session.get(test_url, allow_redirects=False)
-    assert response.headers['Location'] == magnet_link
+        response = await session.get(
+            url=f"http://localhost:{magnet_redirect_server_port}",
+            allow_redirects=False
+        )
+    assert response.headers['Location'] == 'magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A'
 
 
 def test_simple_search_query():

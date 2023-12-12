@@ -12,6 +12,7 @@ from _pytest.config import Config
 from _pytest.python import Function
 from aiohttp.web_app import Application
 
+from tribler.core import patch_wait_for
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint
 from tribler.core.components.restapi.rest.rest_manager import error_middleware
 from tribler.core.utilities.network_utils import default_network_utils
@@ -21,9 +22,12 @@ from tribler.core.utilities.network_utils import default_network_utils
 # Note that the error can happen in an unrelated test where the unhandled task from the previous test
 # was garbage collected. Without the origin tracking, it may be hard to see the test that created the task.
 sys.set_coroutine_origin_tracking_depth(10)
-
 enable_extended_logging = False
 pytest_start_time: Optional[datetime] = None  # a time when the test suite started
+
+# Fix the asyncio `wait_for` function to not swallow the `CancelledError` exception.
+# See: https://github.com/Tribler/tribler/issues/7570
+patch_wait_for()
 
 
 # pylint: disable=unused-argument, redefined-outer-name
@@ -63,7 +67,6 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
         print(f' in {duration:.3f}s ({human_readable.time_delta(total)} in total)', end='')
     else:
         yield
-
 
 
 @pytest.fixture(autouse=True)

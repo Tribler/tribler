@@ -136,6 +136,9 @@ wait_for.patched = True
 
 
 def patch_wait_for():
+    """ Patch asyncio.wait_for to fix the bug with swallowing CancelledError
+    See: https://github.com/Tribler/tribler/issues/7570
+    """
     if sys.version_info >= (3, 12):
         return  # wait_for should be fixed in 3.12
 
