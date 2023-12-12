@@ -68,7 +68,7 @@ class DownloadConfig:
         return DownloadConfig(ConfigObj(self.config, configspec=str(CONFIG_SPEC_PATH), default_encoding='utf-8'),
                               state_dir=self.state_dir)
 
-    def write(self, filename):
+    def write(self, filename: Path):
         self.config.filename = Path.fix_win_long_file(filename)
         self.config.write()
 
