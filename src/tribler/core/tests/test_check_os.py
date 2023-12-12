@@ -38,6 +38,12 @@ def test_enable_fault_handler_import_error(mocked_log_error: MagicMock):
     mocked_log_error.assert_called_once()
 
 
+@patch('tribler.core.check_os.open', new=MagicMock(side_effect=PermissionError))
+def test_enable_fault_handler_os_error():
+    """ Test that the enable_fault_handler does not re-raise an exception derived from `OSError`"""
+    enable_fault_handler(log_dir=MagicMock())
+
+
 @patch_import(['faulthandler'], strict=True, enable=MagicMock())
 @patch('tribler.core.check_os.open', new=MagicMock())
 def test_enable_fault_handler_log_dir_not_exists():
