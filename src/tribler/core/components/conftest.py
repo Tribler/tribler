@@ -9,7 +9,7 @@ from tribler.core.components.libtorrent.download_manager.download_config import 
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.settings import LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.path_util import Path

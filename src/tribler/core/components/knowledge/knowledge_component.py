@@ -1,4 +1,3 @@
-import tribler.core.components.metadata_store.metadata_store_component as metadata_store_component
 from tribler.core.components.component import Component
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -19,7 +18,6 @@ class KnowledgeComponent(Component):
 
         self._ipv8_component = await self.require_component(Ipv8Component)
         key_component = await self.require_component(KeyComponent)
-        mds_component = await self.require_component(metadata_store_component.MetadataStoreComponent)
         db_component = await self.require_component(DatabaseComponent)
 
         self.community = KnowledgeCommunity(
@@ -32,7 +30,7 @@ class KnowledgeComponent(Component):
         self.rules_processor = KnowledgeRulesProcessor(
             notifier=self.session.notifier,
             db=db_component.db,
-            mds=mds_component.mds,
+            mds=db_component.mds,
         )
         self.rules_processor.start()
 

@@ -7,16 +7,14 @@ from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewIte
 from psutil import LINUX
 
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT, \
+from tribler.core.components.database.db.serialization import COLLECTION_NODE, REGULAR_TORRENT, \
     SNIPPET
-from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
     COMMIT_STATUS_TODELETE,
     COMMIT_STATUS_UPDATED,
     ContentCategories,
-    DARWIN,
     HEALTH_CHECKING,
     HEALTH_DEAD,
     HEALTH_ERROR,
@@ -30,9 +28,8 @@ from tribler.gui.defs import (
     TAG_TEXT_COLOR,
     TAG_TEXT_HORIZONTAL_PADDING,
     TAG_TOP_MARGIN,
-    WINDOWS,
 )
-from tribler.gui.utilities import format_votes, get_color, get_gui_setting, get_health, get_image_path, \
+from tribler.gui.utilities import get_color, get_gui_setting, get_health, get_image_path, \
     get_objects_with_predicate, tr
 from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton

@@ -1,0 +1,340 @@
+import os
+from datetime import datetime
+from time import time
+from unittest.mock import MagicMock, Mock
+
+import pytest
+from pony import orm
+from pony.orm import db_session
+
+from tribler.core.components.libtorrent.torrentdef import TorrentDef
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict, TODELETE, \
+    entries_to_chunk
+from tribler.core.components.database.db.serialization import CHANNEL_TORRENT, REGULAR_TORRENT
+from tribler.core.tests.tools.common import TORRENT_UBUNTU_FILE
+from tribler.core.utilities.utilities import random_infohash
+
+# pylint: disable=protected-access
+
+EMPTY_BLOB = b""
+
+
+def rnd_torrent():
+    return {"title": "", "infohash": random_infohash(), "torrent_date": datetime(1970, 1, 1), "tags": "video"}
+
+
+@db_session
+def test_serialization(metadata_store):
+    """
+    Test converting torrent metadata to serialized data
+    """
+    torrent_metadata = metadata_store.TorrentMetadata.from_dict({"infohash": random_infohash()})
+    assert torrent_metadata.serialized()
+
+
+def test_entries_to_chunk():
+    """
+    Test that calling entries_to_chunk with a start index >= the length of the metadata list raises an Exception.
+    """
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 0)
+
+    with pytest.raises(Exception):
+        entries_to_chunk([], 10, 1)
+
+
+async def test_create_ffa_from_dict(metadata_store):
+    """
+    Test creating a free-for-all torrent entry
+    """
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
+
+    with db_session:
+        # Make sure that FFA entry with the infohash that is already known to GigaChannel cannot be created
+        signed_md_dict = tdef_to_metadata_dict(tdef)
+        signed_md_dict.update({'public_key': os.urandom(64), 'signature': os.urandom(64)})
+        signed_entry = metadata_store.TorrentMetadata(**signed_md_dict)
+        metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 0
+
+        signed_entry.delete()
+        # Create FFA entry
+        metadata_store.TorrentMetadata.add_ffa_from_dict(tdef_to_metadata_dict(tdef))
+        assert metadata_store.TorrentMetadata.select(lambda g: g.public_key == EMPTY_BLOB).count() == 1
+
+
+async def test_sanitize_tdef(metadata_store):
+    tdef = await TorrentDef.load(TORRENT_UBUNTU_FILE)
+    tdef.metainfo["creation date"] = -100000
+
+    with db_session:
+        assert metadata_store.TorrentMetadata.from_dict(tdef_to_metadata_dict(tdef))
+
+
+@db_session
+def test_get_magnet(metadata_store):
+    """
+    Test converting torrent metadata to a magnet link
+    """
+    torrent_metadata = metadata_store.TorrentMetadata.from_dict({"infohash": random_infohash()})
+    assert torrent_metadata.get_magnet()
+    torrent_metadata2 = metadata_store.TorrentMetadata.from_dict({'title': '\U0001f4a9', "infohash": random_infohash()})
+    assert torrent_metadata2.get_magnet()
+
+
+@db_session
+def test_search_keyword(metadata_store):
+    """
+    Test searching in a database with some torrent metadata inserted
+    """
+    torrent1 = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo bar 123"))
+    torrent2 = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="eee 123"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xoxoxo bar"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="\""))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="\'"))
+    orm.flush()
+
+    # Search for torrents with the keyword 'foo', it should return one result
+    results = metadata_store.search_keyword("foo")[:]
+    assert len(results) == 1
+    assert results[0].rowid == torrent1.rowid
+
+    # Search for torrents with the keyword 'eee', it should return one result
+    results = metadata_store.search_keyword("eee")[:]
+    assert len(results) == 1
+    assert results[0].rowid == torrent2.rowid
+
+    # Search for torrents with the keyword '123', it should return two results
+    results = metadata_store.search_keyword("123")[:]
+    assert len(results) == 2
+
+
+@db_session
+def test_search_deduplicated(metadata_store):
+    """
+    Test SQL-query base deduplication of search results with the same infohash
+    """
+    torrent = rnd_torrent()
+    metadata_store.TorrentMetadata.from_dict(dict(torrent, title="foo bar 123"))
+    metadata_store.TorrentMetadata.from_dict(dict(torrent, title="eee 123"))
+    results = metadata_store.search_keyword("foo")[:]
+    assert len(results) == 1
+
+
+def test_search_empty_query(metadata_store):
+    """
+    Test whether an empty query returns nothing
+    """
+    assert not metadata_store.search_keyword(None)[:]
+
+
+@db_session
+def test_unicode_search(metadata_store):
+    """
+    Test searching in the database with unicode characters
+    """
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="я маленький апельсин"))
+    results = metadata_store.search_keyword("маленький")[:]
+    assert len(results) == 1
+
+
+@db_session
+def test_wildcard_search(metadata_store):
+    """
+    Test searching in the database with a wildcard
+    """
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobar 123"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foobla 123"))
+    assert not metadata_store.search_keyword("*")[:]
+    assert len(metadata_store.search_keyword("foobl*")[:]) == 1
+    assert len(metadata_store.search_keyword("foo*")[:]) == 2
+    assert len(metadata_store.search_keyword("(\"12\"* AND \"foobl\"*)")[:]) == 1
+
+
+@db_session
+def test_stemming_search(metadata_store):
+    """
+    Test searching in the database with stemmed words
+    """
+    torrent = metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheep", tags="video"))
+
+    # Search with the word 'mountain' should return the torrent with 'mountains' in the title
+    results = metadata_store.search_keyword("mountain")[:]
+    assert torrent.rowid == results[0].rowid
+
+    # Search with the word 'sheeps' should return the torrent with 'sheep' in the title
+    results = metadata_store.search_keyword("sheeps")[:]
+    assert torrent.rowid == results[0].rowid
+
+
+@db_session
+def test_get_autocomplete_terms(metadata_store):
+    """
+    Test fetching autocompletion terms from the database
+    """
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo: bar baz", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="foo - bar, xyz", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="barbarian xyz!", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="n.a.m.e: foobar", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="xyz n.a.m.e", tags="video"))
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("", 10)
+    assert autocomplete_terms == []
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo", 10)
+    assert set(autocomplete_terms) == {"foo: bar", "foo - bar", "foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo: bar", 10)
+    assert set(autocomplete_terms) == {"foo: bar baz", "foo: bar, xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("foo ", 10)
+    assert set(autocomplete_terms) == {"foo bar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("bar", 10)
+    assert set(autocomplete_terms) == {"bar baz", "bar, xyz", "barbarian"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barb", 10)
+    assert set(autocomplete_terms) == {"barbarian"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian ", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("barbarian x", 10)
+    assert set(autocomplete_terms) == {"barbarian xyz"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e", "n.a.m.e: foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e ", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e ", "n.a.m.e foobar"}
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("n.a.m.e f", 10)
+    assert set(autocomplete_terms) == {"n.a.m.e foobar"}
+
+
+@db_session
+def test_get_autocomplete_terms_max(metadata_store):
+    """
+    Test fetching autocompletion terms from the database with a maximum number of terms
+    """
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="mountains sheeps wolf", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="lakes sheep", tags="video"))
+    metadata_store.TorrentMetadata.from_dict(dict(rnd_torrent(), title="regular sheepish guy", tags="video"))
+
+    autocomplete_terms = metadata_store.get_auto_complete_terms("sheep", 2)
+    assert len(autocomplete_terms) == 2
+    # Check that we can chew the special character "."
+    autocomplete_terms = metadata_store.get_auto_complete_terms(".", 2)
+
+
+@db_session
+def test_get_entries_for_infohashes(metadata_store):
+    infohash1 = random_infohash()
+    infohash2 = random_infohash()
+    infohash3 = random_infohash()
+
+    metadata_store.TorrentMetadata(title='title', infohash=infohash1, size=0)
+    metadata_store.TorrentMetadata(title='title', infohash=infohash2, size=0)
+
+    def count(*args, **kwargs):
+        return len(metadata_store.get_entries_query(*args, **kwargs))
+
+    # infohash can be passed as a single object
+    assert count(infohash=infohash3) == 0
+    assert count(infohash=infohash1) == 1
+
+    # infohashes can be passed as a set
+    assert count(infohash_set={infohash1, infohash2}) == 2
+
+    # in the case both arguments are used, the function will take to consideration
+    # only `infohash_set`
+    assert count(infohash=infohash1, infohash_set={infohash1, infohash2}) == 2
+
+
+@db_session
+def test_get_entries(metadata_store):
+    """
+    Test base method for getting torrents
+    """
+    # First we create a few channels and add some torrents to these channels
+    tlist = []
+    for _ in range(5):
+        tlist.extend(
+            [
+                metadata_store.TorrentMetadata(title=f'torrent{torrent_ind}', infohash=random_infohash(), size=123)
+                for torrent_ind in range(5)
+            ]
+        )
+    tlist[-1].xxx = 1
+    tlist[-2].status = TODELETE
+
+    torrents = metadata_store.get_entries(first=1, last=5)
+    assert len(torrents) == 5
+
+    count = metadata_store.get_entries_count(metadata_type=REGULAR_TORRENT)
+    assert count == 25
+
+
+@db_session
+def test_get_entries_health_checked_after(metadata_store):
+    # Test querying for torrents last checked after a certain moment in time
+
+    # Add a torrent checked just now
+    t1 = metadata_store.TorrentMetadata(infohash=random_infohash())
+    t1.health.last_check = int(time())
+
+    # Add a torrent checked awhile ago
+    t2 = metadata_store.TorrentMetadata(infohash=random_infohash())
+    t2.health.last_check = t1.health.last_check - 10000
+
+    # Check that only the more recently checked torrent is returned, because we limited the selection by time
+    torrents = metadata_store.get_entries(health_checked_after=t2.health.last_check + 1)
+    assert torrents == [t1]
+
+
+@db_session
+def test_popular_torrens_with_metadata_type(metadata_store):
+    """
+    Test that `popular` argument cannot be combiner with `metadata_type` argument
+    """
+
+    with pytest.raises(TypeError):
+        metadata_store.get_entries(popular=True)
+
+    metadata_store.get_entries(popular=True, metadata_type=REGULAR_TORRENT)
+
+    with pytest.raises(TypeError):
+        metadata_store.get_entries(popular=True, metadata_type=CHANNEL_TORRENT)
+
+    with pytest.raises(TypeError):
+        metadata_store.get_entries(popular=True, metadata_type=[REGULAR_TORRENT, CHANNEL_TORRENT])
+
+
+WRONG_TRACKERS_OBJECTS = [
+    ["b'udp://tracker/announce'"],
+    None
+]
+
+
+@pytest.mark.parametrize('tracker', WRONG_TRACKERS_OBJECTS)
+def test_tdef_to_metadata_dict_wrong_tracker(tracker):
+    # Ensure that in the case of wrong returned `get_tracker` object, `tdef_to_metadata_dict` function produces a
+    # correct dictionary
+    # see: https://github.com/Tribler/tribler/issues/6987
+    metadata_dict = tdef_to_metadata_dict(
+        tdef=MagicMock(
+            get_tracker=Mock(return_value=tracker)
+        ),
+        category_filter=MagicMock())
+
+    assert metadata_dict['tracker_info'] == ''

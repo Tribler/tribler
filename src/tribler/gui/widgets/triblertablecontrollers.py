@@ -2,7 +2,6 @@
 This file contains various controllers for table views.
 The responsibility of the controller is to populate the table view with some data, contained in a specific model.
 """
-import json
 import logging
 
 from PyQt5.QtCore import QObject, QTimer, Qt
@@ -10,7 +9,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAction
 
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.gui.defs import HEALTH_CHECKING, HEALTH_UNCHECKED
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.tribler_action_menu import TriblerActionMenu

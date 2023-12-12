@@ -13,7 +13,7 @@ from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,

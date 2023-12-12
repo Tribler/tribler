@@ -611,7 +611,7 @@ class TriblerWindow(QMainWindow):
         # We do not want to bother the database on petty 1-character queries
         if len(text) < 2:
             return
-        request_manager.get("search/completions", self.on_received_search_completions, url_params={'q': text})
+        request_manager.get("metadata/search/completions", self.on_received_search_completions, url_params={'q': text})
 
     def on_received_search_completions(self, completions):
         if completions is None:

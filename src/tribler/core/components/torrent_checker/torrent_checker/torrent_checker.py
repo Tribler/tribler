@@ -12,8 +12,8 @@ from pony.utils import between
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse

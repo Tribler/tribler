@@ -6,8 +6,8 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
 from psutil import LINUX
 
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import NEW
+from tribler.core.components.database.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,

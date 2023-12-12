@@ -11,8 +11,8 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session, delete
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler.core.components.metadata_store.db.store import (
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler.core.components.database.db.store import (
     CURRENT_DB_VERSION, MetadataStore,
     sql_create_partial_index_torrentstate_last_check,
 )

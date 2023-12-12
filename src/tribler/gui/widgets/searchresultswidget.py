@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from PyQt5 import uic
 
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.core.utilities.utilities import Query, to_fts_query
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
@@ -92,7 +92,7 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         self.last_search_time = time.time()
 
         model = SearchResultsModel(
-            endpoint_url="search/local",
+            endpoint_url="metadata/search/local",
             hide_xxx=self.results_page_content.hide_xxx,
             original_query=query.original_query,
             text_filter=to_fts_query(query.fts_text),
