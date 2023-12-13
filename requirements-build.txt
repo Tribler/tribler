@@ -1,6 +1,6 @@
 -r requirements.txt
 
-PyInstaller==6.3
+PyInstaller==5.13.2
 
 defusedxml==0.7.1; sys_platform == 'linux2' or sys_platform == 'linux'
 markupsafe==2.0.1; sys_platform == 'linux2' or sys_platform == 'linux'
