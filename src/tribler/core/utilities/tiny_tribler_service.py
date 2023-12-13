@@ -11,6 +11,7 @@ from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.async_group.async_group import AsyncGroup
+from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager
@@ -100,7 +101,7 @@ class TinyTriblerService:
         if not current_process_owns_lock:
             msg = 'Another Core process is already running'
             self.logger.warning(msg)
-            self.process_manager.sys_exit(1, msg)
+            self.process_manager.sys_exit(EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING, msg)
 
     def _enable_graceful_shutdown(self):
         self.logger.info("Enabling graceful shutdown")

@@ -14,6 +14,7 @@ from tribler.core.check_os import (
 )
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
+from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_GUI_PROCESS_IS_RUNNING
 from tribler.core.utilities.process_locking import GUI_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind
 from tribler.core.utilities.process_manager.manager import setup_process_manager
@@ -66,10 +67,11 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir: Pat
         app.installTranslator(translator)
 
         if not current_process_owns_lock:
-            logger.info('GUI Application is already running.')
+            msg = 'Tribler GUI application is already running'
+            logger.info(msg)
             app.send_torrent_file_path_to_primary_process()
             logger.info('Close the current GUI application.')
-            process_manager.sys_exit(1, 'Tribler GUI application is already running')
+            process_manager.sys_exit(EXITCODE_ANOTHER_GUI_PROCESS_IS_RUNNING, msg)
 
         logger.info('Start Tribler Window')
         window = TriblerWindow(process_manager, app_manager, settings, root_state_dir,
