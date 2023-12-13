@@ -96,7 +96,7 @@ def set_process_priority(pid=None, priority_order=1):
         logger.exception(e)
 
 
-def enable_fault_handler(log_dir):
+def enable_fault_handler(log_dir) -> bool:
     """
     Enables fault handler if the module is available.
     """
@@ -110,6 +110,9 @@ def enable_fault_handler(log_dir):
         faulthandler.enable(file=open(str(crash_file), "w"), all_threads=True)
     except (ImportError, OSError) as e:
         logger.exception(e)
+        return False
+    
+    return True
 
 
 def check_and_enable_code_tracing(process_name, log_dir):
