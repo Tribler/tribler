@@ -117,4 +117,4 @@ def test_fix_win_long_file_win():
 def test_fix_win_long_file_linux():
     """ Test that fix_win_long_file works correct on Linux"""
     path = Path('/home/user/.Tribler/7.7')
-    assert Path.fix_win_long_file(path) == '/home/user/.Tribler/7.7'
+    assert Path.fix_win_long_file(path) == str(path)

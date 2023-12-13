@@ -1,4 +1,3 @@
-from logging import Logger
 from unittest.mock import MagicMock, Mock, patch
 
 import psutil
@@ -25,26 +24,33 @@ def test_error_and_exit(mocked_show_system_popup, mocked_sys_exit):
 @patch_import(['faulthandler'], strict=True, enable=MagicMock())
 @patch('tribler.core.check_os.open', new=MagicMock())
 def test_enable_fault_handler():
+    """ Test that the enable_fault_handler calls faulthandler.enable."""
     import faulthandler
-    enable_fault_handler(log_dir=MagicMock())
+    assert enable_fault_handler(log_dir=MagicMock())
     faulthandler.enable.assert_called_once()
 
 
 @patch_import(['faulthandler'], strict=True, always_raise_exception_on_import=True)
-@patch.object(Logger, 'error')
 @patch('tribler.core.check_os.open', new=MagicMock())
-def test_enable_fault_handler_import_error(mocked_log_error: MagicMock):
-    enable_fault_handler(log_dir=MagicMock())
-    mocked_log_error.assert_called_once()
+def test_enable_fault_handler_import_error():
+    """ Test that the enable_fault_handler does not re-raise an exception derived from `ImportError`"""
+    assert not enable_fault_handler(log_dir=MagicMock())
+
+
+@patch('tribler.core.check_os.open', new=MagicMock(side_effect=PermissionError))
+def test_enable_fault_handler_os_error():
+    """ Test that the enable_fault_handler does not re-raise an exception derived from `OSError`"""
+    assert not enable_fault_handler(log_dir=MagicMock())
 
 
 @patch_import(['faulthandler'], strict=True, enable=MagicMock())
 @patch('tribler.core.check_os.open', new=MagicMock())
 def test_enable_fault_handler_log_dir_not_exists():
+    """ Test that the enable_fault_handler creates the log directory if it does not exist."""
     log_dir = MagicMock(exists=MagicMock(return_value=False),
                         mkdir=MagicMock())
 
-    enable_fault_handler(log_dir=log_dir)
+    assert enable_fault_handler(log_dir=log_dir)
     log_dir.mkdir.assert_called_once()
 
 
