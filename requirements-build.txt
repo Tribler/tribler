@@ -1,9 +1,6 @@
 -r requirements.txt
 
-PyInstaller==5.1; sys_platform != 'darwin'
-
-setuptools==65.5.1; sys_platform == 'darwin'
-text-unidecode==1.3; sys_platform == 'darwin'
+PyInstaller==6.3
 
 defusedxml==0.7.1; sys_platform == 'linux2' or sys_platform == 'linux'
 markupsafe==2.0.1; sys_platform == 'linux2' or sys_platform == 'linux'
