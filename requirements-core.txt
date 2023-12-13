@@ -1,4 +1,4 @@
-aiohttp==3.8.5
+aiohttp==3.9.0
 aiohttp-apispec==2.2.3 # keep this higher or equal to 2.2.3 https://githubhot.com/repo/maximdanilchenko/aiohttp-apispec/issues/122
 anyio==3.7.1
 chardet==5.1.0
