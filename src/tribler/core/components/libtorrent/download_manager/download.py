@@ -322,7 +322,7 @@ class Download(TaskManager):
         filename = self.download_manager.get_checkpoint_dir() / basename
         self.config.config['download_defaults']['name'] = self.tdef.get_name_as_unicode()  # store name (for debugging)
         try:
-            self.config.write(str(filename))
+            self.config.write(filename)
         except OSError as e:
             self._logger.warning(f'{e.__class__.__name__}: {e}')
         else:
