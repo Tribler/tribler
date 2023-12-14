@@ -44,8 +44,7 @@ def require_handle(func):
             if not fut.cancelled() \
                     and not result_future.done() \
                     and handle == download.handle \
-                    and handle.is_valid() \
-                    and not isinstance(download.tdef, torrentdef.TorrentDefNoMetainfo):
+                    and handle.is_valid():
                 result_future.set_result(func(*args, **kwargs))
 
         download = args[0]
