@@ -2,6 +2,8 @@
 
 PyInstaller==5.13.2
 
+setuptools==69.0.2; sys_platform == 'darwin'
+
 defusedxml==0.7.1; sys_platform == 'linux2' or sys_platform == 'linux'
 markupsafe==2.0.1; sys_platform == 'linux2' or sys_platform == 'linux'
 PyGObject==3.44.1; sys_platform == 'linux2' or sys_platform == 'linux'
