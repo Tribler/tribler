@@ -4,7 +4,6 @@ from contextlib import suppress
 from hashlib import sha1
 from typing import Any, Dict, Iterable, List, Optional
 
-from tribler.core.components.libtorrent import torrentdef
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities.path_util import Path
 
@@ -34,6 +33,7 @@ def require_handle(func):
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
     Author(s): Egbert Bouman
     """
+
     def invoke_func(*args, **kwargs):
         result_future = Future()
 
@@ -41,11 +41,13 @@ def require_handle(func):
             with suppress(CancelledError):
                 handle = fut.result()
 
-            if not fut.cancelled() \
-                    and not result_future.done() \
-                    and handle == download.handle \
-                    and handle.is_valid():
+            if fut.cancelled() or result_future.done() or handle != download.handle or not handle.is_valid():
+                return
+
+            try:
                 result_future.set_result(func(*args, **kwargs))
+            except RuntimeError as e:
+                logger.exception(e)
 
         download = args[0]
         handle_future = download.get_handle()
