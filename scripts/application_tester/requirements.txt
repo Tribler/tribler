@@ -1,3 +1,0 @@
-aiohttp==3.9.0
-sentry-sdk==1.31.0
-colorlog==6.7.0
