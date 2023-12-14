@@ -19,7 +19,7 @@ from tribler.core.components.ipv8.settings import (
 from tribler.core.components.key.settings import TrustchainSettings
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler.core.components.content_discovery.settings import ContentDiscoveryComponentConfig
-from tribler.core.components.metadata_store.settings import ChantSettings
+from tribler.core.components.database.settings import ChantSettings
 from tribler.core.components.resource_monitor.settings import ResourceMonitorSettings
 from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.components.torrent_checker.settings import TorrentCheckerSettings

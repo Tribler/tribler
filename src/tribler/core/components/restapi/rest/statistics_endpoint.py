@@ -4,7 +4,7 @@ from ipv8.REST.schema import schema
 from ipv8.types import IPv8
 from marshmallow.fields import Integer, String
 
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTResponse
 from tribler.core.utilities.utilities import froze_it
 

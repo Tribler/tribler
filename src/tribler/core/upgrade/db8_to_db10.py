@@ -6,7 +6,7 @@ from time import time as now
 
 from pony.orm import db_session
 
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.utilities.db_corruption_handling import sqlite_replacement
 
 TABLE_NAMES = (

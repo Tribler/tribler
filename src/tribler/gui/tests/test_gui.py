@@ -15,7 +15,7 @@ from tribler.core.components.knowledge.knowledge_constants import MIN_RESOURCE_L
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.utilities.process_manager import ProcessKind, ProcessManager, TriblerProcess
+from tribler.core.utilities.process_manager import ProcessKind, ProcessManager
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
 from tribler.gui.app_manager import AppManager

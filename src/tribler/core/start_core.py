@@ -21,7 +21,6 @@ from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
-from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
 from tribler.core.components.payout.payout_component import PayoutComponent
 from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
@@ -58,8 +57,6 @@ def components_gen(config: TriblerConfig):
     yield GuiProcessWatcherComponent()
     yield DatabaseComponent()
     yield RESTComponent()
-    if config.chant.enabled or config.torrent_checking.enabled:
-        yield MetadataStoreComponent()
     if config.ipv8.enabled:
         yield Ipv8Component()
 

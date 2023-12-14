@@ -15,8 +15,8 @@ from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
 from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
 from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.utilities.async_force_switch import force_switch
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.unicode import hexlify

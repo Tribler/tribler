@@ -2,12 +2,13 @@ from itertools import chain
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.component import Component
 from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
+from tribler.core.components.content_discovery.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.database.database_component import DatabaseComponent
+from tribler.core.components.database.restapi.database_endpoint import DatabaseEndpoint
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
@@ -18,9 +19,6 @@ from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import C
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.components.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler.core.components.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler.core.components.metadata_store.metadata_store_component import MetadataStoreComponent
-from tribler.core.components.metadata_store.restapi.metadata_endpoint import MetadataEndpoint
-from tribler.core.components.metadata_store.restapi.search_endpoint import SearchEndpoint
 from tribler.core.components.reporter.exception_handler import CoreExceptionHandler, default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.reporter.reporter_component import ReporterComponent
@@ -69,7 +67,6 @@ class RESTComponent(Component):
         shutdown_event = session.shutdown_event
 
         log_dir = config.general.get_path_as_absolute('log_dir', config.state_dir)
-        metadata_store_component = await self.maybe_component(MetadataStoreComponent)
 
         key_component = await self.maybe_component(KeyComponent)
         ipv8_component = await self.maybe_component(Ipv8Component)
@@ -98,16 +95,15 @@ class RESTComponent(Component):
                        core_exception_handler=self._core_exception_handler)
         self.maybe_add(BandwidthEndpoint, bandwidth_accounting_component.community)
         self.maybe_add(DownloadsEndpoint, libtorrent_component.download_manager,
-                       metadata_store=metadata_store_component.mds, tunnel_community=tunnel_community)
+                       metadata_store=db_component.mds, tunnel_community=tunnel_community)
         self.maybe_add(CreateTorrentEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(StatisticsEndpoint, ipv8=ipv8_component.ipv8, metadata_store=metadata_store_component.mds)
+        self.maybe_add(StatisticsEndpoint, ipv8=ipv8_component.ipv8, metadata_store=db_component.mds)
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
-        self.maybe_add(MetadataEndpoint, libtorrent_component.download_manager, torrent_checker,
-                       metadata_store_component.mds, tribler_db=db_component.db,
+        self.maybe_add(DatabaseEndpoint, libtorrent_component.download_manager, torrent_checker,
+                       db_component.mds, tribler_db=db_component.db,
                        tag_rules_processor=knowledge_component.rules_processor)
-        self.maybe_add(SearchEndpoint, content_discovery_component.community,
-                       metadata_store_component.mds, tribler_db=db_component.db)
+        self.maybe_add(SearchEndpoint, content_discovery_component.community)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 
         if not isinstance(ipv8_component, NoneComponent):

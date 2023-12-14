@@ -1,7 +1,6 @@
 from asyncio import Future
 
 from ipv8.requestcache import RandomNumberCache
-from tribler.core.components.metadata_store.utils import RequestTimeoutException
 
 
 class SelectRequest(RandomNumberCache):
@@ -23,6 +22,10 @@ class SelectRequest(RandomNumberCache):
     def on_timeout(self):
         if self.timeout_callback is not None:
             self.timeout_callback(self)
+
+
+class RequestTimeoutException(Exception):
+    pass
 
 
 class EvaSelectRequest(SelectRequest):

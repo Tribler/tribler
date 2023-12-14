@@ -31,8 +31,8 @@ from tribler.core.components.content_discovery.community.settings import Content
 from tribler.core.components.ipv8.eva.protocol import EVAProtocol
 from tribler.core.components.ipv8.eva.result import TransferResult
 from tribler.core.components.knowledge.community.knowledge_validator import is_valid_resource
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
-from tribler.core.components.metadata_store.db.store import ObjState
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
+from tribler.core.components.database.db.store import ObjState
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HealthInfo
 from tribler.core.upgrade.tags_to_knowledge.previous_dbs.knowledge_db import ResourceType
 from tribler.core.utilities.pony_utils import run_threaded

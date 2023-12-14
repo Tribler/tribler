@@ -8,7 +8,7 @@ import time
 from asyncio import Future
 from binascii import hexlify
 from operator import attrgetter
-from random import choices, randint, random
+from random import choices, randint
 from typing import List
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -30,9 +30,9 @@ from tribler.core.components.database.db.layers.knowledge_data_access_layer impo
 from tribler.core.components.database.db.layers.tests.test_knowledge_data_access_layer_base import \
     Resource, TestKnowledgeAccessLayerBase
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, NEW
-from tribler.core.components.metadata_store.db.serialization import CHANNEL_THUMBNAIL, NULL_KEY, REGULAR_TORRENT
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, NEW
+from tribler.core.components.database.db.serialization import CHANNEL_THUMBNAIL, NULL_KEY, REGULAR_TORRENT
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo

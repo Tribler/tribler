@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pony.orm import count, db_session
 
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).

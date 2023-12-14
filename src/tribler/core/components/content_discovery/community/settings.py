@@ -4,7 +4,7 @@ from typing import Sequence
 
 from ipv8.community import CommunitySettings
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.utilities.notifier import Notifier
 

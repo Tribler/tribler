@@ -10,8 +10,8 @@ from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from pony.orm import db_session, select
 
 from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
-from tribler.core.components.metadata_store.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
-from tribler.core.components.metadata_store.db.store import CURRENT_DB_VERSION, MetadataStore
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
+from tribler.core.components.database.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.upgrade.db8_to_db10 import calc_progress
 from tribler.core.upgrade.tags_to_knowledge.previous_dbs.tags_db import TagDatabase

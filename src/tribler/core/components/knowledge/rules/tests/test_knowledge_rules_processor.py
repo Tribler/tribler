@@ -8,8 +8,8 @@ from pony.orm import db_session
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
-from tribler.core.components.metadata_store.db.serialization import REGULAR_TORRENT
-from tribler.core.components.metadata_store.db.store import MetadataStore
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import MEMORY_DB
 
