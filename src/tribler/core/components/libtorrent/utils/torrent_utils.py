@@ -42,12 +42,21 @@ def require_handle(func):
                 handle = fut.result()
 
             if fut.cancelled() or result_future.done() or handle != download.handle or not handle.is_valid():
+                logger.warning('Can not invoke function, handle is not valid or future is cancelled')
+                result_future.set_result(None)
                 return
 
             try:
-                result_future.set_result(func(*args, **kwargs))
+                result = func(*args, **kwargs)
             except RuntimeError as e:
+                # ignore runtime errors, for more info see: https://github.com/Tribler/tribler/pull/7783
                 logger.exception(e)
+                result_future.set_result(None)
+            except Exception as e:
+                logger.exception(e)
+                result_future.set_exception(e)
+            else:
+                result_future.set_result(result)
 
         download = args[0]
         handle_future = download.get_handle()
