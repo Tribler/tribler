@@ -11,6 +11,8 @@ from pony.orm import db_session
 
 from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
 from ipv8.REST.schema import schema
+
+from tribler.core import notifications
 from tribler.core.components.database.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT, SNIPPET
@@ -328,6 +330,10 @@ class DatabaseEndpoint(RESTEndpoint):
                                       f'Main query executed in {t2 - t1:.6} seconds;\n'
                                       f'Result constructed in {t3 - t2:.6} seconds.')
 
+            self.download_manager.notifier[notifications.local_query_results]({
+                "query": request.query.get("txt_filter"),
+                "results": list(pony_query)
+            })
             return search_results, total, max_rowid
 
         try:

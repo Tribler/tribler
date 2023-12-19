@@ -215,8 +215,12 @@ class ContentDiscoveryCommunity(Community):
                 if r.obj_state == ObjState.NEW_OBJECT
             ]
             if self.composition.notifier:
-                self.composition.notifier[notifications.remote_query_results](
-                    {"results": results, "uuid": str(request_uuid), "peer": hexlify(request.peer.mid)})
+                self.composition.notifier[notifications.remote_query_results]({
+                    "query": kwargs.get("txt_filter"),
+                    "results": results,
+                    "uuid": str(request_uuid),
+                    "peer": hexlify(request.peer.mid)
+                })
 
         peers_to_query = self.get_random_peers(self.composition.max_query_peers)
 

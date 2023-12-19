@@ -448,7 +448,7 @@ class Download(TaskManager):
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         downloaded = self.get_state().get_total_transferred(DOWNLOAD)
-        if downloaded > 0 and self.stream is not None and self.notifier is not None:
+        if downloaded > 0 and self.notifier is not None:
             name = self.tdef.get_name_as_unicode()
             infohash = self.tdef.get_infohash().hex()
             self.notifier[notifications.torrent_finished](infohash=infohash, name=name, hidden=self.hidden)

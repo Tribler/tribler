@@ -6,6 +6,7 @@ from pony import orm
 
 from tribler.core.components.database.db.layers.health_data_access_layer import HealthDataAccessLayer
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer
+from tribler.core.components.database.db.layers.user_activity_layer import UserActivityLayer
 from tribler.core.utilities.pony_utils import TrackedDatabase, db_session, get_or_create
 
 MEMORY = ':memory:'
@@ -30,6 +31,8 @@ class TriblerDatabase:
 
         self.TorrentHealth = self.health.TorrentHealth
         self.Tracker = self.health.Tracker
+
+        self.user_activity_layer = UserActivityLayer(self.instance)
 
         filename = filename or MEMORY
         db_does_not_exist = filename == MEMORY or not os.path.isfile(filename)

@@ -3,7 +3,6 @@ import logging
 import logging.config
 import os
 import signal
-import sys
 from pathlib import Path
 from typing import List, Optional
 
@@ -14,6 +13,7 @@ from tribler.core.check_os import (
 )
 from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.component import Component
+from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.gui_process_watcher.gui_process_watcher import GuiProcessWatcher
 from tribler.core.components.gui_process_watcher.gui_process_watcher_component import GuiProcessWatcherComponent
@@ -22,7 +22,6 @@ from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.knowledge.knowledge_component import KnowledgeComponent
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
 from tribler.core.components.payout.payout_component import PayoutComponent
-from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.components.reporter.reporter_component import ReporterComponent
 from tribler.core.components.resource_monitor.resource_monitor_component import ResourceMonitorComponent
@@ -31,6 +30,7 @@ from tribler.core.components.session import Session
 from tribler.core.components.socks_servers.socks_servers_component import SocksServersComponent
 from tribler.core.components.torrent_checker.torrent_checker_component import TorrentCheckerComponent
 from tribler.core.components.tunnel.tunnel_component import TunnelsComponent
+from tribler.core.components.user_activity.user_activity_component import UserActivityComponent
 from tribler.core.components.version_check.version_check_component import VersionCheckComponent
 from tribler.core.components.watch_folder.watch_folder_component import WatchFolderComponent
 from tribler.core.config.tribler_config import TriblerConfig
@@ -77,6 +77,8 @@ def components_gen(config: TriblerConfig):
         yield TorrentCheckerComponent()
     if config.ipv8.enabled and config.torrent_checking.enabled and config.content_discovery_community.enabled:
         yield ContentDiscoveryComponent()
+        if config.libtorrent.enabled and config.user_activity.enabled:
+            yield UserActivityComponent()
 
     # The components below are skipped if config.gui_test_mode == True
     if config.gui_test_mode:

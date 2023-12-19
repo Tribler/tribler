@@ -24,6 +24,7 @@ from tribler.core.components.resource_monitor.settings import ResourceMonitorSet
 from tribler.core.components.restapi.rest.settings import APISettings
 from tribler.core.components.torrent_checker.settings import TorrentCheckerSettings
 from tribler.core.components.tunnel.settings import TunnelCommunitySettings
+from tribler.core.components.user_activity.settings import UserActivitySettings
 from tribler.core.components.watch_folder.settings import WatchFolderSettings
 from tribler.core.settings import GeneralSettings
 
@@ -54,6 +55,7 @@ class TriblerConfig(BaseSettings):
     api: APISettings = APISettings()
     resource_monitor: ResourceMonitorSettings = ResourceMonitorSettings()
     content_discovery_community: ContentDiscoveryComponentConfig = ContentDiscoveryComponentConfig()
+    user_activity: UserActivitySettings = UserActivitySettings()
 
     # Special configuration options related to the operation mode of the Core
     upgrader_enabled: bool = True

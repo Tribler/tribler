@@ -31,6 +31,11 @@ def remote_query_results(data: dict):
     ...
 
 
+def local_query_results(data: dict):
+    # Local database search results were received by Tribler. Contains received entries
+    ...
+
+
 def circuit_removed(circuit: Circuit, additional_info: str):
     # Tribler tunnel circuit has been removed (notification to Core)
     ...
