@@ -1,19 +1,21 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import random
 import time
-from asyncio import CancelledError
+from asyncio import AbstractEventLoop, CancelledError, get_running_loop
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional
 
-from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
 from pony.utils import between
 
+from ipv8.taskmanager import TaskManager
 from tribler.core import notifications
-from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.core.components.database.db.store import MetadataStore
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse
@@ -69,8 +71,10 @@ class TorrentChecker(TaskManager):
 
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
-        self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
-        self.register_task("check channel torrents", self.check_torrents_in_user_channel,
+        self.register_task("check local torrents", get_running_loop().run_in_executor, None,
+                           self.check_local_torrents, get_running_loop(), interval=TORRENT_SELECTION_INTERVAL)
+        self.register_task("check channel torrents", get_running_loop().run_in_executor, None,
+                           self.check_torrents_in_user_channel, get_running_loop(),
                            interval=USER_CHANNEL_TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
@@ -208,6 +212,16 @@ class TorrentChecker(TaskManager):
                                                   last_check=torrent.last_check, self_checked=True)
         return result
 
+    def schedule_check(self, torrents: list, loop: AbstractEventLoop) -> None:
+        """
+        Schedule a health check of the given torrents.
+
+        :type torrents: list[TorrentState]
+        """
+        for t in torrents:
+            loop.call_soon_threadsafe(self.register_anonymous_task, f"Check health {t.infohash}",
+                                      self.check_torrent_health, t.infohash)
+
     @db_session
     def torrents_to_check(self):
         """
@@ -233,16 +247,18 @@ class TorrentChecker(TaskManager):
         selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
         return selected_torrents
 
-    async def check_local_torrents(self) -> Tuple[List, List]:
+    def check_local_torrents(self, loop: AbstractEventLoop | None = None) -> list:
         """
         Perform a full health check on a few popular and old torrents in the database.
+
+        :returns: the torrents to be checked.
+        :rtype: list[TorrentState]
         """
+        loop = loop or get_running_loop()
         selected_torrents = self.torrents_to_check()
         self._logger.info(f'Check {len(selected_torrents)} local torrents')
-        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
-        results = await gather_coros(coros)
-        self._logger.info(f'Results for local torrents check: {results}')
-        return selected_torrents, results
+        self.schedule_check(selected_torrents, loop)
+        return selected_torrents
 
     @db_session
     def torrents_to_check_in_user_channel(self):
@@ -259,16 +275,18 @@ class TorrentChecker(TaskManager):
                                 .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
         return channel_torrents
 
-    async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
+    def check_torrents_in_user_channel(self, loop: AbstractEventLoop | None = None) -> list:
         """
-        Perform a full health check of torrents in user's channel
+        Perform a full health check of torrents in user's channel.
+
+        :returns: the torrents to be checked.
+        :rtype: list[TorrentState]
         """
+        loop = loop or get_running_loop()
         selected_torrents = self.torrents_to_check_in_user_channel()
         self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
-        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
-        results = await gather_coros(coros)
-        self._logger.info(f'Results for torrents in user channel: {results}')
-        return results
+        self.schedule_check(selected_torrents, loop)
+        return selected_torrents
 
     def get_next_tracker(self):
         while tracker := self.tracker_manager.get_next_tracker():

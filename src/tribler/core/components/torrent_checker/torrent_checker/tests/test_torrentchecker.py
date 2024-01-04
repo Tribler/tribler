@@ -290,7 +290,8 @@ async def test_check_local_torrents(torrent_checker):
     torrent_checker.check_torrent_health = lambda _: succeed(None)
 
     # No torrents yet, the selected torrents should be empty
-    selected_torrents, _ = await torrent_checker.check_local_torrents()
+    selected_torrents = torrent_checker.check_local_torrents()
+    await torrent_checker.wait_for_tasks()
     assert len(selected_torrents) == 0
 
     # Add some freshly checked torrents
@@ -317,7 +318,8 @@ async def test_check_local_torrents(torrent_checker):
         stale_infohashes.append(infohash)
 
     # Now check that all torrents selected for check are stale torrents.
-    selected_torrents, _ = await torrent_checker.check_local_torrents()
+    selected_torrents = torrent_checker.check_local_torrents()
+    await torrent_checker.wait_for_tasks()
     assert len(selected_torrents) <= torrent_checker_module.TORRENT_SELECTION_POOL_SIZE
 
     # In the above setup, both seeder (popularity) count and last_check are decreasing so,
@@ -355,7 +357,8 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
     assert len(selected_torrents) == 0
 
     # No health check call are done
-    await torrent_checker.check_torrents_in_user_channel()
+    torrent_checker.check_torrents_in_user_channel()
+    await torrent_checker.wait_for_tasks()
     assert check_torrent_health_mock.call_count == len(selected_torrents)
 
     num_torrents = 20
@@ -380,7 +383,8 @@ async def test_check_channel_torrents(torrent_checker: TorrentChecker):
         assert torrent.infohash in outdated_torrents
 
     # Health check requests are sent for all selected torrents
-    result = await torrent_checker.check_torrents_in_user_channel()
+    result = torrent_checker.check_torrents_in_user_channel()
+    await torrent_checker.wait_for_tasks()
     assert len(result) == len(selected_torrents)
 
 
