@@ -1,6 +1,6 @@
 import asyncio
 import shutil
-from unittest.mock import MagicMock, Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -36,7 +36,7 @@ async def watch_folder(tmp_path):
 
 async def test_watch_folder_no_files(watch_folder):
     # Test that in the case of an empty folder, downloads are not started
-    await watch_folder._check_watch_folder()
+    assert await watch_folder._check_watch_folder()
 
     assert not watch_folder.download_manager.start_download.called
 
@@ -46,7 +46,7 @@ async def test_watch_folder_no_torrent_file(watch_folder: WatchFolder):
     directory = watch_folder.settings.get_path_as_absolute('directory', watch_folder.state_dir)
     shutil.copyfile(TORRENT_UBUNTU_FILE, directory / "test.txt")
 
-    await watch_folder._check_watch_folder()
+    assert await watch_folder._check_watch_folder()
 
     assert not watch_folder.download_manager.start_download.called
 
@@ -58,7 +58,7 @@ async def test_watch_folder_utf8_dir(watch_folder, tmp_path):
     unicode_folder.mkdir()
     shutil.copyfile(TORRENT_UBUNTU_FILE, unicode_folder / "\xe2\x82\xac.torrent")
 
-    await watch_folder._check_watch_folder()
+    assert await watch_folder._check_watch_folder()
 
     assert watch_folder.download_manager.start_download.called
 
@@ -80,7 +80,7 @@ async def test_watch_folder_torrent_file_no_metainfo(watch_folder: WatchFolder):
     watch_folder.download_manager.download_exists = Mock(return_value=False)
     shutil.copyfile(TORRENT_UBUNTU_FILE, watch_folder.state_dir / "test.torrent")
 
-    await watch_folder._check_watch_folder()
+    assert await watch_folder._check_watch_folder()
 
     assert not watch_folder.download_manager.start_download.called
 
@@ -90,7 +90,7 @@ async def test_watch_folder_torrent_file_start_download(watch_folder: WatchFolde
     watch_folder.download_manager.download_exists = Mock(return_value=False)
     shutil.copyfile(TORRENT_VIDEO_FILE, watch_folder.state_dir / "test.torrent")
 
-    await watch_folder._check_watch_folder()
+    assert await watch_folder._check_watch_folder()
 
     assert watch_folder.download_manager.start_download.call_count == 1
 
@@ -120,3 +120,34 @@ async def test_watch_folder_no_crash_exception(watch_folder: WatchFolder):
     # Test that errors raised in `_check_watch_folder` reraise as `NoCrashException`
     with pytest.raises(NoCrashException):
         await watch_folder._check_watch_folder_handle_exceptions()
+
+
+async def test_watch_folder_invalid_dir(watch_folder: WatchFolder, tmp_path):
+    """ Test that the watch folder is disabled when the directory is invalid"""
+    watch_folder.settings.put_path_as_relative(
+        property_name='directory',
+        value=Path('path that does not exist'),
+        state_dir=Path(tmp_path)
+    )
+
+    assert not await watch_folder._check_watch_folder()
+
+
+async def test_watch_folder_not_dir(watch_folder: WatchFolder, tmp_path):
+    """ Test that the watch folder is disabled when the "directory" setting is not a directory"""
+    any_file = tmp_path / 'any.file'
+    any_file.touch()
+
+    watch_folder.settings.put_path_as_relative(
+        property_name='directory',
+        value=any_file,
+        state_dir=Path(tmp_path)
+    )
+
+    assert not await watch_folder._check_watch_folder()
+
+
+async def test_watch_folder_disabled(watch_folder: WatchFolder):
+    """ Test that the watch folder is disabled when the "enabled" setting is False"""
+    watch_folder.settings.enabled = False
+    assert not await watch_folder._check_watch_folder()

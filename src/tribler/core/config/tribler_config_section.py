@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseSettings, Extra, root_validator
+
+from tribler.core.utilities.path_util import Path
 
 
 class TriblerConfigSection(BaseSettings):
@@ -38,7 +39,7 @@ class TriblerConfigSection(BaseSettings):
         value = self.__getattribute__(property_name)
         if value is None:
             return None
-        return state_dir / value
+        return Path(state_dir / value)
 
     @root_validator(pre=True)
     def convert_from_none_string_to_none_type(cls, values):  # pylint: disable=no-self-argument
