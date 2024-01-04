@@ -45,17 +45,23 @@ class WatchFolder:
             self._logger.exception(f'Failed download attempt: {e}')
             raise NoCrashException from e
 
-    async def _check_watch_folder(self):
+    async def _check_watch_folder(self) -> bool:
+        """ Check the watch folder for new torrents and start downloading them."""
+
         self._logger.debug('Checking watch folder...')
         if not self.settings.enabled or not self.state_dir:
             self._logger.debug(f'Cancelled. Enabled: {self.settings.enabled}. State dir: {self.state_dir}.')
-            return
+            return False
 
         directory = self.settings.get_path_as_absolute('directory', self.state_dir)
-        self._logger.debug(f'Watch dir: {directory}')
+        self._logger.info(f'Checking watch folder: {directory}')
+        if not directory.is_valid():
+            self._logger.warning(f'Cancelled. Directory is not valid: {directory}.')
+            return False
+
         if not directory.is_dir():
-            self._logger.debug(f'Cancelled. Is not directory: {directory}.')
-            return
+            self._logger.warning(f'Cancelled. Is not directory: {directory}.')
+            return False
 
         for root, _, files in os.walk(str(directory)):
             for name in files:
@@ -63,6 +69,7 @@ class WatchFolder:
                 await self._process_torrent_file(path)
 
         self._logger.debug('Checking watch folder completed.')
+        return True
 
     async def _process_torrent_file(self, path: Path):
         if not path.name.endswith(".torrent"):

@@ -1,8 +1,9 @@
 import os
-from pathlib import Path
 from typing import Any, Union
 
 from yarl import URL
+
+from tribler.core.utilities.path_util import Path
 
 MAGNET_SCHEME = 'magnet'
 FILE_SCHEME = 'file'
@@ -55,7 +56,4 @@ def scheme_from_url(url: str) -> str:
 
 def url_is_valid_file(file_url: str) -> bool:
     file_path = url_to_path(file_url)
-    try:
-        return Path(file_path).is_file()
-    except OSError:
-        return False
+    return Path(file_path).is_valid()

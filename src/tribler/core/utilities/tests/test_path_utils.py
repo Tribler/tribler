@@ -1,5 +1,5 @@
 import sys
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -118,3 +118,27 @@ def test_fix_win_long_file_linux():
     """ Test that fix_win_long_file works correct on Linux"""
     path = Path('/home/user/.Tribler/7.7')
     assert Path.fix_win_long_file(path) == str(path)
+
+
+def test_is_valid(tmp_path):
+    """ Test that is_valid returns True for valid path"""
+    assert Path(tmp_path).is_valid()
+
+
+def test_is_invalid(tmp_path):
+    """ Test that is_valid returns False for invalid path"""
+    invalid_path = Path(str(tmp_path) * 2)
+    assert not Path(invalid_path).is_valid()
+
+
+@patch.object(Path, 'is_file', Mock(side_effect=OSError))
+def test_is_invalid_by_os_exception(tmp_path):
+    """ Test that is_valid returns False if OSError exception was raised"""
+    assert not Path(tmp_path).is_valid()
+
+
+@patch.object(Path, 'is_file', Mock(side_effect=ValueError))
+def test_is_valid_any_exception(tmp_path):
+    """ Test that is_valid reraise exception if it is not OSError"""
+    with pytest.raises(ValueError):
+        Path(tmp_path).is_valid()

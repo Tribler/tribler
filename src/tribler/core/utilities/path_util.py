@@ -72,6 +72,16 @@ class Path(type(pathlib.Path())):
     def endswith(self, text: str) -> bool:
         return self.match(f"*{text}")
 
+    def is_valid(self):
+        """ Check if the path is valid.
+
+        Returns: True if the path is valid, False otherwise.
+        """
+        try:
+            return self.is_file() or self.is_dir()
+        except OSError:
+            return False
+
 
 class PosixPath(Path, pathlib.PurePosixPath):
     __slots__ = ()
