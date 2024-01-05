@@ -6,7 +6,6 @@ import socket
 import sys
 from binascii import unhexlify
 from time import localtime, strftime, time
-from typing import Dict
 
 import libtorrent
 import psutil
@@ -179,8 +178,6 @@ class DebugWindow(QMainWindow):
             self.load_general_tab()
         elif index == 1:
             self.load_requests_tab()
-        elif index == 2:
-            self.run_with_timer(self.load_bandwidth_accounting_tab)
         elif index == 3:
             self.ipv8_tab_changed(self.window().ipv8_tab_widget.currentIndex())
         elif index == 4:
@@ -323,23 +320,6 @@ class DebugWindow(QMainWindow):
             item.setText(1, request.status_text)
             item.setText(2, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().requests_tree_widget.addTopLevelItem(item)
-
-    def load_bandwidth_accounting_tab(self) -> None:
-        """
-        Initiate a request to the Tribler core to fetch statistics on bandwidth accounting.
-        """
-        request_manager.get("bandwidth/statistics", self.on_bandwidth_statistics)
-
-    def on_bandwidth_statistics(self, data: Dict) -> None:
-        """
-        We received bandwidth statistics from the core.
-        :param data: The bandwidth statistics, in JSON format.
-        """
-        if not data:
-            return
-        self.window().bandwidth_tree_widget.clear()
-        for key, value in data["statistics"].items():
-            self.create_and_add_widget_item(key, value, self.window().bandwidth_tree_widget)
 
     def load_ipv8_general_tab(self):
         request_manager.get("statistics/ipv8", self.on_ipv8_general_stats)

@@ -2,7 +2,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.database.database_component import DatabaseComponent
 from tribler.core.components.exceptions import NoneComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
@@ -20,7 +19,7 @@ from tribler.core.components.socks_servers.socks_servers_component import SocksS
 # pylint: disable=protected-access, not-callable, redefined-outer-name
 async def test_rest_component(tribler_config):
     components = [KeyComponent(), RESTComponent(), Ipv8Component(), LibtorrentComponent(), ResourceMonitorComponent(),
-                  BandwidthAccountingComponent(), KnowledgeComponent(), SocksServersComponent(), DatabaseComponent()]
+                  KnowledgeComponent(), SocksServersComponent(), DatabaseComponent()]
     async with Session(tribler_config, components) as session:
         # Test REST component starts normally
         comp = session.get_instance(RESTComponent)

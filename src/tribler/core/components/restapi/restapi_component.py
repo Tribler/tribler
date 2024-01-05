@@ -2,8 +2,6 @@ from itertools import chain
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
-from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
-from tribler.core.components.bandwidth_accounting.restapi.bandwidth_endpoint import BandwidthEndpoint
 from tribler.core.components.component import Component
 from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.content_discovery.restapi.search_endpoint import SearchEndpoint
@@ -72,7 +70,6 @@ class RESTComponent(Component):
         ipv8_component = await self.maybe_component(Ipv8Component)
         libtorrent_component = await self.maybe_component(LibtorrentComponent)
         resource_monitor_component = await self.maybe_component(ResourceMonitorComponent)
-        bandwidth_accounting_component = await self.maybe_component(BandwidthAccountingComponent)
         content_discovery_component = await self.maybe_component(ContentDiscoveryComponent)
         knowledge_component = await self.maybe_component(KnowledgeComponent)
         tunnel_component = await self.maybe_component(TunnelsComponent)
@@ -93,7 +90,6 @@ class RESTComponent(Component):
         self.maybe_add(DebugEndpoint, config.state_dir, log_dir, tunnel_community=tunnel_community,
                        resource_monitor=resource_monitor_component.resource_monitor,
                        core_exception_handler=self._core_exception_handler)
-        self.maybe_add(BandwidthEndpoint, bandwidth_accounting_component.community)
         self.maybe_add(DownloadsEndpoint, libtorrent_component.download_manager,
                        metadata_store=db_component.mds, tunnel_community=tunnel_community)
         self.maybe_add(CreateTorrentEndpoint, libtorrent_component.download_manager)

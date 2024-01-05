@@ -22,9 +22,6 @@ ec_keypair_filename = string(default='ec_multichain.pem')
 testnet_keypair_filename = string(default='ec_trustchain_testnet.pem')
 testnet = boolean(default=False)
 
-[bandwidth_accounting]
-testnet = boolean(default=False)
-
 [bootstrap]
 enabled = boolean(default=True)
 max_download_rate = integer(min=1, default=1000000)

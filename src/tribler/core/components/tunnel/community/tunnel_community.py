@@ -1,52 +1,36 @@
 import hashlib
 import math
-import sys
 import time
-from asyncio import Future, TimeoutError as AsyncTimeoutError, open_connection
+from asyncio import TimeoutError as AsyncTimeoutError, open_connection
 from binascii import unhexlify
 from collections import Counter
 from distutils.version import LooseVersion
 from typing import Callable, List, Optional
 
 import async_timeout
-from ipv8.messaging.anonymization.caches import CreateRequestCache
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import EstablishIntroPayload, NO_CRYPTO_PACKETS
+from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
-    CIRCUIT_STATE_CLOSING,
     CIRCUIT_STATE_READY,
-    CIRCUIT_TYPE_DATA,
     CIRCUIT_TYPE_IP_SEEDER,
-    CIRCUIT_TYPE_RP_DOWNLOADER,
     CIRCUIT_TYPE_RP_SEEDER,
-    EXIT_NODE,
     PEER_FLAG_EXIT_BT,
     PEER_FLAG_EXIT_IPV8,
-    RelayRoute,
 )
-from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
-from ipv8.types import Address
 from ipv8.util import succeed
-from pony.orm import OrmError
 
 from tribler.core import notifications
-from tribler.core.components.bandwidth_accounting.db.transaction import BandwidthTransactionData
 from tribler.core.components.ipv8.tribler_community import args_kwargs_to_community_settings
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
-from tribler.core.components.tunnel.community.caches import BalanceRequestCache, HTTPRequestCache
+from tribler.core.components.tunnel.community.caches import HTTPRequestCache
 from tribler.core.components.tunnel.community.discovery import GoldenRatioStrategy
 from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
 from tribler.core.components.tunnel.community.payload import (
-    BalanceRequestPayload,
-    BalanceResponsePayload,
-    BandwidthTransactionPayload,
     HTTPRequestPayload,
     HTTPResponsePayload,
-    RelayBalanceRequestPayload,
-    RelayBalanceResponsePayload,
 )
 from tribler.core.utilities.bencodecheck import is_bencoded
 from tribler.core.utilities.path_util import Path
@@ -65,18 +49,16 @@ MAX_HTTP_PACKET_SIZE = 1400
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
     """
     This community is built upon the anonymous messaging layer in IPv8.
-    It adds support for libtorrent anonymous downloads and bandwidth token payout when closing circuits.
+    It adds support for libtorrent anonymous downloads.
     """
     community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
 
     def __init__(self, *args, **kwargs):
-        self.bandwidth_community = kwargs.pop('bandwidth_community', None)
         self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
         self.config = kwargs.pop('config', None)
         self.notifier = kwargs.pop('notifier', None)
         self.download_manager = kwargs.pop('dlmgr', None)
         self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
-        num_competing_slots = self.config.competing_slots
         num_random_slots = self.config.random_slots
 
         super().__init__(args_kwargs_to_community_settings(self.settings_class, args, kwargs))
@@ -90,7 +72,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
-        self.competing_slots = [(0, None)] * num_competing_slots  # 1st tuple item = token balance, 2nd = circuit id
         self.random_slots = [None] * num_random_slots
         # This callback is invoked with a tuple (time, balance) when we reject a circuit
         self.reject_callback: Optional[Callable] = None
@@ -101,16 +82,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             for server in self.socks_servers:
                 server.output_stream = self.dispatcher
 
-        self.add_message_handler(BandwidthTransactionPayload, self.on_payout)
-
-        self.add_cell_handler(BalanceRequestPayload, self.on_balance_request_cell)
-        self.add_cell_handler(RelayBalanceRequestPayload, self.on_relay_balance_request_cell)
-        self.add_cell_handler(BalanceResponsePayload, self.on_balance_response_cell)
-        self.add_cell_handler(RelayBalanceResponsePayload, self.on_relay_balance_response_cell)
         self.add_cell_handler(HTTPRequestPayload, self.on_http_request)
         self.add_cell_handler(HTTPResponsePayload, self.on_http_response)
-
-        NO_CRYPTO_PACKETS.extend([BalanceRequestPayload.msg_id, BalanceResponsePayload.msg_id])
 
         if self.exitnode_cache is not None:
             self.restore_exitnodes_from_disk()
@@ -163,130 +136,23 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         else:
             self.logger.warning('Could not retrieve backup exitnode cache, file does not exist!')
 
-    def on_token_balance(self, circuit_id, balance):
-        """
-        We received the token balance of a circuit initiator. Check whether we can allocate a slot to this user.
-        """
-        if not self.request_cache.has("balance-request", circuit_id):
-            self.logger.warning("Received token balance without associated request cache!")
-            return
-
-        cache = self.request_cache.pop("balance-request", circuit_id)
-
-        lowest_balance = sys.maxsize
-        lowest_index = -1
-        for ind, tup in enumerate(self.competing_slots):
-            if not tup[1]:
-                # The slot is empty, take it
-                self.competing_slots[ind] = (balance, circuit_id)
-                cache.balance_future.set_result(True)
-                return
-
-            if tup[0] < lowest_balance:
-                lowest_balance = tup[0]
-                lowest_index = ind
-
-        if balance > lowest_balance:
-            # We kick this user out
-            old_circuit_id = self.competing_slots[lowest_index][1]
-            self.logger.info("Kicked out circuit %s (balance: %s) in favor of %s (balance: %s)",
-                             old_circuit_id, lowest_balance, circuit_id, balance)
-            self.competing_slots[lowest_index] = (balance, circuit_id)
-
-            self.remove_relay(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
-            self.remove_exit_socket(old_circuit_id, destroy=DESTROY_REASON_BALANCE)
-
-            cache.balance_future.set_result(True)
-        else:
-            # We can't compete with the balances in the existing slots
-            if self.reject_callback:
-                self.reject_callback(time.time(), balance)
-            cache.balance_future.set_result(False)
-
     def should_join_circuit(self, create_payload, previous_node_address):
         """
         Check whether we should join a circuit. Returns a future that fires with a boolean.
         """
-        if self.settings.max_joined_circuits <= len(self.relay_from_to) + len(self.exit_sockets):
-            self.logger.warning("too many relays (%d)", (len(self.relay_from_to) + len(self.exit_sockets)))
+        joined_circuits = len(self.relay_from_to) + len(self.exit_sockets)
+        if self.settings.max_joined_circuits <= joined_circuits:
+            self.logger.warning("too many relays (%d)", joined_circuits)
             return succeed(False)
 
         circuit_id = create_payload.circuit_id
-        if self.request_cache.has('balance-request', circuit_id):
-            self.logger.warning("balance request already in progress for circuit %d", circuit_id)
-            return succeed(False)
 
         # Check whether we have a random open slot, if so, allocate this to this request.
         for index, slot in enumerate(self.random_slots):
             if not slot:
                 self.random_slots[index] = circuit_id
                 return succeed(True)
-
-        # No random slots but this user might be allocated a competing slot.
-        # Next, we request the token balance of the circuit initiator.
-        self.logger.info("Requesting balance of circuit initiator!")
-        balance_future = Future()
-        self.request_cache.add(BalanceRequestCache(self, circuit_id, balance_future))
-
-        # Temporarily add these values, otherwise we are unable to communicate with the previous hop.
-        self.directions[circuit_id] = EXIT_NODE
-        shared_secret, _, _ = self.crypto.generate_diffie_shared_secret(create_payload.key)
-        self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
-
-        self.send_cell(Peer(create_payload.node_public_key, previous_node_address),
-                       BalanceRequestPayload(circuit_id, create_payload.identifier))
-
-        self.directions.pop(circuit_id, None)
-        self.relay_session_keys.pop(circuit_id, None)
-
-        return balance_future
-
-    @unpack_cell(BalanceRequestPayload)
-    def on_balance_request_cell(self, _, payload, __):
-        if self.request_cache.has("create", payload.identifier):
-            request = self.request_cache.get("create", payload.identifier)
-            forwarding_relay = RelayRoute(request.from_circuit_id, request.peer)
-            self.send_cell(forwarding_relay.peer, RelayBalanceRequestPayload(forwarding_relay.circuit_id))
-        elif self.request_cache.has("retry", payload.circuit_id):
-            self.on_balance_request(payload)
-        else:
-            self.logger.warning("Circuit creation cache for id %s not found!", payload.circuit_id)
-
-    @unpack_cell(RelayBalanceRequestPayload)
-    def on_relay_balance_request_cell(self, source_address, payload, _):
-        self.on_balance_request(payload)
-
-    def on_balance_request(self, payload):
-        """
-        We received a balance request from a relay or exit node. Respond with the latest block in our chain.
-        """
-        if not self.bandwidth_community:
-            self.logger.warning("Bandwidth community is not available, unable to send a balance response!")
-            return
-
-        # Get the latest block
-
-        # Get the current balance and send it back
-        balance = self.bandwidth_community.database.get_balance(self.my_peer.public_key.key_to_bin())
-
-        # We either send the response directly or relay the response to the last verified hop
-        circuit = self.circuits[payload.circuit_id]
-        if not circuit.hops:
-            self.send_cell(circuit.peer, BalanceResponsePayload(circuit.circuit_id, balance))
-        else:
-            self.send_cell(circuit.peer, RelayBalanceResponsePayload(circuit.circuit_id, balance))
-
-    @unpack_cell(BalanceResponsePayload)
-    def on_balance_response_cell(self, source_address, payload, _):
-        self.on_token_balance(payload.circuit_id, payload.balance)
-
-    @unpack_cell(RelayBalanceResponsePayload)
-    def on_relay_balance_response_cell(self, source_address, payload, _):
-        # At this point, we don't have the circuit ID of the follow-up hop. We have to iterate over the items in the
-        # request cache and find the link to the next hop.
-        for cache in self.request_cache._identifiers.values():
-            if isinstance(cache, CreateRequestCache) and cache.from_circuit_id == payload.circuit_id:
-                self.send_cell(cache.to_peer, BalanceResponsePayload(cache.to_circuit_id, payload.balance))
+        return succeed(False)
 
     def readd_bittorrent_peers(self):
         for torrent, peers in list(self.bittorrent_peers.items()):
@@ -311,66 +177,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if self.find_circuits():
                 self.readd_bittorrent_peers()
 
-    def do_payout(self, peer: Peer, circuit_id: int, amount: int, base_amount: int) -> None:
-        """
-        Perform a payout to a specific peer.
-        :param peer: The peer to perform the payout to, usually the next node in the circuit.
-        :param circuit_id: The circuit id of the payout, used by the subsequent node.
-        :param amount: The amount to put in the transaction, multiplier of base_amount.
-        :param base_amount: The base amount for the payout.
-        """
-        self.logger.info("Sending payout of %d (base: %d) to %s (cid: %s)", amount, base_amount, peer, circuit_id)
-
-        tx = self.bandwidth_community.construct_signed_transaction(peer, amount)
-        try:
-            self.bandwidth_community.database.BandwidthTransaction.insert(tx)
-        except OrmError as e:
-            self.logger.exception(e)
-            return
-
-        payload = BandwidthTransactionPayload.from_transaction(tx, circuit_id, base_amount)
-        packet = self._ez_pack(self._prefix, 30, [payload], False)
-        self.send_packet(peer, packet)
-
-    def on_payout(self, source_address: Address, data: bytes) -> None:
-        """
-        We received a payout from another peer.
-        :param source_address: The address of the peer that sent us this payout.
-        :param data: The serialized, raw data.
-        """
-        if not self.bandwidth_community:
-            self.logger.warning("Got payout while not having a bandwidth community running!")
-            return
-
-        payload = self._ez_unpack_noauth(BandwidthTransactionPayload, data, global_time=False)
-        tx = BandwidthTransactionData.from_payload(payload)
-
-        if not tx.is_valid():
-            self.logger.info("Received invalid bandwidth transaction in tunnel community - ignoring it")
-            return
-
-        from_peer = Peer(payload.public_key_a, source_address)
-        my_pk = self.my_peer.public_key.key_to_bin()
-        latest_tx = self.bandwidth_community.database.get_latest_transaction(
-            self.my_peer.public_key.key_to_bin(), from_peer.public_key.key_to_bin())
-        if payload.circuit_id != 0 and tx.public_key_b == my_pk and (not latest_tx or latest_tx.amount < tx.amount):
-            # Sign it and send it back
-            tx.sign(self.my_peer.key, as_a=False)
-            self.bandwidth_community.database.BandwidthTransaction.insert(tx)
-
-            response_payload = BandwidthTransactionPayload.from_transaction(tx, 0, payload.base_amount)
-            packet = self._ez_pack(self._prefix, 30, [response_payload], False)
-            self.send_packet(from_peer, packet)
-        elif payload.circuit_id == 0 and tx.public_key_a == my_pk:
-            if not latest_tx or (latest_tx and latest_tx.amount >= tx.amount):
-                self.bandwidth_community.database.BandwidthTransaction.insert(tx)
-
-        # Send the next payout
-        if payload.circuit_id in self.relay_from_to and tx.amount > payload.base_amount:
-            relay = self.relay_from_to[payload.circuit_id]
-            self._logger.info("Sending next payout to peer %s", relay.peer)
-            self.do_payout(relay.peer, relay.circuit_id, payload.base_amount * 2, payload.base_amount)
-
     def clean_from_slots(self, circuit_id):
         """
         Clean a specific circuit from the allocated slots.
@@ -378,10 +184,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         for ind, slot in enumerate(self.random_slots):
             if slot == circuit_id:
                 self.random_slots[ind] = None
-
-        for ind, tup in enumerate(self.competing_slots):
-            if tup[1] == circuit_id:
-                self.competing_slots[ind] = (0, None)
 
     def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id not in self.circuits:
@@ -393,22 +195,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         # Send the notification
         if self.notifier:
             self.notifier[notifications.circuit_removed](circuit, additional_info)
-
-        # Ignore circuits that are closing so we do not payout again if we receive a destroy message.
-        if circuit.state != CIRCUIT_STATE_CLOSING and self.bandwidth_community:
-
-            # We should perform a payout of the removed circuit.
-            if circuit.ctype == CIRCUIT_TYPE_RP_DOWNLOADER:
-                # We remove an e2e circuit as downloader. We pay the subsequent nodes in the downloader part of the e2e
-                # circuit. In addition, we pay for one hop seeder anonymity since we don't know the circuit length at
-                # the seeder side.
-                self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * ((circuit.goal_hops * 2) + 1),
-                               circuit.bytes_down)
-
-            if circuit.ctype == CIRCUIT_TYPE_DATA:
-                # We remove a regular data circuit as downloader. Pay the relay nodes and the exit nodes.
-                self.do_payout(circuit.peer, circuit_id, circuit.bytes_down * (circuit.goal_hops * 2 - 1),
-                               circuit.bytes_down)
 
         affected_peers = self.dispatcher.circuit_dead(circuit)
 

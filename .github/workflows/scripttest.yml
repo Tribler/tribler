@@ -42,10 +42,10 @@ jobs:
         with:
           path: ./src
 
-      - name: run_bandwidth_crawler.py
+      - name: run_crawler.py
         uses: ./.github/actions/timeout
         with:
-          command: python ./scripts/bandwidth_crawler/run_bandwidth_crawler.py --fragile
+          command: python ./scripts/crawler/run_crawler.py --fragile
           duration: ${{inputs.duration}}
 
       - name: run_exit_node.py

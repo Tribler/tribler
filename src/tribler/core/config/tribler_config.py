@@ -9,7 +9,6 @@ import configobj
 from configobj import ParseError
 from pydantic import BaseSettings, Extra, PrivateAttr, validate_model
 
-from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.ipv8.settings import (
     BootstrapSettings,
     DHTSettings,
@@ -40,7 +39,6 @@ class TriblerConfig(BaseSettings):
 
     general: GeneralSettings = GeneralSettings()
     tunnel_community: TunnelCommunitySettings = TunnelCommunitySettings()
-    bandwidth_accounting: BandwidthAccountingSettings = BandwidthAccountingSettings()
     bootstrap: BootstrapSettings = BootstrapSettings()
     ipv8: Ipv8Settings = Ipv8Settings()
     discovery_community: DiscoveryCommunitySettings = DiscoveryCommunitySettings()

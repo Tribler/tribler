@@ -1,4 +1,4 @@
-# Bandwidth Crawler
+# Crawler
 
 ## Requirements
 
@@ -8,5 +8,5 @@
 ## Execution
 
 ```shell
-python3 run_bandwidth_crawler.py
+python3 run_crawler.py
 ```

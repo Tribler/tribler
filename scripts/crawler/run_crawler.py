@@ -1,5 +1,7 @@
 """
-This executable script starts a Tribler instance and joins the BandwidthAccountingCommunity.
+This is an example of a Tribler crawler. It was originally written by @devos50
+to crawl the BandwidthCommunity's data and was later adapted to serve
+as just an example of a generic Tribler crawler.
 """
 import argparse
 import logging
@@ -8,7 +10,6 @@ import sys
 from asyncio import ensure_future, get_event_loop
 from pathlib import Path
 
-from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.session import Session
@@ -16,19 +17,24 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.utilities import make_async_loop_fragile
 
 
+async def crawler_session(session_config: TriblerConfig):
+    session = Session(
+        config=session_config,
+        components=[
+            KeyComponent(),
+            Ipv8Component(),
+            # Put Your Component Here
+        ])
+    signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
+    async with session:
+        await session.shutdown_event.wait()
+
+
 class PortAction(argparse.Action):
     def __call__(self, _, namespace, value, option_string=None):
         if not 0 < value < 2 ** 16:
             raise argparse.ArgumentError(self, "Invalid port number")
         setattr(namespace, self.dest, value)
-
-
-async def crawler_session(session_config: TriblerConfig):
-    session = Session(session_config,
-                      [KeyComponent(), Ipv8Component(), BandwidthAccountingComponent(crawler_mode=True)])
-    signal.signal(signal.SIGTERM, lambda signum, stack: session.shutdown_event.set)
-    async with session:
-        await session.shutdown_event.wait()
 
 
 if __name__ == "__main__":
@@ -45,13 +51,10 @@ if __name__ == "__main__":
     config = TriblerConfig.load(state_dir=state_dir)
 
     config.tunnel_community.enabled = False
-    config.libtorrent.enabled = False
     config.bootstrap.enabled = False
-    config.chant.enabled = False
     config.torrent_checking.enabled = False
     config.api.http_enabled = True
     config.api.http_port = args.restapi
-    config.bandwidth_accounting.outgoing_query_interval = 5
 
     loop = get_event_loop()
     if args.fragile:
