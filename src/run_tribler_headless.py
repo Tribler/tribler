@@ -114,7 +114,6 @@ class TriblerService:
         if options.testnet:
             config.tunnel_community.testnet = True
             config.chant.testnet = True
-            config.bandwidth_accounting.testnet = True
 
         self.session = Session(config, components=list(components_gen(config)))
         try:

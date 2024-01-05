@@ -112,49 +112,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3">
-       <attribute name="title">
-        <string notr="true">Bandwidth Accounting</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="spacing">
-         <number>0</number>
-        </property>
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QTreeWidget" name="bandwidth_tree_widget">
-          <property name="columnCount">
-           <number>2</number>
-          </property>
-          <attribute name="headerDefaultSectionSize">
-           <number>200</number>
-          </attribute>
-          <column>
-           <property name="text">
-            <string notr="true">Key</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string notr="true">Value</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_4">
+      <widget class="QWidget" name="tab_ipv8">
        <attribute name="title">
         <string notr="true">IPv8</string>
        </attribute>
@@ -413,7 +371,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_4">
+      <widget class="QWidget" name="tab_tunnels">
        <attribute name="title">
         <string notr="true">Tunnels</string>
        </attribute>
@@ -747,7 +705,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_4">
+      <widget class="QWidget" name="tab_dht">
        <attribute name="title">
         <string notr="true">DHT</string>
        </attribute>
@@ -862,7 +820,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_5">
+      <widget class="QWidget" name="tab_events">
        <attribute name="title">
         <string notr="true">Events</string>
        </attribute>
@@ -920,7 +878,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_8">
+      <widget class="QWidget" name="tab_system">
        <attribute name="title">
         <string notr="true">System</string>
        </attribute>

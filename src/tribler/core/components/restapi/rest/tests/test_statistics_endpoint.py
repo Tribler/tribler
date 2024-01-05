@@ -1,13 +1,12 @@
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from tribler.core.components.bandwidth_accounting.community.bandwidth_accounting_community \
-    import BandwidthAccountingCommunity
-from tribler.core.components.bandwidth_accounting.settings import BandwidthAccountingSettings
 from tribler.core.components.ipv8.adapters_tests import TriblerMockIPv8
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsEndpoint
+from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
+from tribler.core.components.tunnel.settings import TunnelCommunitySettings
 
 
 # pylint: disable=redefined-outer-name
@@ -15,8 +14,12 @@ from tribler.core.components.restapi.rest.statistics_endpoint import StatisticsE
 
 @pytest.fixture
 async def endpoint(metadata_store):
-    ipv8 = TriblerMockIPv8("low", BandwidthAccountingCommunity, database=Mock(),
-                           settings=BandwidthAccountingSettings())
+    ipv8 = TriblerMockIPv8("curve25519",
+                           TriblerTunnelCommunity,
+                           settings={"max_circuits": 1},
+                           config=TunnelCommunitySettings(),
+                           socks_servers=MagicMock(),
+                           dlmgr=Mock())
     ipv8.overlays = [ipv8.overlay]
     ipv8.endpoint.bytes_up = 100
     ipv8.endpoint.bytes_down = 20

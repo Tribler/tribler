@@ -1,18 +1,6 @@
 from asyncio import Future
 
-from ipv8.requestcache import NumberCache, RandomNumberCache
-
-
-class BalanceRequestCache(NumberCache):
-
-    def __init__(self, community, circuit_id, balance_future):
-        super().__init__(community.request_cache, "balance-request", circuit_id)
-        self.circuit_id = circuit_id
-        self.balance_future = balance_future
-        self.register_future(self.balance_future)
-
-    def on_timeout(self):
-        pass
+from ipv8.requestcache import RandomNumberCache
 
 
 class HTTPRequestCache(RandomNumberCache):

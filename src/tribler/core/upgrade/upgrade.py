@@ -3,14 +3,14 @@ import os
 import shutil
 import time
 from configparser import MissingSectionHeaderError, ParsingError
+from contextlib import suppress
 from functools import wraps
 from types import SimpleNamespace
 from typing import List, Optional, Tuple
 
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from pony.orm import db_session, delete
+from pony.orm import db_session
 
-from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.database.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.database.db.store import (
     CURRENT_DB_VERSION, MetadataStore,
@@ -130,7 +130,6 @@ class TriblerUpgrader:
         self.upgrade_pony_db_8to10()
         self.upgrade_pony_db_10to11()
         convert_config_to_tribler76(self.state_dir)
-        self.upgrade_bw_accounting_db_8to9()
         self.upgrade_pony_db_11to12()
         self.upgrade_pony_db_12to13()
         self.upgrade_pony_db_13to14()
@@ -138,6 +137,7 @@ class TriblerUpgrader:
         self.remove_old_logs()
         self.upgrade_pony_db_14to15()
         self.upgrade_knowledge_to_tribler_db()
+        self.remove_bandwidth_db()
 
         migration_chain = TriblerDatabaseMigrationChain(self.state_dir)
         migration_chain.execute()
@@ -267,35 +267,6 @@ class TriblerUpgrader:
                             disable_sync=True, check_tables=False, db_version=10)
         self.do_upgrade_pony_db_10to11(mds)
         mds.shutdown()
-
-    @catch_db_is_corrupted_exception
-    def upgrade_bw_accounting_db_8to9(self):
-        """
-        Upgrade the database with bandwidth accounting information from 8 to 9.
-        Specifically, this upgrade wipes all transactions and addresses an issue where payouts with the wrong amount
-        were made. Also see https://github.com/Tribler/tribler/issues/5789.
-        """
-        self._logger.info('Upgrade bandwidth accounting DB 8 to 9')
-        to_version = 9
-
-        database_path = self.state_dir / STATEDIR_DB_DIR / 'bandwidth.db'
-        if not database_path.exists() or get_db_version(database_path, BandwidthDatabase.CURRENT_DB_VERSION) > 8:
-            # No need to update if the database does not exist or is already updated
-            return  # pragma: no cover
-
-        self._logger.info('bw8->9')
-        db = BandwidthDatabase(database_path, self.primary_key.key.pk)
-
-        # Wipe all transactions and bandwidth history
-        with db_session:
-            delete(tx for tx in db.BandwidthTransaction)
-            delete(item for item in db.BandwidthHistory)
-
-            # Update db version
-            db_version = db.MiscData.get(name="db_version")
-            db_version.value = str(to_version)
-
-        db.shutdown()
 
     def column_exists_in_table(self, db, table, column):
         pragma = f'SELECT COUNT(*) FROM pragma_table_info("{table}") WHERE name="{column}"'
@@ -488,3 +459,13 @@ class TriblerUpgrader:
         self._logger.info('Upgrade knowledge to tribler.db')
         migration = MigrationKnowledgeToTriblerDB(self.state_dir)
         migration.run()
+
+    def remove_bandwidth_db(self):
+        self._logger.info('Removing bandwidth database')
+
+        db_path = Path(self.state_dir / STATEDIR_DB_DIR)
+
+        for file_path in db_path.glob('bandwidth*'):
+            self._logger.info(f'Removing {file_path}')
+            with suppress(OSError):
+                file_path.unlink(missing_ok=True)

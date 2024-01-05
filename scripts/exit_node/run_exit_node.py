@@ -15,7 +15,6 @@ from ipv8.taskmanager import TaskManager
 from ipv8.util import run_forever
 
 from tribler.core import notifications
-from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.ipv8.ipv8_component import Ipv8Component
 from tribler.core.components.key.key_component import KeyComponent
 from tribler.core.components.restapi.restapi_component import RESTComponent
@@ -33,7 +32,6 @@ def components_gen():
     yield KeyComponent()
     yield RESTComponent()
     yield Ipv8Component()
-    yield BandwidthAccountingComponent()
     yield TunnelsComponent()
 
 

@@ -1,7 +1,6 @@
 from ipv8.dht.provider import DHTCommunityProvider
 from ipv8.messaging.anonymization.community import TunnelSettings
 
-from tribler.core.components.bandwidth_accounting.bandwidth_accounting_component import BandwidthAccountingComponent
 from tribler.core.components.component import Component
 from tribler.core.components.ipv8.ipv8_component import INFINITE, Ipv8Component
 from tribler.core.components.libtorrent.libtorrent_component import LibtorrentComponent
@@ -24,9 +23,6 @@ class TunnelsComponent(Component):
         self._ipv8_component = await self.require_component(Ipv8Component)
         dht_discovery_community = self._ipv8_component.dht_discovery_community
 
-        bandwidth_component = await self.get_component(BandwidthAccountingComponent)
-        bandwidth_community = bandwidth_component.community if bandwidth_component else None
-
         download_component = await self.get_component(LibtorrentComponent)
         download_manager = download_component.download_manager if download_component else None
 
@@ -46,7 +42,6 @@ class TunnelsComponent(Component):
         provider = DHTCommunityProvider(dht_discovery_community, config.ipv8.port) if dht_discovery_community else None
         exitnode_cache = config.state_dir / "exitnode_cache.dat"
 
-        # TODO: decouple bandwidth community and dlmgr to initiate later
         self.community = tunnel_cls(self._ipv8_component.peer,
                                     self._ipv8_component.ipv8.endpoint,
                                     self._ipv8_component.ipv8.network,
@@ -54,7 +49,6 @@ class TunnelsComponent(Component):
                                     config=config.tunnel_community,
                                     notifier=self.session.notifier,
                                     dlmgr=download_manager,
-                                    bandwidth_community=bandwidth_community,
                                     dht_provider=provider,
                                     exitnode_cache=exitnode_cache,
                                     settings=settings)

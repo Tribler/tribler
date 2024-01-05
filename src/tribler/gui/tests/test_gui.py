@@ -315,8 +315,6 @@ def test_settings(window):
     screenshot(window, name="settings_general")
     QTest.mouseClick(window.settings_connection_button, Qt.LeftButton)
     screenshot(window, name="settings_connection")
-    QTest.mouseClick(window.settings_bandwidth_button, Qt.LeftButton)
-    screenshot(window, name="settings_bandwidth")
     QTest.mouseClick(window.settings_seeding_button, Qt.LeftButton)
     screenshot(window, name="settings_seeding")
     QTest.mouseClick(window.settings_anonymity_button, Qt.LeftButton)
@@ -496,10 +494,6 @@ def test_debug_pane(window):
     window.debug_window.debug_tab_widget.setCurrentIndex(1)
     wait_for_list_populated(window.debug_window.requests_tree_widget)
     screenshot(window.debug_window, name="debug_panel_requests_tab")
-
-    window.debug_window.debug_tab_widget.setCurrentIndex(2)
-    wait_for_list_populated(window.debug_window.bandwidth_tree_widget)
-    screenshot(window.debug_window, name="debug_panel_bandwidth_tab")
 
     window.debug_window.debug_tab_widget.setCurrentIndex(3)
     wait_for_list_populated(window.debug_window.ipv8_general_tree_widget)

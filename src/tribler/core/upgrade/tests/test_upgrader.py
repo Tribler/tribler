@@ -7,9 +7,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
-from pony.orm import db_session, select
+from pony.orm import db_session
 
-from tribler.core.components.bandwidth_accounting.db.database import BandwidthDatabase
 from tribler.core.components.database.db.orm_bindings.torrent_metadata import CHANNEL_DIR_NAME_LENGTH
 from tribler.core.components.database.db.store import CURRENT_DB_VERSION, MetadataStore
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
@@ -19,6 +18,7 @@ from tribler.core.upgrade.upgrade import TriblerUpgrader, catch_db_is_corrupted_
     cleanup_noncompliant_channel_torrents
 from tribler.core.utilities.configparser import CallbackConfigParser
 from tribler.core.utilities.db_corruption_handling.base import DatabaseIsCorrupted
+from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 from tribler.core.utilities.utilities import random_infohash
 
 
@@ -326,19 +326,6 @@ def test_calc_progress():
     assert calc_progress(1000, 100) == pytest.approx(99.158472, abs=EPSILON)
 
 
-def test_upgrade_bw_accounting_db_8to9(upgrader, state_dir, trustchain_keypair):
-    bandwidth_path = state_dir / 'sqlite/bandwidth.db'
-    _copy('bandwidth_v8.db', bandwidth_path)
-
-    upgrader.upgrade_bw_accounting_db_8to9()
-    db = BandwidthDatabase(bandwidth_path, trustchain_keypair.key.pk)
-    with db_session:
-        assert not list(select(tx for tx in db.BandwidthTransaction))
-        assert not list(select(item for item in db.BandwidthHistory))
-        assert int(db.MiscData.get(name="db_version").value) == 9
-    db.shutdown()
-
-
 def test_remove_old_logs(upgrader: TriblerUpgrader, state_dir: Path, tmp_path):
     """Ensure that the `remove_old_logs` function removes only logs"""
 
@@ -403,3 +390,20 @@ def test_remove_old_logs_with_exception(upgrader: TriblerUpgrader, state_dir: Pa
     assert left == [side_effect_log_file]
     assert not normal_log_file.exists()
     assert side_effect_log_file.exists()
+
+
+def test_remove_bandwidth_db(upgrader: TriblerUpgrader, state_dir: Path):
+    """ Ensure that the `remove_bandwidth_db` function removes only bandwidth db files"""
+    db_path = Path(state_dir / STATEDIR_DB_DIR)
+
+    (db_path / 'bandwidth.db').touch()
+    (db_path / 'bandwidth.db-shm').touch()
+    (db_path / 'bandwidth.db-wal').touch()
+    (db_path / 'knowledge.db').touch()
+
+    assert len(list(db_path.glob('*'))) == 4
+    assert len(list(db_path.glob('bandwidth*'))) == 3
+
+    upgrader.remove_bandwidth_db()
+
+    assert len(list(db_path.glob('bandwidth*'))) == 0
