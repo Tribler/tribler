@@ -727,8 +727,6 @@ class Download(TaskManager):
                     b'info-hash': self.tdef.get_infohash()
                 }
                 self.post_alert('save_resume_data_alert', dict(resume_data=resume_data))
-            else:
-                self._logger.warning("Either file does not exist or is not file")
             return succeed(None)
         return self.save_resume_data()
 
