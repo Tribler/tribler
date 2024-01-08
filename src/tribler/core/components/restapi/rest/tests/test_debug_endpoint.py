@@ -41,7 +41,6 @@ async def test_get_slots(rest_api, mock_tunnel_community):
     """
 
     mock_tunnel_community.random_slots = [None, None, None, 12345]
-    mock_tunnel_community.competing_slots = [(0, None), (12345, 12345)]
     response_json = await do_request(rest_api, 'debug/circuits/slots', expected_code=200)
     assert len(response_json["slots"]["random"]) == 4
 

@@ -8,7 +8,6 @@ enabled = boolean(default=True)
 socks5_listen_ports = string_list(default=list('-1', '-1', '-1', '-1', '-1'))
 exitnode_enabled = boolean(default=False)
 random_slots = integer(default=5)
-competing_slots = integer(default=15)
 testnet = boolean(default=False)
 
 [discovery_community]

@@ -83,7 +83,6 @@ class DebugEndpoint(RESTEndpoint):
                 'schema': schema(CircuitSlotsResponse={'slots': [
                     schema(CircuitSlot={
                         'random': Integer,
-                        'competing': Integer
                     })
                 ]})
             }
@@ -91,11 +90,9 @@ class DebugEndpoint(RESTEndpoint):
     )
     async def get_circuit_slots(self, request):
         random_slots = self.tunnel_community.random_slots if self.tunnel_community else []
-        competing_slots = self.tunnel_community.competing_slots if self.tunnel_community else []
         return RESTResponse({
             "slots": {
                 "random": random_slots,
-                "competing": competing_slots
             }
         })
 
