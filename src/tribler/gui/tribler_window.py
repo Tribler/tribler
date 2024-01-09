@@ -83,7 +83,6 @@ from tribler.gui.upgrade_manager import UpgradeManager
 from tribler.gui.utilities import (
     connect,
     create_api_key,
-    disconnect,
     format_api_key,
     get_font_path,
     get_gui_setting,
@@ -91,7 +90,6 @@ from tribler.gui.utilities import (
     get_ui_file_path,
     is_dir_writable,
     set_api_key,
-    show_message_box,
     tr,
 )
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
@@ -681,13 +679,16 @@ class TriblerWindow(QMainWindow):
 
     def on_add_torrent_browse_file(self, *_):
         self.raise_window()  # For the case when the action is triggered by tray icon
-        filenames = QFileDialog.getOpenFileNames(
+        filenames, *_ = QFileDialog.getOpenFileNames(
             self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
         )
-        if len(filenames[0]) > 0:
-            for filename in filenames[0]:
-                self.pending_uri_requests.append(Path(filename).as_uri())
-            self.process_uri_request()
+        if not filenames:
+            return
+
+        for filename in filenames:
+            uri = Path(filename).resolve().as_uri()
+            self.pending_uri_requests.append(uri)
+        self.process_uri_request()
 
     def start_download_from_uri(self, uri):
         uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
