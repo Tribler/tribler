@@ -40,7 +40,8 @@ Run Tribler by executing the following commands:
 
 .. code-block:: bash
 
-    tribler/src/tribler.sh  > tribler.log
+    export PYTHONPATH=/opt/tribler_env/lib/python3.11/site-packages
+    tribler/src/tribler.sh > tribler.out 2> tribler.err
 
 Alternatively, you can run the latest stable version of Tribler by downloading and installing the .deb file from `here <https://github.com/tribler/tribler/releases/>`__. This option is only recommended for running Tribler and is not suitable for development.
 
