@@ -19,6 +19,11 @@ Linux
 
 .. include:: development_on_linux.rst
 
+======================
+Development agreements
+======================
+
+.. include:: agreements.rst
 
 ======================
 Development guidelines
