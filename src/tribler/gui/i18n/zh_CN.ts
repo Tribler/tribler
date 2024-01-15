@@ -878,11 +878,6 @@ You can not undo this action.</source>
 此操作无法撤消。</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="332"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;以 &lt;b&gt;%d&lt;/b&gt; 个跳数的匿名性下载。当你下载一个 200 MB 的文件，你将支付大约 &lt;b&gt;%d&lt;/b&gt;MB 的带宽代币。&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
         <location filename="../widgets/settingspage.py" line="558"/>
         <source>Tribler settings</source>
         <translation>Tribler 设置</translation>
@@ -1391,16 +1386,6 @@ New remote results received: %(num_remote_results)i</source>
         <location filename="../qt_resources/startdownloaddialog.ui" line="509"/>
         <source>DOWNLOAD</source>
         <translation>下载</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="137"/>
-        <source>Bandwidth Tokens</source>
-        <translation>带宽代币</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="255"/>
-        <source>CLOSE</source>
-        <translation>关闭</translation>
     </message>
     <message>
         <location filename="../qt_resources/edit_metadata_dialog.ui" line="155"/>
@@ -2158,11 +2143,6 @@ High anonymity</source>
         <translation>此过程可能需要一分钟左右的时间。</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4361"/>
-        <source>Trust statistics</source>
-        <translation>信任统计信息</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>
         <source>- MBytes</source>
         <translation>- MBytes</translation>
@@ -2186,11 +2166,6 @@ High anonymity</source>
         <location filename="../qt_resources/mainwindow.ui" line="4707"/>
         <source>People who helped you</source>
         <translation>帮助我的人</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4885"/>
-        <source>Trust Graph</source>
-        <translation>信任链图</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4986"/>

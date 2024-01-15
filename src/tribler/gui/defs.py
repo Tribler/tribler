@@ -152,21 +152,6 @@ class ContentCategories:
 CATEGORY_SELECTOR_FOR_SEARCH_ITEMS = ("All", "Channels") + ContentCategories.long_names
 CATEGORY_SELECTOR_FOR_POPULAR_ITEMS = ("All",) + ContentCategories.long_names
 
-# Trust Graph constants
-COLOR_RED = "#b37477"
-COLOR_GREEN = "#23cc2b"
-COLOR_NEUTRAL = "#cdcdcd"
-COLOR_DEFAULT = "#150507"
-COLOR_ROOT = "#FE6D01"
-COLOR_SELECTED = "#5c58ee"
-HTML_SPACE = '&nbsp;'
-TRUST_GRAPH_PEER_LEGENDS = (
-        "<span style='color:%s'>\u25CF Helpful user </span> &nbsp;&nbsp;&nbsp;"
-        "<span style='color:%s'>\u25CF Selfish user </span> &nbsp;&nbsp;&nbsp;"
-        "<span style='color:%s'>\u25CF Unknown </span> &nbsp;&nbsp;&nbsp;"
-        "<span style='color:%s'>\u25CF Selected</span>" % (COLOR_GREEN, COLOR_RED, COLOR_NEUTRAL, COLOR_SELECTED)
-)
-
 CONTEXT_MENU_WIDTH = 200
 
 BITTORRENT_BIRTHDAY = 994032000

@@ -865,11 +865,6 @@ If unsure, press &apos;No&apos;. You will be able to remove those directories fr
         <translation type="obsolete">Excluir arquivos</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="332"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../widgets/searchresultswidget.py" line="81"/>
         <source>Search results for %s</source>
         <translation type="obsolete">Resultados da pesquisa por %s</translation>
@@ -1190,11 +1185,6 @@ New remote results received: %(num_remote_results)i</source>
 <context>
     <name>Form</name>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="35"/>
-        <source>Form</source>
-        <translation>Formulário</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="123"/>
         <source>Add torrent(s) to personal channel</source>
         <translation>Adicionar torrent(s) ao Meu Canal</translation>
@@ -1420,11 +1410,6 @@ New remote results received: %(num_remote_results)i</source>
         <translation>BAIXAR</translation>
     </message>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="172"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;In Tribler, you compensate other users for the bandwidth you use when downloading with anonymity. When uploading content to other (Tribler) users, you earn &lt;span style=&quot; font-style:italic;&quot;&gt;bandwidth tokens&lt;/span&gt;. If you accumulate more bandwidth tokens, you get preferential treatment when downloading anonymously, which results in higher download speeds.&lt;/p&gt;&lt;p&gt;The exact amount of bandwidth tokens you pay to others, depends on the level of anonymity. This is the number of other users, or &lt;span style=&quot; font-style:italic;&quot;&gt;hops&lt;/span&gt;, you use during a download. If you download with three hop anonymity, your encrypted data is sent through the machines of three other Tribler users. Increasing the number of hops benefits anonymity but costs you more bandwidth tokens.&lt;/p&gt;&lt;p&gt;For example, if you download a &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; video with one hop anonymity, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;1 Gigabyte&lt;/span&gt; worth of bandwidth tokens. Each additional hop increases the amount of bandwidth tokens you have to pay. When downloading the same file using three hops, you pay &lt;span style=&quot; font-weight:600;&quot;&gt;3 Gigabyte&lt;/span&gt; of bandwidth tokens instead.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../qt_resources/feedback_dialog.ui" line="253"/>
         <source>Additional information:</source>
         <translation>Informação adicional</translation>
@@ -1601,11 +1586,6 @@ New remote results received: %(num_remote_results)i</source>
         <location filename="../qt_resources/mainwindow.ui" line="948"/>
         <source> Video Player</source>
         <translation type="obsolete"> Video Player</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="880"/>
-        <source> Trust Graph </source>
-        <translation type="obsolete"> Grafo de confiança</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="5441"/>
@@ -2232,11 +2212,6 @@ High anonymity</source>
         <translation>Isso pode demorar um minuto.</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4361"/>
-        <source>Trust statistics</source>
-        <translation>Estatísticas de Confiança</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>
         <source>- MBytes</source>
         <translation> - Mbytes.</translation>
@@ -2561,11 +2536,6 @@ High anonymity</source>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="590"/>
         <source>Create channel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4426"/>
-        <source>Show trust graph</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

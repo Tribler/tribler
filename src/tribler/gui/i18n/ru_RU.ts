@@ -877,14 +877,6 @@ You can not undo this action.</source>
 Это действие невозможно будет отменить</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="332"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Загружать анонимно через &lt;b&gt;%d&lt;/b&gt; прокси Tribler.
-        Загрузка 200 МБайт обойдётся приблизительно в &lt;b&gt;%d&lt;/b&gt;
-        МБайт трафик-токенов.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;
-        </translation>
-    </message>
-    <message>
         <location filename="../widgets/settingspage.py" line="558"/>
         <source>Tribler settings</source>
         <translation>Настройки Tribler</translation>
@@ -1204,11 +1196,6 @@ New remote results received: %(num_remote_results)i</source>
 </context>
 <context>
     <name>Form</name>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="35"/>
-        <source>Form</source>
-        <translation>От</translation>
-    </message>
     <message>
         <location filename="../qt_resources/addtochanneldialog.ui" line="123"/>
         <source>Add torrent(s) to personal channel</source>
@@ -2132,11 +2119,6 @@ High anonymity</source>
         <translation>Это может занять около минуты</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4361"/>
-        <source>Trust statistics</source>
-        <translation>Статистика доверия</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>
         <source>- MBytes</source>
         <translation>- МБайт</translation>
@@ -2160,11 +2142,6 @@ High anonymity</source>
         <location filename="../qt_resources/mainwindow.ui" line="4707"/>
         <source>People who helped you</source>
         <translation>Узлы, которые помогли Вам</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4885"/>
-        <source>Trust Graph</source>
-        <translation>Граф доверия</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4986"/>

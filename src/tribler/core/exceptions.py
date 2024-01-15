@@ -29,10 +29,6 @@ class InvalidConfigException(TriblerException):
     """The config file doesn't adhere to the config specification."""
 
 
-class TrustGraphException(TriblerException):
-    """Exception specific to Trust graph."""
-
-
 class CoreError(TriblerException):
     """This is the base class for exceptions that causes GUI shutdown"""
 

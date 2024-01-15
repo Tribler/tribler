@@ -2122,19 +2122,6 @@ High anonymity</string>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QLabel" name="anonymity_costs_label">
-                    <property name="text">
-                     <string notr="true">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;span style=&quot; font-weight:600;&quot;&gt;1&lt;/span&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay &lt;span style=&quot; font-weight:600;&quot;&gt;200&lt;/span&gt; Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                    </property>
-                    <property name="textFormat">
-                     <enum>Qt::RichText</enum>
-                    </property>
-                    <property name="wordWrap">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <spacer name="verticalSpacer_5">
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
