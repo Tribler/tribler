@@ -2,8 +2,7 @@ import asyncio
 import functools
 import itertools
 from asyncio import Future
-from unittest.mock import MagicMock, Mock
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock, Mock
 
 import pytest
 from ipv8.util import succeed
@@ -17,6 +16,8 @@ from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
+
+# pylint: disable=redefined-outer-name
 
 def create_fake_download_and_state():
     """
@@ -501,6 +502,13 @@ async def test_check_for_dht_ready(fake_dlmgr):
     fake_dlmgr.get_session().status().dht_nodes = 1000
     # If the session has enough peers, it should finish instantly
     await fake_dlmgr._check_dht_ready()
+
+
+async def test_start_download_from_magnet_no_name(fake_dlmgr: DownloadManager):
+    # Test whether a download is started with `Unknown name` name when the magnet has no name
+    magnet = f'magnet:?xt=urn:btih:{"A" * 40}'
+    download = await fake_dlmgr.start_download_from_uri(magnet)
+    assert download.tdef.get_name() == 'Unknown name'
 
 
 def test_update_trackers(fake_dlmgr) -> None:

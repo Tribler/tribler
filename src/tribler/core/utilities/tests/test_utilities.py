@@ -1,4 +1,3 @@
-import binascii
 import logging
 from unittest.mock import MagicMock, Mock, patch
 
@@ -54,6 +53,12 @@ def test_parse_magnetlink_lowercase():
     assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
 
 
+def test_parse_magnetlink_wrong_hash():
+    url = 'magnet:?xt=urn:sha1:apctqfwnowubxzoidazgaj2ba6fs6juc&xt=urn:ed2khash:apctqfwnowubxzoidazgaj2ba6fs6ju1'
+    with pytest.raises(RuntimeError):
+        parse_magnetlink(url)
+
+
 def test_parse_magnetlink_uppercase():
     """
     Test if an uppercase magnet link can be parsed
@@ -62,24 +67,29 @@ def test_parse_magnetlink_uppercase():
 
     assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
 
+def test_parse_magnetlink_bytes():
+    """
+    Test if an bytes magnet link can be parsed
+    """
+    _, hashed, _ = parse_magnetlink(b'magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
+
+    assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
+
 
 def test_parse_invalid_magnetlink_short():
     """
     Test if a magnet link with invalid and short infohash (v1) can be parsed
     """
-    _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDA')
-
-    assert hashed is None
+    with pytest.raises(RuntimeError):
+        parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDA')
 
 
 def test_parse_invalid_magnetlink_long():
     """
     Test if a magnet link with invalid and long infohash (v1) can be parsed
     """
-    _, hashed, _ = parse_magnetlink(
-        'magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
-
-    assert hashed is None
+    with pytest.raises(RuntimeError):
+        parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUCAPCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
 
 def test_valid_url():
@@ -283,8 +293,8 @@ def test_parse_magnetlink_valid():
 
 
 def test_parse_magnetlink_nomagnet():
-    result = parse_magnetlink("http://")
-    assert result == (None, None, [])
+    with pytest.raises(RuntimeError):
+        parse_magnetlink("http://")
 
 
 def test_add_url_param_some_present():
@@ -293,22 +303,6 @@ def test_add_url_param_some_present():
     result = add_url_params(url, new_params)
     assert "data=values" in result
     assert "answers=false" in result
-
-
-@patch('tribler.core.utilities.utilities.b32decode', new=Mock(side_effect=binascii.Error))
-def test_parse_magnetlink_binascii_error_32(caplog):
-    # Test that binascii.Error exceptions are logged for 32 symbol hash
-    infohash_32 = 'A' * 32
-    parse_magnetlink(f'magnet:?xt=urn:btih:{infohash_32}')
-    assert f'Invalid infohash: {infohash_32}' in caplog.text
-
-
-@patch('binascii.unhexlify', new=Mock(side_effect=binascii.Error))
-def test_parse_magnetlink_binascii_error_40(caplog):
-    # Test that binascii.Error exceptions are logged for 40 symbol hash
-    infohash_40 = 'B' * 40
-    parse_magnetlink(f'magnet:?xt=urn:btih:{infohash_40}')
-    assert f'Invalid infohash: {infohash_40}' in caplog.text
 
 
 def test_add_url_param_clean():
