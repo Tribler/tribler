@@ -1,0 +1,63 @@
+name: Second Reviewer Assignment
+
+on:
+  pull_request_target:
+    types: [ labeled ]
+
+jobs:
+  assign-reviewer:
+    if: contains(github.event.pull_request.labels.*.name, "PR':' second reviewer")
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Add second reviewer
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const github = require('@actions/github');
+            const context = github.context;
+            
+            // Get PR information
+            const pullRequest = context.payload.pull_request;
+            const author = pullRequest.user.login;
+            console.log("Author:", author);
+            
+            const currentReviewers = pullRequest.requested_reviewers.map(reviewer => reviewer.login);
+            console.log("Current Reviewers:", currentReviewers);
+
+            // Get the list of potential reviewers
+            const org = 'Tribler';
+            const teamSlug = 'reviewers';
+            const response = await github.rest.teams.listMembersInOrg({
+              org,
+              team_slug: teamSlug
+            });
+            const allReviewers = response.data.map(member => member.login);
+            console.log("Potential Reviewers:", allReviewers);
+            
+            // Filter out the PR author and current reviewers
+            const eligibleReviewers = allReviewers.filter(reviewer => reviewer !== author && !currentReviewers.includes(reviewer));
+            console.log("Eligible Reviewers:", eligibleReviewers);
+            
+            // Randomly select a reviewer
+            const randomReviewer = eligibleReviewers[Math.floor(Math.random() * eligibleReviewers.length)];
+            console.log("Selected Reviewer:", randomReviewer);
+            
+            // Assign the selected reviewer
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullRequest.number,
+              reviewers: [randomReviewer]
+            });
+            
+            // Add a comment explaining the selection
+            const comment = `A 'second reviewer' has been requested for this pull request. @${randomReviewer} has been randomly selected as the second opinion reviewer. This action is part of the Tie Breaker mechanism designed to resolve conflicts. The decision of the 'second reviewer' is considered final in the dispute.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              body: comment
+            });
