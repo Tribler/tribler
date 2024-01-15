@@ -1,3 +1,4 @@
+import operator
 import time
 
 import numpy as np
@@ -45,7 +46,7 @@ class TimeSeriesPlot(pg.PlotWidget):
 
     def render_plot(self):
         # Sort the plot data before rendering via plot.setData() to prevent loops and extra lines in the graph.
-        self.plot_data = dict(sorted(self.plot_data.items(), key=lambda x: x[0]))
+        self.plot_data = dict(sorted(self.plot_data.items(), key=operator.itemgetter(0)))
 
         for i, plot in enumerate(self.plots):
             plot.setData(

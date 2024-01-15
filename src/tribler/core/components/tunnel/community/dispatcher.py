@@ -98,6 +98,11 @@ class TunnelDispatcher(TaskManager):
         tcp_connection.transport.close()
 
     def select_circuit(self, connection, request):
+        def add_data_if_result(result_func, connection=connection.udp_connection, request=request):
+            if result_func.result() is None:
+                return None
+            return self.on_socks5_udp_data(connection, request)
+
         if request.destination[1] == CIRCUIT_ID_PORT:
             circuit = self.tunnels.circuits.get(self.tunnels.ip_to_circuit_id(request.destination[0]))
             if circuit and circuit.state == CIRCUIT_STATE_READY and circuit.ctype in [CIRCUIT_TYPE_RP_DOWNLOADER,
@@ -120,8 +125,7 @@ class TunnelDispatcher(TaskManager):
                 return None
             self._logger.debug("Creating circuit for data to %s. Retrying later..", request.destination)
             self.cid_to_con[circuit.circuit_id] = connection
-            circuit.ready.add_done_callback(lambda f, c=connection.udp_connection, r=request:
-                                            self.on_socks5_udp_data(c, r) if f.result() else None)
+            circuit.ready.add_done_callback(add_data_if_result)
             return None
 
         circuit = random.choice(options)

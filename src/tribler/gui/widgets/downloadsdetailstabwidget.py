@@ -1,3 +1,4 @@
+import operator
 from enum import IntEnum
 from pathlib import PurePosixPath
 from typing import Dict, Optional
@@ -28,7 +29,7 @@ class DownloadDetailsTabs(IntEnum):
 def convert_to_files_tree_format(download_info):
     files = download_info['files']
     out = []
-    for file in sorted(files, key=lambda x: x['index']):
+    for file in sorted(files, key=operator.itemgetter("index")):
         file_path_parts = PurePosixPath(file['name']).parts
         file_path = [download_info['name'], *file_path_parts]
         if len(files) == 1:
