@@ -38,7 +38,7 @@ from tribler.core.utilities.rest_utils import (
 )
 from tribler.core.utilities.simpledefs import DownloadStatus, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
+from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink, unshorten
 from tribler.core.version import version_id
 
 SOCKS5_PROXY_DEF = 2
@@ -573,6 +573,8 @@ class DownloadManager(TaskManager):
 
     async def start_download_from_uri(self, uri, config=None):
         self._logger.info(f'Start download from URI: {uri}')
+
+        uri = await unshorten(uri)
         scheme = scheme_from_url(uri)
 
         if scheme in (HTTP_SCHEME, HTTPS_SCHEME):

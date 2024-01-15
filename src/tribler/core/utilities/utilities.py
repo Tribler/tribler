@@ -17,7 +17,11 @@ from functools import wraps
 from typing import Dict, List, Optional, Set, Tuple, Union
 from urllib.parse import urlsplit
 
+from aiohttp import ClientSession
+from aiohttp.hdrs import LOCATION
+
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
+from tribler.core.utilities.rest_utils import HTTPS_SCHEME, HTTP_SCHEME, scheme_from_url
 from tribler.core.utilities.sentinels import sentinel
 
 logger = logging.getLogger(__name__)
@@ -335,3 +339,31 @@ def safe_repr(obj):
         return repr(obj)
     except Exception as e:  # pylint: disable=broad-except
         return f'<Repr of {object.__repr__(obj)} raises {e.__class__.__name__}: {e}>'
+
+
+async def unshorten(uri: str) -> str:
+    """ Unshorten a URI if it is a short URI. Return the original URI if it is not a short URI.
+
+    Args:
+        uri (str): A string representing the shortened URL that needs to be unshortened.
+
+    Returns:
+        str: The unshortened URL. If the original URL does not redirect to another URL, the original URL is returned.
+    """
+
+    scheme = scheme_from_url(uri)
+    if scheme not in (HTTP_SCHEME, HTTPS_SCHEME):
+        return uri
+
+    logger.info(f'Unshortening URI: {uri}')
+
+    async with ClientSession() as session:
+        try:
+            async with await session.get(uri, allow_redirects=False) as response:
+                if response.status in (301, 302, 303, 307, 308):
+                    uri = response.headers.get(LOCATION, uri)
+        except Exception as e:
+            logger.warning(f'Error while unshortening a URI: {e.__class__.__name__}: {e}', exc_info=e)
+
+    logger.info(f'Unshorted URI: {uri}')
+    return uri
