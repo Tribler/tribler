@@ -11,7 +11,7 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 from ipv8.taskmanager import TaskManager
 
@@ -489,7 +489,7 @@ class DownloadManager(TaskManager):
         lt_session.set_ip_filter(ip_filter)
 
     async def get_metainfo(self, infohash: bytes, timeout: float = 30, hops: Optional[int] = None,
-                           url: Optional[str] = None, raise_errors: bool = False) -> Optional[Dict]:
+                           url: Optional[Union[str, bytes]] = None, raise_errors: bool = False) -> Optional[Dict]:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
@@ -583,14 +583,12 @@ class DownloadManager(TaskManager):
             self._logger.info('Magnet scheme detected')
             name, infohash, _ = parse_magnetlink(uri)
             self._logger.info(f'Name: {name}. Infohash: {infohash}')
-            if infohash is None:
-                raise RuntimeError("Missing infohash")
             if infohash in self.metainfo_cache:
                 self._logger.info('Metainfo found in cache')
                 tdef = TorrentDef.load_from_dict(self.metainfo_cache[infohash]['meta_info'])
             else:
                 self._logger.info('Metainfo not found in cache')
-                tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if name is None else name, url=uri)
+                tdef = TorrentDefNoMetainfo(infohash, "Unknown name" if not name else name, url=uri)
             return await self.start_download(tdef=tdef, config=config)
         if scheme == FILE_SCHEME:
             self._logger.info('File scheme detected')

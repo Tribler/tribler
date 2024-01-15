@@ -10,10 +10,10 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
 from tribler.core import notifications
+from tribler.core.components.database.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
-from tribler.core.components.database.db.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -106,15 +106,28 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
             if response.startswith(b'magnet'):
-                _, infohash, _ = parse_magnetlink(response)
-                if infohash:
-                    metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
+                try:
+                    _, infohash, _ = parse_magnetlink(response)
+                except RuntimeError as e:
+                    return RESTResponse(
+                        {"error": f'Error while getting an ingo hash from magnet: {e.__class__.__name__}: {e}'},
+                        status=HTTP_INTERNAL_SERVER_ERROR
+                    )
+
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
             else:
                 metainfo = bdecode_compat(response)
         elif scheme == MAGNET_SCHEME:
-            infohash = parse_magnetlink(uri)[1]
-            if infohash is None:
-                return RESTResponse({"error": "missing infohash"}, status=HTTP_BAD_REQUEST)
+            self._logger.info(f'{MAGNET_SCHEME} scheme detected')
+
+            try:
+                _, infohash, _ = parse_magnetlink(uri)
+            except RuntimeError as e:
+                return RESTResponse(
+                    {"error": f'Error while getting an ingo hash from magnet: {e.__class__.__name__}: {e}'},
+                    status=HTTP_BAD_REQUEST
+                )
+
             metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
