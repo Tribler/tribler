@@ -9,20 +9,21 @@ from asyncio import get_running_loop
 from contextlib import suppress
 from functools import cached_property
 from hashlib import sha1
+from os import PathLike
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
 import aiohttp
 
 from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
-from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.libtorrent.utils import torrent_utils
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities import maketorrent, path_util
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import INFOHASH_LENGTH
 from tribler.core.utilities.unicode import ensure_unicode
-from tribler.core.utilities.utilities import bdecode_compat, is_valid_url, parse_magnetlink
+from tribler.core.utilities.utilities import bdecode_compat, is_valid_url
 
 
-def escape_as_utf8(string, encoding='utf8'):
+def escape_as_utf8(string, encoding='utf8') -> str:
     """
     Make a string UTF-8 compliant, destroying characters if necessary.
 
@@ -51,7 +52,8 @@ class TorrentDef:
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo=None, torrent_parameters=None, ignore_validation=True):
+    def __init__(self, metainfo: Optional[Dict] = None, torrent_parameters: Optional[Dict] = None,
+                 ignore_validation: bool = True):
         """
         Create a new TorrentDef object, possibly based on existing data.
         :param metainfo: A dictionary with metainfo, i.e. from a .torrent file.
@@ -85,7 +87,7 @@ class TorrentDef:
         elif torrent_parameters:
             self.torrent_parameters.update(torrent_parameters)
 
-    def copy_metainfo_to_torrent_parameters(self):
+    def copy_metainfo_to_torrent_parameters(self) -> None:
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
@@ -136,7 +138,7 @@ class TorrentDef:
         return TorrentFileTree.from_lt_file_storage(self.torrent_info.files())
 
     @staticmethod
-    def _threaded_load_job(filepath):
+    def _threaded_load_job(filepath: Union[str, bytes, PathLike]) -> TorrentDef:
         """
         Perform the actual loading of the torrent.
 
@@ -147,7 +149,7 @@ class TorrentDef:
         return TorrentDef.load_from_memory(file_content)
 
     @staticmethod
-    async def load(filepath):
+    async def load(filepath: Union[str, bytes, PathLike]) -> TorrentDef:
         """
         Create a TorrentDef object from a .torrent file
         :param filepath: The path to the .torrent file
@@ -155,7 +157,7 @@ class TorrentDef:
         return await get_running_loop().run_in_executor(None, TorrentDef._threaded_load_job, filepath)
 
     @staticmethod
-    def load_from_memory(bencoded_data):
+    def load_from_memory(bencoded_data: bytes) -> TorrentDef:
         """
         Load some bencoded data into a TorrentDef.
         :param bencoded_data: The bencoded data to decode and use as metainfo
@@ -168,7 +170,7 @@ class TorrentDef:
         return TorrentDef.load_from_dict(metainfo)
 
     @staticmethod
-    def load_from_dict(metainfo):
+    def load_from_dict(metainfo: Dict) -> TorrentDef:
         """
         Load a metainfo dictionary into a TorrentDef object.
         :param metainfo: The metainfo dictionary
@@ -176,7 +178,7 @@ class TorrentDef:
         return TorrentDef(metainfo=metainfo)
 
     @staticmethod
-    async def load_from_url(url):
+    async def load_from_url(url: str) -> TorrentDef:
         """
         Create a TorrentDef with information from a remote source.
         :param url: The HTTP/HTTPS url where to fetch the torrent info from.
@@ -197,6 +199,7 @@ class TorrentDef:
         :return: the sanitized string
         :rtype: str
         """
+
         def filter_character(char: int) -> str:
             if 0 < char < 128:
                 return chr(char)
@@ -205,27 +208,27 @@ class TorrentDef:
 
         return "".join(map(filter_character, name))
 
-    def add_content(self, file_path):
+    def add_content(self, file_path: str) -> None:
         """
         Add some content to the torrent file.
         :param file_path: The (absolute) path of the file to add.
         """
         self.files_list.append(Path(file_path).absolute())
 
-    def set_encoding(self, enc):
+    def set_encoding(self, enc: bytes) -> None:
         """
         Set the character encoding for e.g. the 'name' field
         :param enc: The new encoding of the file.
         """
         self.torrent_parameters[b'encoding'] = enc
 
-    def get_encoding(self):
+    def get_encoding(self) -> str:
         """
         Returns the used encoding of the TorrentDef.
         """
         return ensure_unicode(self.torrent_parameters.get(b'encoding', b'utf-8'), 'utf-8')
 
-    def set_tracker(self, url):
+    def set_tracker(self, url: str) -> None:
         """
         Set the tracker of this torrent, according to a given URL.
         :param url: The tracker url.
@@ -237,19 +240,19 @@ class TorrentDef:
             url = url[:-1]
         self.torrent_parameters[b'announce'] = url
 
-    def get_tracker(self):
+    def get_tracker(self) -> Optional[str]:
         """
         Returns the torrent announce URL.
         """
         return self.torrent_parameters.get(b'announce', None)
 
-    def get_tracker_hierarchy(self):
+    def get_tracker_hierarchy(self) -> List[List[str]]:
         """
         Returns the hierarchy of trackers.
         """
         return self.torrent_parameters.get(b'announce-list', [])
 
-    def get_trackers(self) -> set:
+    def get_trackers(self) -> Set[str]:
         """
         Returns a flat set of all known trackers.
 
@@ -264,7 +267,7 @@ class TorrentDef:
             return {tracker}
         return set()
 
-    def set_piece_length(self, piece_length):
+    def set_piece_length(self, piece_length: int) -> None:
         """
         Set the size of the pieces in which the content is traded.
         The piece size must be a multiple of the chunk size, the unit in which
@@ -276,13 +279,13 @@ class TorrentDef:
 
         self.torrent_parameters[b'piece length'] = piece_length
 
-    def get_piece_length(self):
+    def get_piece_length(self) -> None:
         """
         Returns the piece size.
         """
         return self.torrent_parameters.get(b'piece length', 0)
 
-    def get_nr_pieces(self):
+    def get_nr_pieces(self) -> int:
         """
         Returns the number of pieces.
         """
@@ -290,7 +293,7 @@ class TorrentDef:
             return 0
         return len(self.metainfo[b'info'][b'pieces']) // 20
 
-    def get_pieces(self):
+    def get_pieces(self) -> List:
         """
         Returns the pieces.
         """
@@ -298,38 +301,38 @@ class TorrentDef:
             return []
         return self.metainfo[b'info'][b'pieces'][:]
 
-    def get_infohash(self):
+    def get_infohash(self) -> bytes:
         """
         Returns the infohash of the torrent, if metainfo is provided. Might be None if no metainfo is provided.
         """
         return self.infohash
 
-    def get_metainfo(self):
+    def get_metainfo(self) -> Dict:
         """
         Returns the metainfo of the torrent. Might be None if no metainfo is provided.
         """
         return self.metainfo
 
-    def get_name(self):
+    def get_name(self) -> str:
         """
         Returns the name as raw string of bytes.
         """
         return self.torrent_parameters[b'name']
 
-    def get_name_utf8(self):
+    def get_name_utf8(self) -> str:
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
         return escape_as_utf8(self.get_name(), self.get_encoding())
 
-    def set_name(self, name):
+    def set_name(self, name: str) -> None:
         """
         Set the name of this torrent.
         :param name: The new name of the torrent
         """
         self.torrent_parameters[b'name'] = name
 
-    def get_name_as_unicode(self):
+    def get_name_as_unicode(self) -> str:
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
         if self.metainfo and b"name.utf-8" in self.metainfo[b"info"]:
@@ -372,7 +375,7 @@ class TorrentDef:
         # We failed.  Returning an empty string
         return ""
 
-    def save(self, torrent_filepath=None):
+    def save(self, torrent_filepath: Optional[str] = None) -> None:
         """
         Generate the metainfo and save the torrent file.
         :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
@@ -386,7 +389,7 @@ class TorrentDef:
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
 
-    def _get_all_files_as_unicode_with_length(self):
+    def _get_all_files_as_unicode_with_length(self) -> Iterator[Path, int]:
         """ Get a generator for files in the torrent def. No filtering
         is possible and all tricks are allowed to obtain a unicode
         list of filenames.
@@ -448,7 +451,7 @@ class TorrentDef:
             # Single-file torrent
             yield self.get_name_as_unicode(), self.metainfo[b"info"][b"length"]
 
-    def get_files_with_length(self, exts=None):
+    def get_files_with_length(self, exts: Optional[str] = None) -> List[Tuple[Path, int]]:
         """ The list of files in the torrent def.
         @param exts (Optional) list of filename extensions (without leading .)
         to search for.
@@ -463,10 +466,10 @@ class TorrentDef:
                 videofiles.append((filename, length))
         return videofiles
 
-    def get_files(self, exts=None):
+    def get_files(self, exts: Optional[Set[str]] = None) -> List[Path]:
         return [filename for filename, _ in self.get_files_with_length(exts)]
 
-    def get_length(self, selectedfiles=None):
+    def get_length(self, selectedfiles: Optional[Set[Path]] = None) -> int:
         """ Returns the total size of the content in the torrent. If the
         optional selectedfiles argument is specified, the method returns
         the total size of only those files.
@@ -476,13 +479,13 @@ class TorrentDef:
             return maketorrent.get_length_from_metainfo(self.metainfo, selectedfiles)
         return 0
 
-    def get_creation_date(self):
+    def get_creation_date(self) -> int:
         """
         Returns the creation date of the torrent.
         """
         return self.metainfo.get(b"creation date", 0) if self.metainfo else 0
 
-    def is_multifile_torrent(self):
+    def is_multifile_torrent(self) -> bool:
         """
         Returns whether this TorrentDef is a multi-file torrent.
         """
@@ -501,7 +504,7 @@ class TorrentDef:
             private = 0
         return private == 1
 
-    def get_index_of_file_in_files(self, file):
+    def get_index_of_file_in_files(self, file: Optional[str]) -> int:
         if not self.metainfo:
             raise ValueError("TorrentDef does not have metainfo")
         info = self.metainfo[b'info']
@@ -530,7 +533,7 @@ class TorrentDefNoMetainfo(TorrentDef):
     implemented.
     """
 
-    def __init__(self, infohash: bytes, name: bytes, url: bytes | None = None):
+    def __init__(self, infohash: bytes, name: bytes, url: bytes | str | None = None):
         torrent_parameters = {
             b'name': name
         }
@@ -539,7 +542,7 @@ class TorrentDefNoMetainfo(TorrentDef):
         super().__init__(torrent_parameters=torrent_parameters)
         self.infohash = infohash
 
-    def get_url(self) -> bytes | None:
+    def get_url(self) -> bytes | str | None:
         if urllist := self.torrent_parameters.get(b'urllist'):
             return urllist[0]
         return None
