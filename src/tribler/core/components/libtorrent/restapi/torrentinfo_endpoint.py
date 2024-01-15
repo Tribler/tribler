@@ -29,7 +29,7 @@ from tribler.core.utilities.rest_utils import (
     url_to_path,
 )
 from tribler.core.utilities.unicode import hexlify, recursive_unicode
-from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
+from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink, unshorten
 
 
 async def query_http_uri(uri: str) -> bytes:
@@ -87,7 +87,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         if not uri:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        metainfo = None
+        uri = await unshorten(uri)
         scheme = scheme_from_url(uri)
 
         if scheme == FILE_SCHEME:
@@ -110,7 +110,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     _, infohash, _ = parse_magnetlink(response)
                 except RuntimeError as e:
                     return RESTResponse(
-                        {"error": f'Error while getting an ingo hash from magnet: {e.__class__.__name__}: {e}'},
+                        {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                         status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
@@ -124,7 +124,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 _, infohash, _ = parse_magnetlink(uri)
             except RuntimeError as e:
                 return RESTResponse(
-                    {"error": f'Error while getting an ingo hash from magnet: {e.__class__.__name__}: {e}'},
+                    {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                     status=HTTP_BAD_REQUEST
                 )
 
