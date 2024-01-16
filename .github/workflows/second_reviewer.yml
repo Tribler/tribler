@@ -13,11 +13,11 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Add second reviewer
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           script: |
             // Get PR information
-            const pullRequest = github.event.pull_request;
+            const pullRequest = context.payload.pull_request;
             const author = pullRequest.user.login;
             console.log("Author:", author);
             
@@ -44,8 +44,8 @@ jobs:
             
             // Assign the selected reviewer
             await github.rest.pulls.requestReviewers({
-              owner: github.context.repo.owner,
-              repo: github.context.repo.repo,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               pull_number: pullRequest.number,
               reviewers: [randomReviewer]
             });
@@ -53,8 +53,16 @@ jobs:
             // Add a comment explaining the selection
             const comment = `A 'second reviewer' has been requested for this pull request. @${randomReviewer} has been randomly selected as the second opinion reviewer. This action is part of the Tie Breaker mechanism designed to resolve conflicts. The decision of the 'second reviewer' is considered final in the dispute.`;
             await github.rest.issues.createComment({
-              owner: github.repository_owner,
-              repo: github.repository,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
               issue_number: pullRequest.number,
               body: comment
             });
+
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pullRequest.number,
+              name: 'PR: second reviewer'
+            });
+            console.log("Label 'PR: second reviewer' removed successfully.");
