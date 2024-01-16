@@ -16,7 +16,6 @@ jobs:
         uses: actions/github-script@v5
         with:
           script: |
-            const github = require('@actions/github');
             const context = github.context;
             
             // Get PR information
@@ -26,7 +25,7 @@ jobs:
             
             const currentReviewers = pullRequest.requested_reviewers.map(reviewer => reviewer.login);
             console.log("Current Reviewers:", currentReviewers);
-
+            
             // Get the list of potential reviewers
             const org = 'Tribler';
             const teamSlug = 'reviewers';
