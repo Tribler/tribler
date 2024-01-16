@@ -92,7 +92,7 @@ class Executor(object):
         """
         Start Tribler if it has not been started yet.
         """
-        cmd = "%s --allow-code-injection --tunnel-testnet --trustchain-testnet" % self.tribler_path
+        cmd = "%s --allow-code-injection --tunnel-testnet" % self.tribler_path
         self._logger.info(f"Tribler not running - starting it: {cmd}")
 
         envvars = '\n'.join('%s=%s' % (key, val) for key, val in sorted(os.environ.items()))

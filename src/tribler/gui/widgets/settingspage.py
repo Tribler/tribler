@@ -213,8 +213,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         # Anonymity settings
         self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
-        connect(self.window().number_hops_slider.valueChanged, self.update_anonymity_cost_label)
-        self.update_anonymity_cost_label(int(settings['download_defaults']['number_hops']))
 
         # Data settings
         self.load_settings_data_tab()
@@ -310,17 +308,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         user_choice = message_box.exec_()
         return user_choice == QMessageBox.Yes
-
-    def update_anonymity_cost_label(self, value):
-        html_text = tr(
-            "<html><head/><body><p>Download with <b>%d</b> hop(s) of anonymity. "
-            "When you download a file of 200 Megabyte, you will pay roughly <b>%d</b>"
-            "Megabyte of bandwidth tokens.</p></body></html>"
-        ) % (
-                        value,
-                        400 * (value - 1) + 200,
-                    )
-        self.window().anonymity_costs_label.setText(html_text)
 
     def show_updated_cpu_priority(self, value):
         self.window().cpu_priority_value.setText(tr("Current Priority = %s") % value)

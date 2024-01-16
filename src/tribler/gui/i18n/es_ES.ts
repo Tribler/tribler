@@ -357,11 +357,6 @@ No puede deshacer esta acción.</translation>
         <translation>Seleccione la versión que desea eliminar.</translation>
     </message>
     <message>
-        <location filename="../widgets/settingspage.py" line="332"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Download with &lt;b&gt;%d&lt;/b&gt; hop(s) of anonymity. When you download a file of 200 Megabyte, you will pay roughly &lt;b&gt;%d&lt;/b&gt;Megabyte of bandwidth tokens.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Descargar con &lt;b&gt;%d&lt;/b&gt; salto(s) de anonimato. Cuando descarga un archivo de 200 Megabyte, usted pagará aproximadamente &lt;b&gt;%d&lt;/b&gt;Megabyte en tokens de ancho de banda.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
         <location filename="../widgets/settingspage.py" line="339"/>
         <source>Current Priority = %s</source>
         <translation>Prioridad actual = %s</translation>
@@ -1178,11 +1173,6 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
 <context>
     <name>Form</name>
     <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="35"/>
-        <source>Form</source>
-        <translation>Formulario</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/add_tags_dialog.ui" line="137"/>
         <source>Suggest Tags</source>
         <translation type="obsolete">Añadir etiquetas</translation>
@@ -1386,11 +1376,6 @@ Si no está seguro, pulse &quot;No&quot;. Más adelante podrá eliminar esas car
         <location filename="../qt_resources/startdownloaddialog.ui" line="509"/>
         <source>DOWNLOAD</source>
         <translation>DESCARGAR</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/trustexplanation.ui" line="137"/>
-        <source>Bandwidth Tokens</source>
-        <translation>Tokens de ancho de banda</translation>
     </message>
     <message>
         <location filename="../qt_resources/edit_metadata_dialog.ui" line="155"/>
@@ -2161,11 +2146,6 @@ Alto anonimato</translation>
         <translation>Este proceso puede durar unos minutos.</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4361"/>
-        <source>Trust statistics</source>
-        <translation>Estadísticas de confianza</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="4486"/>
         <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
         <translation>Puede generar confianza aportando ancho de banda a la red Tribler. Para ello, deje que Tribler funcione en reposo.</translation>
@@ -2194,11 +2174,6 @@ Alto anonimato</translation>
         <location filename="../qt_resources/mainwindow.ui" line="4707"/>
         <source>People who helped you</source>
         <translation>Personas que le han ayudado</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4885"/>
-        <source>Trust Graph</source>
-        <translation>Gráfico de confianza</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="4986"/>
