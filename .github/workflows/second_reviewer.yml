@@ -6,7 +6,7 @@ on:
 
 jobs:
   assign-reviewer:
-    if: contains(github.event.pull_request.labels.*.name, "PR"+":"+"second reviewer")
+    if: ${{ contains(github.event.pull_request.labels.*.name, "PR"+":"+"second reviewer") }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
