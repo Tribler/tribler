@@ -17,7 +17,7 @@ jobs:
         with:
           script: |
             // Get PR information
-            const pullRequest = github.context.payload.pull_request;
+            const pullRequest = github.event.pull_request;
             const author = pullRequest.user.login;
             console.log("Author:", author);
             
