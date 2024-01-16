@@ -53,8 +53,8 @@ jobs:
             // Add a comment explaining the selection
             const comment = `A 'second reviewer' has been requested for this pull request. @${randomReviewer} has been randomly selected as the second opinion reviewer. This action is part of the Tie Breaker mechanism designed to resolve conflicts. The decision of the 'second reviewer' is considered final in the dispute.`;
             await github.rest.issues.createComment({
-              owner: github.context.repo.owner,
-              repo: github.context.repo.repo,
+              owner: github.repository_owner,
+              repo: github.repository,
               issue_number: pullRequest.number,
               body: comment
             });
