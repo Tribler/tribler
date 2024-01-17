@@ -1511,11 +1511,6 @@ New remote results received: %(num_remote_results)i</source>
         <translation>搜索你喜欢的内容</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5523"/>
-        <source>Token balance</source>
-        <translation>代币余额</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="225"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
         <translation>交易正在进行中，请不要关闭 Tribler。</translation>
@@ -2233,11 +2228,6 @@ High anonymity</source>
 (requires Tribler restart)</source>
         <translation>选择界面语言
 （需要重启 Tribler）</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4426"/>
-        <source>Show trust graph</source>
-        <translation>显示信任图表</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="530"/>
