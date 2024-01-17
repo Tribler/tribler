@@ -60,9 +60,9 @@ class ResourceType(IntEnum):
 @dataclass
 class SimpleStatement:
     subject_type: ResourceType
-    object: str
-    predicate: ResourceType
     subject: str
+    predicate: ResourceType
+    object: str
 
 
 class KnowledgeDataAccessLayer:
