@@ -3,8 +3,13 @@
 > **_NOTE:_** code moved from: https://github.com/Tribler/application-tester/
 
 This repository hosts code for the Tribler application tester, which aims to automatically test Tribler using code injection.
-To run the Tribler application tester, it requires a path to the Tribler executable, for example:
 
+To run the Tribler application tester, dependencies specified in `scripts/application_tester/requirements.txt` must be installed. 
+```
+pip install -r scripts/application_tester/requirements.txt
+```
+
+Further, the script requires a path to the Tribler executable to be passed as an argument, for example:
 ```
 python scripts/application_tester/main.py -p "python src/run_tribler.py"
 ```
