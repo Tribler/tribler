@@ -64,6 +64,8 @@ PR policies
 ===========
 * We use `rebase + merge –no–ff <https://www.endoflineblog.com/oneflow-a-git-branching-model-and-workflow#option-3-rebase-merge-no-ff>`_ for merging a branch
 * Responsibility for merging the PR is on the creator of PR
+* In the case where you cannot reach a consensus with the reviewer, you can request a second reviewer to act as a `Tie Breaker <https://github.com/Tribler/tribler/issues/7807>`_.
+
 
 Recommendations:
 
