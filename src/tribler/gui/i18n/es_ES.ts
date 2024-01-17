@@ -2146,11 +2146,6 @@ Alto anonimato</translation>
         <translation>Este proceso puede durar unos minutos.</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4486"/>
-        <source>You can build trust by contributing bandwidth to the Tribler network. This is done by letting Tribler run idle.</source>
-        <translation>Puede generar confianza aportando ancho de banda a la red Tribler. Para ello, deje que Tribler funcione en reposo.</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="4645"/>
         <source>- MBytes</source>
         <translation>- MBytes</translation>
@@ -2204,11 +2199,6 @@ Alto anonimato</translation>
         <location filename="../qt_resources/mainwindow.ui" line="5441"/>
         <source> Debug</source>
         <translation> Depurar</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5523"/>
-        <source>Token balance</source>
-        <translation>Saldo de Tokens</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1826"/>

@@ -1500,11 +1500,6 @@ New remote results received: %(num_remote_results)i</source>
         <translation>Искать торрент по названию...</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5523"/>
-        <source>Token balance</source>
-        <translation>Баланс</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="225"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
         <translation>Идёт обработка, не закрывайте Tribler</translation>
@@ -2225,11 +2220,6 @@ High anonymity</source>
 (requires Tribler restart)</source>
         <translation>Выбрать языка интерфейса
 (потребуется перезапуск)</translation>
-    </message>
-    <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4426"/>
-        <source>Show trust graph</source>
-        <translation>Показать граф репутации</translation>
     </message>
     <message>
         <location filename="../qt_resources/mainwindow.ui" line="1439"/>

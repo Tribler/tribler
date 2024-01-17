@@ -1548,11 +1548,6 @@ New remote results received: %(num_remote_results)i</source>
         <translation>Procure por seu conteúdo favorito</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="5523"/>
-        <source>Token balance</source>
-        <translation>Saldo de tokens</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="225"/>
         <source>Transaction in progress, Please don&apos;t close Tribler.</source>
         <translation>Transação em andamento. Por favor, não feche Tibler;</translation>
