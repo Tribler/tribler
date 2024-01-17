@@ -410,7 +410,7 @@ class KnowledgeDataAccessLayer:
         return op.clock if op else CLOCK_START_VALUE
 
     def get_operations_for_gossip(self, count: int = 10) -> Set[Entity]:
-        """ Get random operations from the DB that older than time_delta.
+        """ Get random operations from the DB.
 
         Args:
             count: a limit for a resulting query
