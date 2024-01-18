@@ -2407,11 +2407,6 @@ High anonymity</source>
         <translation type="obsolete">Comprar/Vender?</translation>
     </message>
     <message>
-        <location filename="../qt_resources/mainwindow.ui" line="4885"/>
-        <source>Trust Graph</source>
-        <translation>Grafo de confiança</translation>
-    </message>
-    <message>
         <location filename="../qt_resources/mainwindow.ui" line="5389"/>
         <source>REFRESH</source>
         <translation type="obsolete">ATUALIZAR</translation>
