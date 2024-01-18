@@ -27,9 +27,7 @@ CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
 
 
 class KnowledgeCommunity(TriblerCommunity):
-    """ Community for disseminating tags across the network.
-
-    Only tags that are older than 1 minute will be gossiped.
+    """ Community for disseminating knowledge across the network.
     """
 
     community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')
