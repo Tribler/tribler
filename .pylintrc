@@ -17,6 +17,7 @@ persistent = yes
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
 #load-plugins=pylint_common,pylint.extensions.check_elif,pylint.extensions.check_docs
+load-plugins=pylint_pytest
 
 # To install required plugins:
 # sudo apt install python-pylint-common python-enchant python-pylint-plugin-utils
