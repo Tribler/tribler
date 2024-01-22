@@ -22,6 +22,8 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR, TESTS_DIR, TORRENT_U
 from tribler.core.utilities.rest_utils import path_to_url
 from tribler.core.utilities.unicode import hexlify
 
+TARGET = 'tribler.core.components.libtorrent.restapi.torrentinfo_endpoint'
+
 SAMPLE_CHANNEL_FILES_DIR = TESTS_DIR / "data" / "sample_channel"
 
 
@@ -96,7 +98,7 @@ async def test_get_torrentinfo(tmp_path, rest_api, download_manager: DownloadMan
         with open(tmp_path / "ubuntu.torrent", 'rb') as f:
             return f.read()
 
-    with patch("tribler.core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri", new=mock_http_query):
+    with patch(f"{TARGET}.query_http_uri", new=mock_http_query):
         verify_valid_dict(await do_request(rest_api, url, params={'uri': path}, expected_code=200))
 
     path = quote_plus(f'magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}'
@@ -168,10 +170,28 @@ async def test_get_torrentinfo_invalid_magnet(rest_api):
     mocked_query_http_uri = AsyncMock(return_value=b'magnet:?xt=urn:ed2k:' + b"any hash")
     params = {'uri': 'http://any.uri'}
 
-    with patch('tribler.core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri', mocked_query_http_uri):
+    with patch(f'{TARGET}.query_http_uri', mocked_query_http_uri):
         result = await do_request(rest_api, 'torrentinfo', params=params, expected_code=HTTP_INTERNAL_SERVER_ERROR)
 
     assert 'error' in result
+
+
+@patch(f'{TARGET}.unshorten', new=AsyncMock(return_value='http://any.uri'))
+@patch(f'{TARGET}.tdef_to_metadata_dict', new=MagicMock())
+@patch.object(TorrentDef, 'load_from_dict', new=MagicMock())
+async def test_get_torrentinfo_get_metainfo_from_downloaded_magnet(rest_api, download_manager: DownloadManager):
+    # Test that the `get_metainfo` function passes the correct arguments.
+    magnet = b'magnet:?xt=urn:btih:' + b'0' * 40
+    mocked_query_http_uri = AsyncMock(return_value=magnet)
+    params = {'uri': 'any non empty uri'}
+
+    download_manager.get_metainfo = AsyncMock(return_value={b'info': {}})
+
+    with patch(f'{TARGET}.query_http_uri', mocked_query_http_uri):
+        await do_request(rest_api, 'torrentinfo', params=params)
+
+    expected_url = magnet.decode('utf-8')
+    download_manager.get_metainfo.assert_called_with(b'\x00' * 20, timeout=60, hops=None, url=expected_url)
 
 
 async def test_on_got_invalid_metainfo(rest_api):
@@ -194,7 +214,7 @@ caught_exceptions = [
 ]
 
 
-@patch("tribler.core.components.libtorrent.restapi.torrentinfo_endpoint.query_http_uri")
+@patch(f"{TARGET}.query_http_uri")
 @pytest.mark.parametrize("exception", caught_exceptions)
 async def test_torrentinfo_endpoint_timeout_error(mocked_query_http_uri: AsyncMock, exception: Exception):
     # Test that in the case of exceptions related to querying HTTP URI specified in this tests,

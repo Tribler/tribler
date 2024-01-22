@@ -489,7 +489,7 @@ class DownloadManager(TaskManager):
         lt_session.set_ip_filter(ip_filter)
 
     async def get_metainfo(self, infohash: bytes, timeout: float = 30, hops: Optional[int] = None,
-                           url: Optional[Union[str, bytes]] = None, raise_errors: bool = False) -> Optional[Dict]:
+                           url: Optional[str] = None, raise_errors: bool = False) -> Optional[Dict]:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
