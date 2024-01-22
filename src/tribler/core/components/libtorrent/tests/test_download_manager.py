@@ -179,7 +179,7 @@ async def test_start_download_while_getting_metainfo(fake_dlmgr):
     fake_dlmgr.remove_download = AsyncMock(return_value=succeed(None))
 
     tdef = TorrentDefNoMetainfo(
-        infohash, "name", f"magnet:?xt=urn:btih:{hexlify(infohash)}&"
+        infohash, b"name", f"magnet:?xt=urn:btih:{hexlify(infohash)}&"
     )
     download = await fake_dlmgr.start_download(tdef=tdef, checkpoint_disabled=True)
     assert metainfo_dl != download
@@ -222,7 +222,7 @@ async def test_start_download(fake_dlmgr):
     fake_dlmgr.get_session = MagicMock(return_value=mock_ltsession)
 
     download = await fake_dlmgr.start_download(
-        tdef=TorrentDefNoMetainfo(infohash, ""), checkpoint_disabled=True
+        tdef=TorrentDefNoMetainfo(infohash, b""), checkpoint_disabled=True
     )
     handle = await download.get_handle()
     assert handle == mock_handle
@@ -273,7 +273,7 @@ async def test_start_download_existing_handle(fake_dlmgr):
     fake_dlmgr.get_session = MagicMock(return_value=mock_ltsession)
 
     download = await fake_dlmgr.start_download(
-        tdef=TorrentDefNoMetainfo(infohash, "name"), checkpoint_disabled=True
+        tdef=TorrentDefNoMetainfo(infohash, b"name"), checkpoint_disabled=True
     )
     handle = await download.get_handle()
     assert handle == mock_handle
@@ -508,7 +508,7 @@ async def test_start_download_from_magnet_no_name(fake_dlmgr: DownloadManager):
     # Test whether a download is started with `Unknown name` name when the magnet has no name
     magnet = f'magnet:?xt=urn:btih:{"A" * 40}'
     download = await fake_dlmgr.start_download_from_uri(magnet)
-    assert download.tdef.get_name() == 'Unknown name'
+    assert download.tdef.get_name() == b'Unknown name'
 
 
 def test_update_trackers(fake_dlmgr) -> None:

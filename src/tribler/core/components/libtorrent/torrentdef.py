@@ -554,5 +554,5 @@ class TorrentDefNoMetainfo(TorrentDef):
     def load_torrent_info(self) -> None:
         pass
 
-    def get_name_as_unicode(self):
+    def get_name_as_unicode(self) -> str:
         return self.get_name_utf8()
