@@ -313,7 +313,7 @@ class TorrentDef:
         """
         return self.metainfo
 
-    def get_name(self) -> str:
+    def get_name(self) -> bytes:
         """
         Returns the name as raw string of bytes.
         """
@@ -325,7 +325,7 @@ class TorrentDef:
         """
         return escape_as_utf8(self.get_name(), self.get_encoding())
 
-    def set_name(self, name: str) -> None:
+    def set_name(self, name: bytes) -> None:
         """
         Set the name of this torrent.
         :param name: The new name of the torrent
@@ -554,8 +554,5 @@ class TorrentDefNoMetainfo(TorrentDef):
     def load_torrent_info(self) -> None:
         pass
 
-    def get_name_utf8(self):
-        return self.get_name()
-
     def get_name_as_unicode(self):
-        return self.get_name()
+        return self.get_name_utf8()
