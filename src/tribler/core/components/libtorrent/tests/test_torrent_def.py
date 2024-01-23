@@ -211,8 +211,9 @@ def test_load_from_dict():
 
 
 def test_torrent_no_metainfo():
-    tdef = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "http://google.com")
-    assert tdef.get_name() == VIDEO_FILE_NAME
+    video_file_name_bytes = VIDEO_FILE_NAME.encode('utf-8')
+    tdef = TorrentDefNoMetainfo(b"12345678901234567890", video_file_name_bytes, "http://google.com")
+    assert tdef.get_name() == video_file_name_bytes
     assert tdef.get_infohash() == b"12345678901234567890"
     assert tdef.get_length() == 0  # there are no files
     assert not tdef.get_metainfo()
@@ -223,13 +224,13 @@ def test_torrent_no_metainfo():
     assert tdef.get_files_with_length() == []
     assert len(tdef.get_trackers()) == 0
     assert not tdef.is_private()
-    assert tdef.get_name_utf8() == "video.avi"
+    assert tdef.get_name_utf8() == VIDEO_FILE_NAME
     assert tdef.get_nr_pieces() == 0
     assert tdef.torrent_info is None
     tdef.load_torrent_info()
     assert tdef.torrent_info is None
 
-    torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", VIDEO_FILE_NAME, "magnet:")
+    torrent2 = TorrentDefNoMetainfo(b"12345678901234567890", video_file_name_bytes, "magnet:")
     assert len(torrent2.get_trackers()) == 0
 
 
