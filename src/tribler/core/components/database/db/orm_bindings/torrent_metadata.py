@@ -1,8 +1,8 @@
+import random
 from binascii import unhexlify
 from datetime import datetime
-import random
 from struct import unpack
-from typing import Optional
+from typing import Dict, Optional
 
 from lz4.frame import LZ4FrameCompressor
 from pony import orm
@@ -11,8 +11,8 @@ from pony.orm import db_session
 from tribler.core import notifications
 from tribler.core.components.database.category_filter.category import Category, default_category_filter
 from tribler.core.components.database.category_filter.family_filter import default_xxx_filter
-from tribler.core.components.database.db.serialization import EPOCH, REGULAR_TORRENT, TorrentMetadataPayload, \
-    HealthItemsPayload, time2int
+from tribler.core.components.database.db.serialization import EPOCH, HealthItemsPayload, REGULAR_TORRENT, \
+    TorrentMetadataPayload, time2int
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.tracker_utils import get_uniformed_tracker_url
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
@@ -42,7 +42,7 @@ def infohash_to_id(infohash):
     return abs(unpack(">q", infohash[:8])[0])
 
 
-def tdef_to_metadata_dict(tdef, category_filter: Category = None):
+def tdef_to_metadata_dict(tdef, category_filter: Category = None) -> Dict:
     """
     Helper function to create a TorrentMetadata-compatible dict from TorrentDef
     """

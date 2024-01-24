@@ -139,14 +139,11 @@ class TorrentInfoEndpoint(RESTEndpoint):
             self._logger.warning("Received metainfo is not a valid dictionary")
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        # Add the torrent to GigaChannel as a free-for-all entry, so others can search it
-        self.download_manager.notifier[notifications.torrent_metadata_added](
-            tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo)))
+        # Add the torrent to metadata.db
+        metadata_dict = tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo))
+        self.download_manager.notifier[notifications.torrent_metadata_added](metadata_dict)
 
-        # TODO(Martijn): store the stuff in a database!!!
-        # TODO(Vadim): this means cache the downloaded torrent in a binary storage, like LevelDB
-        infohash = hashlib.sha1(lt.bencode(metainfo[b'info'])).digest()
-
+        infohash = metadata_dict['infohash']
         download = self.download_manager.downloads.get(infohash)
         metainfo_request = self.download_manager.metainfo_requests.get(infohash, [None])[0]
         download_is_metainfo_request = download == metainfo_request
@@ -154,9 +151,6 @@ class TorrentInfoEndpoint(RESTEndpoint):
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
 
-        # FIXME: json.dumps garbles binary data that is used by the 'pieces' field
-        # However, this is fine as long as the GUI does not use this field.
-        encoded_metainfo[b'info'][b'pieces'] = hexlify(encoded_metainfo[b'info'][b'pieces']).encode('utf-8')
         encoded_metainfo = hexlify(json.dumps(recursive_unicode(
             encoded_metainfo, ignore_errors=True), ensure_ascii=False).encode('utf-8'))
         return RESTResponse({"metainfo": encoded_metainfo,
