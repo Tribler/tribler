@@ -1,3 +1,5 @@
+import socket
+
 import pytest
 
 from tribler.core.utilities.network_utils import FreePortNotFoundError, NetworkUtils
@@ -17,6 +19,11 @@ def fixture_network_utils():
                     raise OSError
             finally:
                 self.bound_ports.add(port)
+
+        def setsockopt(self, level, option_name, option_value):
+            assert level == socket.SOL_SOCKET
+            assert option_name == socket.SO_REUSEADDR
+            assert option_value == 1
 
         def __enter__(self):
             return self

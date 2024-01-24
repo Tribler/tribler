@@ -74,6 +74,7 @@ class NetworkUtils:
         try:
             for socket_class in self.socket_class_set:
                 with socket_class() as s:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     s.bind(('', port))
             return True
         except OSError:
