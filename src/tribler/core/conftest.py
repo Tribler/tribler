@@ -37,6 +37,10 @@ def pytest_configure(config):
     logging.getLogger('faker.factory').propagate = False
 
 
+def pytest_addoption(parser):
+    parser.addoption("--forced-gc", action="store_true", help="Enable forced garbage collection")
+
+
 @pytest.hookimpl
 def pytest_cmdline_main(config: Config):
     """ Enable extended logging if the verbose option is used """
@@ -70,7 +74,7 @@ def pytest_runtest_protocol(item: Function, log=True, nextitem=None):
 
 
 @pytest.fixture(autouse=True)
-def ensure_gc():
+def ensure_gc(request):
     """ Ensure that the garbage collector runs after each test.
     This is critical for test stability as we use Libtorrent and need to ensure all its destructors are called. """
     # For this fixture, it is necessary for it to be called as late as possible within the current test's scope.
@@ -87,8 +91,8 @@ def ensure_gc():
     #
     # By adding the yield we move the garbage collection phase to the end of the current test, to not affect the next
     # test.
-
-    gc.collect()
+    if request.config.getoption("--forced-gc"):
+        gc.collect()
 
 
 @pytest.fixture
