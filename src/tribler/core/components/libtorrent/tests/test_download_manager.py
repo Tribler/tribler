@@ -312,7 +312,7 @@ async def test_start_download_existing_download(fake_dlmgr):
     fake_dlmgr.get_session = lambda *_: mock_ltsession
 
     download = await fake_dlmgr.start_download(
-        tdef=TorrentDefNoMetainfo(infohash, "name"), checkpoint_disabled=True
+        tdef=TorrentDefNoMetainfo(infohash, b"name"), checkpoint_disabled=True
     )
     assert download == mock_download
     fake_dlmgr.downloads.clear()

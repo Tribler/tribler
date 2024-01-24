@@ -541,7 +541,7 @@ async def test_apply_ip_filter(test_download, mock_handle):  # pylint: disable=u
     await test_download.apply_ip_filter(True)
     test_download.handle.apply_ip_filter.assert_called_with(True)
 
-    test_download.tdef = TorrentDefNoMetainfo(b'a' * 20, 'metainfo request')
+    test_download.tdef = TorrentDefNoMetainfo(b'a' * 20, b'metainfo request')
     test_download.handle.reset_mock()
     test_download.apply_ip_filter(False)
     test_download.handle.apply_ip_filter.assert_not_called()
