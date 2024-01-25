@@ -36,6 +36,8 @@ tree_view = window.download_files_list
 if tree_view.rowCount() == 0:
     exit_script()
 item = tree_view.item(randint(0, tree_view.rowCount() - 1), 0)
+if not item:
+    exit_script()
 check_state = Qt.Checked if item.checkState() == Qt.Unchecked else Qt.Unchecked
 item.setCheckState(check_state)
 QMetaObject.invokeMethod(tree_view, "itemClicked", Q_ARG(QTableWidgetItem, item))
