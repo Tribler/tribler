@@ -2,12 +2,12 @@ from asyncio import sleep
 from unittest.mock import Mock
 
 import pytest
-from aiohttp import ClientSession
 
 from tribler.core.components.socks_servers.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.components.socks_servers.socks5.client import Socks5Client, Socks5Error
 from tribler.core.components.socks_servers.socks5.conversion import UdpPacket, socks5_serializer
 from tribler.core.components.socks_servers.socks5.server import Socks5Server
+from tribler.core.utilities.aiohttp.aiohttp_utils import query_uri
 
 
 @pytest.fixture(name='socks5_server')
@@ -107,7 +107,8 @@ async def test_socks5_aiohttp_connector(socks5_server):
         conn.transport.close()
 
     socks5_server.output_stream.on_socks5_tcp_data = return_data
-
-    async with ClientSession(connector=Socks5Connector(('127.0.0.1', socks5_server.port))) as session:
-        async with session.get('http://localhost') as response:
-            assert (await response.read()) == b'Hello'
+    result = await query_uri(
+        uri='http://localhost',
+        connector=Socks5Connector(('127.0.0.1', socks5_server.port))
+    )
+    assert result == b'Hello'

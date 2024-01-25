@@ -24,6 +24,7 @@ from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDef
 from tribler.core.components.libtorrent.utils import torrent_utils
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities import path_util
+from tribler.core.utilities.aiohttp.aiohttp_utils import unshorten
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.path_util import Path
@@ -38,7 +39,7 @@ from tribler.core.utilities.rest_utils import (
 )
 from tribler.core.utilities.simpledefs import DownloadStatus, MAX_LIBTORRENT_RATE_LIMIT, STATEDIR_CHECKPOINT_DIR
 from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink, unshorten
+from tribler.core.utilities.utilities import bdecode_compat, has_bep33_support, parse_magnetlink
 from tribler.core.version import version_id
 
 SOCKS5_PROXY_DEF = 2

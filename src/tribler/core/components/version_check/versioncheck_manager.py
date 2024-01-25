@@ -1,12 +1,13 @@
 import logging
 import platform
 from distutils.version import LooseVersion
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from aiohttp import ClientResponse, ClientSession, ClientTimeout
+from aiohttp import ClientTimeout
 from ipv8.taskmanager import TaskManager
 
 from tribler.core import notifications
+from tribler.core.utilities.aiohttp.aiohttp_utils import query_uri
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.version import version_id
 
@@ -42,12 +43,12 @@ class VersionCheckManager(TaskManager):
     def timeout(self, value: float):
         self._timeout = ClientTimeout(total=value)
 
-    async def _check_urls(self) -> Optional[ClientResponse]:
+    async def _check_urls(self) -> Optional[Dict]:
         for version_check_url in self.urls:
             if result := await self._request_new_version(version_check_url):
                 return result
 
-    async def _request_new_version(self, version_check_url: str) -> Optional[ClientResponse]:
+    async def _request_new_version(self, version_check_url: str) -> Optional[Dict]:
         try:
             return await self._raw_request_new_version(version_check_url)
         except Exception as e:  # pylint: disable=broad-except
@@ -55,15 +56,15 @@ class VersionCheckManager(TaskManager):
             # the occurrence of an exception in the version check manager
             self._logger.warning(e)
 
-    async def _raw_request_new_version(self, version_check_url: str) -> Optional[ClientResponse]:
+    async def _raw_request_new_version(self, version_check_url: str) -> Optional[Dict]:
         headers = {'User-Agent': self._get_user_agent_string(version_id, platform)}
-        async with ClientSession(raise_for_status=True) as session:
-            response = await session.get(version_check_url, headers=headers, timeout=self.timeout)
-            response_dict = await response.json(content_type=None)
-            version = response_dict['name'][1:]
-            if LooseVersion(version) > LooseVersion(version_id):
-                self.notifier[notifications.tribler_new_version](version)
-                return response
+        json_dict = await query_uri(version_check_url, headers=headers, timeout=self.timeout, return_json=True)
+        version = json_dict['name'][1:]
+        if LooseVersion(version) > LooseVersion(version_id):
+            self.notifier[notifications.tribler_new_version](version)
+            return json_dict
+
+        return None
 
     @staticmethod
     def _get_user_agent_string(tribler_version, platform_module):

@@ -1,4 +1,3 @@
-import asyncio
 import platform
 from asyncio import sleep
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from aiohttp import web
 from tribler.core.components.restapi.rest.rest_endpoint import RESTResponse
 from tribler.core.components.version_check import versioncheck_manager
 from tribler.core.components.version_check.versioncheck_manager import VersionCheckManager
+from tribler.core.utilities.aiohttp.exceptions import AiohttpException
 from tribler.core.version import version_id
 
 # pylint: disable=redefined-outer-name, protected-access
@@ -74,12 +74,12 @@ async def test_start(version_check_manager: VersionCheckManager):
 @patch('platform.python_version', Mock(return_value='3.0.0'))
 @patch('platform.architecture', Mock(return_value=('64bit', 'FooBar')))
 async def test_user_agent(version_server: VersionCheckManager):
-    result = await version_server._check_urls()
-
-    actual = result.request_info.headers['User-Agent']
     expected = f'Tribler/{version_id} (machine=machine; os=os 1; python=3.0.0; executable=64bit)'
 
-    assert actual == expected
+    with patch('tribler.core.components.version_check.versioncheck_manager.query_uri') as mocked_query_uri:
+        await version_server._check_urls()
+        actual = mocked_query_uri.call_args.kwargs['headers']['User-Agent']
+        assert actual == expected
 
 
 @patch.object(ResponseSettings, 'response', first_version)
@@ -110,8 +110,8 @@ async def test_version_check_api_timeout(version_server: VersionCheckManager):
     version_server.timeout = 0.5
 
     # Since the time to respond is higher than the time version checker waits for response,
-    # it should raise the `asyncio.TimeoutError`
-    with pytest.raises(asyncio.TimeoutError):
+    # it should raise the `AiohttpException`
+    with pytest.raises(AiohttpException):
         await version_server._raw_request_new_version(version_server.urls[0])
 
 
