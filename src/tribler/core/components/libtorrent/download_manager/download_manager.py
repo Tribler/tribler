@@ -511,7 +511,7 @@ class DownloadManager(TaskManager):
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
-            tdef = TorrentDefNoMetainfo(infohash, 'metainfo request', url=url)
+            tdef = TorrentDefNoMetainfo(infohash, b'metainfo request', url=url)
             dcfg = DownloadConfig()
             dcfg.set_hops(hops or self.download_defaults.number_hops)
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
