@@ -1,10 +1,8 @@
 import logging
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from aiohttp import ClientSession, web
-from aiohttp.hdrs import LOCATION, URI
 
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.utilities.patch_import import patch_import
@@ -12,7 +10,7 @@ from tribler.core.utilities.tracker_utils import add_url_params
 from tribler.core.utilities.utilities import (Query, extract_tags, get_normally_distributed_positive_integers,
                                               is_channel_public_key, is_infohash, is_simple_match_query, is_valid_url,
                                               parse_bool, parse_magnetlink, parse_query, random_infohash, safe_repr,
-                                              show_system_popup, to_fts_query, unshorten)
+                                              show_system_popup, to_fts_query)
 
 # pylint: disable=import-outside-toplevel, import-error, redefined-outer-name
 # fmt: off
@@ -68,6 +66,7 @@ def test_parse_magnetlink_uppercase():
     _, hashed, _ = parse_magnetlink('magnet:?xt=urn:btih:APCTQFWNOWUBXZOIDAZGAJ2BA6FS6JUC')
 
     assert hashed == b"\x03\xc58\x16\xcdu\xa8\x1b\xe5\xc8\x182`'A\x07\x8b/&\x82"
+
 
 def test_parse_magnetlink_bytes():
     """
@@ -372,44 +371,3 @@ def test_safe_repr_exception():
     obj = MagicMock(__repr__=Mock(side_effect=MyException("exception text")))
     result = safe_repr(obj)
     assert result == f'<Repr of {object.__repr__(obj)} raises MyException: exception text>'
-
-
-
-UNSHORTEN_TEST_DATA = [
-    SimpleNamespace(
-        # Test that the `unshorten` function returns the unshorten URL if there is a redirect detected by
-        # the right status code and right header.
-        url='http://shorten',
-        response=SimpleNamespace(status=301, headers={LOCATION: 'http://unshorten'}),
-        expected='http://unshorten'
-    ),
-    SimpleNamespace(
-        # Test that the `unshorten` function returns the same URL if there is wrong scheme
-        url='file://shorten',
-        response=SimpleNamespace(status=0, headers={}),
-        expected='file://shorten'
-    ),
-    SimpleNamespace(
-        # Test that the `unshorten` function returns the same URL if there is no redirect detected by the wrong status
-        # code.
-        url='http://shorten',
-        response=SimpleNamespace(status=401, headers={LOCATION: 'http://unshorten'}),
-        expected='http://shorten'
-    ),
-    SimpleNamespace(
-        # Test that the `unshorten` function returns the same URL if there is no redirect detected by the wrong header.
-        url='http://shorten',
-        response=SimpleNamespace(status=301, headers={URI: 'http://unshorten'}),
-        expected='http://shorten'
-    )
-]
-
-
-@pytest.mark.parametrize("test_data", UNSHORTEN_TEST_DATA)
-async def test_unshorten(test_data):
-    # The function mocks the ClientSession.get method to return a mocked response with the given status and headers.
-    # It is used with the test data above to test the unshorten function.
-    response = MagicMock(status=test_data.response.status, headers=test_data.response.headers)
-    mocked_get = AsyncMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=response)))
-    with patch.object(ClientSession, 'get', mocked_get):
-        assert await unshorten(test_data.url) == test_data.expected

@@ -1,10 +1,8 @@
 import hashlib
 import json
-from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from copy import deepcopy
-from ssl import SSLError
 
-from aiohttp import ClientConnectorError, ClientResponseError, ClientSession, ServerConnectionError, web
+from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
@@ -20,6 +18,8 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     RESTEndpoint,
     RESTResponse,
 )
+from tribler.core.utilities.aiohttp.aiohttp_utils import query_uri, unshorten
+from tribler.core.utilities.aiohttp.exceptions import AiohttpException
 from tribler.core.utilities.rest_utils import (
     FILE_SCHEME,
     HTTPS_SCHEME,
@@ -29,16 +29,7 @@ from tribler.core.utilities.rest_utils import (
     url_to_path,
 )
 from tribler.core.utilities.unicode import hexlify, recursive_unicode
-from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink, unshorten
-
-
-async def query_http_uri(uri: str) -> bytes:
-    # This is moved to a separate method to be able to patch it separately,
-    # for compatibility with pytest-aiohttp
-    async with ClientSession(raise_for_status=True) as session:
-        response = await session.get(uri)
-        response = await response.read()
-        return response
+from tribler.core.utilities.utilities import bdecode_compat, froze_it, parse_magnetlink
 
 
 @froze_it
@@ -100,9 +91,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
                                     status=HTTP_INTERNAL_SERVER_ERROR)
         elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
-                response = await query_http_uri(uri)
-            except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, AsyncTimeoutError) as e:
-                self._logger.warning(f'Error while querying http uri: {e}')
+                response = await query_uri(uri)
+            except AiohttpException as e:
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
             if response.startswith(b'magnet'):
