@@ -113,8 +113,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                         status=HTTP_INTERNAL_SERVER_ERROR
                     )
-
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=response)
+                url = response.decode("utf-8")
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=hops, url=url)
             else:
                 metainfo = bdecode_compat(response)
         elif scheme == MAGNET_SCHEME:
@@ -140,7 +140,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         # Add the torrent to metadata.db
-        metadata_dict = tdef_to_metadata_dict(TorrentDef.load_from_dict(metainfo))
+        torrent_def = TorrentDef.load_from_dict(metainfo)
+        metadata_dict = tdef_to_metadata_dict(torrent_def)
         self.download_manager.notifier[notifications.torrent_metadata_added](metadata_dict)
 
         infohash = metadata_dict['infohash']
@@ -151,7 +152,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
 
-        encoded_metainfo = hexlify(json.dumps(recursive_unicode(
-            encoded_metainfo, ignore_errors=True), ensure_ascii=False).encode('utf-8'))
+        ready_for_unicode = recursive_unicode(encoded_metainfo, ignore_errors=True)
+        json_dump = json.dumps(ready_for_unicode, ensure_ascii=False)
+        encoded_metainfo = hexlify(json_dump.encode('utf-8'))
         return RESTResponse({"metainfo": encoded_metainfo,
                              "download_exists": download and not download_is_metainfo_request})
