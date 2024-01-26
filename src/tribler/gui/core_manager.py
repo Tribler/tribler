@@ -275,8 +275,16 @@ class CoreManager(QObject):
         return output
 
     @staticmethod
+    def error_code_to_hex(error_code: int) -> str:
+        """Convert a signed integer error code to a hexadecimal string."""
+        v = error_code & (2 ** 32 - 1)
+        return hex(v)
+
+    @staticmethod
     def format_error_message(exit_code: int, exit_status: int) -> str:
-        message = f"The Tribler core has unexpectedly finished with exit code {exit_code} and status: {exit_status}."
+        hex_error_code = CoreManager.error_code_to_hex(exit_code)
+        message = f"The Tribler core has unexpectedly finished with exit code {exit_code} ({hex_error_code}) " \
+                  f"and status: {exit_status}."
         if exit_code == 1:
             string_error = "Application error"
         else:

@@ -142,8 +142,22 @@ def test_decode_raw_core_output(core_manager):
 
 def test_format_error_message():
     actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
-    expected = '''The Tribler core has unexpectedly finished with exit code 2 and status: 1.
+    expected = '''The Tribler core has unexpectedly finished with exit code 2 (0x2) and status: 1.
 
 Error message: No such file or directory'''
+
+    assert actual == expected
+
+
+def test_error_code_to_hex_negative():
+    actual = CoreManager.error_code_to_hex(-1073741819)
+    expected = '0xc0000005'
+
+    assert actual == expected
+
+
+def test_error_code_to_hex_positive():
+    actual = CoreManager.error_code_to_hex(2)
+    expected = '0x2'
 
     assert actual == expected
