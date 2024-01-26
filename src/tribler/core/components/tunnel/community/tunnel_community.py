@@ -10,7 +10,6 @@ from typing import Callable, List, Optional
 import async_timeout
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity
-from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
     CIRCUIT_TYPE_IP_SEEDER,
@@ -59,7 +58,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.notifier = kwargs.pop('notifier', None)
         self.download_manager = kwargs.pop('dlmgr', None)
         self.socks_servers: List[Socks5Server] = kwargs.pop('socks_servers', [])
-        num_random_slots = self.config.random_slots
 
         super().__init__(args_kwargs_to_community_settings(self.settings_class, args, kwargs))
         self._use_main_thread = True
@@ -72,7 +70,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)
         self.download_states = {}
-        self.random_slots = [None] * num_random_slots
         # This callback is invoked with a tuple (time, balance) when we reject a circuit
         self.reject_callback: Optional[Callable] = None
         self.last_forced_announce = {}
@@ -144,15 +141,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if self.settings.max_joined_circuits <= joined_circuits:
             self.logger.warning("too many relays (%d)", joined_circuits)
             return succeed(False)
-
-        circuit_id = create_payload.circuit_id
-
-        # Check whether we have a random open slot, if so, allocate this to this request.
-        for index, slot in enumerate(self.random_slots):
-            if not slot:
-                self.random_slots[index] = circuit_id
-                return succeed(True)
-        return succeed(False)
+        return succeed(True)
 
     def readd_bittorrent_peers(self):
         for torrent, peers in list(self.bittorrent_peers.items()):
@@ -176,14 +165,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # If there are active circuits, add peers immediately. Otherwise postpone.
             if self.find_circuits():
                 self.readd_bittorrent_peers()
-
-    def clean_from_slots(self, circuit_id):
-        """
-        Clean a specific circuit from the allocated slots.
-        """
-        for ind, slot in enumerate(self.random_slots):
-            if slot == circuit_id:
-                self.random_slots[ind] = None
 
     def remove_circuit(self, circuit_id, additional_info='', remove_now=False, destroy=False):
         if circuit_id not in self.circuits:
@@ -216,8 +197,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                    remove_now=remove_now,
                                                    destroy=destroy)
 
-        self.clean_from_slots(circuit_id)
-
         if self.notifier and removed_relay is not None:
             self.notifier[notifications.circuit_removed](removed_relay, additional_info)
 
@@ -225,8 +204,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if circuit_id in self.exit_sockets and self.notifier:
             exit_socket = self.exit_sockets[circuit_id]
             self.notifier[notifications.circuit_removed](exit_socket, additional_info)
-
-        self.clean_from_slots(circuit_id)
 
         return super().remove_exit_socket(circuit_id, additional_info=additional_info,
                                           remove_now=remove_now, destroy=destroy)
@@ -304,14 +281,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             dl.add_peer(address)
         else:
             self.logger.error('Could not find download for adding hidden services peer %s:%d!', *address)
-
-    def on_establish_intro(self, source_address, data, circuit_id):
-        payload = self._ez_unpack_noauth(EstablishIntroPayload, data, global_time=False)
-        exists_before = payload.public_key in self.intro_point_for
-        super().on_establish_intro(source_address, data, circuit_id)
-        # Check if an introduction point was just added
-        if not exists_before and payload.public_key in self.intro_point_for:
-            self.clean_from_slots(circuit_id)
 
     def on_rendezvous_established(self, source_address, data, circuit_id):
         super().on_rendezvous_established(source_address, data, circuit_id)

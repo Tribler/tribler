@@ -47,7 +47,6 @@ def make_config(options) -> TriblerConfig:
 
     statedir = Path(os.path.join(get_root_state_directory(create=True), "tunnel-%d") % ipv8_port)
     config = TriblerConfig.load(state_dir=statedir)
-    config.tunnel_community.random_slots = options.random_slots
     config.torrent_checking.enabled = False
     config.ipv8.enabled = True
     config.libtorrent.enabled = False
@@ -199,7 +198,6 @@ async def main():
                         help='Use an alternate port for the REST API', action=PortAction, metavar='{0..65535}')
     parser.add_argument('--cert-file', '-e', help='Path to combined certificate/key file. If not given HTTP is used.')
     parser.add_argument('--api-key', '-k', help='API key to use. If not given API key protection is disabled.')
-    parser.add_argument('--random_slots', '-r', default=10, type=int, help='Specifies the number of random slots')
     parser.add_argument('--exit', '-x', action='store_const', default=False, const=True,
                         help='Allow being an exit-node')
     parser.add_argument('--testnet', '-t', action='store_const', default=False, const=True, help='Join the testnet')

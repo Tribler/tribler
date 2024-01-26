@@ -35,16 +35,6 @@ def endpoint(mock_tunnel_community, tmp_path, core_resource_monitor):
                          resource_monitor=core_resource_monitor)
 
 
-async def test_get_slots(rest_api, mock_tunnel_community):
-    """
-    Test whether we can get slot information from the API
-    """
-
-    mock_tunnel_community.random_slots = [None, None, None, 12345]
-    response_json = await do_request(rest_api, 'debug/circuits/slots', expected_code=200)
-    assert len(response_json["slots"]["random"]) == 4
-
-
 async def test_get_open_files(rest_api, tmp_path):
     """
     Test whether the API returns open files

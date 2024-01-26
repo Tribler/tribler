@@ -60,8 +60,7 @@ class DebugEndpoint(RESTEndpoint):
         self.core_exception_handler = core_exception_handler
 
     def setup_routes(self):
-        self.app.add_routes([web.get('/circuits/slots', self.get_circuit_slots),
-                             web.get('/open_files', self.get_open_files),
+        self.app.add_routes([web.get('/open_files', self.get_open_files),
                              web.get('/open_sockets', self.get_open_sockets),
                              web.get('/threads', self.get_threads),
                              web.get('/cpu/history', self.get_cpu_history),
@@ -74,27 +73,6 @@ class DebugEndpoint(RESTEndpoint):
                              ])
         if HAS_MELIAE:
             self.app.add_routes([web.get('/memory/dump', self.get_memory_dump)])
-
-    @docs(
-        tags=['Debug'],
-        summary="Return information about the slots in the tunnel overlay.",
-        responses={
-            200: {
-                'schema': schema(CircuitSlotsResponse={'slots': [
-                    schema(CircuitSlot={
-                        'random': Integer,
-                    })
-                ]})
-            }
-        }
-    )
-    async def get_circuit_slots(self, request):
-        random_slots = self.tunnel_community.random_slots if self.tunnel_community else []
-        return RESTResponse({
-            "slots": {
-                "random": random_slots,
-            }
-        })
 
     @docs(
         tags=['Debug'],
