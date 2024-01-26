@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from tribler_apptester.executor import DEFAULT_CORE_API_PORT, Executor
 from tribler.core.utilities.network_utils import FreePortNotFoundError
-from tribler_apptester.executor import Executor, DEFAULT_CORE_API_PORT
 
 
 @pytest.fixture(name='executor')
