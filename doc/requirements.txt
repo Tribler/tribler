@@ -1,15 +1,14 @@
-aiohttp==3.9.0
-aiohttp_apispec==2.2.1
-pydantic==1.10.13
-pygments==2.15.0
-sphinx==4.3.0
-sphinx_rtd_theme==1.0.0
-sphinxcontrib-httpdomain==1.8.0
-sphinxcontrib-openapi==0.7.0
-configobj==5.0.6
-mistune==0.8.4  # sphinxcontrib-openapi==0.7.0 cannot work with the latest mistune version (2.0.0)
-MarkupSafe==2.0.1  # used by jinja2; 2.1.0 version removes soft_unicode and breaks jinja2-2.11.3
+aiohttp==3.9.1
+aiohttp_apispec==2.2.3
+pydantic==1.10.14
+pygments==2.17.2
+sphinx==7.1.2
+sphinx_rtd_theme==2.0.0
+sphinxcontrib-httpdomain==1.8.1
+sphinxcontrib-openapi==0.8.3
+configobj==5.0.8
 pyipv8==2.12.0
+
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
 certifi>=2023.7.22 # not directly required, pinned by Snyk to avoid a vulnerability
 cryptography>=41.0.5 # not directly required, pinned by Snyk to avoid a vulnerability
