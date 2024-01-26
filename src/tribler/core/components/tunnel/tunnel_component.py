@@ -51,7 +51,7 @@ class TunnelsComponent(Component):
                                     dlmgr=download_manager,
                                     dht_provider=provider,
                                     exitnode_cache=exitnode_cache,
-                                    settings=settings)
+                                    **settings.__dict__)
 
         self._ipv8_component.initialise_community_by_default(self.community)
         self._ipv8_component.ipv8.add_strategy(self.community, GoldenRatioStrategy(self.community), INFINITE)
