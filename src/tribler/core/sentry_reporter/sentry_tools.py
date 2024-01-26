@@ -7,10 +7,6 @@ from typing import Optional
 
 from faker import Faker
 
-# Find an exception in the string like: "OverflowError: bind(): port must be 0-65535"
-_re_search_exception = re.compile(r'^([A-Za-z0-9_.]+):\s+(.+)')
-_re_search_exception_exclusions = re.compile(r'(?:warning)', re.RegexFlag.IGNORECASE)
-
 # Remove the substring like "Sentry is attempting to send 1 pending error messages"
 _re_remove_sentry = re.compile(r'Sentry is attempting.*')
 
@@ -19,24 +15,6 @@ _re_remove_sentry = re.compile(r'Sentry is attempting.*')
 class LastCoreException:
     type: str
     message: str
-
-
-def parse_last_core_output(text: str) -> Optional[LastCoreException]:
-    """ This function tries to find an Exception type and the Exception message in the raw core output
-    """
-
-    def _clean_up(s: str):
-        return _re_remove_sentry.sub('', s).strip()
-
-    for line in reversed(text.split('\n')):
-        if m := _re_search_exception.match(line):
-            exception_type = m.group(1)
-            if _re_search_exception_exclusions.search(exception_type):
-                continue  # find an exclusion
-
-            return LastCoreException(type=_clean_up(exception_type),
-                                     message=_clean_up(m.group(2)))
-    return None
 
 
 def get_first_item(items, default=None):

@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    BROWSER, CONTEXTS, LAST_CORE_OUTPUT, NAME, OS_ENVIRON,
+    BROWSER, CONTEXTS, NAME, OS_ENVIRON,
     REPORTER, STACKTRACE, SentryReporter,
     SentryStrategy,
-    TAGS, TRIBLER, TYPE, VALUE, VERSION, this_sentry_strategy,
+    TAGS, TRIBLER, VERSION, this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities.patch_import import patch_import
@@ -270,74 +270,3 @@ def test_sentry_strategy(sentry_reporter):
 
     assert sentry_reporter.thread_strategy.get() is None
     assert sentry_reporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
-
-
-def test_send_last_core_output(sentry_reporter):
-    # Test that the `send_event` function:
-    #   1. leaves only the last exception from the given Sentry error
-    #   2. removes stacktrace from the last exception from the given Sentry error
-    #   3. adds an exception extracted from the "last core output" to the Sentry event
-    event = {
-        'exception': {
-            'values': [
-                {
-                    TYPE: 'CreationTraceback',
-                    VALUE: '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
-                },
-                {
-                    TYPE: 'CoreCrashedError',
-                    VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
-                }
-            ]
-        }
-    }
-
-    last_core_output = '''
-File "/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.8/lib/python3.8/asyncio/base_events.py", line 1461, in create_server
-    sock.bind(sa)
-OverflowError: bind(): port must be 0-65535.Sentry is attempting to send 1 pending error messages
-Waiting up to 2 seconds
-Press Ctrl-C to quit
-    '''
-
-    actual = sentry_reporter.send_event(event=event, last_core_output=last_core_output)
-    expected = deepcopy(DEFAULT_EVENT)
-
-    expected['exception'] = {
-        'values': [
-            {
-                TYPE: 'CreationTraceback',
-                VALUE: '\n  File "/Users/<user>/Projects/github.com/Tribler/tribler/src/run_tribler.py", ',
-            },
-            {
-                TYPE: 'CoreCrashedError',
-                VALUE: 'The Tribler core has unexpectedly finished with exit code 1 and status: 0.',
-            },
-            {
-                TYPE: 'OverflowError',
-                VALUE: 'bind(): port must be 0-65535.'
-            }
-        ]
-    }
-    expected[CONTEXTS][REPORTER][LAST_CORE_OUTPUT] = last_core_output.split('\n')
-
-    assert actual == expected
-
-
-EXCEPTION_TYPES = [
-    # (exception_type, called)
-    ('CoreCrashedError', True),
-    ('AnyOtherError', False)
-]
-
-
-# The `parse_last_core_output` function is patched to have an indicator that the parse bloc is called
-@patch('tribler.core.sentry_reporter.sentry_reporter.parse_last_core_output')
-@pytest.mark.parametrize('exception_type, called', EXCEPTION_TYPES)
-def test_send_last_core_output_types_that_requires_core_output_parse(patched_parse_last_core_output, exception_type,
-                                                                     called, sentry_reporter):
-    # Test that the `send_event` function parse the "last core output" only for the specific exception types
-    event = {'exception': {'values': [{TYPE: exception_type}]}}
-    sentry_reporter.send_event(event=event, last_core_output='any last core output')
-
-    assert patched_parse_last_core_output.called == called

@@ -16,8 +16,7 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
     get_first_item,
-    get_value,
-    parse_last_core_output
+    get_value
 )
 
 VALUE = 'value'
@@ -206,17 +205,6 @@ class SentryReporter:
         # try to retrieve an error from the last_core_output
         if last_core_output:
             info[LAST_CORE_OUTPUT] = last_core_output.split('\n')  # split for better representation in the web view
-
-            # check is it necessary to parse the last core output
-            exceptions = event.get(EXCEPTION, {}).get(VALUES, [])
-            exception_types = (e.get(TYPE) for e in exceptions)
-            need_to_parse_core_output = any(t in self._types_that_requires_core_output_parse for t in exception_types)
-
-            if need_to_parse_core_output:
-                if last_core_exception := parse_last_core_output(last_core_output):
-                    # create a core exception extracted from the last core output
-                    core_exception = {TYPE: last_core_exception.type, VALUE: last_core_exception.message}
-                    exceptions.append(core_exception)
 
         event[CONTEXTS][REPORTER] = info
         event[CONTEXTS][BROWSER] = {VERSION: tribler_version, NAME: TRIBLER}
