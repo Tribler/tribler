@@ -48,6 +48,7 @@ if __name__ == "__main__":
         executor_kwargs['check_process_started_interval'] = 1
 
     executor = Executor(args, **executor_kwargs)
+    executor.set_core_api_port()
 
     loop = get_event_loop()
     coro = executor.start()

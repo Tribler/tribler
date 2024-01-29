@@ -15,6 +15,7 @@ from random import choice
 from typing import Dict, Optional
 
 from tribler.core.config.tribler_config import TriblerConfig
+from tribler.core.utilities.network_utils import default_network_utils, FreePortNotFoundError
 from tribler_apptester.action_selector import ActionSelector
 from tribler_apptester.actions.shutdown_action import ShutdownAction
 from tribler_apptester.monitors.download_monitor import DownloadMonitor
@@ -32,6 +33,8 @@ DELAY_BETWEEN_ACTIONS = 5
 
 SHUTDOWN_TIMEOUT = 30
 
+DEFAULT_CORE_API_PORT = 20100
+
 
 class Executor(object):
 
@@ -42,7 +45,7 @@ class Executor(object):
         self.check_process_started_interval = check_process_started_interval
         self.read_config_attempts = read_config_attempts
         self.code_port = args.codeport
-        self.api_port = int(os.environ.get('CORE_API_PORT'))
+        self.api_port = None
         self._logger = logging.getLogger(self.__class__.__name__)
         self.allow_plain_downloads = args.plain
         self.pending_tasks: Dict[bytes, Future] = {}  # Dictionary of pending tasks
@@ -64,6 +67,25 @@ class Executor(object):
         self.tribler_config: Optional[TriblerConfig] = None
         self.request_manager = None
         self.action_selector = ActionSelector()
+
+    def set_core_api_port(self) -> None:
+        """
+        Set the core API port to a free port.
+        Prefer the port specified in the environment variable CORE_API_PORT.
+        Then update the environment variable CORE_API_PORT to match the port that was chosen.
+        """
+        base_api_port = int(os.environ.get('CORE_API_PORT', f"{DEFAULT_CORE_API_PORT}"))
+
+        try:
+            self.api_port = default_network_utils.get_first_free_port(start=base_api_port)
+            self._logger.info(f"Setting the Core API port to {self.api_port}")
+        except FreePortNotFoundError:
+            self._logger.error("Could not find a free port to use as Core API port.")
+            raise
+
+        # Update the environment variable CORE_API_PORT to the port that was chosen
+        # so that the Tribler process can use the correct port.
+        os.environ['CORE_API_PORT'] = str(self.api_port)
 
     async def start(self):
         await self.start_tribler()
