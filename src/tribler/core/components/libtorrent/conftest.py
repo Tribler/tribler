@@ -69,7 +69,10 @@ def mock_lt_status():
     lt_status.download_rate = 43
     lt_status.total_upload = 100
     lt_status.total_download = 200
-    lt_status.all_time_upload = 100
+    lt_status.total_payload_upload = 30
+    lt_status.total_payload_download = 100
+    lt_status.all_time_upload = 200
+    lt_status.all_time_download = 1000
     lt_status.total_done = 200
     lt_status.list_peers = 10
     lt_status.download_payload_rate = 10

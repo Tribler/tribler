@@ -329,7 +329,7 @@ class DebugWindow(QMainWindow):
             return
         self.window().ipv8_general_tree_widget.clear()
         for key, value in data["ipv8_statistics"].items():
-            if key in ('total_up', 'total_down'):
+            if key in ('total_upload', 'total_download'):
                 value = f"{value / (1024.0 * 1024.0):.2f} MB"
             elif key == 'session_uptime':
                 value = f"{str(datetime.timedelta(seconds=int(value)))}"

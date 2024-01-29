@@ -4,7 +4,9 @@ Contains a snapshot of the state of the Download at a specific point in time.
 Author(s): Arno Bakker
 """
 import logging
+from typing import Optional
 
+from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent
 from tribler.core.utilities.simpledefs import (
     DownloadStatus, UPLOAD,
 )
@@ -31,7 +33,7 @@ class DownloadState:
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download, lt_status, error):
+    def __init__(self, download, lt_status: Optional[libtorrent.torrent_status], error):
         """
         Internal constructor.
         @param download The download this state belongs too.
@@ -97,21 +99,66 @@ class DownloadState:
             return self.lt_status.upload_payload_rate
         return self.lt_status.download_payload_rate
 
-    def get_total_transferred(self, direct):
+    @property
+    def all_time_upload(self) -> int:
+        """ Returns accumulated upload payload byte counter.
+        It is saved in and restored from resume data to keep totals across sessions.
         """
-        Returns the total amount of up or downloaded bytes.
+        if not self.lt_status:
+            return 0
+        return self.lt_status.all_time_upload
+
+    @property
+    def all_time_download(self) -> int:
+        """ Returns accumulated download payload byte counter.
+        It is saved in and restored from resume data to keep totals across sessions.
+        """
+        if not self.lt_status:
+            return 0
+        return self.lt_status.all_time_download
+
+    @property
+    def total_upload(self) -> int:
+        """ Returns the number of bytes uploaded to all peers, accumulated, this session only
+        """
+        if not self.lt_status:
+            return 0
+        return self.lt_status.total_upload
+
+    @property
+    def total_download(self) -> int:
+        """ Returns the number of bytes downloaded to all peers, accumulated, this session only
+        """
+        if not self.lt_status:
+            return 0
+        return self.lt_status.total_download
+
+    @property
+    def total_payload_upload(self) -> int:
+        """
+        Returns the amount of bytes send this session, but only the actual payload data.
         @return The amount in bytes.
         """
         if not self.lt_status:
             return 0
-        elif direct == UPLOAD:
-            return self.lt_status.total_upload
-        return self.lt_status.total_download
+        return self.lt_status.total_payload_upload
 
-    def get_seeding_ratio(self):
-        if self.lt_status and self.lt_status.total_done > 0:
-            return self.lt_status.all_time_upload / float(self.lt_status.total_done)
-        return 0
+    @property
+    def total_payload_download(self) -> int:
+        """
+        Returns the amount of bytes received this session, but only the actual payload data.
+        @return The amount in bytes.
+        """
+        if not self.lt_status:
+            return 0
+        return self.lt_status.total_payload_download
+
+    def get_all_time_ratio(self) -> float:
+        """ Returns the accumulated seeding ratio of the download across multiple sessions.
+        """
+        if not self.lt_status or not self.all_time_download:
+            return 0
+        return self.all_time_upload / self.all_time_download
 
     def get_seeding_time(self):
         return self.lt_status.finished_time if self.lt_status else 0

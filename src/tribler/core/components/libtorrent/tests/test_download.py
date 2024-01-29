@@ -804,7 +804,7 @@ def test_on_torrent_finished_alert(test_download: Download):
     test_download.handle = Mock(is_valid=Mock(return_value=True))
     test_download.notifier = MagicMock()
     test_download.stream = Mock()
-    test_download.get_state = Mock(return_value=Mock(get_total_transferred=Mock(return_value=1)))
+    test_download.get_state = Mock(return_value=Mock(total_download=1))
 
     test_download.on_torrent_finished_alert(Mock())
 

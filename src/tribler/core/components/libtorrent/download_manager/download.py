@@ -34,7 +34,7 @@ from tribler.core.utilities.async_force_switch import switch
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.osutils import fix_filebasename
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus
+from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat, safe_repr
 
@@ -447,7 +447,7 @@ class Download(TaskManager):
         self._logger.info(f'On torrent finished alert: {safe_repr(alert)}')
         self.update_lt_status(self.handle.status())
         self.checkpoint()
-        downloaded = self.get_state().get_total_transferred(DOWNLOAD)
+        downloaded = self.get_state().total_download
         if downloaded > 0 and self.stream is not None and self.notifier is not None:
             name = self.tdef.get_name_as_unicode()
             infohash = self.tdef.get_infohash().hex()
@@ -465,7 +465,7 @@ class Download(TaskManager):
             seeding_ratio = self.download_defaults.seeding_ratio
             seeding_time = self.download_defaults.seeding_time
             if (mode == 'never' or
-                    (mode == 'ratio' and state.get_seeding_ratio() >= seeding_ratio) or
+                    (mode == 'ratio' and state.get_all_time_ratio() >= seeding_ratio) or
                     (mode == 'time' and state.get_seeding_time() >= seeding_time)):
                 self.stop()
 
@@ -510,7 +510,7 @@ class Download(TaskManager):
             self.handle.resume()
             self.handle.force_recheck()
 
-    def get_state(self):
+    def get_state(self) -> DownloadState:
         """ Returns a snapshot of the current state of the download
         @return DownloadState
         """
