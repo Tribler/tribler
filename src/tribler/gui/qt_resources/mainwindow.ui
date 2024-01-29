@@ -3486,7 +3486,14 @@ margin-right: 10px;</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="9" column="0">
+                      <item row="8" column="1">
+                       <widget class="QLabel" name="download_detail_ratio_label">
+                        <property name="text">
+                         <string/>
+                        </property>
+                       </widget>
+                      </item>
+                      <item row="11" column="0">
                        <widget class="QLabel" name="label_26">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -3496,15 +3503,8 @@ margin-right: 10px;</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="9" column="1">
+                      <item row="11" column="1">
                        <widget class="QLabel" name="download_detail_availability_label">
-                        <property name="text">
-                         <string/>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="8" column="1">
-                       <widget class="QLabel" name="download_detail_ratio_label">
                         <property name="text">
                          <string/>
                         </property>

@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.gui.defs import STATUS_STRING
-from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 from tribler.gui.widgets.torrentfiletreewidget import PreformattedTorrentFileTreeWidget
 
@@ -172,11 +171,13 @@ class DownloadsDetailsTabWidget(QTabWidget):
         )
         self.window().download_detail_infohash_label.setText(self.current_download['infohash'])
         self.window().download_detail_destination_label.setText(self.current_download["destination"])
-        up = format_size(self.current_download['total_up'])
-        down = format_size(self.current_download['total_down'])
+        all_time_upload = format_size(self.current_download['all_time_upload'])
+        all_time_download = format_size(self.current_download['all_time_download'])
+        all_time_ratio = self.current_download['all_time_ratio']
         self.window().download_detail_ratio_label.setText(
-            f"{self.current_download['ratio']:.3f}, up: {up}, down: {down}"
+            f"{all_time_ratio:.3f}, upload: {all_time_upload}, download: {all_time_download}"
         )
+
         self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
 
         if new_download:

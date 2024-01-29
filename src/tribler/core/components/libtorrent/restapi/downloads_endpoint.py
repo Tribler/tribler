@@ -6,7 +6,7 @@ from pathlib import PurePosixPath
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
-from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT, PEER_FLAG_EXIT_BT
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
@@ -237,9 +237,9 @@ class DownloadsEndpoint(RESTEndpoint):
                         'eta': Integer,
                         'num_peers': Integer,
                         'num_seeds': Integer,
-                        'total_up': Integer,
-                        'total_down': Integer,
-                        'ratio': Float,
+                        'all_time_upload': Integer,
+                        'all_time_download': Integer,
+                        'all_time_ratio': Float,
                         'files': String,
                         'trackers': String,
                         'hops': Integer,
@@ -313,7 +313,6 @@ class DownloadsEndpoint(RESTEndpoint):
 
             download_status = get_extended_status(
                 self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
-
             download_json = {
                 "name": download_name,
                 "progress": state.get_progress(),
@@ -328,9 +327,9 @@ class DownloadsEndpoint(RESTEndpoint):
                 "num_seeds": num_seeds,
                 "num_connected_peers": num_connected_peers,
                 "num_connected_seeds": num_connected_seeds,
-                "total_up": state.get_total_transferred(UPLOAD),
-                "total_down": state.get_total_transferred(DOWNLOAD),
-                "ratio": state.get_seeding_ratio(),
+                "all_time_upload": state.all_time_upload,
+                "all_time_download": state.all_time_download,
+                "all_time_ratio": state.get_all_time_ratio(),
                 "trackers": tracker_info,
                 "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),
@@ -362,7 +361,6 @@ class DownloadsEndpoint(RESTEndpoint):
                         del peer_info['have']
                         if 'extended_version' in peer_info:
                             peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
-
 
                     download_json["peers"] = peer_list
 
@@ -687,7 +685,6 @@ class DownloadsEndpoint(RESTEndpoint):
         download.tdef.torrent_file_tree.collapse(Path(path))
 
         return RESTResponse({'path': path})
-
 
     @docs(
         tags=["Libtorrent"],

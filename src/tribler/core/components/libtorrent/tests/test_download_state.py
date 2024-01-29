@@ -34,7 +34,12 @@ def test_getters_setters_1(mock_download):
     assert download_state.get_progress() == 0
     assert download_state.get_error() is None
     assert download_state.get_current_speed(UPLOAD) == 0
-    assert download_state.get_total_transferred(UPLOAD) == 0
+    assert download_state.total_upload == 0
+    assert download_state.total_download == 0
+    assert download_state.total_payload_download == 0
+    assert download_state.total_payload_upload == 0
+    assert download_state.all_time_upload == 0
+    assert download_state.all_time_download == 0
     assert download_state.get_num_seeds_peers() == (0, 0)
     assert download_state.get_peerlist() == []
 
@@ -48,9 +53,16 @@ def test_getters_setters_2(mock_download, mock_lt_status):
     assert download_state.get_status() == DownloadStatus.DOWNLOADING
     assert download_state.get_current_speed(UPLOAD) == 123
     assert download_state.get_current_speed(DOWNLOAD) == 43
-    assert download_state.get_total_transferred(UPLOAD) == 100
-    assert download_state.get_total_transferred(DOWNLOAD) == 200
-    assert download_state.get_seeding_ratio() == 0.5
+    assert download_state.total_upload == 100
+    assert download_state.total_download == 200
+
+    assert download_state.total_payload_upload == 30
+    assert download_state.total_payload_download == 100
+
+    assert download_state.all_time_upload == 200
+    assert download_state.all_time_download == 1000
+    assert download_state.get_all_time_ratio() == 0.2
+
     assert download_state.get_eta() == 0.25
     assert download_state.get_num_seeds_peers() == (5, 5)
     assert download_state.get_pieces_complete() == []

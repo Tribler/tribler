@@ -66,8 +66,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.dialog = None
         self.loading_message_widget: Optional[LoadingDownloadWidgetItem] = None
         self.loading_list_item: Optional[LoadingListItem] = None
-        self.total_download = 0
-        self.total_upload = 0
+        self.total_download_speed = 0
+        self.total_upload_speed = 0
 
         # Used to keep track of the last processed request with a purpose of ignoring old requests
         self.last_processed_request_id = 0
@@ -203,8 +203,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         self.downloads = result
 
-        self.total_download = 0
-        self.total_upload = 0
+        self.total_download_speed = 0
+        self.total_upload_speed = 0
 
         download_infohashes = set()
 
@@ -223,8 +223,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
 
             item.update_with_download(download)
 
-            self.total_download += download["speed_down"]
-            self.total_upload += download["speed_up"]
+            self.total_download_speed += download["speed_down"]
+            self.total_upload_speed += download["speed_up"]
 
             download_infohashes.add(download["infohash"])
 
@@ -246,7 +246,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 del self.download_widgets[infohash]
 
         self.window().tray_set_tooltip(
-            f"Down: {format_speed(self.total_download)}, Up: {format_speed(self.total_upload)}"
+            f"Down: {format_speed(self.total_download_speed)}, Up: {format_speed(self.total_upload_speed)}"
         )
         self.update_download_visibility()
         self.refresh_top_panel()
