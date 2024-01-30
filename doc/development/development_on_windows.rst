@@ -8,7 +8,7 @@ In this guide, all required dependencies of Tribler will be explained. It presen
 Prerequisites
 ------------
 
-* `Python 3.8 <https://www.python.org/downloads/release/python-3813/>`_
+* `Python 3.9 <https://www.python.org/downloads/release/python-3913/>`_
 * `OpenSSL <https://community.chocolatey.org/packages?q=openssl>`_
 * `Libsodium <https://github.com/Tribler/py-ipv8/blob/master/doc/preliminaries/install_libsodium.rst>`_
 

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { }
     outputs:
-      python-version: '3.8'
+      python-version: '3.9'
       source-ref: refs/pull/${{github.event.pull_request.number}}/merge
       upload-binaries: >-
         ${{ contains(github.event.pull_request.labels.*.name, 'PR: upload binaries') }}

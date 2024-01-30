@@ -2,7 +2,7 @@ name: pyenv
 description: Setup python and install required dependencies to venv with cache
 inputs:
   python-version:
-    default: '3.8'
+    default: '3.9'
     description: 'Python version'
     required: false
 
