@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -96,7 +97,11 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(5, f"{self.download_info['num_connected_peers']} ({self.download_info['num_peers']})")
         self.setText(6, format_speed(self.download_info["speed_down"]))
         self.setText(7, format_speed(self.download_info["speed_up"]))
-        self.setText(8, f"{float(self.download_info['all_time_ratio']):.3f}")
+
+        all_time_ratio = self.download_info['all_time_ratio']
+        all_time_ratio = '∞' if all_time_ratio == math.inf else f'{all_time_ratio:.3f}'
+        self.setText(8, all_time_ratio)
+
         self.setText(9, "yes" if self.download_info["anon_download"] else "no")
         self.setText(10, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
         self.setText(12, datetime.fromtimestamp(int(self.download_info["time_added"])).strftime('%Y-%m-%d %H:%M'))

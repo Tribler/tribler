@@ -1,3 +1,4 @@
+import math
 import operator
 from enum import IntEnum
 from pathlib import PurePosixPath
@@ -174,8 +175,9 @@ class DownloadsDetailsTabWidget(QTabWidget):
         all_time_upload = format_size(self.current_download['all_time_upload'])
         all_time_download = format_size(self.current_download['all_time_download'])
         all_time_ratio = self.current_download['all_time_ratio']
+        all_time_ratio = '∞' if all_time_ratio == math.inf else f'{all_time_ratio:.3f}'
         self.window().download_detail_ratio_label.setText(
-            f"{all_time_ratio:.3f}, upload: {all_time_upload}, download: {all_time_download}"
+            f"{all_time_ratio}, upload: {all_time_upload}, download: {all_time_download}"
         )
 
         self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")

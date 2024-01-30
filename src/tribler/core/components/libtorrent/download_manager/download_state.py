@@ -4,6 +4,7 @@ Contains a snapshot of the state of the Download at a specific point in time.
 Author(s): Arno Bakker
 """
 import logging
+import math
 from typing import Optional
 
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent
@@ -33,7 +34,7 @@ class DownloadState:
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download, lt_status: Optional[libtorrent.torrent_status], error):
+    def __init__(self, download, lt_status: Optional[libtorrent.torrent_status], error: Optional = None):
         """
         Internal constructor.
         @param download The download this state belongs too.
@@ -156,8 +157,12 @@ class DownloadState:
     def get_all_time_ratio(self) -> float:
         """ Returns the accumulated seeding ratio of the download across multiple sessions.
         """
-        if not self.lt_status or not self.all_time_download:
+        if not self.lt_status:
             return 0
+
+        if not self.all_time_download:
+            return 0 if not self.all_time_upload else math.inf
+
         return self.all_time_upload / self.all_time_download
 
     def get_seeding_time(self):
