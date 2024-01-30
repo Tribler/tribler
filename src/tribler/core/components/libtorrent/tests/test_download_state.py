@@ -1,3 +1,4 @@
+import math
 from unittest.mock import Mock
 
 import pytest
@@ -61,7 +62,6 @@ def test_getters_setters_2(mock_download, mock_lt_status):
 
     assert download_state.all_time_upload == 200
     assert download_state.all_time_download == 1000
-    assert download_state.get_all_time_ratio() == 0.2
 
     assert download_state.get_eta() == 0.25
     assert download_state.get_num_seeds_peers() == (5, 5)
@@ -77,6 +77,51 @@ def test_getters_setters_2(mock_download, mock_lt_status):
     mock_download.config.get_selected_files = lambda: ['test']
     assert download_state.get_selected_files() == ['test']
     assert download_state.get_progress() == 0.75
+
+
+def test_all_time_ratio_no_lt_status():
+    # Test when lt_status is None
+    state = DownloadState(
+        download=Mock(),
+        lt_status=None,
+    )
+    assert state.get_all_time_ratio() == 0
+
+
+def test_all_time_ratio():
+    # Test all time ratio formula
+    state = DownloadState(
+        download=Mock(),
+        lt_status=Mock(
+            all_time_upload=200,
+            all_time_download=1000,
+        ),
+    )
+    assert state.get_all_time_ratio() == 0.2
+
+
+def test_all_time_ratio_no_all_time_download():
+    # Test all time ratio formula when all_time_download is 0 and all_time_upload is 0
+    state = DownloadState(
+        download=Mock(),
+        lt_status=Mock(
+            all_time_upload=0,
+            all_time_download=0,
+        ),
+    )
+    assert state.get_all_time_ratio() == 0
+
+
+def test_all_time_ratio_no_all_time_download_inf():
+    # Test all time ratio formula when all_time_download is 0 and all_time_upload is not 0
+    state = DownloadState(
+        download=Mock(),
+        lt_status=Mock(
+            all_time_upload=200,
+            all_time_download=0,
+        ),
+    )
+    assert state.get_all_time_ratio() == math.inf
 
 
 def test_get_files_completion(mock_download, mock_tdef):
