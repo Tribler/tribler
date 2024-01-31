@@ -1,11 +1,10 @@
 import re
-from pathlib import Path
 from unittest.mock import Mock, patch
 
 import psutil
 import pytest
 
-from tribler.core.utilities.process_manager.manager import ProcessManager, logger
+from tribler.core.utilities.process_manager.manager import logger
 from tribler.core.utilities.process_manager.process import ProcessKind, TriblerProcess
 
 
@@ -202,3 +201,22 @@ def test_get_core_process_exception(process_manager):
     # in the process_manager fixture the current_process is a Core process
     with pytest.raises(TypeError, match='^The `get_core_process` method can only be used for a GUI process$'):
         process_manager.current_process.get_core_process()
+
+
+def test_is_running_ignored_exceptions(process_manager):
+    # The process is considered not running if psutil.Process.status() raises any of the ignored exceptions
+    process = TriblerProcess.current_process(manager=Mock(), kind=ProcessKind.Core, owns_lock=False, creator_pid=123)
+    ignored_exceptions = [psutil.Error, MemoryError]
+
+    for e in ignored_exceptions:
+        with patch.object(psutil.Process, 'status', Mock(side_effect=e)):
+            assert not process.is_running()
+
+
+def test_is_running_exceptions(process_manager):
+    # The function `process.is_running` should reraise exception if it is not in the list of ignored exceptions
+    process = TriblerProcess.current_process(manager=Mock(), kind=ProcessKind.Core, owns_lock=False, creator_pid=123)
+
+    with pytest.raises(ValueError):
+        with patch.object(psutil.Process, 'status', Mock(side_effect=ValueError)):
+            assert not process.is_running()

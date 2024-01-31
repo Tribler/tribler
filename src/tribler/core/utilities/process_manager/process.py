@@ -138,7 +138,7 @@ class TriblerProcess:
         try:
             psutil_process = psutil.Process(self.pid)
             status = psutil_process.status()
-        except psutil.Error as e:
+        except (psutil.Error, MemoryError) as e:
             self.logger.warning(e)
             return False
 
