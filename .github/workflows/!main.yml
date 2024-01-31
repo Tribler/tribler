@@ -5,9 +5,6 @@ on:
     branches:
       - main
 
-env:
-  PYTHON_VERSION: 3.9
-
 jobs:
   docker:
     uses: ./.github/workflows/docker-image.yml
@@ -17,20 +14,14 @@ jobs:
 
   coverage:
     uses: ./.github/workflows/coverage.yml
-    with:
-      python-version: ${{ env.PYTHON_VERSION }}
     secrets:
       CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   pytest:
     uses: ./.github/workflows/pytest.yml
-    with:
-      python-version: ${{ env.PYTHON_VERSION }}
 
   ubuntu:
     uses: ./.github/workflows/build_ubuntu.yml
-    with:
-      python-version: ${{ env.PYTHON_VERSION }}
     secrets:
       SENTRY_URL: ${{ secrets.SENTRY_URL }}
