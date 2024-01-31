@@ -13,27 +13,26 @@ from typing import List
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.payload import IntroductionRequestPayload
-from pony.orm import OperationalError, db_session
-
 from ipv8.messaging.serialization import default_serializer
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.ipv8 import MockIPv8
+from pony.orm import OperationalError, db_session
+
 from tribler.core import notifications
-from tribler.core.components.content_discovery.community.payload import SelectResponsePayload, VersionResponse, \
-    TorrentsHealthPayload, PopularTorrentsRequest
+from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
+from tribler.core.components.content_discovery.community.payload import PopularTorrentsRequest, SelectResponsePayload, \
+    TorrentsHealthPayload, VersionResponse
 from tribler.core.components.content_discovery.community.settings import ContentDiscoverySettings
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import KnowledgeDataAccessLayer, \
     ResourceType, SHOW_THRESHOLD
 from tribler.core.components.database.db.layers.tests.test_knowledge_data_access_layer_base import \
     Resource, TestKnowledgeAccessLayerBase
-from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.database.db.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, NEW
-from tribler.core.components.database.db.serialization import CHANNEL_THUMBNAIL, NULL_KEY, REGULAR_TORRENT
+from tribler.core.components.database.db.serialization import NULL_KEY, REGULAR_TORRENT
 from tribler.core.components.database.db.store import MetadataStore
-from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.components.torrent_checker.torrent_checker.torrentchecker_session import HealthInfo
 from tribler.core.tests.tools.base_test import MockObject
@@ -163,7 +162,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         """
         self.overlay(0).composition.torrent_checker = None
 
-        with self.assertReceivedBy(1, [], message_filter = [TorrentsHealthPayload]):
+        with self.assertReceivedBy(1, [], message_filter=[TorrentsHealthPayload]):
             self.overlay(0).gossip_random_torrents_health()
             await self.deliver_messages()
 
@@ -171,7 +170,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         """
         Test whether torrent health information is spread when no live torrents are known
         """
-        with self.assertReceivedBy(1, [TorrentsHealthPayload], message_filter = [TorrentsHealthPayload]) as received:
+        with self.assertReceivedBy(1, [TorrentsHealthPayload], message_filter=[TorrentsHealthPayload]) as received:
             self.overlay(0).gossip_random_torrents_health()
             await self.deliver_messages()
         message, = received
@@ -489,7 +488,6 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         assert obj.title == 'title1'
         assert obj.health.seeders == 0
 
-
     async def test_remote_select_packets_limit(self):
         """
         Test dropping packets that go over the response limit for a remote select.
@@ -502,6 +500,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
 
         def add_result(request, processing_results):
             add_result.result_count += 1
+
         add_result.result_count = 0
 
         expected = [SelectResponsePayload]
@@ -516,7 +515,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         while add_result.result_count < 10:
             await asyncio.sleep(0.1)
 
-        assert [] == self.overlay(1).request_cache.get_tasks() # The list of outstanding requests should be empty
+        assert [] == self.overlay(1).request_cache.get_tasks()  # The list of outstanding requests should be empty
         assert add_result.result_count == 10  # The packet limit is 10
 
     def test_sanitize_query(self):
@@ -629,7 +628,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         with db_session:
             add_random_torrent(self.metadata_store(1).TorrentMetadata, name=hexlify(value).decode())
 
-        kwargs_dict = {"metadata_type": [CHANNEL_THUMBNAIL]}
+        kwargs_dict = {"metadata_type": [REGULAR_TORRENT]}
         callback = Mock()
         self.overlay(0).send_remote_select(self.peer(1), **kwargs_dict, processing_callback=callback)
 
@@ -734,8 +733,8 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
             time.sleep(0.1)
             return original_get_entries(self, *args, **kwargs)
 
-        with patch.object(self.overlay(0), 'logger') as logger,\
-              patch.object(MetadataStore, 'get_entries', slow_get_entries):
+        with patch.object(self.overlay(0), 'logger') as logger, \
+                patch.object(MetadataStore, 'get_entries', slow_get_entries):
             await self.deliver_messages(timeout=0.5)
 
         torrents1 = list(self.metadata_store(1).get_entries(**kwargs1))
@@ -771,7 +770,6 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         assert message.torrents_checked_length == 0
         assert message.random_torrents == []
         assert message.torrents_checked == []
-
 
     async def test_deprecated_popular_torrents_request_live(self):
         """

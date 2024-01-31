@@ -1,6 +1,10 @@
 from datetime import datetime
+from unittest.mock import Mock, patch
 
-from tribler.core.components.database.db.serialization import TorrentMetadataPayload
+import pytest
+
+from tribler.core.components.database.db.serialization import TorrentMetadataPayload, UnknownBlobTypeException, \
+    read_payload_with_offset
 
 
 def test_fix_torrent_metadata_payload():
@@ -24,3 +28,10 @@ def test_torrent_metadata_payload_magnet():
     expected = "magnet:?xt=urn:btih:000102030405060708090a0b0c0d0e0f10111213&dn=b'title'&tr=b'tracker_info'"
 
     assert expected == payload.get_magnet()
+
+
+@patch('struct.unpack_from', Mock(return_value=(301,)))
+def test_read_payload_with_offset_exception():
+    # Test that an exception is raised when metadata_type != REGULAR_TORRENT
+    with pytest.raises(UnknownBlobTypeException):
+        read_payload_with_offset(b'')
