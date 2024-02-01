@@ -277,23 +277,36 @@ class CoreManager(QObject):
     @staticmethod
     def error_code_to_hex(error_code: int) -> str:
         """Convert a signed integer error code to a hexadecimal string."""
-        v = error_code & (2 ** 32 - 1)
+        v = error_code & 0xffffffff
         return hex(v)
+
+    @staticmethod
+    def format_str_error(error_code: int):
+        """ Return the error message corresponding to the given error code."""
+        try:
+            return os.strerror(error_code)
+        except ValueError:
+            # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
+            return '<no description>'
+
+    @staticmethod
+    def format_win_error(error_code: int):
+        """ Return the Windows error message corresponding to the given error code."""
+        import ctypes  # pylint: disable=import-outside-toplevel
+        return ctypes.FormatError(error_code)
 
     @staticmethod
     def format_error_message(exit_code: int, exit_status: int) -> str:
         hex_error_code = CoreManager.error_code_to_hex(exit_code)
         message = f"The Tribler core has unexpectedly finished with exit code {exit_code} ({hex_error_code}) " \
                   f"and status: {exit_status}."
-        if exit_code == 1:
-            string_error = "Application error"
+
+        if sys.platform in {'win32', 'cygwin'}:
+            error_description = CoreManager.format_win_error(exit_code)
         else:
-            try:
-                string_error = os.strerror(exit_code)
-            except ValueError:
-                # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
-                string_error = 'unknown error number'
-        message += f'\n\nError message: {string_error}'
+            error_description = CoreManager.format_str_error(exit_code)
+
+        message += f'\n\nError message: {error_description}'
         return message
 
     def on_core_finished(self, exit_code, exit_status):

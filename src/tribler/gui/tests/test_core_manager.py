@@ -1,7 +1,7 @@
 import errno
 import sys
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -140,13 +140,43 @@ def test_decode_raw_core_output(core_manager):
     assert core_manager.decode_raw_core_output('test привет'.encode('cp1251')) == r'test \xef\xf0\xe8\xe2\xe5\xf2'
 
 
-def test_format_error_message():
+@patch('sys.platform', 'linux')
+@patch.object(CoreManager, 'format_str_error', Mock(return_value='nix description'))
+@patch.object(CoreManager, 'format_win_error', Mock(return_value='win description'))
+def test_format_error_message_nix():
+    # test that in case of linux platform `format_str_error` method will be called
     actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
-    expected = '''The Tribler core has unexpectedly finished with exit code 2 (0x2) and status: 1.
-
-Error message: No such file or directory'''
+    expected = 'The Tribler core has unexpectedly finished with exit code 2 (0x2) and status: 1.\n\n' \
+               'Error message: nix description'
 
     assert actual == expected
+    assert CoreManager.format_str_error.called
+    assert not CoreManager.format_win_error.called
+
+
+@patch('sys.platform', 'win32')
+@patch.object(CoreManager, 'format_str_error', Mock(return_value='nix description'))
+@patch.object(CoreManager, 'format_win_error', Mock(return_value='win description'))
+def test_format_error_message_win():
+    # test that in case of windows platform `format_win_error` method will be called
+    actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
+    expected = 'The Tribler core has unexpectedly finished with exit code 2 (0x2) and status: 1.\n\n' \
+               'Error message: win description'
+
+    assert actual == expected
+    assert not CoreManager.format_str_error.called
+    assert CoreManager.format_win_error.called
+
+
+def test_format_str_error():
+    # test that `format_str_error` method returns correct error description
+    assert CoreManager.format_str_error(errno.ENOENT) == 'No such file or directory'
+
+
+@patch('os.strerror', Mock(side_effect=ValueError))
+def test_format_str_error_exception():
+    # test that `format_str_error` method returns default error description in case of ValueError exception
+    assert CoreManager.format_str_error(errno.ENOENT) == '<no description>'
 
 
 def test_error_code_to_hex_negative():
