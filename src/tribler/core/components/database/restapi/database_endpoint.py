@@ -39,7 +39,6 @@ json2pony_columns = {
     'date': "torrent_date",
     'created': "torrent_date",
     'status': 'status',
-    'torrents': 'num_entries',
     'votes': 'votes',
     'subscribed': 'subscribed',
     'health': 'HEALTH',
