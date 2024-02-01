@@ -277,7 +277,6 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         get_peers = params.get('get_peers', '0') == '1'
         get_pieces = params.get('get_pieces', '0') == '1'
-        get_files = params.get('get_files', '0') == '1'
         unfiltered = not params.get('infohash')
 
         checkpoints = {
@@ -367,10 +366,6 @@ class DownloadsEndpoint(RESTEndpoint):
                 # Add piece information if requested
                 if get_pieces:
                     download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
-
-                # Add files if requested
-                if get_files:
-                    download_json["files"] = self.get_files_info_json(download)
 
             downloads_json.append(download_json)
         return RESTResponse({"downloads": downloads_json, "checkpoints": checkpoints})

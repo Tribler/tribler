@@ -196,11 +196,10 @@ async def test_get_downloads(mock_dlmgr, test_download, rest_api):
     mock_dlmgr.checkpoints_loaded = 1
     mock_dlmgr.all_checkpoints_are_loaded = True
 
-    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_files=1', expected_code=200)
+    downloads = await do_request(rest_api, 'downloads?get_peers=1', expected_code=200)
     assert len(downloads["downloads"]) == 1
     assert "peers" in downloads["downloads"][0]  # Unfiltered with get_peers=1
     assert "pieces" not in downloads["downloads"][0]  # Unfiltered with get_pieces=0
-    assert "files" in downloads["downloads"][0]  # Unfiltered with get_files=1
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 
