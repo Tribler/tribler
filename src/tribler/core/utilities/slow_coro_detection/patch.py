@@ -49,4 +49,4 @@ def patched_handle_run(self: Handle):
 
 def _report_long_duration(handle: Handle, duration: float):
     info_str = format_info(handle)
-    logger.error(f'Slow coroutine step execution (duration={duration:.3f} seconds): {info_str}')
+    logger.warning(f'Slow coroutine step execution (duration={duration:.3f} seconds): {info_str}')

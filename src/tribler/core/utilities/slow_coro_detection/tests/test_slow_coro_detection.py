@@ -74,7 +74,7 @@ def test_report_long_duration(logger, format_info: Mock):
     duration = 10
     _report_long_duration(handle, duration)
     format_info.assert_called_with(handle)
-    logger.error.assert_called_with('Slow coroutine step execution (duration=10.000 seconds): <formatted handle>')
+    logger.warning.assert_called_with('Slow coroutine step execution (duration=10.000 seconds): <formatted handle>')
 
 
 @patch('tribler.core.utilities.slow_coro_detection.watching_thread.format_info', return_value='<formatted handle>')
@@ -85,7 +85,7 @@ def test__report_freeze_first_report(logger, format_info):
 
     _report_freeze(handle, duration, first_report=True)
     format_info.assert_called_with(handle, include_stack=True, stack_cut_duration=pytest.approx(8.0))
-    logger.error.assert_called_with(
+    logger.warning.assert_called_with(
         'Slow coroutine is occupying the loop for 10.000 seconds already: <formatted handle>')
 
 
@@ -98,4 +98,4 @@ def test__report_freeze_not_first_report(logger, format_info):
     _report_freeze(handle, duration, first_report=False)
     format_info.assert_called_with(handle, include_stack=True, stack_cut_duration=pytest.approx(8.0),
                                    limit=2, enable_profiling_tip=False)
-    logger.error.assert_called_with('Still executing <formatted handle>')
+    logger.warning.assert_called_with('Still executing <formatted handle>')
