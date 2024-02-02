@@ -1,6 +1,11 @@
 #!/bin/sh
 # Run Tribler from source tree
 
+# Options
+HEADLESS=false
+# Use a custom env
+#PYTHONPATH=/home/user/Downloads/tribler_env/lib/python3.11/site-packages
+
 script_path() {
   if readlink --help 2>/dev/null | grep -q canonicalize ; then
     # Linux can support following soft links
@@ -20,10 +25,13 @@ SRC_DIR="$(dirname "$(script_path "$0")")/src"
 PYTHONPATH="$PYTHONPATH:$SRC_DIR"
 export PYTHONPATH
 
-TRIBLER_SCRIPT=$SRC_DIR/run_tribler.py
-
-PYQTGRAPH_QT_LIB="PyQt5"
-export PYQTGRAPH_QT_LIB
+if $HEADLESS ; then
+	TRIBLER_SCRIPT=$SRC_DIR/run_tribler_headless.py
+else
+	TRIBLER_SCRIPT=$SRC_DIR/run_tribler.py
+	PYQTGRAPH_QT_LIB="PyQt5"
+	export PYQTGRAPH_QT_LIB
+fi
 
 if [ "$UNAME" = "Linux" ]; then
     # Find the Tribler dir
