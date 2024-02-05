@@ -15,7 +15,7 @@ class ChangeAnonymityAction(ActionSequence):
 
         self.add_action(PageAction('downloads'))
         self.add_action(WaitAction(1000))
-        self.add_action(CustomAction("""if not window.downloads_page.downloads or len(window.downloads_page.downloads['downloads']) == 0:
+        self.add_action(CustomAction("""if len(window.downloads_page.download_widgets) == 0:
     exit_script()
         """))
         self.add_action(ClickAction('window.downloads_list.topLevelItem(randint(0, len(window.downloads_page.download_widgets.keys()) - 1)).progress_slider'))

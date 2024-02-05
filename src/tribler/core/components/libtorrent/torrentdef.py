@@ -301,13 +301,13 @@ class TorrentDef:
             return []
         return self.metainfo[b'info'][b'pieces'][:]
 
-    def get_infohash(self) -> bytes:
+    def get_infohash(self) -> Optional[bytes]:
         """
         Returns the infohash of the torrent, if metainfo is provided. Might be None if no metainfo is provided.
         """
         return self.infohash
 
-    def get_infohash_hex(self) -> str:
+    def get_infohash_hex(self) -> Optional[str]:
         if not self._infohash_hex and self.infohash:
             self._infohash_hex = hexlify(self.infohash)
 
@@ -394,8 +394,6 @@ class TorrentDef:
         self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
-        if self.infohash:
-            self.infohash_hex = hexlify(self.infohash)
 
     def _get_all_files_as_unicode_with_length(self) -> Iterator[Path, int]:
         """ Get a generator for files in the torrent def. No filtering

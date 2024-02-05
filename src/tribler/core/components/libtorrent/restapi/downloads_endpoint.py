@@ -194,13 +194,14 @@ class DownloadsEndpoint(RESTEndpoint):
     @docs(
         tags=["Libtorrent"],
         summary="Return all downloads, both active and inactive",
-        parameters=[{
-            'in': 'query',
-            'name': 'get_peers',
-            'description': 'Flag indicating whether or not to include peers',
-            'type': 'boolean',
-            'required': False
-        },
+        parameters=[
+            {
+                'in': 'query',
+                'name': 'get_peers',
+                'description': 'Flag indicating whether or not to include peers',
+                'type': 'boolean',
+                'required': False
+            },
             {
                 'in': 'query',
                 'name': 'get_pieces',
@@ -210,18 +211,19 @@ class DownloadsEndpoint(RESTEndpoint):
             },
             {
                 'in': 'query',
-                'name': 'get_files',
-                'description': 'Flag indicating whether or not to include files',
-                'type': 'boolean',
+                'name': 'infohash',
+                'description': 'If specified only return the download with the given infohash',
+                'type': 'str',
                 'required': False
             },
             {
                 'in': 'query',
-                'name': 'infohash',
-                'description': 'Limit fetching of files, peers, and pieces to a specific infohash',
-                'type': 'boolean',
+                'name': 'excluded',
+                'description': 'If specified, only return downloads excluding this one',
+                'type': 'str',
                 'required': False
-            }],
+            },
+        ],
         responses={
             200: {
                 "schema": schema(DownloadsResponse={
@@ -278,6 +280,7 @@ class DownloadsEndpoint(RESTEndpoint):
         get_peers = params.get('get_peers')
         get_pieces = params.get('get_pieces')
         infohash = params.get('infohash')
+        excluded = params.get('excluded')
 
         checkpoints = {
             TOTAL: self.download_manager.checkpoints_count,
@@ -292,6 +295,8 @@ class DownloadsEndpoint(RESTEndpoint):
         downloads = (d for d in self.download_manager.get_downloads() if not d.hidden)
         if infohash:
             downloads = (d for d in downloads if d.tdef.get_infohash_hex() == infohash)
+        if excluded:
+            downloads = (d for d in downloads if d.tdef.get_infohash_hex() != excluded)
 
         for download in downloads:
             state = download.get_state()

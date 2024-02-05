@@ -178,7 +178,7 @@ def screenshot(widget, name=None):
 def go_to_and_wait_for_downloads(window):
     QTest.mouseClick(window.left_menu_button_downloads, Qt.LeftButton)
     QTest.mouseClick(window.downloads_all_button, Qt.LeftButton)
-    wait_for_variable(window, "downloads_page.downloads")
+    wait_for_variable(window, "downloads_page.last_processed_request_id")
 
 
 def wait_for_list_populated(llist, num_items=1, timeout=DEFAULT_TIMEOUT_SEC):

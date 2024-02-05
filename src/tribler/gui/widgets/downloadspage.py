@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
@@ -25,7 +25,7 @@ from tribler.gui.network.request import REQUEST_ID
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.utilities import compose_magnetlink, connect, format_speed, tr
+from tribler.gui.utilities import connect, format_speed, tr
 from tribler.gui.widgets.downloadsdetailstabwidget import DownloadDetailsTabs
 from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDownloadWidgetItem
 from tribler.gui.widgets.loading_list_item import LoadingListItem
@@ -58,8 +58,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
-        self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem
-        self.downloads = None
+        self.download_widgets: Dict = {}  # key: infohash, value: QTreeWidgetItem
         self.background_refresh_downloads_timer = QTimer()
         self.downloads_last_update = 0
         self.selected_items: List[DownloadWidgetItem] = []
@@ -126,54 +125,92 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         timer.start(interval_msec)
 
     def on_background_refresh_downloads_timer(self):
-        self.refresh_downloads()
+        self.refresh_non_selected_downloads()
+        self.refresh_selected_download()
         self.schedule_downloads_refresh()
 
     def stop_refreshing_downloads(self):
         self.background_refresh_downloads_timer.stop()
 
-    def refresh_downloads(self):
+    def refresh_selected_download(self):
         details_widget = self.window().download_details_widget
         index = details_widget.currentIndex()
 
         details_shown = not details_widget.isHidden()
         selected_download = details_widget.current_download
 
-        if details_shown and selected_download is not None:
-            infohash = selected_download.get('infohash', "")
-            url_params = {
+        if not details_shown or selected_download is None:
+            return
+
+        infohash = selected_download.get('infohash')
+        if not infohash:
+            return
+
+        request_manager.get(
+            endpoint="downloads",
+            url_params={
                 'get_pieces': 1,
                 'get_peers': int(index == DownloadDetailsTabs.PEERS),
-                'get_files': 0,
                 'infohash': infohash
-            }
-            # We only need to hard refresh the download_files_list once.
-            dl_files_list = details_widget.window().download_files_list
-            if index == DownloadDetailsTabs.FILES and not dl_files_list.pages[0].loaded:
-                request_manager.get(
-                    endpoint=f"downloads/{infohash}/files",
-                    url_params={
-                        'view_start_path': Path("."),
-                        'view_size': dl_files_list.page_size
-                    },
-                    on_success=dl_files_list.fill_entries,
-                )
-        else:
-            url_params = {
-                'get_pieces': 0,
-                'get_peers': 0,
-                'get_files': 0
-            }
+            },
+            on_success=self.on_received_selected_download,
+        )
+
+        files_list = details_widget.window().download_files_list
+        if index != DownloadDetailsTabs.FILES or files_list.pages[0].loaded:
+            return
+
+        request_manager.get(
+            endpoint=f"downloads/{infohash}/files",
+            url_params={
+                'view_start_path': Path("."),
+                'view_size': files_list.page_size
+            },
+            on_success=files_list.fill_entries,
+        )
+
+    def refresh_non_selected_downloads(self):
+        url_params = {}
+
+        details_widget = self.window().download_details_widget
+        details_shown = not details_widget.isHidden()
+        selected_download = details_widget.current_download
+        if details_shown and selected_download:
+            if infohash := selected_download.get('infohash'):
+                url_params['excluded'] = infohash
 
         request_manager.get(
             endpoint="downloads",
             url_params=url_params,
-            on_success=self.on_received_downloads,
+            on_success=self.on_received_non_selected_downloads,
         )
 
-    def on_received_downloads(self, result):
+    def on_received_selected_download(self, result):
+        """ Process the result of the refresh request for the selected download."""
+
+        if not result:
+            return
+        downloads = result.get("downloads")
+        if not downloads or len(downloads) != 1:
+            self._logger.warning(
+                f'Received unexpected number of downloads ({len(downloads)} instead of 1), ignoring the result.'
+            )
+            return
+
+        download = downloads[0]
+        if download["infohash"] not in self.download_widgets:
+            self._logger.warning('Received infohash not in download_widgets, ignoring the result.')
+            return
+
+        self.process_refresh_result(result)
+
+    def on_received_non_selected_downloads(self, result):
+        """ Process the result of the refresh request for the non-selected downloads."""
+
         if not result or "downloads" not in result:
+            self._logger.warning('Received unexpected result, ignoring it.')
             return  # This might happen when closing Tribler
+
         request_id = result[REQUEST_ID]
         if self.last_processed_request_id >= request_id:
             # This is an old request, ignore it.
@@ -183,6 +220,14 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             return
         self.last_processed_request_id = request_id
 
+        self.process_refresh_result(result)
+
+    def process_refresh_result(self, result):
+        """ Process the result of the refresh request.
+
+        The result could consists of multiple downloads.
+        Only downloads from the result will be processed.
+        """
         checkpoints = result.get('checkpoints', {})
         if checkpoints and self.loading_message_widget:
             # If not all checkpoints are loaded, display the number of the loaded checkpoints
@@ -201,24 +246,22 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().downloads_list.takeTopLevelItem(loading_widget_index)
             self.window().downloads_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
-        self.downloads = result
-
         self.total_download_speed = 0
         self.total_upload_speed = 0
 
-        download_infohashes = set()
-
+        infohash_set = set()
         items = []
         for download in result["downloads"]:
+            infohash = download["infohash"]
             self.window().core_manager.events_manager.node_info_updated.emit(
-                {"infohash": download["infohash"], "progress": download["progress"]}
+                {"infohash": infohash, "progress": download["progress"]}
             )
 
-            if download["infohash"] in self.download_widgets:
-                item = self.download_widgets[download["infohash"]]
+            if infohash in self.download_widgets:
+                item = self.download_widgets[infohash]
             else:
                 item = DownloadWidgetItem()
-                self.download_widgets[download["infohash"]] = item
+                self.download_widgets[infohash] = item
                 items.append(item)
 
             item.update_with_download(download)
@@ -226,24 +269,15 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.total_download_speed += download["speed_down"]
             self.total_upload_speed += download["speed_up"]
 
-            download_infohashes.add(download["infohash"])
+            infohash_set.add(infohash)
 
-            if (
-                    self.window().download_details_widget.current_download is not None
-                    and self.window().download_details_widget.current_download["infohash"] == download["infohash"]
-            ):
+            current_download = self.window().download_details_widget.current_download
+            if current_download and current_download["infohash"] == infohash:
                 self.window().download_details_widget.update_with_download(download)
 
         self.window().downloads_list.addTopLevelItems(items)
         for item in items:
             self.window().downloads_list.setItemWidget(item, 2, item.bar_container)
-
-        # Check whether there are download that should be removed
-        for infohash, item in list(self.download_widgets.items()):
-            if infohash not in download_infohashes:
-                index = self.window().downloads_list.indexOfTopLevelItem(item)
-                self.window().downloads_list.takeTopLevelItem(index)
-                del self.download_widgets[infohash]
 
         self.window().tray_set_tooltip(
             f"Down: {format_speed(self.total_download_speed)}, Up: {format_speed(self.total_upload_speed)}"
@@ -292,7 +326,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         if len(self.selected_items) == 1:
             self.window().download_details_widget.update_with_download(self.selected_items[0].download_info)
             self.window().download_details_widget.show()
-            self.refresh_downloads()
+            self.refresh_selected_download()
         else:
             self.window().download_details_widget.hide()
 
@@ -378,12 +412,21 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.dialog = None
 
     def on_download_removed(self, json_result):
-        if json_result and "removed" in json_result:
-            self.schedule_downloads_refresh(REFRESH_DOWNLOADS_SOON_INTERVAL_MSEC)
-            self.window().download_details_widget.hide()
-            self.window().core_manager.events_manager.node_info_updated.emit(
-                {"infohash": json_result["infohash"], "progress": None}
-            )
+        if not json_result or "removed" not in json_result:
+            return
+
+        infohash = json_result["infohash"]
+
+        if current_download := self.window().download_details_widget.current_download:
+            if current_download["infohash"] == infohash:
+                self.window().download_details_widget.hide()
+
+        if item := self.download_widgets.get(infohash):
+            index = self.window().downloads_list.indexOfTopLevelItem(item)
+            self.window().downloads_list.takeTopLevelItem(index)
+            del self.download_widgets[infohash]
+
+        self.window().core_manager.events_manager.node_info_updated.emit({"infohash": infohash, "progress": None})
 
     def on_force_recheck_download(self, checked):
         for item in self.selected_items:
