@@ -330,60 +330,6 @@ async def test_check_local_torrents(torrent_checker):
     for t in selected_torrents:
         assert t.infohash in selection_range
 
-
-async def test_check_channel_torrents(torrent_checker: TorrentChecker):
-    """
-    Test that the channel torrents are checked based on last checked time.
-    Only outdated torrents are selected for health checks.
-    """
-
-    def random_infohash():
-        return os.urandom(20)
-
-    @db_session
-    def add_torrent_to_channel(infohash, last_check):
-        torrent = torrent_checker.mds.TorrentMetadata(public_key=torrent_checker.mds.my_public_key_bin,
-                                                      infohash=infohash)
-        torrent.health.last_check = last_check
-        return torrent
-
-    check_torrent_health_mock = AsyncMock(return_value=None)
-    torrent_checker.check_torrent_health = lambda _: check_torrent_health_mock()
-
-    # No torrents yet in channel, the selected channel torrents to check should be empty
-    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
-    assert len(selected_torrents) == 0
-
-    # No health check call are done
-    await torrent_checker.check_torrents_in_user_channel()
-    assert check_torrent_health_mock.call_count == len(selected_torrents)
-
-    num_torrents = 20
-    timestamp_now = int(time.time())
-    timestamp_outdated = timestamp_now - torrent_checker_module.HEALTH_FRESHNESS_SECONDS
-
-    # Add some recently checked and outdated torrents to the channel
-    fresh_torrents = []
-    for _ in range(num_torrents):
-        torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_now)
-        fresh_torrents.append(torrent)
-
-    outdated_torrents = []
-    for _ in range(num_torrents):
-        torrent = add_torrent_to_channel(random_infohash(), last_check=timestamp_outdated)
-        outdated_torrents.append(torrent.infohash)
-
-    # Now check that only outdated torrents are selected for check
-    selected_torrents = torrent_checker.torrents_to_check_in_user_channel()
-    assert len(selected_torrents) <= torrent_checker_module.USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE
-    for torrent in selected_torrents:
-        assert torrent.infohash in outdated_torrents
-
-    # Health check requests are sent for all selected torrents
-    result = await torrent_checker.check_torrents_in_user_channel()
-    assert len(result) == len(selected_torrents)
-
-
 async def test_get_tracker_response_cancelled_error(torrent_checker: TorrentChecker, caplog):
     """
     Tests that CancelledError from session.connect_to_tracker() is handled correctly

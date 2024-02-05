@@ -30,7 +30,6 @@ from tribler.core.utilities.utilities import has_bep33_support, is_valid_url
 
 TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
-USER_CHANNEL_TORRENT_SELECTION_INTERVAL = 10 * 60  # The interval for checking the health of torrents in user's channel.
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
@@ -70,8 +69,6 @@ class TorrentChecker(TaskManager):
     async def initialize(self):
         self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
-        self.register_task("check channel torrents", self.check_torrents_in_user_channel,
-                           interval=USER_CHANNEL_TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self):
@@ -243,32 +240,6 @@ class TorrentChecker(TaskManager):
         results = await gather_coros(coros)
         self._logger.info(f'Results for local torrents check: {results}')
         return selected_torrents, results
-
-    @db_session
-    def torrents_to_check_in_user_channel(self):
-        """
-        Returns a list of outdated torrents of user's channel which
-        has not been checked recently.
-        """
-        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        channel_torrents = list(self.mds.TorrentMetadata.select(
-            lambda g: g.public_key == self.mds.my_public_key_bin
-                      and g.metadata_type == REGULAR_TORRENT
-                      and g.health.last_check < last_fresh_time)
-                                .order_by(lambda g: g.health.last_check)
-                                .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
-        return channel_torrents
-
-    async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
-        """
-        Perform a full health check of torrents in user's channel
-        """
-        selected_torrents = self.torrents_to_check_in_user_channel()
-        self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
-        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
-        results = await gather_coros(coros)
-        self._logger.info(f'Results for torrents in user channel: {results}')
-        return results
 
     def get_next_tracker(self):
         while tracker := self.tracker_manager.get_next_tracker():
