@@ -3,8 +3,6 @@
 
 # Options
 HEADLESS=false
-# Use a custom env
-#PYTHONPATH=/home/user/Downloads/tribler_env/lib/python3.11/site-packages
 
 script_path() {
   if readlink --help 2>/dev/null | grep -q canonicalize ; then
