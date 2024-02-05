@@ -19,7 +19,7 @@ from tribler.core.components.libtorrent.utils import torrent_utils
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities import maketorrent, path_util
 from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.unicode import ensure_unicode
+from tribler.core.utilities.unicode import ensure_unicode, hexlify
 from tribler.core.utilities.utilities import bdecode_compat, is_valid_url
 
 
@@ -64,7 +64,8 @@ class TorrentDef:
         self.torrent_parameters = {}
         self.metainfo = metainfo
         self.files_list = []
-        self.infohash = None
+        self.infohash: Optional[bytes] = None
+        self._infohash_hex: Optional[str] = None
         self._torrent_info = None
 
         if metainfo is not None:
@@ -83,7 +84,6 @@ class TorrentDef:
                 except (KeyError, RuntimeError) as exc:
                     raise ValueError from exc
             self.copy_metainfo_to_torrent_parameters()
-
         elif torrent_parameters:
             self.torrent_parameters.update(torrent_parameters)
 
@@ -307,6 +307,12 @@ class TorrentDef:
         """
         return self.infohash
 
+    def get_infohash_hex(self) -> str:
+        if not self._infohash_hex and self.infohash:
+            self._infohash_hex = hexlify(self.infohash)
+
+        return self._infohash_hex
+
     def get_metainfo(self) -> Dict:
         """
         Returns the metainfo of the torrent. Might be None if no metainfo is provided.
@@ -388,6 +394,8 @@ class TorrentDef:
         self.metainfo = bdecode_compat(torrent_dict['metainfo'])
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
+        if self.infohash:
+            self.infohash_hex = hexlify(self.infohash)
 
     def _get_all_files_as_unicode_with_length(self) -> Iterator[Path, int]:
         """ Get a generator for files in the torrent def. No filtering

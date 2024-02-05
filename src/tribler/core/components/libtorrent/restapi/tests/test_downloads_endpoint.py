@@ -19,6 +19,7 @@ from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
+
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
@@ -246,25 +247,6 @@ async def test_get_downloads_with_passing_filter(mock_dlmgr, test_download, rest
     assert "peers" in downloads["downloads"][0]  # Filter passes with get_peers=1
     assert "pieces" in downloads["downloads"][0]  # Filter passes with get_pieces=1
     assert "files" not in downloads["downloads"][0]  # Filter passes with get_files=0
-    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
-
-
-async def test_get_downloads_with_unpassing_filter(mock_dlmgr, test_download, rest_api):
-    """
-    Testing whether the API returns all downloads even if the infohash filter does not pass.
-    """
-    mock_dlmgr.get_downloads = lambda: [test_download]
-    mock_dlmgr.checkpoints_count = 1
-    mock_dlmgr.checkpoints_loaded = 1
-    mock_dlmgr.all_checkpoints_are_loaded = True
-
-    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1&infohash=' + '00' * 20,
-                                 expected_code=200)
-
-    assert len(downloads["downloads"]) == 1
-    assert "peers" not in downloads["downloads"][0]  # Filter does not pass, ignore get_peers
-    assert "pieces" not in downloads["downloads"][0]  # Filter does not pass, ignore get_pieces
-    assert "files" not in downloads["downloads"][0]  # Filter does not pass, ignore get_files
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 

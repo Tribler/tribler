@@ -275,9 +275,9 @@ class DownloadsEndpoint(RESTEndpoint):
     )
     async def get_downloads(self, request):
         params = request.query
-        get_peers = params.get('get_peers', '0') == '1'
-        get_pieces = params.get('get_pieces', '0') == '1'
-        unfiltered = not params.get('infohash')
+        get_peers = params.get('get_peers')
+        get_pieces = params.get('get_pieces')
+        infohash = params.get('infohash')
 
         checkpoints = {
             TOTAL: self.download_manager.checkpoints_count,
@@ -288,11 +288,12 @@ class DownloadsEndpoint(RESTEndpoint):
         if not self.download_manager.all_checkpoints_are_loaded:
             return RESTResponse({"downloads": [], "checkpoints": checkpoints})
 
-        downloads_json = []
-        downloads = self.download_manager.get_downloads()
+        result = []
+        downloads = (d for d in self.download_manager.get_downloads() if not d.hidden)
+        if infohash:
+            downloads = (d for d in downloads if d.tdef.get_infohash_hex() == infohash)
+
         for download in downloads:
-            if download.hidden:
-                continue
             state = download.get_state()
             tdef = download.get_def()
 
@@ -305,21 +306,23 @@ class DownloadsEndpoint(RESTEndpoint):
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
             if self.mds is None:
-                download_name = tdef.get_name_utf8()
+                name = tdef.get_name_utf8()
             else:
-                download_name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or \
-                                tdef.get_name_utf8()
+                name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or tdef.get_name_utf8()
 
-            download_status = get_extended_status(
-                self.tunnel_community, download) if self.tunnel_community else download.get_state().get_status()
-            download_json = {
-                "name": download_name,
+            if self.tunnel_community:
+                status = get_extended_status(self.tunnel_community, download)
+            else:
+                status = download.get_state().get_status()
+
+            info = {
+                "name": name,
                 "progress": state.get_progress(),
-                "infohash": hexlify(tdef.get_infohash()),
+                "infohash": tdef.get_infohash_hex(),
                 "speed_down": state.get_current_payload_speed(DOWNLOAD),
                 "speed_up": state.get_current_payload_speed(UPLOAD),
-                "status": download_status.name,
-                "status_code": download_status.value,
+                "status": status.name,
+                "status_code": status.value,
                 "size": tdef.get_length(),
                 "eta": state.get_eta(),
                 "num_peers": num_peers,
@@ -343,32 +346,30 @@ class DownloadsEndpoint(RESTEndpoint):
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added()
             }
+
             if download.stream:
-                download_json.update({
+                info.update({
                     "vod_prebuffering_progress": download.stream.prebuffprogress,
                     "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
                     "vod_header_progress": download.stream.headerprogress,
                     "vod_footer_progress": download.stream.footerprogress,
-
                 })
 
-            if unfiltered or params.get('infohash') == download_json["infohash"]:
-                # Add peers information if requested
-                if get_peers:
-                    peer_list = state.get_peerlist()
-                    for peer_info in peer_list:  # Remove have field since it is very large to transmit.
-                        del peer_info['have']
-                        if 'extended_version' in peer_info:
-                            peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
+            if get_peers:
+                peer_list = state.get_peerlist()
+                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
+                    del peer_info['have']
+                    if 'extended_version' in peer_info:
+                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
 
-                    download_json["peers"] = peer_list
+                info["peers"] = peer_list
 
-                # Add piece information if requested
-                if get_pieces:
-                    download_json["pieces"] = download.get_pieces_base64().decode('utf-8')
+            if get_pieces:
+                info["pieces"] = download.get_pieces_base64().decode('utf-8')
 
-            downloads_json.append(download_json)
-        return RESTResponse({"downloads": downloads_json, "checkpoints": checkpoints})
+            result.append(info)
+
+        return RESTResponse({"downloads": result, "checkpoints": checkpoints})
 
     @docs(
         tags=["Libtorrent"],
