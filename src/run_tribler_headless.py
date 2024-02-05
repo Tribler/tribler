@@ -18,7 +18,7 @@ from filelock import FileLock
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.start_core import components_gen
-from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock

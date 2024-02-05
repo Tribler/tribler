@@ -12,7 +12,7 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 
-from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.process_manager import ProcessManager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager

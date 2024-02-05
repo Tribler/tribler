@@ -35,7 +35,7 @@ from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities import slow_coro_detection
-from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind
 from tribler.core.utilities.process_manager.manager import setup_process_manager

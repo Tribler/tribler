@@ -14,7 +14,7 @@ from tribler.core.check_os import (
 )
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
-from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_GUI_PROCESS_IS_RUNNING
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_GUI_PROCESS_IS_RUNNING
 from tribler.core.utilities.process_locking import GUI_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind
 from tribler.core.utilities.process_manager.manager import setup_process_manager
