@@ -1,5 +1,5 @@
 import shutil
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from aiohttp import ClientResponseError
@@ -7,6 +7,7 @@ from aiohttp import ClientResponseError
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE
 from tribler.core.utilities.path_util import Path
+from tribler.core.utilities.unicode import hexlify
 from tribler.core.utilities.utilities import bdecode_compat
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -173,6 +174,7 @@ def test_get_trackers(tdef):
     trackers = tdef.get_trackers()
     assert trackers == {"t1", "t2", "t3", "t4"}
 
+
 def test_get_nr_pieces(tdef):
     """
     Test getting the number of pieces from a TorrentDef
@@ -234,6 +236,28 @@ def test_torrent_no_metainfo():
     assert len(torrent2.get_trackers()) == 0
 
 
+def test_get_infohash_hex_no_infohash(tdef: TorrentDef):
+    # Test that get_infohash_hex returns None when there is no infohash
+    assert not tdef.get_infohash_hex()
+
+
+def test_get_infohash_hex(tdef: TorrentDef):
+    # Test that get_infohash_hex returns the infohash in hex format
+    tdef.infohash = b'0' * 20
+    assert tdef.get_infohash_hex() == hexlify(tdef.infohash)
+
+
+def test_get_infohash_hex_cached(tdef: TorrentDef):
+    # Test that get_infohash_hex returns the infohash in hex format and caches the result
+    tdef.infohash = b'0' * 20
+    infohash_hex = hexlify(tdef.infohash)
+    with patch('tribler.core.components.libtorrent.torrentdef.hexlify', Mock(side_effect=hexlify)) as mocked_hexlify:
+        assert tdef.get_infohash_hex() == infohash_hex
+        assert tdef.get_infohash_hex() == infohash_hex
+
+        assert mocked_hexlify.call_count == 1
+
+
 def test_get_length(tdef):
     """
     Test whether a TorrentDef has 0 length by default.
@@ -278,10 +302,10 @@ def test_filter_characters(tdef):
     name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
     name = name_bytes
     name_sanitized = "?" * len(name)
-    assert tdef._filter_characters(name) == name_sanitized # pylint: disable=protected-access
+    assert tdef._filter_characters(name) == name_sanitized  # pylint: disable=protected-access
     name = b"test\xff" + name_bytes
     name_sanitized = "test" + "?" * len(b"\xff" + name_bytes)
-    assert tdef._filter_characters(name) == name_sanitized # pylint: disable=protected-access
+    assert tdef._filter_characters(name) == name_sanitized  # pylint: disable=protected-access
 
 
 def test_get_files_with_length(tdef):

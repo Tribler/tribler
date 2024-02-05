@@ -1,4 +1,5 @@
 import collections
+import copy
 import os
 import unittest.mock
 from pathlib import Path
@@ -9,7 +10,7 @@ from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from ipv8.util import fail, succeed
 
 import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
-from tribler.core.components.libtorrent.download_manager.download import IllegalFileIndex
+from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
 from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
@@ -18,6 +19,7 @@ from tribler.core.tests.tools.common import TESTS_DATA_DIR
 from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
+
 
 # pylint: disable=redefined-outer-name
 
@@ -192,15 +194,11 @@ async def test_get_downloads(mock_dlmgr, test_download, rest_api):
     Testing whether the API returns the right download when a download is added
     """
     mock_dlmgr.get_downloads = lambda: [test_download]
-    mock_dlmgr.checkpoints_count = 1
-    mock_dlmgr.checkpoints_loaded = 1
-    mock_dlmgr.all_checkpoints_are_loaded = True
 
-    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_files=1', expected_code=200)
+    downloads = await do_request(rest_api, 'downloads?get_peers=1', expected_code=200)
     assert len(downloads["downloads"]) == 1
     assert "peers" in downloads["downloads"][0]  # Unfiltered with get_peers=1
     assert "pieces" not in downloads["downloads"][0]  # Unfiltered with get_pieces=0
-    assert "files" in downloads["downloads"][0]  # Unfiltered with get_files=1
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 
@@ -209,9 +207,6 @@ async def test_get_downloads_circuit_peer(mock_dlmgr, test_download, rest_api, e
     Testing whether circuit peers are correctly returned from downloads.
     """
     mock_dlmgr.get_downloads = lambda: [test_download]
-    mock_dlmgr.checkpoints_count = 1
-    mock_dlmgr.checkpoints_loaded = 1
-    mock_dlmgr.all_checkpoints_are_loaded = True
     endpoint.tunnel_community = Mock()
     endpoint.tunnel_community.ip_to_circuit_id = lambda _: 42
     test_download.get_peerlist = lambda: [{
@@ -225,7 +220,6 @@ async def test_get_downloads_circuit_peer(mock_dlmgr, test_download, rest_api, e
     assert len(downloads["downloads"]) == 1
     assert "peers" in downloads["downloads"][0]  # Unfiltered with get_peers=1
     assert "pieces" not in downloads["downloads"][0]  # Unfiltered with get_pieces=0
-    assert "files" not in downloads["downloads"][0]  # Unfiltered with get_files=0
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
     assert downloads["downloads"][0]["peers"][0]["port"] == CIRCUIT_ID_PORT
     assert downloads["downloads"][0]["peers"][0]["circuit"] == 42
@@ -236,9 +230,6 @@ async def test_get_downloads_with_passing_filter(mock_dlmgr, test_download, rest
     Testing whether the API returns all downloads even if the infohash filter passes.
     """
     mock_dlmgr.get_downloads = lambda: [test_download]
-    mock_dlmgr.checkpoints_count = 1
-    mock_dlmgr.checkpoints_loaded = 1
-    mock_dlmgr.all_checkpoints_are_loaded = True
 
     downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1&infohash=' + test_download.infohash,
                                  expected_code=200)
@@ -246,27 +237,34 @@ async def test_get_downloads_with_passing_filter(mock_dlmgr, test_download, rest
     assert len(downloads["downloads"]) == 1
     assert "peers" in downloads["downloads"][0]  # Filter passes with get_peers=1
     assert "pieces" in downloads["downloads"][0]  # Filter passes with get_pieces=1
-    assert "files" not in downloads["downloads"][0]  # Filter passes with get_files=0
     assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
 
 
-async def test_get_downloads_with_unpassing_filter(mock_dlmgr, test_download, rest_api):
-    """
-    Testing whether the API returns all downloads even if the infohash filter does not pass.
-    """
-    mock_dlmgr.get_downloads = lambda: [test_download]
-    mock_dlmgr.checkpoints_count = 1
-    mock_dlmgr.checkpoints_loaded = 1
-    mock_dlmgr.all_checkpoints_are_loaded = True
+async def test_get_downloads_with_excluding_filter(mock_dlmgr, test_download, test_tdef, rest_api):
+    # In this test, we will create two downloads (test_download and another_download ) and we will exclude
+    # another_download from the list of downloads returned by the API.
 
-    downloads = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1&infohash=' + '00' * 20,
-                                 expected_code=200)
+    def create_another_download():
+        another_tdef = copy.deepcopy(test_tdef)
+        another_tdef.infohash = b'2' * 20
+        another_tdef._infohash_hex = hexlify(another_tdef.infohash)
 
-    assert len(downloads["downloads"]) == 1
-    assert "peers" not in downloads["downloads"][0]  # Filter does not pass, ignore get_peers
-    assert "pieces" not in downloads["downloads"][0]  # Filter does not pass, ignore get_pieces
-    assert "files" not in downloads["downloads"][0]  # Filter does not pass, ignore get_files
-    assert downloads["checkpoints"] == {"total": 1, "loaded": 1, "all_loaded": True}
+        return Download(
+            tdef=another_tdef,
+            download_manager=mock_dlmgr,
+            config=test_download.config
+        )
+
+    another_download = create_another_download()
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download, another_download])
+
+    # test that without the filter, both downloads are returned
+    result = await do_request(rest_api, 'downloads')
+    assert len(result['downloads']) == 2
+
+    # test that with the filter, only one download is returned
+    result = await do_request(rest_api, 'downloads', params={'excluded': another_download.tdef.get_infohash_hex()})
+    assert len(result['downloads']) == 1
 
 
 async def test_start_download_no_uri(rest_api):
@@ -541,8 +539,8 @@ async def test_export_download(mock_dlmgr, mock_handle, test_download, rest_api)
     """
     test_download.get_torrent_data = lambda: 'a' * 20
     mock_dlmgr.get_download = lambda _: test_download
-    await do_request(rest_api, f'downloads/{test_download.infohash}/torrent',
-                     expected_code=200, request_type='GET', json_response=False)
+    await do_request(rest_api, f'downloads/{test_download.infohash}/torrent', expected_code=200, request_type='GET',
+                     json_response=False)
 
 
 async def test_get_files_unknown_download(mock_dlmgr, rest_api):
@@ -561,8 +559,7 @@ async def test_get_files_from_view_start_loading(mock_dlmgr, test_download, rest
     expected_file = {'index': IllegalFileIndex.unloaded.value, 'name': 'loading...', 'size': 0, 'included': False,
                      'progress': 0.0}
 
-    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files',
-                              params={"view_start_path": "."})
+    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files', params={"view_start_path": "."})
 
     assert 'infohash' in result
     assert result['infohash'] == test_download.infohash
@@ -579,8 +576,7 @@ async def test_get_files_from_view_start(mock_dlmgr, test_download, rest_api):
     test_download.tdef.load_torrent_info()
     expected_file = {'index': 0, 'name': 'video.avi', 'size': 1942100, 'included': True, 'progress': 0.0}
 
-    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files',
-                              params={"view_start_path": "."})
+    result = await do_request(rest_api, f'downloads/{test_download.infohash}/files', params={"view_start_path": "."})
 
     assert 'infohash' in result
     assert result['infohash'] == test_download.infohash
@@ -606,8 +602,8 @@ async def test_stream_unknown_download(mock_dlmgr, rest_api):
     Testing whether the API returns error 404 if we stream a non-existent download
     """
     mock_dlmgr.get_download = lambda _: None
-    await do_request(rest_api, 'downloads/abcd/stream/0',
-                     headers={'range': 'bytes=0-'}, expected_code=404, request_type='GET')
+    await do_request(rest_api, 'downloads/abcd/stream/0', headers={'range': 'bytes=0-'}, expected_code=404,
+                     request_type='GET')
 
 
 async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_download, rest_api):

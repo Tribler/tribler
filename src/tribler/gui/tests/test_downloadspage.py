@@ -21,15 +21,15 @@ def test_accept_requests():
     # Test that the page accepts requests with the greater request id
     page = downloads_page()
 
-    page.on_received_downloads(result={REQUEST_ID: 1, 'downloads': MagicMock()})
+    page.process_refresh_result(result={REQUEST_ID: 1, 'downloads': MagicMock()})
     assert page.received_downloads.emit.called
 
     page.received_downloads.emit.reset_mock()
-    page.on_received_downloads(result={REQUEST_ID: 2, 'downloads': MagicMock()})
+    page.process_refresh_result(result={REQUEST_ID: 2, 'downloads': MagicMock()})
     assert page.received_downloads.emit.called
 
     page.received_downloads.emit.reset_mock()
-    page.on_received_downloads(result={REQUEST_ID: 10, 'downloads': MagicMock()})
+    page.process_refresh_result(result={REQUEST_ID: 10, 'downloads': MagicMock()})
     assert page.received_downloads.emit.called
 
 
@@ -38,13 +38,13 @@ def test_ignore_request():
     # Test that the page ignores requests with a lower or equal request id
     page = downloads_page()
 
-    page.on_received_downloads(result={REQUEST_ID: 10, 'downloads': MagicMock()})
+    page.on_received_non_selected_downloads(result={REQUEST_ID: 10, 'downloads': MagicMock()})
     assert page.received_downloads.emit.called
 
     page.received_downloads.emit.reset_mock()
-    page.on_received_downloads(result={REQUEST_ID: 10, 'downloads': MagicMock()})
+    page.on_received_non_selected_downloads(result={REQUEST_ID: 10, 'downloads': MagicMock()})
     assert not page.received_downloads.emit.called
 
     page.received_downloads.emit.reset_mock()
-    page.on_received_downloads(result={REQUEST_ID: 9, 'downloads': MagicMock()})
+    page.on_received_non_selected_downloads(result={REQUEST_ID: 9, 'downloads': MagicMock()})
     assert not page.received_downloads.emit.called
