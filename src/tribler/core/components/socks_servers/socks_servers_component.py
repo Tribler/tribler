@@ -6,6 +6,7 @@ from tribler.core.components.socks_servers.socks5.server import Socks5Server
 from tribler.core.utilities.network_utils import default_network_utils
 
 NUM_SOCKS_PROXIES = 5
+SOCKS5_SERVER_PORTS = 'socks5_server_ports'
 
 
 class SocksServersComponent(Component):
@@ -30,6 +31,9 @@ class SocksServersComponent(Component):
             default_network_utils.remember(socks_port)
 
         self.logger.info(f'Socks listen port: {self.socks_ports}')
+
+        # Set the SOCKS5 server ports in the reporter for debugging Network errors
+        self.reporter.additional_information[SOCKS5_SERVER_PORTS] = self.socks_ports
 
     async def shutdown(self):
         for socks_server in self.socks_servers:
