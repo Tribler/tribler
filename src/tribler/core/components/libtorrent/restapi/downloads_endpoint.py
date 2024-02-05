@@ -253,9 +253,6 @@ class DownloadsEndpoint(RESTEndpoint):
                         'availability': Float,
                         'peers': String,
                         'total_pieces': Integer,
-                        'vod_mode': Boolean,
-                        'vod_prebuffering_progress': Float,
-                        'vod_prebuffering_progress_consec': Float,
                         'error': String,
                         'time_added': Integer
                     }),
@@ -310,15 +307,8 @@ class DownloadsEndpoint(RESTEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            if self.mds is None:
-                name = tdef.get_name_utf8()
-            else:
-                name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or tdef.get_name_utf8()
-
-            if self.tunnel_community:
-                status = get_extended_status(self.tunnel_community, download)
-            else:
-                status = download.get_state().get_status()
+            name = tdef.get_name_utf8()
+            status = get_extended_status(self.tunnel_community, download)
 
             info = {
                 "name": name,
@@ -347,18 +337,9 @@ class DownloadsEndpoint(RESTEndpoint):
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_mode": download.stream and download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added()
             }
-
-            if download.stream:
-                info.update({
-                    "vod_prebuffering_progress": download.stream.prebuffprogress,
-                    "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                    "vod_header_progress": download.stream.headerprogress,
-                    "vod_footer_progress": download.stream.footerprogress,
-                })
 
             if get_peers:
                 peer_list = state.get_peerlist()
@@ -469,32 +450,6 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
-    async def vod_response(self, download, parameters, request, vod_mode):
-        modified = False
-        if vod_mode:
-            file_index = parameters.get("fileindex")
-            if file_index is None:
-                return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
-                                    status=HTTP_BAD_REQUEST)
-            if download.stream is None:
-                download.add_stream()
-            if not download.stream.enabled or download.stream.fileindex != file_index:
-                await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
-                await download.stream.updateprios()
-                modified = True
-
-        elif not vod_mode and download.stream is not None and download.stream.enabled:
-            download.stream.disable()
-            modified = True
-        return RESTResponse({"vod_prebuffering_progress": download.stream.prebuffprogress,
-                             "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                             "vod_header_progress": download.stream.headerprogress,
-                             "vod_footer_progress": download.stream.footerprogress,
-                             "vod_mode": download.stream.enabled,
-                             "infohash": hexlify(download.get_def().get_infohash()),
-                             "modified": modified,
-                             })
-
     @docs(
         tags=["Libtorrent"],
         summary="Update a specific download.",
@@ -525,12 +480,6 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         parameters = await request.json()
-        vod_mode = parameters.get("vod_mode")
-        if vod_mode is not None:
-            if not isinstance(vod_mode, bool):
-                return RESTResponse({"error": "vod_mode must be bool flag"},
-                                    status=HTTP_BAD_REQUEST)
-            return await self.vod_response(download, parameters, request, vod_mode)
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},

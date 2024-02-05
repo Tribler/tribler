@@ -87,12 +87,9 @@ class DownloadWidgetItem(QTreeWidgetItem):
         except RuntimeError:
             self._logger.error("The underlying GUI widget has already been removed.")
 
-        if self.download_info["vod_mode"]:
-            self.setText(3, "Streaming")
-        else:
-            status = DownloadStatus(self.download_info["status_code"])
-            status_string = STATUS_STRING[status]
-            self.setText(3, status_string)
+        status = DownloadStatus(self.download_info["status_code"])
+        status_string = STATUS_STRING[status]
+        self.setText(3, status_string)
         self.setText(4, f"{self.download_info['num_connected_seeds']} ({self.download_info['num_seeds']})")
         self.setText(5, f"{self.download_info['num_connected_peers']} ({self.download_info['num_peers']})")
         self.setText(6, format_speed(self.download_info["speed_down"]))

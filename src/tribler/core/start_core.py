@@ -73,12 +73,13 @@ def components_gen(config: TriblerConfig):
     if config.ipv8.enabled and config.torrent_checking.enabled and config.content_discovery_community.enabled:
         yield ContentDiscoveryComponent()
 
+    if config.ipv8.enabled and config.tunnel_community.enabled:
+        yield TunnelsComponent()
+
     # The components below are skipped if config.gui_test_mode == True
     if config.gui_test_mode:
         return
 
-    if config.ipv8.enabled and config.tunnel_community.enabled:
-        yield TunnelsComponent()
     yield WatchFolderComponent()
     if config.general.version_checker_enabled:
         yield VersionCheckComponent()
