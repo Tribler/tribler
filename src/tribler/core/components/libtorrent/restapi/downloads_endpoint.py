@@ -1,6 +1,4 @@
-from asyncio import CancelledError, TimeoutError as AsyncTimeoutError, wait_for
 from binascii import unhexlify
-from contextlib import suppress
 from pathlib import PurePosixPath
 
 from aiohttp import web
@@ -9,10 +7,10 @@ from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
+from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
-from tribler.core.components.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_BAD_REQUEST,
@@ -20,9 +18,9 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     HTTP_NOT_FOUND,
     RESTEndpoint,
     RESTResponse,
-    RESTStreamResponse,
 )
 from tribler.core.components.restapi.rest.utils import return_handled_exception
+from tribler.core.components.tunnel.community.tunnel_community import TriblerTunnelCommunity
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import (
     DOWNLOAD,
@@ -36,45 +34,6 @@ LOADED = 'loaded'
 ALL_LOADED = 'all_loaded'
 
 
-def _safe_extended_peer_info(ext_peer_info):
-    """
-    Given a string describing peer info, return a json.dumps() safe representation.
-
-    :param ext_peer_info: the string to convert to a dumpable format
-    :return: the safe string
-    """
-    # First see if we can use this as-is
-    if not ext_peer_info:
-        return ""
-
-    try:
-        return ensure_unicode(ext_peer_info, "utf8")
-    except UnicodeDecodeError:
-        # We might have some special unicode characters in here
-        return "".join(map(chr, ext_peer_info))
-
-
-def get_extended_status(tunnel_community, download) -> DownloadStatus:
-    """
-    This function filters the original download status to possibly add tunnel-related status.
-    Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
-    """
-    state = download.get_state()
-    status = state.get_status()
-
-    # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
-    stopped_by_user = state.lt_status and state.lt_status.paused
-
-    if status == DownloadStatus.STOPPED and not stopped_by_user:
-        if download.config.get_hops() > 0:
-            if tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                return DownloadStatus.CIRCUITS
-            else:
-                return DownloadStatus.EXIT_NODES
-        return DownloadStatus.STOPPED
-    return status
-
-
 @froze_it
 class DownloadsEndpoint(RESTEndpoint):
     """
@@ -83,24 +42,26 @@ class DownloadsEndpoint(RESTEndpoint):
     """
     path = '/downloads'
 
-    def __init__(self, download_manager: DownloadManager, metadata_store=None, tunnel_community=None):
+    def __init__(self, download_manager: DownloadManager, metadata_store: MetadataStore,
+                 tunnel_community: TriblerTunnelCommunity):
         super().__init__()
         self.download_manager = download_manager
         self.mds = metadata_store
         self.tunnel_community = tunnel_community
 
     def setup_routes(self):
-        self.app.add_routes([web.get('', self.get_downloads),
-                             web.put('', self.add_download),
-                             web.delete('/{infohash}', self.delete_download),
-                             web.patch('/{infohash}', self.update_download),
-                             web.get('/{infohash}/torrent', self.get_torrent),
-                             web.get('/{infohash}/files', self.get_files),
-                             web.get('/{infohash}/files/expand', self.expand_tree_directory),
-                             web.get('/{infohash}/files/collapse', self.collapse_tree_directory),
-                             web.get('/{infohash}/files/select', self.select_tree_path),
-                             web.get('/{infohash}/files/deselect', self.deselect_tree_path),
-                             web.get('/{infohash}/stream/{fileindex}', self.stream, allow_head=False)])
+        self.app.add_routes([
+            web.get('', self.get_downloads),
+            web.put('', self.add_download),
+            web.delete('/{infohash}', self.delete_download),
+            web.patch('/{infohash}', self.update_download),
+            web.get('/{infohash}/torrent', self.get_torrent),
+            web.get('/{infohash}/files', self.get_files),
+            web.get('/{infohash}/files/expand', self.expand_tree_directory),
+            web.get('/{infohash}/files/collapse', self.collapse_tree_directory),
+            web.get('/{infohash}/files/select', self.select_tree_path),
+            web.get('/{infohash}/files/deselect', self.deselect_tree_path),
+        ])
 
     @staticmethod
     def return_404(request, message="this download does not exist"):
@@ -253,9 +214,6 @@ class DownloadsEndpoint(RESTEndpoint):
                         'availability': Float,
                         'peers': String,
                         'total_pieces': Integer,
-                        'vod_mode': Boolean,
-                        'vod_prebuffering_progress': Float,
-                        'vod_prebuffering_progress_consec': Float,
                         'error': String,
                         'time_added': Integer
                     }),
@@ -310,15 +268,8 @@ class DownloadsEndpoint(RESTEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            if self.mds is None:
-                name = tdef.get_name_utf8()
-            else:
-                name = self.mds.TorrentMetadata.get_torrent_title(tdef.get_infohash()) or tdef.get_name_utf8()
-
-            if self.tunnel_community:
-                status = get_extended_status(self.tunnel_community, download)
-            else:
-                status = download.get_state().get_status()
+            name = tdef.get_name_utf8()
+            status = self._get_extended_status(download)
 
             info = {
                 "name": name,
@@ -347,25 +298,16 @@ class DownloadsEndpoint(RESTEndpoint):
                 "destination": str(download.config.get_dest_dir()),
                 "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
-                "vod_mode": download.stream and download.stream.enabled,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added()
             }
-
-            if download.stream:
-                info.update({
-                    "vod_prebuffering_progress": download.stream.prebuffprogress,
-                    "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                    "vod_header_progress": download.stream.headerprogress,
-                    "vod_footer_progress": download.stream.footerprogress,
-                })
 
             if get_peers:
                 peer_list = state.get_peerlist()
                 for peer_info in peer_list:  # Remove have field since it is very large to transmit.
                     del peer_info['have']
                     if 'extended_version' in peer_info:
-                        peer_info['extended_version'] = _safe_extended_peer_info(peer_info['extended_version'])
+                        peer_info['extended_version'] = self._safe_extended_peer_info(peer_info['extended_version'])
 
                 info["peers"] = peer_list
 
@@ -469,32 +411,6 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash())})
 
-    async def vod_response(self, download, parameters, request, vod_mode):
-        modified = False
-        if vod_mode:
-            file_index = parameters.get("fileindex")
-            if file_index is None:
-                return RESTResponse({"error": "fileindex is necessary to enable vod_mode"},
-                                    status=HTTP_BAD_REQUEST)
-            if download.stream is None:
-                download.add_stream()
-            if not download.stream.enabled or download.stream.fileindex != file_index:
-                await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
-                await download.stream.updateprios()
-                modified = True
-
-        elif not vod_mode and download.stream is not None and download.stream.enabled:
-            download.stream.disable()
-            modified = True
-        return RESTResponse({"vod_prebuffering_progress": download.stream.prebuffprogress,
-                             "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                             "vod_header_progress": download.stream.headerprogress,
-                             "vod_footer_progress": download.stream.footerprogress,
-                             "vod_mode": download.stream.enabled,
-                             "infohash": hexlify(download.get_def().get_infohash()),
-                             "modified": modified,
-                             })
-
     @docs(
         tags=["Libtorrent"],
         summary="Update a specific download.",
@@ -525,12 +441,6 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404(request)
 
         parameters = await request.json()
-        vod_mode = parameters.get("vod_mode")
-        if vod_mode is not None:
-            if not isinstance(vod_mode, bool):
-                return RESTResponse({"error": "vod_mode must be bool flag"},
-                                    status=HTTP_BAD_REQUEST)
-            return await self.vod_response(download, parameters, request, vod_mode)
 
         if len(parameters) > 1 and 'anon_hops' in parameters:
             return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
@@ -788,84 +698,43 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse({})
 
-    @docs(
-        tags=["Libtorrent"],
-        summary="Stream the contents of a file that is being downloaded.",
-        parameters=[{
-            'in': 'path',
-            'name': 'infohash',
-            'description': 'Infohash of the download to stream',
-            'type': 'string',
-            'required': True
-        },
-            {
-                'in': 'path',
-                'name': 'fileindex',
-                'description': 'The fileindex to stream',
-                'type': 'string',
-                'required': True
-            }],
-        responses={
-            206: {'description': 'Contents of the stream'}
-        }
-    )
-    async def stream(self, request):
-        infohash = unhexlify(request.match_info['infohash'])
-        download = self.download_manager.get_download(infohash)
-        if not download:
-            return DownloadsEndpoint.return_404(request)
+    def _get_extended_status(self, download: Download) -> DownloadStatus:
+        """
+        This function filters the original download status to possibly add tunnel-related status.
+        Extracted from DownloadState to remove coupling between DownloadState and Tunnels.
+        """
+        state = download.get_state()
+        status = state.get_status()
 
-        file_index = int(request.match_info['fileindex'])
+        # Nothing to do with tunnels. If stopped - it happened by the user or libtorrent-only reason
+        stopped_by_user = state.lt_status and state.lt_status.paused
 
-        http_range = request.http_range
-        start = http_range.start or 0
+        if status == DownloadStatus.STOPPED and not stopped_by_user:
+            if download.config.get_hops() <= 0:
+                return DownloadStatus.STOPPED
 
-        if download.stream is None:
-            download.add_stream()
-        await wait_for(download.stream.enable(file_index, None if start > 0 else 0), 10)
+            if self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+                return DownloadStatus.CIRCUITS
 
-        stop = download.stream.filesize if http_range.stop is None else min(http_range.stop, download.stream.filesize)
+            return DownloadStatus.EXIT_NODES
 
-        if not start < stop or not 0 <= start < download.stream.filesize or not 0 < stop <= download.stream.filesize:
-            return RESTResponse('Requested Range Not Satisfiable', status=416)
+        return status
 
-        response = RESTStreamResponse(status=206,
-                                      reason='OK',
-                                      headers={'Accept-Ranges': 'bytes',
-                                               'Content-Type': 'application/octet-stream',
-                                               'Content-Length': f'{stop - start}',
-                                               'Content-Range': f'{start}-{stop}/{download.stream.filesize}'})
-        response.force_close()
-        with suppress(CancelledError, ConnectionResetError):
-            async with StreamChunk(download.stream, start) as chunk:
-                await response.prepare(request)
-                bytes_todo = stop - start
-                bytes_done = 0
-                self._logger.info('Got range request for %s-%s (%s bytes)', start, stop, bytes_todo)
-                while not request.transport.is_closing():
-                    if chunk.seekpos >= download.stream.filesize:
-                        break
-                    data = await chunk.read()
-                    try:
-                        if len(data) == 0:
-                            break
-                        if bytes_done + len(data) > bytes_todo:
-                            # if we have more data than we need
-                            endlen = bytes_todo - bytes_done
-                            if endlen != 0:
-                                await wait_for(response.write(data[:endlen]), STREAM_PAUSE_TIME)
+    def _safe_extended_peer_info(self, ext_peer_info):
+        """
+        Given a string describing peer info, return a json.dumps() safe representation.
 
-                                bytes_done += endlen
-                            break
-                        await wait_for(response.write(data), STREAM_PAUSE_TIME)
-                        bytes_done += len(data)
+        :param ext_peer_info: the string to convert to a dumpable format
+        :return: the safe string
+        """
+        # First see if we can use this as-is
+        if not ext_peer_info:
+            return ""
 
-                        if chunk.resume():
-                            self._logger.debug("Stream %s-%s is resumed, starting sequential buffer", start, stop)
-                    except AsyncTimeoutError:
-                        # This means that stream writer has a full buffer, in practice means that
-                        # the client keeps the conenction but sets the window size to 0. In this case
-                        # there is no need to keep sequenial buffer if there are other chunks waiting for prios
-                        if chunk.pause():
-                            self._logger.debug("Stream %s-%s is paused, stopping sequential buffer", start, stop)
-                return response
+        try:
+            return ensure_unicode(ext_peer_info, "utf8")
+        except UnicodeDecodeError as e:
+            # We might have some special unicode characters in here
+            self._logger.warning(f'Error while decoding peer info: {ext_peer_info}. {e.__class__.__name__}: {e}')
+
+        return ''.join(map(chr, ext_peer_info))

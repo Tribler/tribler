@@ -1,18 +1,15 @@
-import collections
 import copy
 import os
-import unittest.mock
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from ipv8.messaging.anonymization.tunnel import CIRCUIT_ID_PORT
 from ipv8.util import fail, succeed
 
-import tribler.core.components.libtorrent.restapi.downloads_endpoint as download_endpoint
 from tribler.core.components.libtorrent.download_manager.download import Download, IllegalFileIndex
 from tribler.core.components.libtorrent.download_manager.download_state import DownloadState
-from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint, get_extended_status
+from tribler.core.components.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.components.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.components.restapi.rest.base_api_test import do_request
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
@@ -20,151 +17,85 @@ from tribler.core.utilities.rest_utils import HTTP_SCHEME, path_to_url
 from tribler.core.utilities.simpledefs import DownloadStatus
 from tribler.core.utilities.unicode import hexlify
 
+TARGET = 'tribler.core.components.libtorrent.restapi.downloads_endpoint'
 
-# pylint: disable=redefined-outer-name
 
 @pytest.fixture
 def endpoint(mock_dlmgr, metadata_store):
-    return DownloadsEndpoint(mock_dlmgr, metadata_store=metadata_store)
+    return DownloadsEndpoint(download_manager=mock_dlmgr, metadata_store=metadata_store, tunnel_community=MagicMock())
 
 
-def get_hex_infohash(tdef):
-    return hexlify(tdef.get_infohash())
+@patch.object(DownloadState, 'get_status', Mock(return_value=DownloadStatus.DOWNLOADING))
+def test_get_extended_status_not_stopped(endpoint: DownloadsEndpoint, test_download: Download):
+    # Test `_get_extended_status` when the download is not stopped
+    actual = endpoint._get_extended_status(test_download)
+    assert actual == DownloadStatus.DOWNLOADING
 
 
-ExtendedStatusConfig = collections.namedtuple("ExtendedStatusConfig",
-                                              ["hops", "candidates", "has_status"],
-                                              defaults=[0, 0, True])
+@patch.object(Download, 'lt_status', PropertyMock(), create=True)
+@patch.object(DownloadState, 'get_status', Mock(return_value=DownloadStatus.STOPPED))
+def test_get_extended_status_stopped_no_hops(endpoint: DownloadsEndpoint, test_download: Download):
+    # Test `_get_extended_status` when the download is stopped and has no hops
+
+    test_download.lt_status.paused = False
+    test_download.config.get_hops = Mock(
+        wraps=test_download.config.get_hops  # wraps is used to call the original method
+    )
+    test_download.config.set_hops(0)
+
+    actual = endpoint._get_extended_status(test_download)
+
+    assert actual == DownloadStatus.STOPPED
+    assert test_download.config.get_hops.called
 
 
-@pytest.fixture(name="_patch_handle")
-def fixture_patch_handle(mock_handle):
-    """
-    The mock_handle fixture has side effects. Tests that use it only for its side effects will trigger W0613 (``Unused
-    argument 'mock_handle'``). By providing a fixture name starting with an underscore, we tell Pylint to ignore
-    the fact that this fixture goes unused in the unit test.
+@patch.object(Download, 'lt_status', PropertyMock(), create=True)
+@patch.object(DownloadState, 'get_status', Mock(return_value=DownloadStatus.STOPPED))
+def test_get_extended_status_stopped_not_by_user(endpoint: DownloadsEndpoint, test_download: Download):
+    # Test `_get_extended_status` when the download is stopped and not by the user
+    test_download.lt_status.paused = True  # this is an indicator that the download was stopped by the user
+    test_download.config.get_hops = Mock(
+        wraps=test_download.config.get_hops  # wraps is used to call the original method
+    )
 
-    :param mock_handle: The download handle mock.
-    """
-    return mock_handle
+    actual = endpoint._get_extended_status(test_download)
 
-
-@pytest.fixture(name="mock_extended_status", scope="function")
-def fixture_extended_status(request, mock_lt_status) -> int:
-    """
-    Fixture to provide an extended status for a DownloadState that uses a mocked TunnelCommunity and a mocked Download.
-
-    Parameterization options:
-
-     - Set Tribler's configured hops through the ``hops`` parameter.
-     - Set the numer of exit candidates for the ``TunnelCommunity`` through the ``candidates`` parameter.
-     - Set whether the DownloadState has a ``lt_status``, that is not ``None``, through the ``has_status``.
-
-    :param request: PyTest's parameterization of this test, using ExtendedStatusConfig.
-    :type request: SubRequest
-    :param mock_lt_status: fixture that provides a mocked libtorrent status.
-    """
-    tunnel_community = Mock()
-    download = Mock()
-    state = DownloadState(download, mock_lt_status, None)
-    download.get_state = lambda: state
-
-    # Test parameterization
-    download.config.get_hops = lambda: request.param.hops
-    if not request.param.has_status:
-        state.lt_status = None
-    tunnel_community.get_candidates = lambda _: request.param.candidates
-
-    return get_extended_status(tunnel_community, download)
+    assert actual == DownloadStatus.STOPPED
+    assert not test_download.config.get_hops.called
 
 
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=0, candidates=0, has_status=True)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_downloading_nohops_nocandidates(mock_extended_status):
-    """
-    Testing whether a non-anonymous download with state is considered "DOWNLOADING" without candidates.
-    """
-    assert mock_extended_status == DownloadStatus.DOWNLOADING
+@patch.object(Download, 'lt_status', PropertyMock(), create=True)
+@patch.object(DownloadState, 'get_status', Mock(return_value=DownloadStatus.STOPPED))
+def test_get_extended_status_stopped_hops_no_candidates(endpoint: DownloadsEndpoint, test_download: Download):
+    # Test `_get_extended_status` when the download is stopped and has hops but no candidates
+    test_download.lt_status.paused = False
+    test_download.config.set_hops(1)
+    endpoint.tunnel_community.get_candidates = Mock(return_value=[])
+
+    actual = endpoint._get_extended_status(test_download)
+
+    assert actual == DownloadStatus.EXIT_NODES
 
 
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=0, candidates=1, has_status=True)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_downloading_nohops_candidates(mock_extended_status):
-    """
-    Testing whether a non-anonymous download with state is considered "DOWNLOADING" with candidates.
-    """
-    assert mock_extended_status == DownloadStatus.DOWNLOADING
+@patch.object(Download, 'lt_status', PropertyMock(), create=True)
+@patch.object(DownloadState, 'get_status', Mock(return_value=DownloadStatus.STOPPED))
+def test_get_extended_status_stopped_hops_candidates(endpoint: DownloadsEndpoint, test_download: Download):
+    # Test `_get_extended_status` when the download is stopped and has hops and candidates
+    test_download.lt_status.paused = False
+    test_download.config.set_hops(1)
+    endpoint.tunnel_community.get_candidates = Mock(return_value=[Mock()])
+
+    actual = endpoint._get_extended_status(test_download)
+
+    assert actual == DownloadStatus.CIRCUITS
 
 
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=1, candidates=0, has_status=True)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_downloading_hops_nocandidates(mock_extended_status):
-    """
-    Testing whether an anonymous download with state is considered "DOWNLOADING" without candidates.
-    """
-    assert mock_extended_status == DownloadStatus.DOWNLOADING
-
-
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=1, candidates=1, has_status=True)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_downloading_hops_candidates(mock_extended_status):
-    """
-    Testing whether an anonymous download with state is considered "DOWNLOADING" with candidates.
-    """
-    assert mock_extended_status == DownloadStatus.DOWNLOADING
-
-
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=0, candidates=0, has_status=False)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_stopped(mock_extended_status):
-    """
-    Testing whether a non-anonymous download without state is considered "STOPPED" without candidates.
-    """
-    assert mock_extended_status == DownloadStatus.STOPPED
-
-
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=0, candidates=1, has_status=False)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_stopped_hascandidates(mock_extended_status):
-    """
-    Testing whether a non-anonymous download without state is considered "STOPPED" with candidates.
-    """
-    assert mock_extended_status == DownloadStatus.STOPPED
-
-
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=1, candidates=0, has_status=False)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_exit_nodes(mock_extended_status):
-    """
-    Testing whether an anonymous download without state is considered looking for "EXIT_NODES" without candidates.
-    """
-    assert mock_extended_status == DownloadStatus.EXIT_NODES
-
-
-@pytest.mark.parametrize("mock_extended_status",
-                         [ExtendedStatusConfig(hops=1, candidates=1, has_status=False)],
-                         indirect=["mock_extended_status"])
-def test_get_extended_status_circuits(mock_extended_status):
-    """
-    Testing whether an anonymous download without state is considered looking for "CIRCUITS" with candidates.
-    """
-    assert mock_extended_status == DownloadStatus.CIRCUITS
-
-
-@unittest.mock.patch("tribler.core.components.libtorrent.restapi.downloads_endpoint.ensure_unicode",
-                     Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
-def test_safe_extended_peer_info():
+@patch(f"{TARGET}.ensure_unicode", Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
+def test_safe_extended_peer_info(endpoint: DownloadsEndpoint):
     """
     Test that we return the string mapped by `chr` in the case of `UnicodeDecodeError`
     """
-    extended_peer_info = download_endpoint._safe_extended_peer_info(b"abcd")  # pylint: disable=protected-access
+    extended_peer_info = endpoint._safe_extended_peer_info(b"abcd")
     assert extended_peer_info == "abcd"
 
 
@@ -606,48 +537,6 @@ async def test_stream_unknown_download(mock_dlmgr, rest_api):
                      request_type='GET')
 
 
-async def test_stream_download_out_of_bounds_file(mock_dlmgr, mock_handle, test_download, rest_api):
-    """
-    Testing whether the API returns code 404 if we stream with a file index out of bounds
-    """
-    mock_dlmgr.get_download = lambda _: test_download
-    await do_request(rest_api, f'downloads/{test_download.infohash}/stream/100',
-                     headers={'range': 'bytes=0-'}, expected_code=500, request_type='GET')
-
-
-async def test_stream_download(mock_dlmgr, mock_handle, test_download, rest_api, tmp_path):
-    """
-    Testing whether the API returns code 206 if we stream a non-existent download
-    """
-    mock_dlmgr.get_download = lambda _: test_download
-
-    with open(tmp_path / "dummy.txt", "w") as stream_file:
-        stream_file.write("a" * 500)
-
-    # Prepare a mocked stream
-    stream = Mock()
-    stream.seek = lambda _: succeed(None)
-    stream.closed = False
-    stream.filename = tmp_path / "dummy.txt"
-    stream.enable = lambda *_, **__: succeed(None)
-    stream.filesize = 500
-    stream.piecelen = 32
-    stream.seek = lambda _: succeed(None)
-    stream.iterpieces = lambda *_, **__: [1]
-    stream.prebuffsize = 0
-    stream.lastpiece = 1
-    stream.bytetopiece = lambda _: 1
-    stream.pieceshave = [1, 2]
-    stream.updateprios = lambda: succeed(None)
-    stream.cursorpiecemap = {}
-    stream.get_byte_progress = lambda _: 1
-    stream.read = lambda _: succeed('a' * 500)
-    test_download.stream = stream
-
-    await do_request(rest_api, f'downloads/{test_download.infohash}/stream/0',
-                     headers={'range': 'bytes=0-'}, expected_code=206, json_response=False)
-
-
 async def test_change_hops(mock_dlmgr, test_download, rest_api):
     """
     Testing whether the API returns 200 if we change the amount of hops of a download
@@ -672,7 +561,7 @@ async def test_change_hops_fail(mock_dlmgr, test_download, rest_api):
                      expected_json={'error': {'message': '', 'code': 'RuntimeError', 'handled': True}})
 
 
-async def test_expand(mock_dlmgr, _patch_handle, test_download, rest_api):
+async def test_expand(mock_dlmgr, mock_handle, test_download, rest_api):
     """
     Testing if a call to expand is correctly propagated to the underlying torrent file tree.
     """
@@ -696,7 +585,7 @@ async def test_expand_unknown_download(mock_dlmgr, rest_api):
     await do_request(rest_api, f'downloads/{"00" * 20}/files/expand', params={"path": "."}, expected_code=404)
 
 
-async def test_collapse(mock_dlmgr, _patch_handle, test_download, rest_api):
+async def test_collapse(mock_dlmgr, mock_handle, test_download, rest_api):
     """
     Testing if a call to collapse is correctly propagated to the underlying torrent file tree.
     """
@@ -720,7 +609,7 @@ async def test_collapse_unknown_download(mock_dlmgr, rest_api):
     await do_request(rest_api, f'downloads/{"00" * 20}/files/collapse', params={"path": "."}, expected_code=404)
 
 
-async def test_select(mock_dlmgr, _patch_handle, test_download, rest_api):
+async def test_select(mock_dlmgr, mock_handle, test_download, rest_api):
     """
     Testing if a call to select is correctly propagated to the underlying torrent file tree.
     """
@@ -745,7 +634,7 @@ async def test_select_unknown_download(mock_dlmgr, rest_api):
     await do_request(rest_api, f'downloads/{"00" * 20}/files/select', params={"path": "."}, expected_code=404)
 
 
-async def test_deselect(mock_dlmgr, _patch_handle, test_download, rest_api):
+async def test_deselect(mock_dlmgr, mock_handle, test_download, rest_api):
     """
     Testing if a call to deselect is correctly propagated to the underlying torrent file tree.
     """

@@ -151,14 +151,11 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_progress_bar.update_with_download(self.current_download)
         self.window().download_detail_name_label.setText(self.current_download['name'])
 
-        if self.current_download["vod_mode"]:
-            self.window().download_detail_status_label.setText('Streaming')
-        else:
-            status = DownloadStatus(self.current_download["status_code"])
-            status_string = STATUS_STRING[status]
-            if status == DownloadStatus.STOPPED_ON_ERROR:
-                status_string += f" (error: {self.current_download['error']})"
-            self.window().download_detail_status_label.setText(status_string)
+        status = DownloadStatus(self.current_download["status_code"])
+        status_string = STATUS_STRING[status]
+        if status == DownloadStatus.STOPPED_ON_ERROR:
+            status_string += f" (error: {self.current_download['error']})"
+        self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
             tr("%(num_bytes)s in %(num_files)d files")

@@ -81,17 +81,16 @@ class RESTComponent(Component):
         self.root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
 
         torrent_checker = None if config.gui_test_mode else torrent_checker_component.torrent_checker
-        tunnel_community = None if config.gui_test_mode else tunnel_component.community
 
         # add endpoints
         self.root_endpoint.add_endpoint(EventsEndpoint.path, self._events_endpoint)
         self.maybe_add(SettingsEndpoint, config, download_manager=libtorrent_component.download_manager)
         self.maybe_add(ShutdownEndpoint, shutdown_event.set)
-        self.maybe_add(DebugEndpoint, config.state_dir, log_dir, tunnel_community=tunnel_community,
+        self.maybe_add(DebugEndpoint, config.state_dir, log_dir, tunnel_community=tunnel_component.community,
                        resource_monitor=resource_monitor_component.resource_monitor,
                        core_exception_handler=self._core_exception_handler)
         self.maybe_add(DownloadsEndpoint, libtorrent_component.download_manager,
-                       metadata_store=db_component.mds, tunnel_community=tunnel_community)
+                       metadata_store=db_component.mds, tunnel_community=tunnel_component.community)
         self.maybe_add(CreateTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(StatisticsEndpoint, ipv8=ipv8_component.ipv8, metadata_store=db_component.mds)
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
