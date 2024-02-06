@@ -511,6 +511,13 @@ async def test_start_download_from_magnet_no_name(fake_dlmgr: DownloadManager):
     assert download.tdef.get_name() == b'Unknown name'
 
 
+async def test_start_download_from_magnet_with_name(fake_dlmgr: DownloadManager):
+    # Test whether a download is started with `Unknown name` name when the magnet has no name
+    magnet = f'magnet:?xt=urn:btih:{"A" * 40}&dn=AwesomeTorrent'
+    download = await fake_dlmgr.start_download_from_uri(magnet)
+    assert download.tdef.get_name() == b'AwesomeTorrent'
+
+
 def test_update_trackers(fake_dlmgr) -> None:
     fake_download, _ = create_fake_download_and_state()
     fake_dlmgr.downloads[fake_download.infohash] = fake_download
