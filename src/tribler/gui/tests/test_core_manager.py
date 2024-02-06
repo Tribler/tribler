@@ -1,4 +1,3 @@
-import errno
 import sys
 import time
 from unittest.mock import MagicMock, patch
@@ -141,11 +140,30 @@ def test_decode_raw_core_output(core_manager):
 
 
 def test_format_error_message():
-    actual = CoreManager.format_error_message(exit_code=errno.ENOENT, exit_status=1)
-    expected = '''The Tribler core has unexpectedly finished with exit code 2 (0x2) and status: 1.
+    actual = CoreManager.format_error_message(exit_code=99, exit_status=1)
+    expected = '''The Tribler core has unexpectedly finished with exit code 99 (0x63) and status: 1.
 
-Error message: No such file or directory'''
+Error message: EXITCODE_DATABASE_IS_CORRUPTED'''
 
+    assert actual == expected
+
+
+@patch('tribler.core.utilities.exit_codes.check_win_errors', True)
+def test_format_error_message_windows():
+    actual = CoreManager.format_error_message(exit_code=-1073741819, exit_status=1)
+    expected = '''The Tribler core has unexpectedly finished with exit code -1073741819 (0xc0000005) and status: 1.
+
+Error message: STATUS_ACCESS_VIOLATION'''
+    assert actual == expected
+
+
+@patch('tribler.core.utilities.exit_codes.check_win_errors', False)
+@patch('os.strerror', MagicMock(side_effect=ValueError))
+def test_format_error_message_windows_error_not_on_windows():
+    actual = CoreManager.format_error_message(exit_code=-1073741819, exit_status=1)
+    expected = '''The Tribler core has unexpectedly finished with exit code -1073741819 (0xc0000005) and status: 1.
+
+Error message: Unknown error'''
     assert actual == expected
 
 

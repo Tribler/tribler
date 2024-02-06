@@ -12,7 +12,8 @@ from typing import Optional
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 
-from tribler.core.utilities.exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
+from tribler.core.utilities.exit_codes import get_error_name
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
 from tribler.core.utilities.process_manager import ProcessManager
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
@@ -289,7 +290,7 @@ class CoreManager(QObject):
             string_error = "Application error"
         else:
             try:
-                string_error = os.strerror(exit_code)
+                string_error = get_error_name(exit_code)
             except ValueError:
                 # On platforms where strerror() returns NULL when given an unknown error number, ValueError is raised.
                 string_error = 'unknown error number'

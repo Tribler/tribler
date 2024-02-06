@@ -11,7 +11,7 @@ from tribler.core.components.component import Component
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.async_group.async_group import AsyncGroup
-from tribler.core.utilities.exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.process_locking import CORE_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind, ProcessManager
