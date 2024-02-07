@@ -50,7 +50,7 @@ def test_invalid_version(connection):
     Test passing an invalid version to the socks5 server
     """
     connection.data_received(unhexlify('040100'))
-    assert not connection.transport.connected
+    assert not connection.transport
 
 
 def test_method_request(connection):

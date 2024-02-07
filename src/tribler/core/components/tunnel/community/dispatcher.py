@@ -93,9 +93,13 @@ class TunnelDispatcher(TaskManager):
             self._logger.info('Failed to get HTTP response using tunnels: %s', e)
             return
 
+        transport = tcp_connection.transport
+        if not transport:
+            return
+
         if response:
-            tcp_connection.transport.write(response)
-        tcp_connection.transport.close()
+            transport.write(response)
+        transport.close()
 
     def select_circuit(self, connection, request):
         def add_data_if_result(result_func, connection=connection.udp_connection, request=request):
