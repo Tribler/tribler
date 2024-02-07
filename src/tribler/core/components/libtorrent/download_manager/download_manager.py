@@ -591,7 +591,8 @@ class DownloadManager(TaskManager):
                 tdef = TorrentDef.load_from_dict(self.metainfo_cache[infohash]['meta_info'])
             else:
                 self._logger.info('Metainfo not found in cache')
-                tdef = TorrentDefNoMetainfo(infohash, b"Unknown name" if not name else name, url=uri)
+                name_encoded = name.encode('utf8') if name else b"Unknown name"
+                tdef = TorrentDefNoMetainfo(infohash, name_encoded, url=uri)
             return await self.start_download(tdef=tdef, config=config)
         if scheme == FILE_SCHEME:
             self._logger.info('File scheme detected')
