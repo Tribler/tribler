@@ -215,3 +215,4 @@ class Socks5Connection(Protocol):
 
         if self.transport:
             self.transport.close()
+            self.transport = None
