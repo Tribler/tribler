@@ -96,6 +96,14 @@ async def test_on_socks_in_tcp(dispatcher):
     tcp_connection.transport.write.assert_called_once_with(b'test')
 
 
+async def test_on_socks5_tcp_data_with_transport_none(dispatcher):
+    tcp_connection = Mock(transport=None)
+    dispatcher.set_socks_servers([tcp_connection.socksserver])
+
+    dispatcher.tunnels.perform_http_request = Mock(return_value=succeed(b'test'))
+    await dispatcher.on_socks5_tcp_data(tcp_connection, ("0.0.0.0", 1024), b'')
+
+
 def test_circuit_dead(dispatcher, mock_circuit):
     """
     Test whether the correct peers are removed when a circuit breaks
