@@ -5,16 +5,18 @@ from pony.orm import Required
 
 if TYPE_CHECKING:
     @dataclasses.dataclass
-    class RendezvousCertificate:
+    class PeerScore:
         public_key: bytes
-        start: float
-        stop: float
+        total: float
+        count: int
+        last_updated: int
 
 
 def define_binding(db):
-    class RendezvousCertificate(db.Entity):
+    class PeerScore(db.Entity):
         public_key = Required(bytes, index=True)
-        start = Required(float)
-        stop = Required(float)
+        total = Required(float)
+        count = Required(int)
+        last_updated = Required(int)
 
-    return RendezvousCertificate
+    return PeerScore

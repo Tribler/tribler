@@ -15,6 +15,13 @@ class BootstrapSettings(TriblerConfigSection):
     infohash: str = 'b496932f32daad964e1b63188faabf74d22b45ea'
 
 
+class RendezvousSettings(TriblerConfigSection):
+    enabled: bool = False
+    decay_coefficient: float = 1 / 2000
+    decay_granularity: float = 3600  # 1 hour
+    stale_timeout: float = 3600 * 24 * 7  # 1 week
+
+
 class Ipv8Settings(TriblerConfigSection):
     enabled: bool = True
     port: int = 7759
@@ -22,7 +29,6 @@ class Ipv8Settings(TriblerConfigSection):
     rust_endpoint: bool = True
     bootstrap_override: Optional[str] = None
     statistics: bool = False
-    rendezvous_stats: bool = False
     walk_interval: float = 0.5
     walk_scaling_enabled: bool = True
     walk_scaling_upper_limit: float = 3.0

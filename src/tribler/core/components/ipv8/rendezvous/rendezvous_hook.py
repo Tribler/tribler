@@ -4,6 +4,7 @@ import time
 from ipv8.peerdiscovery.network import Network, PeerObserver
 from ipv8.types import Peer
 from tribler.core.components.ipv8.rendezvous.db.database import RendezvousDatabase
+from tribler.core.components.ipv8.settings import RendezvousSettings
 
 
 class RendezvousHook(PeerObserver):
