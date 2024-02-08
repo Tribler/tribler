@@ -13,7 +13,7 @@ from tribler.core.components.ipv8.settings import (
     BootstrapSettings,
     DHTSettings,
     DiscoveryCommunitySettings,
-    Ipv8Settings,
+    Ipv8Settings, RendezvousSettings,
 )
 from tribler.core.components.key.settings import TrustchainSettings
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
@@ -41,6 +41,7 @@ class TriblerConfig(BaseSettings):
     tunnel_community: TunnelCommunitySettings = TunnelCommunitySettings()
     bootstrap: BootstrapSettings = BootstrapSettings()
     ipv8: Ipv8Settings = Ipv8Settings()
+    rendezvous: RendezvousSettings = RendezvousSettings()
     discovery_community: DiscoveryCommunitySettings = DiscoveryCommunitySettings()
     dht: DHTSettings = DHTSettings()
     trustchain: TrustchainSettings = TrustchainSettings()

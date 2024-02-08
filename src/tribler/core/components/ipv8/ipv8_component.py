@@ -36,7 +36,7 @@ class Ipv8Component(Component):
 
     RENDEZVOUS_DB_NAME = 'rendezvous.db'
     rendezvous_db: Optional[RendezvousDatabase] = None
-    rendevous_hook: Optional[RendezvousHook] = None
+    rendezvous_hook: Optional[RendezvousHook] = None
 
     async def run(self):
         await super().run()
@@ -45,10 +45,14 @@ class Ipv8Component(Component):
 
         self._task_manager = TaskManager()
 
-        if config.ipv8.rendezvous_stats:
+        if config.rendezvous.enabled:
             self.rendezvous_db = RendezvousDatabase(
-                db_path=self.session.config.state_dir / STATEDIR_DB_DIR / self.RENDEZVOUS_DB_NAME)
-            self.rendevous_hook = RendezvousHook(self.rendezvous_db)
+                db_path=self.session.config.state_dir / STATEDIR_DB_DIR / self.RENDEZVOUS_DB_NAME,
+                decay_coefficient=config.rendezvous.decay_coefficient,
+                decay_granularity=config.rendezvous.decay_granularity,
+                stale_timeout=config.rendezvous.stale_timeout
+            )
+            self.rendezvous_hook = RendezvousHook(self.rendezvous_db)
 
         port = config.ipv8.port
         address = config.ipv8.address
@@ -69,8 +73,8 @@ class Ipv8Component(Component):
         ipv8 = IPv8(ipv8_config_builder.finalize(),
                     enable_statistics=config.ipv8.statistics and not config.gui_test_mode,
                     endpoint_override=endpoint)
-        if config.ipv8.rendezvous_stats:
-            ipv8.network.add_peer_observer(self.rendevous_hook)
+        if config.rendezvous.enabled:
+            ipv8.network.add_peer_observer(self.rendezvous_hook)
         await ipv8.start()
         self.ipv8 = ipv8
 
@@ -150,7 +154,7 @@ class Ipv8Component(Component):
             if overlay:
                 await self.ipv8.unload_overlay(overlay)
 
-        if self.rendevous_hook is not None:
-            self.rendevous_hook.shutdown(self.ipv8.network)
+        if self.rendezvous_hook is not None:
+            self.rendezvous_hook.shutdown(self.ipv8.network)
         await self._task_manager.shutdown_task_manager()
         await self.ipv8.stop()
