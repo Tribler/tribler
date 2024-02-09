@@ -140,7 +140,7 @@ async def test_get_downloads_circuit_peer(mock_dlmgr, test_download, rest_api, e
     mock_dlmgr.get_downloads = Mock(return_value=[test_download])
     endpoint.tunnel_community = Mock()
     endpoint.tunnel_community.ip_to_circuit_id = Mock(return_value=42)
-    test_download.get_peerlist = Mock(
+    test_download.get_peer_list = Mock(
         return_value=[
             {
                 'ip': "127.0.0.1",
@@ -251,7 +251,7 @@ async def test_get_peers_illegal_fields_ascii(test_download, mock_dlmgr, mock_lt
     mock_dlmgr.get_downloads = Mock(return_value=[test_download])
 
     ds = DownloadState(test_download, mock_lt_status, None)
-    ds.get_peerlist = Mock(
+    ds.get_peer_list = Mock(
         return_value=[
             {
                 'id': '1234',
@@ -277,7 +277,7 @@ async def test_get_peers_illegal_fields_unknown(test_download, mock_dlmgr, mock_
     mock_dlmgr.get_downloads = Mock(return_value=[test_download])
 
     ds = DownloadState(test_download, mock_lt_status, None)
-    ds.get_peerlist = Mock(
+    ds.get_peer_list = Mock(
         return_value=[
             {
                 'id': '1234',

@@ -242,7 +242,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                     # after a period of having no circuits
                     if self.last_forced_announce.get(info_hash, 0) + 60 <= time.time() \
                             and self.find_circuits(hops=hop_count) \
-                            and not ds.get_peerlist():
+                            and not ds.get_peer_list():
                         download.force_dht_announce()
                         self.last_forced_announce[info_hash] = time.time()
 

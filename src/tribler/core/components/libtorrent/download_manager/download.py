@@ -533,7 +533,7 @@ class Download(TaskManager):
         except (CancelledError, SaveResumeDataError, TimeoutError, asyncio.exceptions.TimeoutError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
-    def get_peerlist(self, include_have: bool = True) -> List[Dict[Any, Any]]:
+    def get_peer_list(self, include_have: bool = True) -> List[Dict[Any, Any]]:
         """ Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer. In particular, the
         dictionary contains the keys:

@@ -885,7 +885,7 @@ class DownloadManager(TaskManager):
             # Check the peers of this download every five seconds and add them to the payout manager when
             # this peer runs a Tribler instance
             if self.state_cb_count % 5 == 0 and download.config.get_hops() == 0 and self.notifier:
-                for peer in download.get_peerlist():
+                for peer in download.get_peer_list():
                     if str(peer["extended_version"]).startswith('Tribler'):
                         self.notifier[notifications.tribler_torrent_peer_update](unhexlify(peer["id"]), infohash,
                                                                                  peer["dtotal"])
