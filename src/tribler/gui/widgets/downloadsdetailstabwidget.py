@@ -176,8 +176,10 @@ class DownloadsDetailsTabWidget(QTabWidget):
         self.window().download_detail_ratio_label.setText(
             f"{all_time_ratio}, upload: {all_time_upload}, download: {all_time_download}"
         )
+        availability = self.current_download.get('availability')
+        availability = f"{availability :.2f}" if availability else ''
 
-        self.window().download_detail_availability_label.setText(f"{self.current_download['availability']:.2f}")
+        self.window().download_detail_availability_label.setText(availability)
 
         if new_download:
             self.window().download_files_list.clear()

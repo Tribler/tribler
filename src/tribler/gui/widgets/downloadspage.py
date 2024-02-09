@@ -151,6 +151,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             url_params={
                 'get_pieces': 1,
                 'get_peers': int(index == DownloadDetailsTabs.PEERS),
+                'get_availability': 1,
                 'infohash': infohash
             },
             on_success=self.on_received_selected_download,
