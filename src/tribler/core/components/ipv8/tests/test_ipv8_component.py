@@ -43,8 +43,8 @@ async def test_ipv8_component_statistics_enabled(tribler_config):
 
 
 async def test_ipv8_rendezvous_enabled(tribler_config):
-    tribler_config.ipv8.rendezvous_stats = True
+    tribler_config.rendezvous.enabled = True
     async with Session(tribler_config, [KeyComponent(), Ipv8Component()]) as session:
         comp = session.get_instance(Ipv8Component)
         assert comp.rendezvous_db is not None
-        assert comp.rendevous_hook is not None
+        assert comp.rendezvous_hook is not None

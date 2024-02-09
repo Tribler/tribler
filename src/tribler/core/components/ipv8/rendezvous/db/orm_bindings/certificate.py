@@ -17,6 +17,6 @@ def define_binding(db):
         public_key = Required(bytes, index=True)
         total = Required(float)
         count = Required(int)
-        last_updated = Required(int)
+        last_updated = Required(float)
 
     return PeerScore
