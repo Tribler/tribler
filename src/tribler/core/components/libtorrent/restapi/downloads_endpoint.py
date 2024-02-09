@@ -313,9 +313,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 info["availability"] = state.get_availability()
 
             if get_peers:
-                peer_list = state.get_peerlist()
-                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
-                    del peer_info['have']
+                peer_list = state.get_peerlist(include_have=False)
+                for peer_info in peer_list:
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = self._safe_extended_peer_info(peer_info['extended_version'])
 

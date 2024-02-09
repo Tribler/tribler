@@ -267,8 +267,8 @@ class DownloadState:
             return nr_seeders_complete + nr_leechers_complete + fraction_additonal
         return nr_seeders_complete
 
-    def get_peerlist(self):
+    def get_peerlist(self, include_have: bool = True):
         """ Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer.
         """
-        return self.download.get_peerlist()
+        return self.download.get_peerlist(include_have)
