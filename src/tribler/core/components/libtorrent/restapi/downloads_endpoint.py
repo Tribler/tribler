@@ -172,6 +172,13 @@ class DownloadsEndpoint(RESTEndpoint):
             },
             {
                 'in': 'query',
+                'name': 'get_availability',
+                'description': 'Flag indicating whether or not to include availability',
+                'type': 'boolean',
+                'required': False
+            },
+            {
+                'in': 'query',
                 'name': 'infohash',
                 'description': 'If specified only return the download with the given infohash',
                 'type': 'str',
@@ -237,6 +244,7 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         get_peers = params.get('get_peers')
         get_pieces = params.get('get_pieces')
+        get_availability = params.get('get_availability')
         infohash = params.get('infohash')
         excluded = params.get('excluded')
 
@@ -296,16 +304,17 @@ class DownloadsEndpoint(RESTEndpoint):
                 "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.download_manager.config),
                 "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
                 "destination": str(download.config.get_dest_dir()),
-                "availability": state.get_availability(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added()
             }
 
+            if get_availability:
+                info["availability"] = state.get_availability()
+
             if get_peers:
-                peer_list = state.get_peerlist()
-                for peer_info in peer_list:  # Remove have field since it is very large to transmit.
-                    del peer_info['have']
+                peer_list = state.get_peer_list(include_have=False)
+                for peer_info in peer_list:
                     if 'extended_version' in peer_info:
                         peer_info['extended_version'] = self._safe_extended_peer_info(peer_info['extended_version'])
 

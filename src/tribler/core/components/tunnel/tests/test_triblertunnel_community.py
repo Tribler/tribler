@@ -308,25 +308,6 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
 
         self.assertEqual(self.nodes[0].overlay.tunnels_ready(1), 0.0)
 
-    async def test_intro_point_slot(self):
-        """
-        Test whether a introduction point occupies a slot
-        """
-        self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-        await self.introduce_nodes()
-
-        circuit = self.nodes[0].overlay.create_circuit(1)
-        await circuit.ready
-
-        exit_socket = list(self.nodes[1].overlay.exit_sockets.values())[0]
-        self.assertTrue(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
-
-        self.nodes[0].overlay.send_cell(circuit.peer,
-                                        EstablishIntroPayload(circuit.circuit_id, int(random() * 2 ** 16), b'', b''))
-        await self.deliver_messages()
-        self.assertFalse(exit_socket.circuit_id in self.nodes[1].overlay.random_slots)
-
     async def test_perform_http_request(self):
         """
         Test whether we can make a http request through a circuit
@@ -429,9 +410,3 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         """ Test whether we can join a circuit"""
         community: TriblerTunnelCommunity = self.overlay(0)
         assert await community.should_join_circuit(create_payload=Mock(), previous_node_address=Mock())
-
-    async def test_should_join_circuit_no_slots(self):
-        """ Test whether we can not join a circuit when we have no slots"""
-        community: TriblerTunnelCommunity = self.overlay(0)
-        community.random_slots = []
-        assert not await community.should_join_circuit(create_payload=Mock(), previous_node_address=Mock())

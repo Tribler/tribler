@@ -533,7 +533,7 @@ class Download(TaskManager):
         except (CancelledError, SaveResumeDataError, TimeoutError, asyncio.exceptions.TimeoutError) as e:
             self._logger.error("Resume data failed to save: %s", e)
 
-    def get_peerlist(self) -> List[Dict[Any, Any]]:
+    def get_peer_list(self, include_have: bool = True) -> List[Dict[Any, Any]]:
         """ Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer. In particular, the
         dictionary contains the keys:
@@ -569,29 +569,33 @@ class Download(TaskManager):
                 extended_version = peer_info.client
             except UnicodeDecodeError:
                 extended_version = 'unknown'
-            peer_dict = {'id': hexlify(peer_info.pid.to_bytes()),
-                         'extended_version': extended_version,
-                         'ip': peer_info.ip[0],
-                         'port': peer_info.ip[1],
-                         # optimistic_unchoke = 0x800 seems unavailable in python bindings
-                         'optimistic': bool(peer_info.flags & 0x800),
-                         'direction': 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R',
-                         'uprate': peer_info.payload_up_speed,
-                         'uinterested': bool(peer_info.flags & peer_info.remote_interested),
-                         'uchoked': bool(peer_info.flags & peer_info.remote_choked),
-                         'uhasqueries': peer_info.upload_queue_length > 0,
-                         'uflushed': peer_info.used_send_buffer > 0,
-                         'downrate': peer_info.payload_down_speed,
-                         'dinterested': bool(peer_info.flags & peer_info.interesting),
-                         'dchoked': bool(peer_info.flags & peer_info.choked),
-                         'snubbed': bool(peer_info.flags & 0x1000),
-                         'utotal': peer_info.total_upload,
-                         'dtotal': peer_info.total_download,
-                         'completed': peer_info.progress,
-                         'have': peer_info.pieces, 'speed': peer_info.remote_dl_rate,
-                         'connection_type': peer_info.connection_type,
-                         'seed': bool(peer_info.flags & peer_info.seed),
-                         'upload_only': bool(peer_info.flags & peer_info.upload_only)}
+            peer_dict = {
+                'id': hexlify(peer_info.pid.to_bytes()),
+                'extended_version': extended_version,
+                'ip': peer_info.ip[0],
+                'port': peer_info.ip[1],
+                # optimistic_unchoke = 0x800 seems unavailable in python bindings
+                'optimistic': bool(peer_info.flags & 0x800),
+                'direction': 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R',
+                'uprate': peer_info.payload_up_speed,
+                'uinterested': bool(peer_info.flags & peer_info.remote_interested),
+                'uchoked': bool(peer_info.flags & peer_info.remote_choked),
+                'uhasqueries': peer_info.upload_queue_length > 0,
+                'uflushed': peer_info.used_send_buffer > 0,
+                'downrate': peer_info.payload_down_speed,
+                'dinterested': bool(peer_info.flags & peer_info.interesting),
+                'dchoked': bool(peer_info.flags & peer_info.choked),
+                'snubbed': bool(peer_info.flags & 0x1000),
+                'utotal': peer_info.total_upload,
+                'dtotal': peer_info.total_download,
+                'completed': peer_info.progress,
+                'speed': peer_info.remote_dl_rate,
+                'connection_type': peer_info.connection_type,
+                'seed': bool(peer_info.flags & peer_info.seed),
+                'upload_only': bool(peer_info.flags & peer_info.upload_only)
+            }
+            if include_have:
+                peer_dict['have'] = peer_info.pieces
             peers.append(peer_dict)
         return peers
 

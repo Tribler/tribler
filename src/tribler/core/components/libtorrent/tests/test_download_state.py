@@ -7,28 +7,30 @@ from tribler.core.components.libtorrent.download_manager.download_state import D
 from tribler.core.utilities.simpledefs import DOWNLOAD, DownloadStatus, UPLOAD
 
 
-@pytest.fixture(name="mock_tdef")
-def fixture_mock_tdef():
-    mocked_tdef = Mock()
-    mocked_tdef.get_name = lambda: "test"
-    mocked_tdef.get_length = lambda: 43
-    return mocked_tdef
+@pytest.fixture
+def mock_tdef():
+    tdef = Mock(
+        get_name=Mock(return_value='test'),
+        get_length=Mock(return_value=43)
+    )
+    return tdef
 
 
-@pytest.fixture(name="mock_download")
-def fixture_mock_download(mock_tdef):
-    mock_download = Mock()
-    mock_download.get_def = lambda: mock_tdef
-    return mock_download
+@pytest.fixture
+def mock_download(mock_tdef):
+    download = Mock(
+        get_def=Mock(return_value=mock_tdef)
+    )
+    return download
 
 
 def test_getters_setters_1(mock_download):
     """
     Testing various getters and setters in DownloadState
     """
-    mock_download.get_peerlist = lambda: []
-    mock_download.dlmgr.tunnel_community.get_candidates = lambda _: []
-    mock_download.config.get_hops = lambda: 0
+    mock_download.get_peer_list = Mock(return_value=[])
+    mock_download.dlmgr.tunnel_community.get_candidates = Mock(return_value=[])
+    mock_download.config.get_hops = Mock(return_value=0)
     download_state = DownloadState(mock_download, None, None)
 
     assert download_state.get_download() == mock_download
@@ -42,7 +44,7 @@ def test_getters_setters_1(mock_download):
     assert download_state.all_time_upload == 0
     assert download_state.all_time_download == 0
     assert download_state.get_num_seeds_peers() == (0, 0)
-    assert download_state.get_peerlist() == []
+    assert download_state.get_peer_list() == []
 
 
 def test_getters_setters_2(mock_download, mock_lt_status):
@@ -163,20 +165,20 @@ def test_get_availability(mock_download):
     mock_ltstate = Mock()
     mock_ltstate.pieces = [True]
     download_state = DownloadState(mock_download, mock_ltstate, 0.6)
-    download_state.get_peerlist = lambda: []
+    download_state.get_peer_list = lambda: []
 
     assert download_state.get_availability() == 0
-    download_state.get_peerlist = lambda: [{'completed': 1.0}]
+    download_state.get_peer_list = lambda: [{'completed': 1.0}]
     assert download_state.get_availability() == 1.0
-    download_state.get_peerlist = lambda: [{'completed': 0.6}]
+    download_state.get_peer_list = lambda: [{'completed': 0.6}]
     assert download_state.get_availability() == 0.0
     download_state.lt_status.pieces = [0, 0, 0, 0, 0]
-    download_state.get_peerlist = lambda: [{'completed': 0}, {'have': [1, 1, 1, 1, 0]}]
+    download_state.get_peer_list = lambda: [{'completed': 0}, {'have': [1, 1, 1, 1, 0]}]
     assert download_state.get_availability() == 0.8
 
     # Test whether inaccurate piece information from other peers is ignored
-    download_state.get_peerlist = lambda: [{'completed': 0.5, 'have': [1, 0]},
-                                           {'completed': 0.9, 'have': [1, 0, 1]}]
+    download_state.get_peer_list = lambda: [{'completed': 0.5, 'have': [1, 0]},
+                                            {'completed': 0.9, 'have': [1, 0, 1]}]
     assert download_state.get_availability() == 0.0
 
 

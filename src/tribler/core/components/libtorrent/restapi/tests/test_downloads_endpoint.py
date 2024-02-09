@@ -137,15 +137,18 @@ async def test_get_downloads_circuit_peer(mock_dlmgr, test_download, rest_api, e
     """
     Testing whether circuit peers are correctly returned from downloads.
     """
-    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download])
     endpoint.tunnel_community = Mock()
-    endpoint.tunnel_community.ip_to_circuit_id = lambda _: 42
-    test_download.get_peerlist = lambda: [{
-        'have': b"\x00" * 200,
-        'ip': "127.0.0.1",
-        'port': CIRCUIT_ID_PORT,
-        'circuit': 42
-    }]
+    endpoint.tunnel_community.ip_to_circuit_id = Mock(return_value=42)
+    test_download.get_peer_list = Mock(
+        return_value=[
+            {
+                'ip': "127.0.0.1",
+                'port': CIRCUIT_ID_PORT,
+                'circuit': 42
+            },
+        ]
+    )
 
     downloads = await do_request(rest_api, 'downloads?get_peers=1', expected_code=200)
     assert len(downloads["downloads"]) == 1
@@ -245,11 +248,18 @@ async def test_get_peers_illegal_fields_ascii(test_download, mock_dlmgr, mock_lt
     """
     Testing whether illegal fields are stripped from the Libtorrent download info response.
     """
-    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download])
 
     ds = DownloadState(test_download, mock_lt_status, None)
-    ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': 'uTorrent 1.6.1'}]
-    test_download.get_state = lambda: ds
+    ds.get_peer_list = Mock(
+        return_value=[
+            {
+                'id': '1234',
+                'extended_version': 'uTorrent 1.6.1'
+            }
+        ]
+    )
+    test_download.get_state = Mock(return_value=ds)
 
     response_dict = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1', expected_code=200)
     assert "downloads" in response_dict
@@ -264,11 +274,18 @@ async def test_get_peers_illegal_fields_unknown(test_download, mock_dlmgr, mock_
     """
     Testing whether illegal fields are stripped from the Libtorrent download info response.
     """
-    mock_dlmgr.get_downloads = lambda: [test_download]
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download])
 
     ds = DownloadState(test_download, mock_lt_status, None)
-    ds.get_peerlist = lambda: [{'id': '1234', 'have': '5678', 'extended_version': None}]
-    test_download.get_state = lambda: ds
+    ds.get_peer_list = Mock(
+        return_value=[
+            {
+                'id': '1234',
+                'extended_version': None
+            }
+        ]
+    )
+    test_download.get_state = Mock(return_value=ds)
 
     response_dict = await do_request(rest_api, 'downloads?get_peers=1&get_pieces=1', expected_code=200)
     assert response_dict["downloads"][0]["peers"][0]['extended_version'] == ''
@@ -657,3 +674,30 @@ async def test_deselect_unknown_download(mock_dlmgr, rest_api):
     mock_dlmgr.get_download = lambda _: None
 
     await do_request(rest_api, f'downloads/{"00" * 20}/files/deselect', params={"path": "."}, expected_code=404)
+
+
+async def test_get_availability(mock_dlmgr, test_download, rest_api):
+    # Test if the availability is returned when requested
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download])
+
+    response = await do_request(
+        rest_api,
+        url='downloads',
+        params={
+            'infohash': test_download.infohash,
+        }
+    )
+    download = response['downloads'][0]
+    assert 'availability' not in download
+
+    response = await do_request(
+        rest_api,
+        url='downloads',
+        params={
+            'infohash': test_download.infohash,
+            'get_availability': 1,
+        }
+    )
+
+    download = response['downloads'][0]
+    assert 'availability' in download

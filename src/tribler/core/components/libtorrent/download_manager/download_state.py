@@ -244,7 +244,7 @@ class DownloadState:
         nr_seeders_complete = 0
         merged_bitfields = [0] * len(self.lt_status.pieces)
 
-        peers = self.get_peerlist()
+        peers = self.get_peer_list()
         for peer in peers:
             completed = peer.get('completed', 0)
             have = peer.get('have', [])
@@ -267,8 +267,8 @@ class DownloadState:
             return nr_seeders_complete + nr_leechers_complete + fraction_additonal
         return nr_seeders_complete
 
-    def get_peerlist(self):
+    def get_peer_list(self, include_have: bool = True):
         """ Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer.
         """
-        return self.download.get_peerlist()
+        return self.download.get_peer_list(include_have)
