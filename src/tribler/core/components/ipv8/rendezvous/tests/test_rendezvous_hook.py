@@ -7,8 +7,10 @@ import pytest
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
+
 from tribler.core.components.ipv8.rendezvous.db.database import RendezvousDatabase
 from tribler.core.components.ipv8.rendezvous.rendezvous_hook import RendezvousHook
+from tribler.core.components.ipv8.settings import RendezvousSettings
 from tribler.core.utilities.utilities import MEMORY_DB
 
 
@@ -27,7 +29,9 @@ class MockedRendezvousHook(RendezvousHook):
 
 @pytest.fixture(name="memdb", scope="function")
 def fixture_memory_database() -> Generator[RendezvousDatabase, None, None]:
-    db = RendezvousDatabase(MEMORY_DB)
+    default_config = RendezvousSettings()
+    db = RendezvousDatabase(MEMORY_DB, default_config.decay_coefficient, default_config.decay_granularity,
+                            default_config.stale_timeout)
 
     yield db
 
@@ -53,7 +57,7 @@ def test_peer_added(peer: Peer, hook: MockedRendezvousHook, memdb: RendezvousDat
     hook.on_peer_added(peer)
 
     retrieved = memdb.get(peer)
-    assert len(retrieved) == 0
+    assert retrieved is None
 
 
 def test_peer_removed(peer: Peer, hook: MockedRendezvousHook, memdb: RendezvousDatabase) -> None:
@@ -63,8 +67,10 @@ def test_peer_removed(peer: Peer, hook: MockedRendezvousHook, memdb: RendezvousD
     hook.on_peer_removed(peer)
 
     retrieved = memdb.get(peer)
-    assert len(retrieved) == 1
-    assert retrieved[0].start, retrieved[0].stop == (peer.creation_time, hook.mocked_time)
+    assert retrieved is not None
+    assert retrieved.public_key == peer.public_key.key_to_bin()
+    assert retrieved.total == 1.0
+    assert retrieved.count == 1
 
 
 def test_peer_store_on_shutdown(peer: Peer, hook: MockedRendezvousHook, memdb: RendezvousDatabase) -> None:
@@ -76,8 +82,10 @@ def test_peer_store_on_shutdown(peer: Peer, hook: MockedRendezvousHook, memdb: R
     hook.shutdown(network)
 
     retrieved = memdb.get(peer)
-    assert len(retrieved) == 1
-    assert retrieved[0].start, retrieved[0].stop == (peer.creation_time, hook.mocked_time)
+    assert retrieved is not None
+    assert retrieved.public_key == peer.public_key.key_to_bin()
+    assert retrieved.total == 1.0
+    assert retrieved.count == 1
 
 
 def test_peer_ignore_future(peer: Peer, hook: MockedRendezvousHook, memdb: RendezvousDatabase) -> None:
@@ -87,4 +95,4 @@ def test_peer_ignore_future(peer: Peer, hook: MockedRendezvousHook, memdb: Rende
     hook.on_peer_removed(peer)
 
     retrieved = memdb.get(peer)
-    assert len(retrieved) == 0
+    assert retrieved is None
