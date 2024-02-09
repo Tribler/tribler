@@ -300,6 +300,15 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         await self.deliver_messages()
 
         notifier.assert_called()
+        notifier.reset_mock()
+
+        # Test that the search still works with unexpected parameters like 'exclude_deleted'
+        query = {'txt_filter': '"ubuntu*"', 'hide_xxx': '1', 'metadata_type': REGULAR_TORRENT, 'exclude_deleted': '1'}
+        self.overlay(0).send_search_request(**query)
+
+        await self.deliver_messages()
+
+        notifier.assert_called()
 
     def test_version_response_payload(self):
         """
