@@ -657,3 +657,30 @@ async def test_deselect_unknown_download(mock_dlmgr, rest_api):
     mock_dlmgr.get_download = lambda _: None
 
     await do_request(rest_api, f'downloads/{"00" * 20}/files/deselect', params={"path": "."}, expected_code=404)
+
+
+async def test_get_availability(mock_dlmgr, test_download, rest_api):
+    # Test if the availability is returned when requested
+    mock_dlmgr.get_downloads = Mock(return_value=[test_download])
+
+    response = await do_request(
+        rest_api,
+        url='downloads',
+        params={
+            'infohash': test_download.infohash,
+        }
+    )
+    download = response['downloads'][0]
+    assert 'availability' not in download
+
+    response = await do_request(
+        rest_api,
+        url='downloads',
+        params={
+            'infohash': test_download.infohash,
+            'get_availability': 1,
+        }
+    )
+
+    download = response['downloads'][0]
+    assert 'availability' in download
