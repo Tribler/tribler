@@ -260,6 +260,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                self.settings.max_circuits)
                                 for hop_count, download_count in active_downloads_per_hop.items()}
 
+        self.monitor_hidden_swarms(new_states, hops)
+        self.download_states = new_states
+
+    def monitor_hidden_swarms(self, new_states, hops):
         ip_counter = Counter([c.info_hash for c in list(self.circuits.values()) if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash, None)
@@ -280,8 +284,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
                     self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
                     self.create_introduction_point(info_hash)
-
-        self.download_states = new_states
 
     def on_e2e_finished(self, address, info_hash):
         dl = self.get_download(info_hash)
