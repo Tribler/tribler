@@ -223,9 +223,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         new_states = {}
         hops = {}
         active_downloads_per_hop = {}
+        #  Ensure that we stay within the allowed number of circuits for the default hop count.
+        default_hops = self.download_manager.download_defaults.number_hops if self.download_manager else 0
+        if default_hops > 0:
+            active_downloads_per_hop[default_hops] = 0
 
         for ds in dslist:
             download = ds.get_download()
+            # Metainfo downloads are alive for a short period, and don't warrant additional (e2e) circuit creation
+            if download.hidden:
+                continue
             hop_count = download.config.get_hops()
             if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
@@ -240,11 +247,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
                     # Ugly work-around for the libtorrent DHT not making any requests
                     # after a period of having no circuits
-                    if self.last_forced_announce.get(info_hash, 0) + 60 <= time.time() \
+                    if self.last_forced_announce.get(real_info_hash, 0) + 60 <= time.time() \
                             and self.find_circuits(hops=hop_count) \
-                            and not ds.get_peer_list():
+                            and not ds.get_peer_list() \
+                            and not download.shutting_down:
                         download.force_dht_announce()
-                        self.last_forced_announce[info_hash] = time.time()
+                        self.last_forced_announce[real_info_hash] = time.time()
 
         # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
         # stays within min_circuits and max_circuits.

@@ -307,10 +307,7 @@ class DownloadManager(TaskManager):
             settings['anonymous_mode'] = True
             settings['force_proxy'] = True
 
-            # Anon listen port is never used anywhere, so we let Libtorrent set it
-            # settings["listen_interfaces"] = f"0.0.0.0:{anon_port}"
-
-            # By default block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
+            # By default, block all IPs except 1.1.1.1 (which is used to ensure libtorrent makes a connection to us)
             self.update_ip_filter(ltsession, ['1.1.1.1'])
 
         self.set_session_settings(ltsession, settings)
@@ -340,8 +337,6 @@ class DownloadManager(TaskManager):
             except Exception as exc:
                 self._logger.info(f"could not load libtorrent state, got exception: {exc!r}. starting from scratch")
         else:
-            # ltsession.listen_on(anon_port, anon_port + 20)
-
             rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
             download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
             settings = {'upload_rate_limit': rate,
@@ -758,6 +753,7 @@ class DownloadManager(TaskManager):
     async def remove_download(self, download, remove_content=False, remove_checkpoint=True):
         infohash = download.get_def().get_infohash()
         handle = download.handle
+        download.shutting_down = True
 
         # Note that the following block of code needs to be able to deal with multiple simultaneous
         # calls using the same download object. We need to make sure that we don't return without

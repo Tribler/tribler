@@ -3,12 +3,10 @@ from __future__ import annotations
 import os
 from asyncio import TimeoutError as AsyncTimeoutError, wait_for
 from collections import defaultdict
-from random import random
 from unittest.mock import Mock
 
 import pytest
 from ipv8.keyvault.public.libnaclkey import LibNaCLPK
-from ipv8.messaging.anonymization.payload import EstablishIntroPayload
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
     CIRCUIT_TYPE_RP_DOWNLOADER,
@@ -139,6 +137,19 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.remove_circuit(3)
         self.assertNotIn(3, self.nodes[0].overlay.circuits)
 
+    def test_monitor_downloads_ignore_hidden(self):
+        """
+        Test whether hidden downloads get ignored by monitor_downloads.
+        """
+        mock_state = MockObject()
+        mock_download = MockObject()
+        mock_download.hidden = True
+        mock_download.get_state = lambda: mock_state
+        mock_state.get_download = lambda: mock_download
+
+        self.overlay(0).monitor_downloads([mock_state])
+        self.assertFalse(self.overlay(0).download_states)
+
     def test_monitor_downloads_stop_ip(self):
         """
         Test whether we stop building IPs when a download doesn't exist anymore
@@ -166,6 +177,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         mock_download = MockObject()
         mock_tdef = MockObject()
         mock_tdef.get_infohash = lambda: b'a'
+        mock_download.hidden = False
         mock_download.get_def = lambda: mock_tdef
         mock_download.add_peer = lambda _: succeed(None)
         mock_download.get_state = lambda: mock_state
