@@ -519,7 +519,7 @@ class DebugWindow(QMainWindow):
             return
 
         for c in circuits["circuits"]:
-            c["hops"] = f"{c['goal_hops']} / {c['goal_hops']}"
+            c["hops"] = f"{c['actual_hops']} / {c['goal_hops']}"
             c["exit_flags"] = c["exit_flags"] if c["state"] == "READY" else ""
 
         self.add_items_to_tree(
