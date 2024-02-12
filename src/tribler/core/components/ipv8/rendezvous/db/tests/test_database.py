@@ -25,9 +25,14 @@ class MockedRendezvousDB(RendezvousDatabase):
         return self.mocked_time
 
 
-@pytest.fixture(name="memdb", scope="function")
-def fixture_memory_database() -> Generator[RendezvousDatabase, None, None]:
+@pytest.fixture(name="default_config", scope="function")
+def fixture_default_config() -> Generator[RendezvousSettings, None, None]:
     default_config = RendezvousSettings()
+    yield default_config
+
+
+@pytest.fixture(name="memdb", scope="function")
+def fixture_memory_database(default_config: RendezvousSettings) -> Generator[RendezvousDatabase, None, None]:
     db = MockedRendezvousDB(MEMORY_DB, default_config.decay_coefficient, default_config.decay_granularity,
                             default_config.stale_timeout)
 
@@ -104,3 +109,22 @@ def test_decay(peer: Peer, peer2: Peer, memdb: RendezvousDatabase) -> None:
     assert retrieved1 is not None and retrieved2 is not None
     print(retrieved1.total / 3, retrieved2.total / 2)
     assert retrieved1.total < retrieved2.total
+
+
+def test_out_of_sync_calculate_decay(memdb: RendezvousDatabase) -> None:
+    memdb.mocked_time = 2
+    decay = memdb.calculate_decay(3)
+    assert decay == 0
+
+
+def test_stale_get(memdb: RendezvousDatabase, peer: Peer, default_config: RendezvousSettings) -> None:
+    memdb.mocked_time = 2
+    memdb.add(peer, 1, 2)
+    retrieved1 = memdb.get(peer)
+    assert retrieved1 is not None
+
+    memdb.mocked_time = 2 + default_config.stale_timeout + 1
+    retrieved2 = memdb.get(peer)
+    assert retrieved2 is not None
+    assert retrieved2.total < retrieved1.total # decay has been applied
+
