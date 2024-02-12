@@ -306,7 +306,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         query1 = {"txt_filter": "ubuntu*"}
         await assert_response_received_on_search(query1)
 
-        # Query with unexpected parameters like 'exclude_deleted'
+        # Query with deprecated parameters like 'exclude_deleted'
         query2 = {'txt_filter': '"ubuntu*"', 'hide_xxx': '1', 'metadata_type': REGULAR_TORRENT, 'exclude_deleted': '1'}
         await assert_response_received_on_search(query2)
 
