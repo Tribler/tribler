@@ -293,22 +293,26 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
             self.torrent_metadata(1)(title="ubuntu torrent", infohash=random_infohash())
             self.torrent_metadata(1)(title="debian torrent", infohash=random_infohash())
 
-        notifier = Mock()
-        self.overlay(0).composition.notifier = {notifications.remote_query_results: notifier}
-        self.overlay(0).send_search_request(**{"txt_filter": "ubuntu*"})
+        async def assert_response_received_on_search(search_query: dict):
+            notifier = Mock()
+            self.overlay(0).composition.notifier = {notifications.remote_query_results: notifier}
+            self.overlay(0).send_search_request(**search_query)
 
-        await self.deliver_messages()
+            await self.deliver_messages()
 
-        notifier.assert_called()
-        notifier.reset_mock()
+            notifier.assert_called()
 
-        # Test that the search still works with unexpected parameters like 'exclude_deleted'
-        query = {'txt_filter': '"ubuntu*"', 'hide_xxx': '1', 'metadata_type': REGULAR_TORRENT, 'exclude_deleted': '1'}
-        self.overlay(0).send_search_request(**query)
+        # Basic search query
+        query1 = {"txt_filter": "ubuntu*"}
+        await assert_response_received_on_search(query1)
 
-        await self.deliver_messages()
+        # Query with unexpected parameters like 'exclude_deleted'
+        query2 = {'txt_filter': '"ubuntu*"', 'hide_xxx': '1', 'metadata_type': REGULAR_TORRENT, 'exclude_deleted': '1'}
+        await assert_response_received_on_search(query2)
 
-        notifier.assert_called()
+        # Query with unparsed metadata_type
+        query3 = {'txt_filter': '"ubuntu*"', 'metadata_type': str(REGULAR_TORRENT)}
+        await assert_response_received_on_search(query3)
 
     def test_version_response_payload(self):
         """
