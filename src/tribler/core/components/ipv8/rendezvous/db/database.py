@@ -43,30 +43,30 @@ class RendezvousDatabase:
         time_passed = (self.current_time - last_updated_time) / self.decay_granularity
         return math.exp(- time_passed * self.decay_coefficient)
 
+    @db_session(immediate=True)
     def add(self, peer: Peer, start_timestamp: float, stop_timestamp: float) -> None:
-        with (db_session(immediate=True)):
-            peer_score = self.PeerScore.get(public_key=peer.public_key.key_to_bin())
-            duration = stop_timestamp - start_timestamp
-            if peer_score:
-                decay_coef = self.calculate_decay(peer_score.last_updated)
-                peer_score.total = decay_coef * peer_score.total + duration
-                peer_score.count = 1 if decay_coef == 0 else peer_score.count + 1
-                peer_score.last_updated = self.current_time
-            else:
-                self.PeerScore(public_key=peer.public_key.key_to_bin(), total=duration, count=1,
-                               last_updated=self.current_time)
+        peer_score = self.PeerScore.get(public_key=peer.public_key.key_to_bin())
+        duration = stop_timestamp - start_timestamp
+        if peer_score:
+            decay_coef = self.calculate_decay(peer_score.last_updated)
+            peer_score.total = decay_coef * peer_score.total + duration
+            peer_score.count = 1 if decay_coef == 0 else peer_score.count + 1
+            peer_score.last_updated = self.current_time
+        else:
+            self.PeerScore(public_key=peer.public_key.key_to_bin(), total=duration, count=1,
+                           last_updated=self.current_time)
 
+    @db_session(immediate=True)
     def get(self, peer: Peer) -> Optional[PeerScore]:
-        with db_session(immediate=True):
-            peer_score = self.PeerScore.get(public_key=peer.public_key.key_to_bin())
-            if peer_score:
-                if self.current_time - peer_score.last_updated > self.stale_timeout:
-                    # Decay and update the peer_score
-                    decay_coef = self.calculate_decay(peer_score.last_updated)
-                    peer_score.total *= decay_coef
-                    peer_score.count = 1 if decay_coef == 0 else peer_score.count
-                    peer_score.last_updated = self.current_time
-            return peer_score
+        peer_score = self.PeerScore.get(public_key=peer.public_key.key_to_bin())
+        if peer_score:
+            if self.current_time - peer_score.last_updated > self.stale_timeout:
+                # Decay and update the peer_score
+                decay_coef = self.calculate_decay(peer_score.last_updated)
+                peer_score.total *= decay_coef
+                peer_score.count = 1 if decay_coef == 0 else peer_score.count
+                peer_score.last_updated = self.current_time
+        return peer_score
 
     def shutdown(self) -> None:
         self.database.disconnect()
