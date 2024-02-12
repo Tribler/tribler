@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{inputs.ref}}
 
@@ -38,7 +38,6 @@ jobs:
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
-          custom_cache_key_element: ${{inputs.ref}}
 
       - name: Export env
         uses: cardinalby/export-env-action@v2
@@ -55,7 +54,7 @@ jobs:
           coverage xml
 
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml

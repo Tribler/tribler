@@ -54,7 +54,7 @@ jobs:
   build:
     runs-on: ${{ github.event.inputs.os || inputs.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{inputs.ref || github.ref}}
@@ -72,7 +72,6 @@ jobs:
         with:
           python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
           requirements: requirements-build.txt
-          custom_cache_key_element: ${{inputs.ref || github.ref_name}}
 
       - uses: ./.github/actions/save_git_info
 
@@ -90,7 +89,7 @@ jobs:
 
       - name: Upload Artifact
         if: github.event.inputs.upload || inputs.upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tribler.deb
           path: ./build/debian/tribler_${{env.TRIBLER_VERSION}}_all.deb
