@@ -89,6 +89,7 @@ if __name__ == "__main__":
 
     api_key = os.environ.get('CORE_API_KEY')
 
+
     # Check whether we need to start the core or the user interface
     if parsed_args.core:
         from tribler.core.utilities.pony_utils import track_slow_db_sessions
