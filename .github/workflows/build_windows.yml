@@ -51,7 +51,7 @@ jobs:
     runs-on: ${{ github.event.inputs.os || inputs.os }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{inputs.ref || github.ref}}
@@ -61,7 +61,7 @@ jobs:
           echo "C:\msys64\usr\bin" >> $env:GITHUB_PATH
           echo "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64" >> $env:GITHUB_PATH
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ github.event.inputs.python-version || inputs.python-version }}
 
@@ -130,7 +130,7 @@ jobs:
 
       - name: Upload Artifact
         if: github.event.inputs.upload || inputs.upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tribler
           path: dist/
