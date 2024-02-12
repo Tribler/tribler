@@ -105,9 +105,9 @@ class ContentDiscoveryCommunity(Community):
 
     def convert_to_json(self, parameters):
         sanitized = dict(parameters)
-        # Convert frozenset to string
-        if "metadata_type" in sanitized:
-            sanitized["metadata_type"] = [int(mt) for mt in sanitized["metadata_type"] if mt]
+        # Convert metadata_type to an int list if it is a string
+        if "metadata_type" in sanitized and isinstance(sanitized["metadata_type"], str):
+            sanitized["metadata_type"] = [int(sanitized["metadata_type"])]
 
         self.sanitize_dict(sanitized, decode=False)
 
@@ -310,6 +310,9 @@ class ContentDiscoveryCommunity(Community):
             infohash_set = await run_threaded(self.composition.tribler_db.instance, self.search_for_tags, tags)
             if infohash_set:
                 sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
+
+            # exclude_deleted should be extracted because `get_entries_threaded` doesn't expect it as a parameter
+            sanitized_parameters.pop('exclude_deleted', None)
 
         return await self.composition.metadata_store.get_entries_threaded(**sanitized_parameters)
 
