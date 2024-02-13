@@ -15,6 +15,24 @@ script_path() {
 
 UNAME="$(uname -s)"
 
+# Allow multiple instances of Tribler to run in development mode.
+is_dev_mode=$(echo "$DEV_MODE" | tr '[:upper:]' '[:lower:]') # Convert to lowercase using tr
+if [ "$is_dev_mode" = "true" ]; then
+  echo "Running Tribler in development mode"
+  # Set the state directory
+  TSTATEDIR="$HOME/.Tribler"
+
+  # If there are multiple instances of the script running, append a number to the state directory
+  script_name=$(basename "$0")  # Get the name of the script
+  # Count the instances of the script running, excluding the pgrep command itself
+  instance_count=$(pgrep -f "$script_name" | grep -v "$$" | wc -l)
+  if [ "$instance_count" -gt 1 ]; then
+      TSTATEDIR="$TSTATEDIR-$((instance_count-1))"
+  fi
+  export TSTATEDIR
+  echo "Running Tribler from state directory $TSTATEDIR"
+fi
+
 # Add all required modules to PYTHONPATH
 SRC_DIR="$(dirname "$(script_path "$0")")/src"
 PYTHONPATH="$PYTHONPATH:$SRC_DIR"
