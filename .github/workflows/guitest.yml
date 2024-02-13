@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{inputs.ref}}
 
@@ -44,7 +44,6 @@ jobs:
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements-test.txt
-          custom_cache_key_element: ${{inputs.ref}}
 
       - name: Install dependencies (Win)
         if: runner.os == 'Windows'
@@ -81,7 +80,7 @@ jobs:
         run: |
           pytest ${PYTEST_GUI_ARGUMENTS_MAC}
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{runner.os}}_screenshots

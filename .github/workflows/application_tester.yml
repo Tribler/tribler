@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{inputs.ref}}
 
@@ -44,7 +44,9 @@ jobs:
         with:
           python-version: ${{inputs.python-version}}
           requirements: requirements.txt
-          custom_cache_key_element: ${{inputs.ref}}
+          cache-dependency-path: |
+            requirements.txt
+            scripts/application_tester/requirements.txt
 
       - name: Add Tribler to PYTHONPATH
         uses: ./.github/actions/add-pythonpath
