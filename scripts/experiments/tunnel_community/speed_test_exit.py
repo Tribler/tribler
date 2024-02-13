@@ -3,7 +3,7 @@ import asyncio
 import os
 from pathlib import Path
 
-from ipv8.messaging.anonymization.tunnel import EXIT_NODE, ORIGINATOR
+from ipv8.messaging.anonymization.tunnel import BACKWARD, FORWARD
 from ipv8.messaging.anonymization.utils import run_speed_test
 from ipv8.taskmanager import TaskManager
 
@@ -60,8 +60,8 @@ class Service(TinyTriblerService, TaskManager):
             circuit = community.create_circuit(EXPERIMENT_NUM_HOPS)
             if circuit and (await circuit.ready):
                 index += 1
-                self.results += await self.run_speed_test(ORIGINATOR, circuit, index, EXPERIMENT_NUM_MB)
-                self.results += await self.run_speed_test(EXIT_NODE, circuit, index, EXPERIMENT_NUM_MB)
+                self.results += await self.run_speed_test(BACKWARD, circuit, index, EXPERIMENT_NUM_MB)
+                self.results += await self.run_speed_test(FORWARD, circuit, index, EXPERIMENT_NUM_MB)
                 self.logger.info(f"Remove circuit: {index}/{EXPERIMENT_NUM_CIRCUITS}")
                 community.remove_circuit(circuit.circuit_id)
             else:
@@ -69,8 +69,8 @@ class Service(TinyTriblerService, TaskManager):
         self._graceful_shutdown()
 
     async def run_speed_test(self, direction, circuit, index, size):
-        request_size = 0 if direction == ORIGINATOR else 1024
-        response_size = 1024 if direction == ORIGINATOR else 0
+        request_size = 0 if direction == BACKWARD else 1024
+        response_size = 1024 if direction == BACKWARD else 0
         num_requests = size * 1024
         component = self.session.get_instance(TunnelsComponent)
         task = asyncio.create_task(run_speed_test(component.community, circuit, request_size,
@@ -78,7 +78,7 @@ class Service(TinyTriblerService, TaskManager):
         results = []
         prev_transferred = ts = 0
         while not task.done():
-            cur_transferred = circuit.bytes_down if direction == ORIGINATOR else circuit.bytes_up
+            cur_transferred = circuit.bytes_down if direction == BACKWARD else circuit.bytes_up
             results.append((ts, index, direction, (cur_transferred - prev_transferred) / 1024))
             prev_transferred = cur_transferred
             ts += 1

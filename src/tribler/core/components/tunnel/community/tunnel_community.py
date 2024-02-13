@@ -208,10 +208,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         return super().remove_exit_socket(circuit_id, additional_info=additional_info,
                                           remove_now=remove_now, destroy=destroy)
 
-    def _ours_on_created_extended(self, circuit, payload):
-        super()._ours_on_created_extended(circuit, payload)
+    def _ours_on_created_extended(self, circuit_id, payload):
+        super()._ours_on_created_extended(circuit_id, payload)
 
-        if circuit.state == CIRCUIT_STATE_READY:
+        circuit = self.circuits.get(circuit_id)
+        if circuit and circuit.state == CIRCUIT_STATE_READY:
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
 
@@ -415,6 +416,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     async def perform_http_request(self, destination, request, hops=1):
         # We need a circuit that supports HTTP requests, meaning that the circuit will have to end
         # with a node that has the PEER_FLAG_EXIT_HTTP flag set.
+        circuit = None
         circuits = self.find_circuits(exit_flags=[PEER_FLAG_EXIT_HTTP])
         if circuits:
             circuit = circuits[0]
@@ -429,7 +431,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             raise RuntimeError('No HTTP circuit available')
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        self.send_cell(circuit.peer, HTTPRequestPayload(circuit.circuit_id, cache.number, destination, request))
+        self.send_cell(circuit.hop.address, HTTPRequestPayload(circuit.circuit_id, cache.number, destination, request))
         return await cache.response_future
 
 
