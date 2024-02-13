@@ -85,6 +85,13 @@ To run the built docker image:
 Note that by default, the REST API is bound to localhost inside the container so to
 access the APIs, network needs to be set to host (--net="host").
 
+To use the local state directory and downloads directory, the volumes can be mounted:
+
+.. code-block:: bash
+
+    docker run -p 20100:20100 --net="host" -v ~/.Tribler:/state -v ~/downloads/TriblerDownloads:/downloads triblercore/triblercore:latest
+
+
 The REST APIs are now accessible at: http://localhost:20100/docs
 
 

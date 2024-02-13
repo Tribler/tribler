@@ -13,6 +13,10 @@ RUN pip3 install -r /app/tribler/core-requirements.txt
 
 RUN useradd -ms /bin/bash user
 
+# Create default state and download directories and set the permissions
+RUN chown -R user:user /app
+RUN mkdir /state /downloads && chown -R user:user /state /downloads
+
 # Copy the source code and set the working directory
 COPY ./src /app/tribler/src/
 WORKDIR /app/tribler/

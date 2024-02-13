@@ -18,6 +18,7 @@ from filelock import FileLock
 from tribler.core.components.session import Session
 from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.start_core import components_gen
+from tribler.core.upgrade.version_manager import VersionHistory
 from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.core.utilities.osutils import get_appstate_dir, get_root_state_directory
 from tribler.core.utilities.path_util import Path
@@ -78,11 +79,13 @@ class TriblerService:
         signal.signal(signal.SIGINT, lambda sig, _: ensure_future(signal_handler(sig)))
         signal.signal(signal.SIGTERM, lambda sig, _: ensure_future(signal_handler(sig)))
 
-        statedir = Path(options.statedir or Path(get_appstate_dir(), '.Tribler'))
-        config = TriblerConfig.load(state_dir=statedir)
+        if options.statedir:
+            os.environ['TSTATEDIR'] = options.statedir
 
-        # Check if we are already running a Tribler instance
         root_state_dir = get_root_state_directory(create=True)
+        version_history = VersionHistory(root_state_dir)
+        statedir = version_history.code_version.directory
+        config = TriblerConfig.load(state_dir=statedir)
 
         self.process_lock = try_acquire_file_lock(root_state_dir / CORE_LOCK_FILENAME)
         current_process_owns_lock = bool(self.process_lock)
