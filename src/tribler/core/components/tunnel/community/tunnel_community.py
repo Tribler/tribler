@@ -333,8 +333,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 lt_listen_port = self.download_manager.listen_ports.get(hops)
                 lt_listen_port = lt_listen_port or self.download_manager.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    if session.udp_connection and lt_listen_port:
-                        session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    connection = session.udp_connection
+                    if connection and lt_listen_port and connection.remote_udp_address is None:
+                        connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
         await super().create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):
