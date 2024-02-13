@@ -223,9 +223,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         new_states = {}
         hops = {}
         active_downloads_per_hop = {}
+        #  Ensure that we stay within the allowed number of circuits for the default hop count.
+        default_hops = self.download_manager.download_defaults.number_hops if self.download_manager else 0
+        if default_hops > 0:
+            active_downloads_per_hop[default_hops] = 0
 
         for ds in dslist:
             download = ds.get_download()
+            # Metainfo downloads are alive for a short period, and don't warrant additional (e2e) circuit creation
+            if download.hidden:
+                continue
             hop_count = download.config.get_hops()
             if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
@@ -240,11 +247,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
                     # Ugly work-around for the libtorrent DHT not making any requests
                     # after a period of having no circuits
-                    if self.last_forced_announce.get(info_hash, 0) + 60 <= time.time() \
+                    if self.last_forced_announce.get(real_info_hash, 0) + 60 <= time.time() \
                             and self.find_circuits(hops=hop_count) \
-                            and not ds.get_peer_list():
+                            and not ds.get_peer_list() \
+                            and not download.shutting_down:
                         download.force_dht_announce()
-                        self.last_forced_announce[info_hash] = time.time()
+                        self.last_forced_announce[real_info_hash] = time.time()
 
         # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
         # stays within min_circuits and max_circuits.
@@ -252,6 +260,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                                                self.settings.max_circuits)
                                 for hop_count, download_count in active_downloads_per_hop.items()}
 
+        self.monitor_hidden_swarms(new_states, hops)
+        self.download_states = new_states
+
+    def monitor_hidden_swarms(self, new_states, hops):
         ip_counter = Counter([c.info_hash for c in list(self.circuits.values()) if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash, None)
@@ -272,8 +284,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
                     self.logger.info('Create introducing circuit for %s', hexlify(info_hash))
                     self.create_introduction_point(info_hash)
-
-        self.download_states = new_states
 
     def on_e2e_finished(self, address, info_hash):
         dl = self.get_download(info_hash)
@@ -323,8 +333,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 lt_listen_port = self.download_manager.listen_ports.get(hops)
                 lt_listen_port = lt_listen_port or self.download_manager.get_session(hops).listen_port()
                 for session in self.socks_servers[hops - 1].sessions:
-                    if session.udp_connection and lt_listen_port:
-                        session.udp_connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
+                    connection = session.udp_connection
+                    if connection and lt_listen_port and connection.remote_udp_address is None:
+                        connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
         await super().create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self):

@@ -81,6 +81,7 @@ class Download(TaskManager):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
+        self.shutting_down = False
 
         self.futures: Dict[str, list[tuple[Future, Callable, Optional[Getter]]]] = defaultdict(list)
         self.alert_handlers = defaultdict(list)
