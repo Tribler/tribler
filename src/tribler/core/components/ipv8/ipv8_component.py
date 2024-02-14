@@ -1,11 +1,16 @@
 from typing import Optional
 
+try:
+    from ipv8_rust_tunnels.endpoint import RustEndpoint as UDPEndpoint
+except ImportError:
+    from ipv8.messaging.interfaces.udp.endpoint import UDPEndpoint
+
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
 from ipv8.dht.churn import PingChurn
 from ipv8.dht.discovery import DHTDiscoveryCommunity
 from ipv8.dht.routing import RoutingTable
-from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint, INTERFACES
 from ipv8.messaging.interfaces.udp.endpoint import UDPv4Address
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.churn import RandomChurn
@@ -62,10 +67,13 @@ class Ipv8Component(Component):
                                .set_working_directory(str(config.state_dir))
                                .set_walker_interval(config.ipv8.walk_interval))
 
+        INTERFACES["UDPIPv4"] = UDPEndpoint
+
         if config.gui_test_mode:
             endpoint = DispatcherEndpoint([])
         else:
             endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port, 'ip': address})
+
         ipv8 = IPv8(ipv8_config_builder.finalize(),
                     enable_statistics=config.ipv8.statistics and not config.gui_test_mode,
                     endpoint_override=endpoint)

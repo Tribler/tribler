@@ -16,7 +16,7 @@ from tribler.core.components.socks_servers.socks5.conversion import (
     SOCKS_VERSION,
     socks5_serializer,
 )
-from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
+from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection, RustUDPConnection
 
 
 class ConnectionState:
@@ -174,7 +174,11 @@ class Socks5Connection(Protocol):
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
         # to use to send UDP datagrams on for the association.  The server MAY use this information
         # to limit access to the association.
-        self.udp_connection = SocksUDPConnection(self, request.destination)
+        if self.socksserver and self.socksserver.rust_endpoint:
+            self.udp_connection = RustUDPConnection(self.socksserver.rust_endpoint, self.socksserver.hops)
+        else:
+            self.udp_connection = SocksUDPConnection(self, request.destination)
+
         await self.udp_connection.open()
         ip, _ = self.transport.get_extra_info('sockname')
         port = self.udp_connection.get_listen_port()

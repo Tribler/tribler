@@ -56,3 +56,29 @@ class SocksUDPConnection(DatagramProtocol):
         if self.transport:
             self.transport.close()
             self.transport = None
+
+
+class RustUDPConnection:
+
+    def __init__(self, rust_endpoint, hops):
+        self.rust_endpoint = rust_endpoint
+        self.hops = hops
+        self.port = None
+        # Ensure this connection doesn't get picked up by the dispatcher
+        self.remote_udp_address = None
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    async def open(self):
+        if self.port is not None:
+            self.logger.error("UDP connection is already open on port %s", self.port)
+            return
+
+        self.port = self.rust_endpoint.create_udp_associate(0, self.hops)
+
+    def get_listen_port(self):
+        return self.port
+
+    def close(self):
+        if self.port is not None:
+            self.rust_endpoint.close_udp_associate(self.port)
+            self.port = None

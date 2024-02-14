@@ -61,11 +61,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         super().__init__(args_kwargs_to_community_settings(self.settings_class, args, kwargs))
         self._use_main_thread = True
+        self.settings.endpoint = self.crypto_endpoint
 
         if self.config.exitnode_enabled:
-            self.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
-            self.settings.peer_flags.add(PEER_FLAG_EXIT_IPV8)
-            self.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+            self.settings.peer_flags |= {PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8, PEER_FLAG_EXIT_HTTP}
+
+        self.logger.info("Using %s with flags %s", self.endpoint.__class__.__name__, self.settings.peer_flags)
 
         self.bittorrent_peers = {}
         self.dispatcher = TunnelDispatcher(self)

@@ -25,3 +25,4 @@ Brotli==1.0.9 # to prevent AttributeError on macOs: module 'brotli' has no attri
 human-readable==1.3.2
 colorlog==6.7.0
 filelock==3.13.0
+ipv8-rust-tunnels==0.1.15
