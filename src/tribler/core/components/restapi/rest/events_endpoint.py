@@ -183,7 +183,7 @@ class EventsEndpoint(RESTEndpoint):
             self.send_exception(reported_error)
         else:
             if reported_error.should_stop:
-                self.exception_handler.save_to_file(reported_error)
+                self.exception_handler.save_to_file(reported_error.serialized_copy())
             if not self.undelivered_error:
                 # If there are several undelivered errors, we store the first error as more important and skip other
                 self.undelivered_error = self.error_message(reported_error)
