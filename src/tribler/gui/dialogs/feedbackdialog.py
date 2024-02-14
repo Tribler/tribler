@@ -80,7 +80,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             reported_error: ReportedError,
             tribler_version,
             start_time,
-            stop_application_on_close=True,
             additional_tags=None,
     ):
         QDialog.__init__(self, parent)
@@ -93,7 +92,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         self.process_manager = parent.process_manager
         self.reported_error = reported_error
         self.sentry_reporter = sentry_reporter
-        self.stop_application_on_close = stop_application_on_close
         self.tribler_version = tribler_version
         self.additional_tags = additional_tags or {}
         # tags
@@ -135,7 +133,6 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
 
         self.send_automatically = SentryReporter.is_in_test_mode()
         if self.send_automatically:
-            self.stop_application_on_close = True
             self.on_send_clicked(True)
 
         # Qt 5.2 does not have the setPlaceholderText property
@@ -197,8 +194,3 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
     def closeEvent(self, close_event):
         # start collecting breadcrumbs while the dialog is closed
         self.sentry_reporter.collecting_breadcrumbs_allowed = True
-
-        if self.stop_application_on_close:
-            self.core_manager.stop()
-            if self.core_manager.shutting_down and self.core_manager.core_running:
-                close_event.ignore()
