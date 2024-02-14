@@ -224,7 +224,7 @@ def test_on_core_finished_during_shutdown(core_manager):
 
 
 def test_on_core_finished_during_core_restart(core_manager):
-    core_manager.is_restarting = True
+    core_manager.wait_for_finished_to_restart_core = True
     core_manager.start_tribler_core = MagicMock()
     core_manager.log_core_finished = MagicMock()
 

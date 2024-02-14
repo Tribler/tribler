@@ -64,11 +64,10 @@ class CoreManager(QObject):
         self.core_connected = False
         self.shutting_down = False
         self.core_finished = False
+
         self.is_restarting = False
-
         self.core_process_started_at: Optional[int] = None
-        self.old_core_process_pid = None
-
+        self.wait_for_finished_to_restart_core = False
         self.should_quit_app_on_core_finished = False
 
         self.use_existing_core = False
@@ -312,16 +311,13 @@ class CoreManager(QObject):
         self._logger.info("Restarting Core Process ...")
         self.is_restarting = True
 
-        self.old_core_process_pid = self.core_process.pid()
-        self.should_quit_app_on_core_finished = False
-        self.shutting_down = False
-
         self.log_core_restart_triggered()
 
         if self.core_finished:
             self.start_tribler_core()
 
         elif self.core_process:
+            self.wait_for_finished_to_restart_core = True
             if self.core_connected:
                 self.events_manager.shutting_down = False
                 self.send_shutdown_request()
@@ -390,8 +386,11 @@ class CoreManager(QObject):
         if self.shutting_down:
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
-        elif self.is_restarting:
+
+        elif self.wait_for_finished_to_restart_core:
             self.start_tribler_core()
+            self.wait_for_finished_to_restart_core = False
+
         else:
             error_message = self.format_error_message(exit_code, exit_status)
             self._logger.warning(error_message)
