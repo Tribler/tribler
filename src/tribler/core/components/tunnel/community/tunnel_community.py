@@ -50,7 +50,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
     This community is built upon the anonymous messaging layer in IPv8.
     It adds support for libtorrent anonymous downloads.
     """
-    community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bb')
+    community_id = unhexlify('a3591a6bd89bbaca0974062a1287afcfbc6fd6bc')
 
     def __init__(self, *args, **kwargs):
         self.exitnode_cache: Optional[Path] = kwargs.pop('exitnode_cache', None)
