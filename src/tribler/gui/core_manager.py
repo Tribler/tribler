@@ -66,7 +66,6 @@ class CoreManager(QObject):
         self.core_finished = False
         self.is_restarting = False
 
-        self.core_manager_started_at = int(time.time())
         self.core_process_started_at: Optional[int] = None
         self.old_core_process_pid = None
 
