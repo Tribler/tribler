@@ -66,7 +66,7 @@ class ErrorHandler:
             quoted_output = self.tribler_window.core_manager.get_last_core_output()
             self._logger.info(f'Last Core output:\n{quoted_output}')
 
-            self._restart_tribler(reported_error.text)
+            self._restart_tribler_core(reported_error.text)
         else:
             self._handled_exceptions.add(exc_type)
 
@@ -129,7 +129,7 @@ class ErrorHandler:
         if self.tribler_window.core_manager.core_restarted_frequently():
             self._stop_tribler(error_text)
         else:
-            self._restart_tribler(error_text)
+            self._restart_tribler_core(error_text)
 
     def _stop_tribler(self, text):
         if self._tribler_stopped:
@@ -151,7 +151,7 @@ class ErrorHandler:
         if self.tribler_window.debug_window:
             self.tribler_window.debug_window.setHidden(True)
 
-    def _restart_tribler(self, text):
+    def _restart_tribler_core(self, text):
         if self._tribler_stopped:
             return
 
