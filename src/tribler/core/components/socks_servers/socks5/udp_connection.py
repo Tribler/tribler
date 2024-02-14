@@ -64,9 +64,16 @@ class RustUDPConnection:
         self.rust_endpoint = rust_endpoint
         self.hops = hops
         self.port = None
-        # Ensure this connection doesn't get picked up by the dispatcher
-        self.remote_udp_address = None
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    @property
+    def remote_udp_address(self) -> None:
+        # Ensure this connection doesn't get picked up by the dispatcher
+        return None
+
+    @remote_udp_address.setter
+    def remote_udp_address(self, address: tuple) -> None:
+        self.rust_endpoint.set_udp_associate_default_remote(address)
 
     async def open(self):
         if self.port is not None:
