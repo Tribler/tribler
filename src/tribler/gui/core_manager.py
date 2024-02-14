@@ -257,11 +257,8 @@ class CoreManager(QObject):
     def shutdown_request_processed(self, response):
         self._logger.info(f"{SHUTDOWN_ENDPOINT} request was processed by Core. Response: {response}")
 
-    def send_shutdown_request(self, initial=False):
-        if initial:
-            self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
-        else:
-            self._logger.warning(f"Re-sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
+    def send_shutdown_request(self):
+        self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
 
         request = request_manager.put(
             endpoint=SHUTDOWN_ENDPOINT,
@@ -289,7 +286,7 @@ class CoreManager(QObject):
                 return
 
             self.events_manager.shutting_down = True
-            self.send_shutdown_request(initial=True)
+            self.send_shutdown_request()
 
         elif self.should_quit_app_on_core_finished:
             self._logger.info('Core is not running, quitting GUI application')
@@ -327,7 +324,7 @@ class CoreManager(QObject):
         elif self.core_process:
             if self.core_connected:
                 self.events_manager.shutting_down = False
-                self.send_shutdown_request(initial=True)
+                self.send_shutdown_request()
             else:
                 # If Core is not connected via events_manager it also most probably cannot process API requests.
                 self._logger.warning('Core is not connected during the CoreManager shutdown, killing it...')
@@ -394,7 +391,6 @@ class CoreManager(QObject):
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
         elif self.is_restarting:
-            self.is_restarting = False
             self.start_tribler_core()
         else:
             error_message = self.format_error_message(exit_code, exit_status)
