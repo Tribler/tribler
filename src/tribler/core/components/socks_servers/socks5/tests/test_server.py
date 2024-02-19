@@ -12,7 +12,7 @@ from tribler.core.utilities.aiohttp.aiohttp_utils import query_uri
 
 @pytest.fixture(name='socks5_server')
 async def fixture_socks5_server(free_port):
-    socks5_server = Socks5Server(free_port, Mock())
+    socks5_server = Socks5Server(1, free_port, Mock())
     yield socks5_server
     await socks5_server.stop()
 

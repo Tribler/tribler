@@ -56,7 +56,7 @@ class Ipv8Component(Component):
             self.rendevous_hook = RendezvousHook(self.rendezvous_db)
 
         port = config.ipv8.port
-        address = config.ipv8.address
+        address = '127.0.0.1' if config.gui_test_mode else config.ipv8.address
         self.logger.info('Starting ipv8')
         self.logger.info(f'Port: {port}. Address: {address}')
         ipv8_config_builder = (ConfigBuilder()
@@ -67,12 +67,10 @@ class Ipv8Component(Component):
                                .set_working_directory(str(config.state_dir))
                                .set_walker_interval(config.ipv8.walk_interval))
 
-        INTERFACES["UDPIPv4"] = UDPEndpoint
+        if config.ipv8.rust_endpoint and not config.gui_test_mode:
+            INTERFACES["UDPIPv4"] = UDPEndpoint
 
-        if config.gui_test_mode:
-            endpoint = DispatcherEndpoint([])
-        else:
-            endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port, 'ip': address})
+        endpoint = DispatcherEndpoint(["UDPIPv4"], UDPIPv4={'port': port, 'ip': address})
 
         ipv8 = IPv8(ipv8_config_builder.finalize(),
                     enable_statistics=config.ipv8.statistics and not config.gui_test_mode,
