@@ -2,6 +2,7 @@ import asyncio
 import json
 import time
 from asyncio import CancelledError, Queue
+from contextlib import suppress
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
@@ -215,6 +216,7 @@ class EventsEndpoint(RESTEndpoint):
         else:
             self._logger.info('Event stream was closed due to shutdown')
         finally:
-            self.events_responses.remove(response)
+            with suppress(ValueError):
+                self.events_responses.remove(response)
 
         return response
