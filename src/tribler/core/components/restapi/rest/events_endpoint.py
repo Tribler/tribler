@@ -215,8 +215,9 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.warning('Event stream was canceled')
         else:
             self._logger.info('Event stream was closed due to shutdown')
-        finally:
-            with suppress(ValueError):
-                self.events_responses.remove(response)
+
+        # See: https://github.com/Tribler/tribler/pull/7906
+        with suppress(ValueError):
+            self.events_responses.remove(response)
 
         return response
