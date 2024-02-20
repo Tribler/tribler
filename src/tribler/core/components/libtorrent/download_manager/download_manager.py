@@ -648,7 +648,7 @@ class DownloadManager(TaskManager):
                             dummy=self.dummy_mode)
         self._logger.info(f'Download created: {download}')
         atp = download.get_atp()
-        self._logger.info(f'ATP: {atp}')
+        self._logger.info(f"ATP: { {k: v for k, v in atp.items() if k not in ['resume_data']} }")
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
