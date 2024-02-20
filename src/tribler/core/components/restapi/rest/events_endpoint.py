@@ -2,6 +2,7 @@ import asyncio
 import json
 import time
 from asyncio import CancelledError, Queue
+from contextlib import suppress
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional
 
@@ -214,7 +215,9 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.warning('Event stream was canceled')
         else:
             self._logger.info('Event stream was closed due to shutdown')
-        finally:
+
+        # See: https://github.com/Tribler/tribler/pull/7906
+        with suppress(ValueError):
             self.events_responses.remove(response)
 
         return response
