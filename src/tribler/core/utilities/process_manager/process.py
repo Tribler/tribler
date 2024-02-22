@@ -213,6 +213,10 @@ class TriblerProcess:
     def get_core_process(self) -> Optional[TriblerProcess]:
         """
         Returns Core process created by the current GUI process, or None if the Core process was not found in the DB.
+
+        Under the assumption that GUI process spawns the Core process, the core process is selected from the
+        process database with rowid higher than the rowid of the GUI process. The rowid is a unique autoincrement
+        identifier.
         """
         if self.kind != ProcessKind.GUI:
             raise TypeError('The `get_core_process` method can only be used for a GUI process')
@@ -220,8 +224,8 @@ class TriblerProcess:
         with self.manager.connect() as connection:
             cursor = connection.execute(f"""
                 SELECT {sql_scripts.SELECT_COLUMNS}
-                FROM processes WHERE "primary" = 1 and kind = ? and creator_pid = ?
-            """, [ProcessKind.Core.value, self.pid])
+                FROM processes WHERE "primary" = 1 and kind = ? and creator_pid = ? and rowid > ?
+            """, [ProcessKind.Core.value, self.pid, self.rowid])
             rows = cursor.fetchall()
             if len(rows) > 1:  # should not happen
                 raise RuntimeError('Multiple Core processes were found for a single GUI process')
