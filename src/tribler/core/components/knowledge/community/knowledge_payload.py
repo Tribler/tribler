@@ -1,8 +1,4 @@
-from dataclasses import dataclass
-
-from ipv8.messaging.payload_dataclass import overwrite_dataclass, type_from_format
-
-dataclass = overwrite_dataclass(dataclass)
+from ipv8.messaging.payload_dataclass import dataclass, type_from_format
 
 
 @dataclass
@@ -30,21 +26,24 @@ class StatementOperationSignature:
     signature: type_from_format('64s')
 
 
-@dataclass(msg_id=STATEMENT_OPERATION_MESSAGE_ID)
+@dataclass
 class RawStatementOperationMessage:
     """ RAW payload class is used for reducing ipv8 unpacking operations
     For more information take a look at: https://github.com/Tribler/tribler/pull/6396#discussion_r728334323
     """
+    msg_id = STATEMENT_OPERATION_MESSAGE_ID
     operation: RAW_DATA
     signature: RAW_DATA
 
 
-@dataclass(msg_id=STATEMENT_OPERATION_MESSAGE_ID)
+@dataclass
 class StatementOperationMessage:
+    msg_id = STATEMENT_OPERATION_MESSAGE_ID
     operation: StatementOperation
     signature: StatementOperationSignature
 
 
-@dataclass(msg_id=1)
+@dataclass
 class RequestStatementOperationMessage:
+    msg_id = 1
     count: int

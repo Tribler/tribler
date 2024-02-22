@@ -109,8 +109,8 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
     socks_ports = []
     # Start the SOCKS5 servers
     if start_lt:
-        for _ in range(NUM_SOCKS_PROXIES):
-            socks_server = Socks5Server()
+        for hops in range(NUM_SOCKS_PROXIES):
+            socks_server = Socks5Server(hops+1)
             socks_servers.append(socks_server)
             await socks_server.start()
             socks_ports.append(socks_server.port)
@@ -135,7 +135,6 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
 
     ipv8 = TriblerMockIPv8("curve25519",
                            TriblerTunnelCommunity,
-                           settings={"max_circuits": 1},
                            config=config,
                            socks_servers=socks_servers,
                            dlmgr=download_manager)
@@ -145,13 +144,22 @@ async def create_tunnel_community(temp_path_factory: TempPathFactory,
         download_manager.is_shutdown_ready = lambda: True
     tunnel_community = ipv8.overlay
     tunnel_community.should_join_circuit = AsyncMock(return_value=True)
+    tunnel_community.settings.max_circuits = 1
 
     if exit_node_enable:
         ipv8.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
     ipv8.overlay.dht_provider = MockDHTProvider(Peer(ipv8.overlay.my_peer.key, ipv8.overlay.my_estimated_wan))
     ipv8.overlay.settings.remove_tunnel_delay = 0
+    ipv8.overlay.exit_sockets = MockExitDict(ipv8.overlay.crypto_endpoint.exit_sockets)
+    ipv8.overlay.crypto_endpoint.exit_sockets = ipv8.overlay.exit_sockets
 
     return tunnel_community
+
+
+class MockExitDict(dict):
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        return value if isinstance(value, MockTunnelExitSocket) else MockTunnelExitSocket(value)
 
 
 async def start_anon_download(tunnel_community: TriblerTunnelCommunity,
@@ -276,14 +284,6 @@ async def test_hidden_services(proxy_factory: ProxyFactory, hidden_seeder_comm: 
         return 2
 
     leecher_community.build_tunnels(hops=1)
-
-    class MockExitDict(dict):
-        def __getitem__(self, key):
-            value = super().__getitem__(key)
-            return value if isinstance(value, MockTunnelExitSocket) else MockTunnelExitSocket(value)
-
-    for e in exit_nodes:
-        e.exit_sockets = MockExitDict(e.exit_sockets)
 
     download = await start_anon_download(leecher_community, hidden_seeder_comm.download_manager.libtorrent_port,
                                          video_tdef, hops=1)

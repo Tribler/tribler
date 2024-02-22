@@ -1,6 +1,8 @@
+from unittest.mock import Mock
+
 import pytest
 
-from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection
+from tribler.core.components.socks_servers.socks5.udp_connection import SocksUDPConnection, RustUDPConnection
 
 
 @pytest.fixture
@@ -37,3 +39,30 @@ def test_send_diagram(connection):
     assert connection.send_datagram(b'a')
     connection.remote_udp_address = None
     assert not connection.send_datagram(b'a')
+
+
+async def test_rust_udp_connection():
+    """
+    Test the rust SOCKS5 UDP connection
+    """
+    rust_endpoint = Mock()
+    rust_endpoint.create_udp_associate = Mock(return_value=5000)
+    connection = RustUDPConnection(rust_endpoint, 1)
+
+    await connection.open()
+    rust_endpoint.create_udp_associate.assert_called_with(0, 1)
+    assert connection.get_listen_port() == 5000
+
+    await connection.open()
+    rust_endpoint.create_udp_associate.assert_called_once()
+
+    connection.remote_udp_address = ('1.2.3.4', 5)
+    rust_endpoint.set_udp_associate_default_remote.assert_called_with(('1.2.3.4', 5))
+    assert connection.remote_udp_address is None
+
+    connection.close()
+    rust_endpoint.close_udp_associate.assert_called_once()
+    assert connection.get_listen_port() is None
+
+    connection.close()
+    rust_endpoint.close_udp_associate.assert_called_once()

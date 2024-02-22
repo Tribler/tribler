@@ -19,6 +19,7 @@ class Ipv8Settings(TriblerConfigSection):
     enabled: bool = True
     port: int = 7759
     address: str = '0.0.0.0'
+    rust_endpoint: bool = True
     bootstrap_override: Optional[str] = None
     statistics: bool = False
     rendezvous_stats: bool = False

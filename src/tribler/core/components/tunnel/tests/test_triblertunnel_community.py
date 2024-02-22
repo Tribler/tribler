@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from asyncio import TimeoutError as AsyncTimeoutError, wait_for
+from asyncio import TimeoutError as AsyncTimeoutError, wait_for, sleep
 from collections import defaultdict
 from unittest.mock import Mock
 
@@ -84,7 +84,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         """
         exit_node = self.create_node()
         self.nodes.append(exit_node)  # So it could be properly removed on exit
-        exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+        exit_node.overlay.settings.peer_flags = {PEER_FLAG_EXIT_BT}
         public_peer = Peer(exit_node.my_peer.public_key, exit_node.my_peer.address)
         self.nodes[node_nr].network.add_verified_peer(public_peer)
         self.nodes[node_nr].network.discover_services(public_peer, exit_node.overlay.community_id)
@@ -101,7 +101,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         """
         # 1. Add and exit node
         exit_node = self.create_node()
-        exit_node.overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+        exit_node.overlay.settings.peer_flags = {PEER_FLAG_EXIT_BT}
         self.add_node_to_experiment(exit_node)
         self.nodes[0].overlay.candidates[exit_node.my_peer] = exit_node.overlay.settings.peer_flags
         self.assertGreaterEqual(len(self.nodes[0].overlay.get_candidates(PEER_FLAG_EXIT_BT)), 1)
@@ -167,7 +167,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.join_swarm(b'a', 1)
         self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
-        self.nodes[0].overlay.remove_circuit.assert_called_with(0, 'leaving hidden swarm', destroy=5)
+        self.nodes[0].overlay.remove_circuit.assert_called_with(0, 'leaving hidden swarm', destroy=4)
 
     def test_monitor_downloads_recreate_ip(self):
         """
@@ -232,7 +232,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.monitor_downloads([])
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
-    def test_monitor_downloads_stop_all(self):
+    async def test_monitor_downloads_stop_all(self):
         """
         Test whether circuits are removed when all downloads are stopped
         """
@@ -255,6 +255,8 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         self.nodes[0].overlay.join_swarm(b'a', 1)
         self.nodes[0].overlay.download_states[b'a'] = 3
         self.nodes[0].overlay.monitor_downloads([])
+        # Since circuit removal is async, we should yield the event loop
+        await sleep(0)
         self.assertEqual(mocked_remove_circuit.circuit_id, 0)
 
     def test_update_ip_filter(self):
@@ -312,7 +314,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether a circuit is rejected by an exit node if it already joined the max number of circuits
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_BT)
+        self.nodes[1].overlay.settings.peer_flags = {PEER_FLAG_EXIT_BT}
         self.nodes[1].overlay.settings.max_joined_circuits = 0
         await self.introduce_nodes()
         self.nodes[0].overlay.build_tunnels(1)
@@ -325,7 +327,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether we can make a http request through a circuit
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        self.nodes[1].overlay.settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
         await self.introduce_nodes()
 
         http_port = TestTriblerTunnelCommunity.get_free_port()
@@ -345,7 +347,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether getting a large HTTP response works
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        self.nodes[1].overlay.settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
         await self.introduce_nodes()
 
         http_port = TestTriblerTunnelCommunity.get_free_port()
@@ -366,7 +368,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether we can make HTTP requests that don't have a bencoded response
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        self.nodes[1].overlay.settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
         await self.introduce_nodes()
 
         http_port = TestTriblerTunnelCommunity.get_free_port()
@@ -383,6 +385,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether we can make HTTP requests when we have no exits
         """
         self.add_node_to_experiment(self.create_node())
+        self.nodes[1].overlay.settings.peer_flags = set()
         await self.introduce_nodes()
 
         with self.assertRaises(RuntimeError):
@@ -394,7 +397,7 @@ class TestTriblerTunnelCommunity(TestBase):  # pylint: disable=too-many-public-m
         Test whether if a failed HTTP request is handled correctly
         """
         self.add_node_to_experiment(self.create_node())
-        self.nodes[1].overlay.settings.peer_flags.add(PEER_FLAG_EXIT_HTTP)
+        self.nodes[1].overlay.settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
         await self.introduce_nodes()
 
         with self.assertRaises(AsyncTimeoutError):

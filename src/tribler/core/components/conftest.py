@@ -32,6 +32,7 @@ def tribler_config(tmp_path) -> TriblerConfig:
     config.torrent_checking.enabled = False
     config.ipv8.enabled = False
     config.ipv8.walk_scaling_enabled = False
+    config.ipv8.rust_endpoint = False
     config.discovery_community.enabled = False
     config.libtorrent.enabled = False
     config.libtorrent.dht_readiness_timeout = 0

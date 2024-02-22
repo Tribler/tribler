@@ -1,6 +1,6 @@
 import logging
 from asyncio import get_event_loop
-from typing import Optional
+from typing import Optional, List
 
 from tribler.core.components.socks_servers.socks5.connection import Socks5Connection
 from tribler.core.components.tunnel.community.dispatcher import TunnelDispatcher
@@ -11,12 +11,17 @@ class Socks5Server:
     This object represents a Socks5 server.
     """
 
-    def __init__(self, port=None, output_stream: Optional[TunnelDispatcher] = None):
+    def __init__(self, hops:int ,
+                 port=None,
+                 output_stream: Optional[TunnelDispatcher] = None,
+                 rust_endpoint=None):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.hops = hops
         self.port = port
         self.output_stream = output_stream
         self.server = None
-        self.sessions = []
+        self.sessions: List[Socks5Connection] = []
+        self.rust_endpoint = rust_endpoint
 
     async def start(self):
         """

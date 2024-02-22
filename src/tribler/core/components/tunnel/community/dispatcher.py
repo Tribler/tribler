@@ -79,7 +79,8 @@ class TunnelDispatcher(TaskManager):
             return False
 
         self._logger.debug("Sending data over circuit %d destined for %r:%r", circuit.circuit_id, *request.destination)
-        self.tunnels.send_data(circuit.peer, circuit.circuit_id, request.destination, ('0.0.0.0', 0), request.data)
+        self.tunnels.send_data(circuit.hop.address, circuit.circuit_id,
+                               request.destination, ('0.0.0.0', 0), request.data)  # nosec B104
         return True
 
     @task
