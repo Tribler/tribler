@@ -197,6 +197,40 @@ def test_get_core_process(gui_process):
         gui_process.get_core_process()
 
 
+def test_get_core_process_from_multiple_instances(process_manager):
+    """
+    Tests the case when there is a previous Core process which did not terminate properly and a new GUI process
+    starts a new Core process. In such a case, the new Core process should be selected.
+    """
+    # Previous Core process which did not terminate properly.
+    # Note the creator_pid=1 is the PID of the GUI process.
+    old_core_process = TriblerProcess(pid=2, kind=ProcessKind.Core, app_version='v1', started_at=1, creator_pid=1,
+                                      manager=process_manager)
+    old_core_process.primary = True
+    old_core_process.save()
+    old_core_process.set_api_port(8080)  # set API port
+
+    # New GUI process that starts the new core process
+    # Note pid=1 is the PID of the GUI process, same as set in previous core process that did not terminate properly.
+    new_gui_process = TriblerProcess(pid=1, kind=ProcessKind.GUI, app_version='v1', started_at=2,
+                                     manager=process_manager)
+    new_gui_process.save()
+
+    # New Core process for the new GUI process, also with same creator_pid=1
+    new_core_process = TriblerProcess(pid=2, kind=ProcessKind.Core, app_version='v1', started_at=3, creator_pid=1,
+                                      manager=process_manager)
+    new_core_process.primary = True
+    new_core_process.save()
+    new_core_process.set_api_port(8081)  # set new API port
+
+    assert new_core_process.rowid > old_core_process.rowid  # the new core process has a higher rowid
+
+    p = new_gui_process.get_core_process()
+    assert p is not None  # the core process was found for this GUI process
+    assert p.rowid == new_core_process.rowid  # it is the new core process that was created by the new GUI process
+    assert p.api_port == 8081  # it has correct API port value
+
+
 def test_get_core_process_exception(process_manager):
     # in the process_manager fixture the current_process is a Core process
     with pytest.raises(TypeError, match='^The `get_core_process` method can only be used for a GUI process$'):
