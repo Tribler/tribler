@@ -3,7 +3,7 @@ aiohttp-apispec==2.2.3 # keep this higher or equal to 2.2.3 https://githubhot.co
 anyio==3.7.1
 chardet==5.1.0
 configobj==5.0.8
-cryptography==41.0.6
+cryptography==42.0.5
 Faker==18.11.2
 libnacl==1.8.0
 lz4==4.3.2
@@ -12,7 +12,7 @@ networkx==3.1
 pony==0.7.17
 psutil==5.9.5
 pydantic==1.10.11
-PyOpenSSL==23.2.0
+PyOpenSSL==24.0.0
 pyyaml==6.0
 sentry-sdk==1.31.0
 yappi==1.4.0
