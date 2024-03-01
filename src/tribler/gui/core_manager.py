@@ -13,8 +13,9 @@ from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
 
 from tribler.core.utilities.exit_codes import get_error_name
-from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABASE_IS_CORRUPTED
-from tribler.core.utilities.process_manager import ProcessManager
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABASE_IS_CORRUPTED, \
+    EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
+from tribler.core.utilities.process_manager import ProcessManager, ProcessKind, TriblerProcess
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.event_request_manager import EventRequestManager
@@ -65,7 +66,7 @@ class CoreManager(QObject):
 
         self.should_quit_app_on_core_finished = False
 
-        self.use_existing_core = True
+        self.use_existing_core = False
         self.last_core_stdout_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
         self.last_core_stderr_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
 
@@ -155,10 +156,10 @@ class CoreManager(QObject):
         a suitable port and sets the api_port value in the process database. After that, the `check_core_api_port`
         method retrieves the api_port value from the database and asks EventRequestManager to connect to that port.
         """
-        if not self.core_running or self.core_connected or self.shutting_down:
+        if not self.use_existing_core and (not self.core_running or self.core_connected or self.shutting_down):
             return
 
-        core_process = self.process_manager.current_process.get_core_process()
+        core_process = self.get_core_process()
         if core_process is not None and core_process.api_port:
             api_port = core_process.api_port
             self._logger.info(f"Got REST API port value from the Core process: {api_port}")
@@ -177,6 +178,11 @@ class CoreManager(QObject):
             raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")
         else:
             self.check_core_api_port_timer.start(API_PORT_CHECK_INTERVAL)
+
+    def get_core_process(self) -> Optional[TriblerProcess]:
+        if self.use_existing_core:
+            return self.process_manager.get_primary_process(ProcessKind.Core)
+        return self.process_manager.current_process.get_core_process()
 
     def on_core_stdout_read_ready(self):
         if self.app_manager.quitting_app:
@@ -261,7 +267,7 @@ class CoreManager(QObject):
             self.app_manager.quit_application()
 
     def kill_core_process(self):
-        if not self.core_process:
+        if not self.core_process or self.use_existing_core:
             self._logger.warning("Cannot kill the Core process as it is not initialized")
 
         self.core_process.kill()
@@ -306,6 +312,12 @@ class CoreManager(QObject):
                                "Restarting Core...")
             self.start_tribler_core()
             show_message_corrupted_database_was_fixed()
+            return
+
+        if exit_code == EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING:
+            self._logger.error(f"Core process crashed with code {exit_code}: Another Core process is running.")
+            self.use_existing_core = True
+            self.check_core_api_port()
             return
 
         self.core_finished = True

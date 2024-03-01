@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING
 from tribler.gui.core_manager import CoreCrashedError, CoreManager
 from tribler.gui.exceptions import CoreConnectTimeoutError
 
@@ -51,6 +52,7 @@ def test_check_core_api_port_core_process_not_found(core_manager):
     core_manager.core_running = True
     core_manager.core_started_at = time.time()
     core_manager.process_manager.current_process.get_core_process.return_value = None
+    core_manager.process_manager.get_primary_process.return_value = None
     core_manager.check_core_api_port()
     assert core_manager.process_manager.current_process.get_core_process.called
     assert core_manager.check_core_api_port_timer.start.called
@@ -82,6 +84,7 @@ def test_check_core_api_port_timeout(core_manager):
     # The timeout should be 30 seconds so let's pretend the core started 31 seconds before now
     core_manager.core_started_at = time.time() - 121
     core_manager.process_manager.current_process.get_core_process.return_value = None
+    core_manager.process_manager.get_primary_process.return_value = None
     with pytest.raises(CoreConnectTimeoutError, match="^Can't get Core API port value within 120 seconds$"):
         core_manager.check_core_api_port()
 
@@ -100,6 +103,19 @@ def test_on_core_finished_raises_error(core_manager):
     # exit_code is not equal to 0, then CoreRuntimeError should be raised
     with pytest.raises(CoreCrashedError):
         core_manager.on_core_finished(exit_code=1, exit_status='exit status')
+
+
+def test_on_core_finished_with_existing_core_error(core_manager):
+    # test that in case the core exited with existing core running error,
+    # Core manager tries to connect to existing running core instead
+    # of crashing with CoreCrashedError.
+    core_manager.check_core_api_port = MagicMock()
+
+    core_manager.on_core_finished(exit_code=EXITCODE_ANOTHER_CORE_PROCESS_IS_RUNNING,
+                                  exit_status='exit status')
+
+    assert core_manager.use_existing_core
+    assert core_manager.check_core_api_port.calle
 
 
 @patch('builtins.print')
