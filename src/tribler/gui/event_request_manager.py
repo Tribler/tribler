@@ -121,12 +121,9 @@ class EventRequestManager(QNetworkAccessManager):
             return
 
         if self.receiving_data:
-            # Most probably Core crashed, but we try to reconnect anyway one single time to be sure.
-            # Later, if Core crashed and CoreManager decides to restart the core, it will also call
-            # event_manager.connect_to_core(reschedule_on_err=True)
             self.receiving_data = False
-            self._logger.error('The connection to the Tribler Core was lost, trying to reconnect one single time')
-            self.reconnect(reschedule_on_err=False)
+            self._logger.error('The connection to the Tribler Core was lost, trying to reconnect')
+            self.reconnect(reschedule_on_err=True)
             return
 
         should_retry = reschedule_on_err and time.time() < self.start_time + CORE_CONNECTION_TIMEOUT

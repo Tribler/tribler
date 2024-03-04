@@ -29,7 +29,7 @@ class ErrorHandler:
         self.app_manager: AppManager = tribler_window.app_manager
 
         self._handled_exceptions = set()
-        self._tribler_stopped = False
+        self._tribler_core_stopped = False
 
     def gui_error(self, exc_type, exc, tb):
         self._logger.info(f'Processing GUI error: {exc_type}')
@@ -39,7 +39,7 @@ class ErrorHandler:
         text = "".join(traceback.format_exception(exc_type, exc, tb))
         self._logger.error(text)
 
-        if self._tribler_stopped:
+        if self._tribler_core_stopped:
             self._logger.info('Tribler has been stopped')
             return
 
@@ -51,12 +51,11 @@ class ErrorHandler:
             self._logger.info('This exception has been handled already')
             return
 
-        self._handled_exceptions.add(exc_type)
-
         reported_error = ReportedError(
             type=type(exc_type).__name__,
             text=text,
             event=gui_sentry_reporter.event_from_exception(exc),
+            additional_information={"core_restart_logs": self.tribler_window.core_manager.core_restart_logs}
         )
 
         is_core_exception = issubclass(exc_type, CoreError)
@@ -67,14 +66,16 @@ class ErrorHandler:
             quoted_output = self.tribler_window.core_manager.get_last_core_output()
             self._logger.info(f'Last Core output:\n{quoted_output}')
 
-            self._stop_tribler(reported_error.text)
+            self._restart_tribler_core(reported_error.text)
+        else:
+            self._handled_exceptions.add(exc_type)
 
         if self.app_manager.quitting_app:
             return
 
         additional_tags = {
             'source': 'gui',
-            'tribler_stopped': self._tribler_stopped
+            'tribler_stopped': self._tribler_core_stopped
         }
 
         FeedbackDialog(
@@ -83,31 +84,28 @@ class ErrorHandler:
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            stop_application_on_close=self._tribler_stopped,
             additional_tags=additional_tags,
         ).show()
 
     def core_error(self, reported_error: ReportedError):
-        if self._tribler_stopped or reported_error.type in self._handled_exceptions:
+        if self._tribler_core_stopped or reported_error.type in self._handled_exceptions:
             return
 
-        self._handled_exceptions.add(reported_error.type)
+        # Add core restart logs to the reported error before sending to sentry
+        reported_error.additional_information.update({
+            "core_restart_logs": self.tribler_window.core_manager.core_restart_logs
+        })
+
         self._logger.info(f'Processing Core error: {reported_error}')
         process_manager = self.tribler_window.process_manager
         process_manager.current_process.set_error(f"Core {reported_error.type}: {reported_error.text}")
-
-        error_text = f'{reported_error.text}\n{reported_error.long_text}'
-        self._logger.error(error_text)
-
-        if reported_error.should_stop:
-            self._stop_tribler(error_text)
 
         SentryScrubber.remove_breadcrumbs(reported_error.event)
         gui_sentry_reporter.additional_information.update(reported_error.additional_information)
 
         additional_tags = {
             'source': 'core',
-            'tribler_stopped': self._tribler_stopped
+            'tribler_stopped': self._tribler_core_stopped
         }
 
         FeedbackDialog(
@@ -116,15 +114,26 @@ class ErrorHandler:
             reported_error=reported_error,
             tribler_version=self.tribler_window.tribler_version,
             start_time=self.tribler_window.start_time,
-            stop_application_on_close=self._tribler_stopped,
             additional_tags=additional_tags,
         ).show()
 
-    def _stop_tribler(self, text):
-        if self._tribler_stopped:
+        if not reported_error.should_stop:
+            self._handled_exceptions.add(reported_error.type)
             return
 
-        self._tribler_stopped = True
+        error_text = f'{reported_error.text}\n{reported_error.long_text}'
+        self._logger.error(error_text)
+
+        if self.tribler_window.core_manager.core_restarted_frequently():
+            self._stop_tribler(error_text)
+        else:
+            self._restart_tribler_core(error_text)
+
+    def _stop_tribler(self, text):
+        if self._tribler_core_stopped:
+            return
+
+        self._tribler_core_stopped = True
 
         self.tribler_window.tribler_crashed.emit(text)
         self.tribler_window.delete_tray_icon()
@@ -139,3 +148,10 @@ class ErrorHandler:
 
         if self.tribler_window.debug_window:
             self.tribler_window.debug_window.setHidden(True)
+
+    def _restart_tribler_core(self, text):
+        if self._tribler_core_stopped:
+            return
+
+        self.tribler_window.tribler_crashed.emit(text)
+        self.tribler_window.core_manager.restart_core()

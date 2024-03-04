@@ -3,9 +3,10 @@ import logging
 import re
 import sys
 from io import StringIO
+from pathlib import Path
 from socket import gaierror
 from traceback import print_exception
-from typing import Callable, Dict, Optional, Set, Tuple, Type
+from typing import Callable, Dict, Optional, Set, Tuple, Type, List
 
 from tribler.core.components.exceptions import ComponentStartupException
 from tribler.core.components.reporter.reported_error import ReportedError
@@ -52,6 +53,16 @@ class CoreExceptionHandler:
         self.report_callback: Optional[Callable[[ReportedError], None]] = None
         self.unreported_error: Optional[ReportedError] = None
         self.sentry_reporter = SentryReporter()
+        self.crash_dir: Optional[Path] = None
+
+    def set_crash_dir(self, crash_dir: Path):
+        """
+        Sets the path to the directory where the errors will be saved to the file.
+        This is set in ReporterComponent.
+        """
+        self.crash_dir = crash_dir
+        if self.crash_dir and not self.crash_dir.exists():
+            self.crash_dir.mkdir()
 
     @staticmethod
     def _get_long_text_from(exception: Exception):
@@ -134,6 +145,12 @@ class CoreExceptionHandler:
             if process_manager:
                 process_manager.current_process.set_error(exception)
 
+            # If should_stop is True, the error is critical, so we first save it to the file to ensure
+            # that it will be reported to the GUI via events endpoint either immediately or later
+            # after core restart. This saved file will be deleted when the error is reported to the GUI.
+            if should_stop:
+                self.save_to_file(reported_error)
+
             if self.report_callback:
                 self.logger.error('Call report callback')
                 self.report_callback(reported_error)  # pylint: disable=not-callable
@@ -151,6 +168,50 @@ class CoreExceptionHandler:
             self.sentry_reporter.capture_exception(ex)
             self.logger.exception(f'Error occurred during the error handling: {ex}')
             raise ex
+
+    def get_file_path(self, reported_error: ReportedError) -> Optional[Path]:
+        """
+        Returns the path to the file where the error will be saved.
+        If the crash_dir is not set, returns None.
+        """
+        if not self.crash_dir:
+            return None
+
+        return self.crash_dir / reported_error.get_filename()
+
+    def save_to_file(self, reported_error: ReportedError):
+        """
+        Saves the error to a file.
+
+        While saving the error to the file, `should_stop` field is set to False.
+        This is because this file will be read on restart of the core and sent to the GUI.
+        GUI upon receiving an error with should_stop set to True, will stop or restart the core.
+        We don't want to crash Tribler for the error logged from the last run.
+        The error is saved for the reporting purposes only.
+        """
+        filepath = self.get_file_path(reported_error)
+        if not filepath:
+            return
+
+        reported_error.save_to_dir(self.crash_dir)
+
+    def delete_saved_file(self, reported_error: ReportedError):
+        """
+        Deletes the file where the error was saved.
+        """
+        if file_path := self.get_file_path(reported_error):
+            file_path.unlink(missing_ok=True)
+
+    def get_saved_errors(self) -> List[Tuple[Path, ReportedError]]:
+        """
+        Returns the list of errors saved to the file.
+        Returns an empty list if the crash_dir is not set or doesn't exist.
+        In case of any error while reading the file, the file is deleted.
+        """
+        if not self.crash_dir or not self.crash_dir.exists():
+            return []
+
+        return ReportedError.load_errors_from_dir(self.crash_dir)
 
 
 default_core_exception_handler = CoreExceptionHandler()

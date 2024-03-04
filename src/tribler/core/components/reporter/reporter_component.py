@@ -12,3 +12,4 @@ class ReporterComponent(Component):
 
         user_id_str = hexlify(key_component.primary_key.key.pk).encode('utf-8')
         default_core_exception_handler.sentry_reporter.set_user(user_id_str)
+        default_core_exception_handler.set_crash_dir(self.session.config.state_dir / 'crashlogs')

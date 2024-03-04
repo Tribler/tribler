@@ -13,6 +13,7 @@ from ipv8.REST.schema import schema
 from ipv8.messaging.anonymization.tunnel import Circuit
 
 from tribler.core import notifications
+from tribler.core.components.reporter.exception_handler import default_core_exception_handler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.restapi.rest.rest_endpoint import RESTEndpoint, RESTStreamResponse
 from tribler.core.components.restapi.rest.utils import fix_unicode_dict
@@ -50,11 +51,12 @@ class EventsEndpoint(RESTEndpoint):
     """
     path = '/events'
 
-    def __init__(self, notifier: Notifier, public_key: str = None):
+    def __init__(self, notifier: Notifier, public_key: str = None, exception_handler=None):
         super().__init__()
         self.events_responses: List[RESTStreamResponse] = []
         self.undelivered_error: Optional[MessageDict] = None
         self.public_key = public_key
+        self.exception_handler = exception_handler or default_core_exception_handler
         self.notifier = notifier
         self.queue = Queue()
         self.async_group.add_task(self.process_queue())
@@ -126,6 +128,20 @@ class EventsEndpoint(RESTEndpoint):
         if not self.should_skip_message(message):
             self.queue.put_nowait(message)
 
+    def send_exception(self, reported_error: ReportedError):
+        message = self.error_message(reported_error)
+        self.send_event(message)
+        self.exception_handler.delete_saved_file(reported_error)
+
+    async def send_saved_errors_in_response(self, response):
+        """
+        Send saved errors from the previous run to GUI in the response.
+        """
+        for _, unreported_error in self.exception_handler.get_saved_errors():
+            if unreported_error:
+                await response.write(self.encode_message(self.error_message(unreported_error)))
+                self.exception_handler.delete_saved_file(unreported_error)
+
     async def process_queue(self):
         while True:
             message = await self.queue.get()
@@ -163,12 +179,14 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.warning('Ignoring tribler exception, because the endpoint is shutting down.')
             return
 
-        message = self.error_message(reported_error)
         if self.has_connection_to_gui():
-            self.send_event(message)
-        elif not self.undelivered_error:
-            # If there are several undelivered errors, we store the first error as more important and skip other
-            self.undelivered_error = message
+            self.send_exception(reported_error)
+        else:
+            if reported_error.should_stop:
+                self.exception_handler.save_to_file(reported_error.serialized_copy())
+            if not self.undelivered_error:
+                # If there are several undelivered errors, we store the first error as more important and skip other
+                self.undelivered_error = self.error_message(reported_error)
 
     @docs(
         tags=["General"],
@@ -205,6 +223,9 @@ class EventsEndpoint(RESTEndpoint):
             error = self.undelivered_error
             self.undelivered_error = None
             await response.write(self.encode_message(error))
+
+        # Send any saved errors from the previous run to GUI in the response.
+        await self.send_saved_errors_in_response(response)
 
         self.events_responses.append(response)
 

@@ -29,7 +29,7 @@ class TestError(Exception):
 @patch('tribler.gui.error_handler.FeedbackDialog')
 def test_gui_error_tribler_stopped(mocked_feedback_dialog: MagicMock, error_handler: ErrorHandler):
     # test that while tribler_stopped is True FeedbackDialog is not called
-    error_handler._tribler_stopped = True
+    error_handler._tribler_core_stopped = True
     error_handler.gui_error(TestError, TestError("error text"), None)
     mocked_feedback_dialog.assert_not_called()
 
@@ -54,24 +54,31 @@ def test_gui_info_type_in_handled_exceptions(mocked_feedback_dialog: MagicMock, 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(ErrorHandler, '_stop_tribler')
-def test_gui_core_connect_timeout_error(mocked_stop_tribler, mocked_feedback_dialog: MagicMock,
+@patch.object(ErrorHandler, '_restart_tribler_core')
+def test_gui_core_connect_timeout_error(mocked_restart_tribler, mocked_stop_tribler,
+                                        mocked_feedback_dialog: MagicMock,
                                         error_handler: ErrorHandler):
     # test that in case of CoreConnectTimeoutError Tribler should stop it's work
     error_handler.gui_error(CoreConnectTimeoutError, None, None)
 
     mocked_feedback_dialog.assert_called_once()
-    mocked_stop_tribler.assert_called_once()
+    mocked_stop_tribler.assert_not_called()
+    mocked_restart_tribler.assert_called_once()
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')
 @patch.object(ErrorHandler, '_stop_tribler')
-def test_gui_core_crashed_error(mocked_stop_tribler: MagicMock, mocked_feedback_dialog: MagicMock,
+@patch.object(ErrorHandler, '_restart_tribler_core')
+def test_gui_core_crashed_error(mocked_restart_tribler: MagicMock, mocked_stop_tribler: MagicMock,
+                                mocked_feedback_dialog: MagicMock,
                                 error_handler: ErrorHandler):
+
     # test that in case of CoreRuntimeError Tribler should stop it's work
     error_handler.gui_error(CoreCrashedError, None, None)
 
     mocked_feedback_dialog.assert_called_once()
-    mocked_stop_tribler.assert_called_once()
+    mocked_stop_tribler.assert_not_called()
+    mocked_restart_tribler.assert_called_once()
 
 
 @patch('tribler.gui.error_handler.FeedbackDialog')

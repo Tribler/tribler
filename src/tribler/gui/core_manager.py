@@ -7,7 +7,7 @@ import sys
 import time
 from collections import deque
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer
 from PyQt5.QtNetwork import QNetworkRequest
@@ -18,6 +18,7 @@ from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_DATABA
 from tribler.core.utilities.process_manager import ProcessManager, ProcessKind, TriblerProcess
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
+from tribler.gui.core_restart_logs import CoreRestartLog
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import CoreConnectTimeoutError, CoreCrashedError
 from tribler.gui.network.request_manager import SHUTDOWN_ENDPOINT, request_manager
@@ -27,6 +28,7 @@ API_PORT_CHECK_INTERVAL = 100  # 0.1 seconds between attempts to retrieve Core A
 API_PORT_CHECK_TIMEOUT = 120  # Stop trying to determine API port after this number of seconds
 
 CORE_OUTPUT_DEQUE_LENGTH = 10
+CORE_RESTART_TRACK_COUNT = 3
 
 
 class CoreManager(QObject):
@@ -58,12 +60,14 @@ class CoreManager(QObject):
         self.core_env = None
 
         self.core_started = False
-        self.core_started_at: Optional[int] = None
         self.core_running = False
         self.core_connected = False
         self.shutting_down = False
         self.core_finished = False
 
+        self.is_restarting = False
+        self.core_process_started_at: Optional[int] = None
+        self.wait_for_finished_to_restart_core = False
         self.should_quit_app_on_core_finished = False
 
         self.use_existing_core = False
@@ -71,6 +75,9 @@ class CoreManager(QObject):
         self.last_core_stderr_output: deque = deque(maxlen=CORE_OUTPUT_DEQUE_LENGTH)
 
         connect(self.events_manager.core_connected, self.on_core_connected)
+
+        # Core restart log that tracks when core process was restarted.
+        self.core_restart_logs: List[CoreRestartLog] = []
 
     def on_core_connected(self, _):
         if self.core_finished:
@@ -111,7 +118,13 @@ class CoreManager(QObject):
             self.start_tribler_core()
 
     def start_tribler_core(self):
+        # reset the status flags
         self.use_existing_core = False
+        self.is_restarting = False
+        self.core_started = False
+        self.core_running = False
+        self.core_connected = False
+        self.core_finished = False
 
         core_env = self.core_env
         if not core_env:
@@ -135,15 +148,31 @@ class CoreManager(QObject):
         connect(self.core_process.readyReadStandardOutput, self.on_core_stdout_read_ready)
         connect(self.core_process.readyReadStandardError, self.on_core_stderr_read_ready)
         connect(self.core_process.finished, self.on_core_finished)
-        self._logger.info(f'Start Tribler core process {sys.executable} with arguments: {core_args}')
         self.core_process.start(sys.executable, core_args)
 
     def on_core_started(self):
         self._logger.info("Core process started")
         self.core_started = True
-        self.core_started_at = time.time()
+        self.core_process_started_at = time.time()
         self.core_running = True
+
+        self.log_core_started()
         self.check_core_api_port()
+
+    def log_core_started(self):
+        core_restart_log = CoreRestartLog.current(self.core_process.pid())
+        self.core_restart_logs.append(core_restart_log)
+
+    def log_core_finished(self, exit_code: int, exit_status: str):
+        if self.core_restart_logs:
+            self.core_restart_logs[-1].log_finished(exit_code, exit_status)
+
+    def log_core_restart_triggered(self):
+        if self.core_restart_logs:
+            self.core_restart_logs[-1].log_restart_triggered()
+
+    def core_restarted_frequently(self):
+        return len([log for log in self.core_restart_logs if log.is_recent_log()]) > CORE_RESTART_TRACK_COUNT
 
     def check_core_api_port(self, *args):
         """
@@ -174,7 +203,7 @@ class CoreManager(QObject):
             # with reschedule_on_err=False. I kept reschedule_on_err=True just for reinsurance.
             self.events_manager.connect_to_core(reschedule_on_err=True)
 
-        elif time.time() - self.core_started_at > API_PORT_CHECK_TIMEOUT:
+        elif time.time() - self.core_process_started_at > API_PORT_CHECK_TIMEOUT:
             raise CoreConnectTimeoutError(f"Can't get Core API port value within {API_PORT_CHECK_TIMEOUT} seconds")
         else:
             self.check_core_api_port_timer.start(API_PORT_CHECK_INTERVAL)
@@ -224,6 +253,20 @@ class CoreManager(QObject):
             # Possible reason - cannot write to stdout as it was already closed during the application shutdown
             pass
 
+    def shutdown_request_processed(self, response):
+        self._logger.info(f"{SHUTDOWN_ENDPOINT} request was processed by Core. Response: {response}")
+
+    def send_shutdown_request(self):
+        self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
+
+        request = request_manager.put(
+            endpoint=SHUTDOWN_ENDPOINT,
+            on_success=self.shutdown_request_processed,
+            priority=QNetworkRequest.HighPriority
+        )
+        if request:
+            request.cancellable = False
+
     def stop(self, quit_app_on_core_finished=True):
         if quit_app_on_core_finished:
             self.should_quit_app_on_core_finished = True
@@ -242,29 +285,46 @@ class CoreManager(QObject):
                 return
 
             self.events_manager.shutting_down = True
-
-            def shutdown_request_processed(response):
-                self._logger.info(f"{SHUTDOWN_ENDPOINT} request was processed by Core. Response: {response}")
-
-            def send_shutdown_request(initial=False):
-                if initial:
-                    self._logger.info(f"Sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
-                else:
-                    self._logger.warning(f"Re-sending {SHUTDOWN_ENDPOINT} request to Tribler Core")
-
-                request = request_manager.put(
-                    endpoint=SHUTDOWN_ENDPOINT,
-                    on_success=shutdown_request_processed,
-                    priority=QNetworkRequest.HighPriority
-                )
-                if request:
-                    request.cancellable = False
-
-            send_shutdown_request(initial=True)
+            self.send_shutdown_request()
 
         elif self.should_quit_app_on_core_finished:
             self._logger.info('Core is not running, quitting GUI application')
             self.app_manager.quit_application()
+
+    def restart_core(self):
+        """
+        The job of this method is to ensure that core process is terminated either by calling shutdown endpoint
+        if the core is connected, otherwise, kill the core process.
+
+        In case the core process has already finished (is terminated) as indicated by flag self.core_finished, in that
+        case, a new core process can be directed started.
+
+        Otherwise, core process is tried to be terminated and self.is_restarting flag is set. This flag makes sure to
+        restart the core again on processing on_finished signal of previous dead core process.
+
+        It is done like this to avoid blocking wait of core process finishing (by waiting on
+        self.core_process.waitForFinished()) and restarting a new core process.
+        """
+        if self.is_restarting:
+            return
+
+        self._logger.info("Restarting Core Process ...")
+        self.is_restarting = True
+
+        self.log_core_restart_triggered()
+
+        if self.core_finished:
+            self.start_tribler_core()
+
+        elif self.core_process:
+            self.wait_for_finished_to_restart_core = True
+            if self.core_connected:
+                self.events_manager.shutting_down = False
+                self.send_shutdown_request()
+            else:
+                # If Core is not connected via events_manager it also most probably cannot process API requests.
+                self._logger.warning('Core is not connected during the CoreManager shutdown, killing it...')
+                self.kill_core_process()
 
     def kill_core_process(self):
         if not self.core_process or self.use_existing_core:
@@ -304,7 +364,9 @@ class CoreManager(QObject):
         return message
 
     def on_core_finished(self, exit_code, exit_status):
-        self._logger.info("Core process finished")
+        self._logger.info(f"Core process finished with exit-code: {exit_code} and status: {exit_status}")
+        self.log_core_finished(exit_code, exit_status)
+
         self.core_running = False
         self.core_connected = False
         if exit_code == EXITCODE_DATABASE_IS_CORRUPTED:
@@ -324,6 +386,11 @@ class CoreManager(QObject):
         if self.shutting_down:
             if self.should_quit_app_on_core_finished:
                 self.app_manager.quit_application()
+
+        elif self.wait_for_finished_to_restart_core:
+            self.start_tribler_core()
+            self.wait_for_finished_to_restart_core = False
+
         else:
             error_message = self.format_error_message(exit_code, exit_status)
             self._logger.warning(error_message)

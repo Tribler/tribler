@@ -22,7 +22,7 @@ def fixture_core_manager():
 def test_on_core_started_calls_check_core_api_port(core_manager):
     assert not core_manager.core_running
     assert not core_manager.core_started
-    assert core_manager.core_started_at is None
+    assert core_manager.core_process_started_at is None
     with patch.object(core_manager, 'check_core_api_port') as check_core_api_port:
         core_manager.on_core_started()
         assert check_core_api_port.called
@@ -50,7 +50,7 @@ def test_check_core_api_port_shutting_down(core_manager):
 
 def test_check_core_api_port_core_process_not_found(core_manager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     core_manager.process_manager.current_process.get_core_process.return_value = None
     core_manager.process_manager.get_primary_process.return_value = None
     core_manager.check_core_api_port()
@@ -60,7 +60,7 @@ def test_check_core_api_port_core_process_not_found(core_manager):
 
 def test_check_core_api_port_not_set(core_manager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     core_manager.process_manager.current_process.get_core_process().api_port = None
     core_manager.check_core_api_port()
     assert core_manager.process_manager.current_process.get_core_process.called
@@ -70,7 +70,7 @@ def test_check_core_api_port_not_set(core_manager):
 @patch('tribler.gui.core_manager.request_manager')
 def test_check_core_api_port(request_manager: MagicMock, core_manager: CoreManager):
     core_manager.core_running = True
-    core_manager.core_started_at = time.time()
+    core_manager.core_process_started_at = time.time()
     api_port = core_manager.process_manager.current_process.get_core_process().api_port
     core_manager.check_core_api_port()
     assert core_manager.process_manager.current_process.get_core_process.called
@@ -82,7 +82,7 @@ def test_check_core_api_port(request_manager: MagicMock, core_manager: CoreManag
 def test_check_core_api_port_timeout(core_manager):
     core_manager.core_running = True
     # The timeout should be 30 seconds so let's pretend the core started 31 seconds before now
-    core_manager.core_started_at = time.time() - 121
+    core_manager.core_process_started_at = time.time() - 121
     core_manager.process_manager.current_process.get_core_process.return_value = None
     core_manager.process_manager.get_primary_process.return_value = None
     with pytest.raises(CoreConnectTimeoutError, match="^Can't get Core API port value within 120 seconds$"):
@@ -195,3 +195,87 @@ def test_error_code_to_hex_positive():
     expected = '0x2'
 
     assert actual == expected
+
+
+def test_on_core_started(core_manager):
+    assert not core_manager.core_restart_logs
+    core_manager.on_core_started()
+    assert core_manager.core_restart_logs
+
+
+def test_on_core_finished_during_shutdown(core_manager):
+    core_manager.shutting_down = True
+    core_manager.log_core_finished = MagicMock()
+
+    # Case 1: Shouldn't quit app on core finished
+    core_manager.should_quit_app_on_core_finished = False
+    core_manager.on_core_finished(exit_code=0, exit_status='OK')
+
+    assert not core_manager.app_manager.quit_application.called
+    assert core_manager.log_core_finished.called
+
+    # Case 2: should quit app on core finished
+    core_manager.should_quit_app_on_core_finished = True
+    core_manager.log_core_finished.reset_mock()
+    core_manager.on_core_finished(exit_code=0, exit_status='OK')
+
+    assert core_manager.app_manager.quit_application.called
+    assert core_manager.log_core_finished.called
+
+
+def test_on_core_finished_during_core_restart(core_manager):
+    core_manager.wait_for_finished_to_restart_core = True
+    core_manager.start_tribler_core = MagicMock()
+    core_manager.log_core_finished = MagicMock()
+
+    core_manager.on_core_finished(exit_code=0, exit_status='OK')
+
+    assert core_manager.log_core_finished.called
+    assert not core_manager.is_restarting
+    assert core_manager.start_tribler_core.called
+
+
+def test_update_last_core_process_log_on_core_finished(core_manager):
+    with pytest.raises(CoreCrashedError):
+        core_manager.on_core_finished(exit_code=0, exit_status='OK')
+        last_core_restart_log = core_manager.core_restart_logs[-1]
+        assert last_core_restart_log.exit_code == 0
+        assert last_core_restart_log.exit_status == 'OK'
+
+
+def test_restart_core(core_manager):
+    core_manager.restart_core()
+
+    assert core_manager.is_restarting
+    assert not core_manager.should_quit_app_on_core_finished
+    assert not core_manager.shutting_down
+
+
+def test_restart_core_on_core_finished(core_manager):
+    core_manager.core_finished = True
+    core_manager.start_tribler_core = MagicMock()
+
+    core_manager.restart_core()
+
+    assert core_manager.start_tribler_core.called
+
+
+def test_restart_core_on_core_connected(core_manager):
+    core_manager.core_finished = False
+    core_manager.core_connected = True
+    core_manager.send_shutdown_request = MagicMock()
+
+    core_manager.restart_core()
+
+    assert core_manager.send_shutdown_request.called
+    assert not core_manager.events_manager.shutting_down
+
+
+def test_restart_core_on_core_not_connected(core_manager):
+    core_manager.core_finished = False
+    core_manager.core_connected = False
+    core_manager.kill_core_process = MagicMock()
+
+    core_manager.restart_core()
+
+    assert core_manager.kill_core_process.called

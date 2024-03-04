@@ -8,6 +8,7 @@ import pytest
 from aiohttp import ClientSession
 
 from tribler.core import notifications
+from tribler.core.components.reporter.exception_handler import CoreExceptionHandler
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.components.restapi.rest.events_endpoint import EventsEndpoint
 from tribler.core.components.restapi.rest.rest_endpoint import RESTStreamResponse
@@ -167,6 +168,38 @@ async def test_get_events_has_undelivered_error(mocked_encode_message, mocked_wr
     assert not events_endpoint.undelivered_error
 
 
+@patch('asyncio.sleep', new=AsyncMock(side_effect=CancelledError))
+@patch.object(RESTStreamResponse, 'prepare', new=AsyncMock())
+@patch.object(RESTStreamResponse, 'write', new=AsyncMock())
+@patch.object(EventsEndpoint, 'encode_message', new=MagicMock())
+@patch.object(EventsEndpoint, 'send_saved_errors_in_response')
+async def test_get_events_with_saved_errors(mocked_send_saved_errors, events_endpoint):
+    # test that in case there are saved errors, then they will be sent
+    await events_endpoint.get_events(MagicMock())
+    assert mocked_send_saved_errors.called
+
+
+@patch('tribler.core.components.restapi.rest.rest_endpoint.RESTStreamResponse', new_callable=AsyncMock)
+async def test_send_saved_errors_in_response(mocked_response: RESTStreamResponse,
+                                             events_endpoint: EventsEndpoint):
+    """
+    Test that send_saved_errors_in_response will send all saved errors
+    and delete them from the file system.
+    """
+    events_endpoint.exception_handler = MagicMock()
+    events_endpoint.exception_handler.delete_saved_file = MagicMock()
+
+    saved_error = ReportedError('type', 'text', {})
+    saved_error_path = Mock()
+    events_endpoint.exception_handler.get_saved_errors = MagicMock(return_value=[(saved_error_path, saved_error)])
+
+    mocked_response.write = AsyncMock()
+    await events_endpoint.send_saved_errors_in_response(mocked_response)
+
+    assert mocked_response.write.called
+    assert events_endpoint.exception_handler.delete_saved_file.called
+
+
 async def test_on_tribler_exception_shutdown():
     # test that `on_tribler_exception` will not send any error message if events_endpoint is shutting down
     events_endpoint = EventsEndpoint(Mock())
@@ -208,3 +241,16 @@ async def test_write_data(events_endpoint: EventsEndpoint):
 
     assert bad_response.write.called
     assert good_response.write.called
+
+
+@patch.object(CoreExceptionHandler, 'save_to_file')
+def test_on_tribler_exception_with_critical_error(mocked_save_to_file,
+                                                  events_endpoint: EventsEndpoint,
+                                                  reported_error: ReportedError):
+    reported_error.should_stop = True
+    events_endpoint.undelivered_error = None
+    events_endpoint.on_tribler_exception(reported_error)
+
+    assert mocked_save_to_file.called
+    assert events_endpoint.undelivered_error
+    assert events_endpoint.undelivered_error == events_endpoint.error_message(reported_error)
