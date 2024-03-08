@@ -13,6 +13,9 @@ NULL = 0
 patch_applied = False
 
 
+# pylint: disable=protected-access
+
+
 def apply_finish_accept_patch():  # pragma: no cover
     """
     The patch fixes the following issue with the IocpProactor._accept() method on Windows:
@@ -31,10 +34,11 @@ def apply_finish_accept_patch():  # pragma: no cover
     * https://github.com/python/cpython/issues/93821
     """
 
-    global patch_applied
+    global patch_applied  # pylint: disable=global-statement
     if patch_applied:
         return
 
+    # pylint: disable=import-outside-toplevel
     from asyncio.proactor_events import BaseProactorEventLoop
     from asyncio.windows_events import IocpProactor
 
@@ -51,7 +55,7 @@ def patched_iocp_proacor_accept(self, listener, *, _overlapped=_overlapped):
     ov = _overlapped.Overlapped(NULL)
     ov.AcceptEx(listener.fileno(), conn.fileno())
 
-    def finish_accept(trans, key, ov):
+    def finish_accept(trans, key, ov):  # pylint: disable=unused-argument
         # ov.getresult()
         # start of the patched code
         try:
@@ -61,7 +65,7 @@ def patched_iocp_proacor_accept(self, listener, *, _overlapped=_overlapped):
                                 _overlapped.ERROR_OPERATION_ABORTED):
                 logger.debug("Connection reset error occurred, continuing to accept connections")
                 conn.close()
-                raise ConnectionResetError(*exc.args)
+                raise ConnectionResetError(*exc.args) from exc
             raise
         # end of the patched code
 
@@ -90,6 +94,7 @@ def patched_proactor_event_loop_start_serving(self, protocol_factory, sock,
                                               sslcontext=None, server=None, backlog=100,
                                               ssl_handshake_timeout=None,
                                               ssl_shutdown_timeout=None):  # pragma: no cover
+    # pylint: disable=unused-argument
 
     def loop(f=None):
         try:

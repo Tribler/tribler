@@ -7,6 +7,9 @@ import pytest
 from tribler.core.utilities.asyncio_fixes.finish_accept_patch import patched_iocp_proacor_accept
 
 
+# pylint: disable=protected-access
+
+
 @dataclass
 class accept_mocks_dataclass:
     proactor: MagicMock
