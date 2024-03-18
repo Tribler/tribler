@@ -9,7 +9,7 @@ shutil.copy("src/run_tribler.py", "src/tribler/run.py")
 
 
 def read_version_from_file(file_path):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         file_content = file.read()
     # Use regular expression to find the version pattern
     version_match = re.search(r"^version_id = ['\"]([^'\"]*)['\"]", file_content, re.M)
