@@ -28,7 +28,7 @@ setup(
     name="Tribler",
     version=version,
     description="Privacy enhanced BitTorrent client with P2P content discovery",
-    long_description=Path('README.rst').read_text(),
+    long_description=Path('README.rst').read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
     author="Tribler Team",
     author_email="tribler@tribler.org",
