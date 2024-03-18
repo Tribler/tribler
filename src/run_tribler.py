@@ -75,7 +75,7 @@ def init_boot_logger():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 
-if __name__ == "__main__":
+def main():
     init_boot_logger()
 
     parsed_args = RunTriblerArgsParser().parse_args()
@@ -112,3 +112,7 @@ if __name__ == "__main__":
 
         init_sentry_reporter(gui_sentry_reporter)
         run_gui(api_port, api_key, root_state_dir, parsed_args)
+
+
+if __name__ == "__main__":
+    main()
