@@ -31,7 +31,7 @@ setup(
     long_description=Path('README.rst').read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
     author="Tribler Team",
-    author_email="tribler@tribler.org",
+    author_email="info@tribler.org",
     url="https://www.tribler.org",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
