@@ -104,14 +104,21 @@ class ProcessManager:
             if connection:
                 connection.close()
 
+            if isinstance(e, sqlite3.OperationalError):
+
+                if str(e) == 'unable to open database file':
+                    msg = f"{e}: {self._unable_to_open_db_file_get_reason()}"
+                    raise sqlite3.OperationalError(msg) from e
+
+                raise e
+
             if isinstance(e, sqlite3.DatabaseError):
-                self.db_filepath.unlink(missing_ok=True)
+                try:
+                    self.db_filepath.unlink(missing_ok=True)
+                except PermissionError:
+                    logger.warning(f'Unable to delete the processes database file: {self.db_filepath}')
 
-            if isinstance(e, sqlite3.OperationalError) and str(e) == 'unable to open database file':
-                msg = f"{e}: {self._unable_to_open_db_file_get_reason()}"
-                raise sqlite3.OperationalError(msg) from e
-
-            raise
+            raise e
 
     def _unable_to_open_db_file_get_reason(self):
         dir_path = self.db_filepath.parent
