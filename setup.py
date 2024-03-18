@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from pathlib import Path
 
 from setuptools import setup, find_packages
 
@@ -27,7 +28,7 @@ setup(
     name="Tribler",
     version=version,
     description="Privacy enhanced BitTorrent client with P2P content discovery",
-    long_description=open('README.rst').read(),
+    long_description=Path('README.rst').read_text(),
     long_description_content_type="text/x-rst",
     author="Tribler Team",
     author_email="tribler@tribler.org",
