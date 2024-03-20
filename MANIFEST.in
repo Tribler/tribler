@@ -1,0 +1,9 @@
+include src/run_tribler.py
+include src/tribler/core/components/libtorrent/download_manager/download_config.spec
+include src/tribler/core/components/database/category_filter/category.conf
+include src/tribler/core/components/database/category_filter/filter_terms.filter
+include src/tribler/core/components/database/category_filter/level2.regex
+recursive-include src/tribler/gui/qt_resources *
+recursive-include src/tribler/gui/i18n *
+recursive-include src/tribler/gui/images *
+include requirements*.txt
