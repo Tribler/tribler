@@ -48,7 +48,10 @@ REM packs them in the installer .EXE
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
 
-%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
+REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
+REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
+ECHO Building Tribler using Cx_Freeze
+python3 setup.py build
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
