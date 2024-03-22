@@ -48,9 +48,9 @@ We support development on Linux, macOS and Windows. We have written
 documentation that guides you through installing the required packages when
 setting up a Tribler development environment.
 
-* `Linux <http://tribler.readthedocs.io/en/latest/development/development_on_linux.html>`_
-* `Windows <http://tribler.readthedocs.io/en/latest/development/development_on_windows.html>`_
-* `macOS <http://tribler.readthedocs.io/en/latest/development/development_on_osx.html>`_
+* `Linux <http://tribler.readthedocs.io/en/latest/development/development_on_linux.html>`__
+* `Windows <http://tribler.readthedocs.io/en/latest/development/development_on_windows.html>`__
+* `macOS <http://tribler.readthedocs.io/en/latest/development/development_on_osx.html>`__
 
 
 
@@ -59,9 +59,9 @@ Packaging Tribler
 
 We have written guides on how to package Tribler for distribution on various systems.
 
-* `Linux <http://tribler.readthedocs.io/en/latest/building/building.html>`_
-* `Windows <http://tribler.readthedocs.io/en/latest/building/building_on_windows.html>`_
-* `macOS <http://tribler.readthedocs.io/en/latest/building/building_on_osx.html>`_
+* `Linux <http://tribler.readthedocs.io/en/latest/building/building.html>`__
+* `Windows <http://tribler.readthedocs.io/en/latest/building/building_on_windows.html>`__
+* `macOS <http://tribler.readthedocs.io/en/latest/building/building_on_osx.html>`__
 
 
 Docker support

@@ -3,10 +3,9 @@ import re
 import shutil
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages
 
-# Copy src/run_tribler.py --> src/tribler/run.py to make it accessible in entry_points scripts.
-shutil.copy("src/run_tribler.py", "src/tribler/run.py")
+from build import app_executable, build_exe_options, setup
 
 
 def read_version_from_file(file_path):
@@ -18,10 +17,6 @@ def read_version_from_file(file_path):
         version_str = version_match.group(1)
         return version_str.split("-")[0]
     raise RuntimeError("Unable to find version string.")
-
-
-version_file = os.path.join('src', 'tribler', 'core', 'version.py')
-version = read_version_from_file(version_file)
 
 
 def read_requirements(file_name, directory='.'):
@@ -39,22 +34,36 @@ def read_requirements(file_name, directory='.'):
 
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-
 install_requires = read_requirements('requirements-build.txt', base_dir)
 extras_require = {
     'dev': read_requirements('requirements-test.txt', base_dir),
 }
 
+# Copy src/run_tribler.py --> src/tribler/run.py to make it accessible in entry_points scripts.
+# See: entry_points={"gui_scripts": ["tribler=tribler.run:main"]} in setup() below.
+shutil.copy("src/run_tribler.py", "src/tribler/run.py")
+
+# Read the version from the version file: src/tribler/core/version.py
+# Note that, for version.py to include the correct version, it should be generated first using git commands.
+# For example:
+#    git describe --tags | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
+#    git rev-parse HEAD > .TriblerCommit
+# Then, the version.py file can be generated using the following command:
+#    python build/update_version.py
+version_file = os.path.join('src', 'tribler', 'core', 'version.py')
+version = read_version_from_file(version_file)
 
 setup(
-    name="Tribler",
+    name="tribler",
     version=version,
     description="Privacy enhanced BitTorrent client with P2P content discovery",
     long_description=Path('README.rst').read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
     author="Tribler Team",
     author_email="info@tribler.org",
-    url="https://www.tribler.org",
+    url="https://github.com/Tribler/tribler",
+    keywords='BitTorrent client, file sharing, peer-to-peer, P2P, TOR-like network',
+    python_requires='>=3.8',
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
@@ -68,12 +77,15 @@ setup(
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: GPL-3.0 license",
+        "Intended Audience :: End Users/Desktop",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Topic :: Internet :: File Sharing",
+        "Topic :: Communications :: File Sharing",
         "Topic :: Security :: Cryptography",
         "Operating System :: OS Independent",
     ],
+    options={"build_exe": build_exe_options},
+    executables=[app_executable]
 )
