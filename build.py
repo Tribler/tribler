@@ -68,7 +68,9 @@ else:
         "requests",
         "tribler.core",
         "tribler.gui",
-        "faker"
+        "faker",
+        "libtorrent",
+        "ssl",
     ]
 
     # These files will be included in the build
