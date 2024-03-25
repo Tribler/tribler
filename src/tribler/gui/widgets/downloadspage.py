@@ -31,6 +31,7 @@ from tribler.gui.widgets.downloadwidgetitem import DownloadWidgetItem, LoadingDo
 from tribler.gui.widgets.loading_list_item import LoadingListItem
 
 REFRESH_DOWNLOADS_SOON_INTERVAL_MSEC = 10  # 0.01s
+REFRESH_DOWNLOADS_CHECKPOINTS_LOADING_INTERVAL_MSEC = 1000  # 1s
 REFRESH_DOWNLOADS_UI_CHANGE_INTERVAL_MSEC = 2000  # 2s
 REFRESH_DOWNLOADS_BACKGROUND_INTERVAL_MSEC = 5000  # 5s
 
@@ -56,6 +57,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def __init__(self):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.checkpoints_loaded = False
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
         self.download_widgets: Dict = {}  # key: infohash, value: QTreeWidgetItem
@@ -117,7 +119,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().downloads_list.addTopLevelItem(self.loading_message_widget)
         self.window().downloads_list.setItemWidget(self.loading_message_widget, 2, self.loading_list_item)
 
-    def schedule_downloads_refresh(self, interval_msec=REFRESH_DOWNLOADS_BACKGROUND_INTERVAL_MSEC):
+    def schedule_downloads_refresh(self, interval_msec):
         timer = self.background_refresh_downloads_timer
         remaining = timer.remainingTime()
         if timer.isActive():
@@ -127,7 +129,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
     def on_background_refresh_downloads_timer(self):
         self.refresh_non_selected_downloads()
         self.refresh_selected_download()
-        self.schedule_downloads_refresh()
+        if self.checkpoints_loaded:
+            interval = REFRESH_DOWNLOADS_BACKGROUND_INTERVAL_MSEC
+        else:
+            interval = REFRESH_DOWNLOADS_CHECKPOINTS_LOADING_INTERVAL_MSEC
+        self.schedule_downloads_refresh(interval)
 
     def stop_refreshing_downloads(self):
         self.background_refresh_downloads_timer.stop()
@@ -229,6 +235,16 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         The result could consists of multiple downloads.
         Only downloads from the result will be processed.
         """
+        dht_status = result.get('dht_status', {})
+        if not dht_status.get('ready'):
+            dht_peers_count = dht_status.get('peers_count', 0)
+            min_dht_peers_count = dht_status.get('min_peers_count', 0)
+            message = f'DHT peers {dht_peers_count}/{min_dht_peers_count}'
+            self._logger.info(f'Waiting for DHT peers: {message}')
+            self.loading_list_item.textlabel.setText(message)
+            self.schedule_downloads_refresh(REFRESH_DOWNLOADS_CHECKPOINTS_LOADING_INTERVAL_MSEC)
+            return
+
         checkpoints = result.get('checkpoints', {})
         if checkpoints and self.loading_message_widget:
             # If not all checkpoints are loaded, display the number of the loaded checkpoints
@@ -239,7 +255,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
                 message = f'{loaded}/{total} checkpoints'
                 self._logger.info(f'Loading checkpoints: {message}')
                 self.loading_list_item.textlabel.setText(message)
-                self.schedule_downloads_refresh()
+                self.schedule_downloads_refresh(REFRESH_DOWNLOADS_CHECKPOINTS_LOADING_INTERVAL_MSEC)
                 return
 
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)

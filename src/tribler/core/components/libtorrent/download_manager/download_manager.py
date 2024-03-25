@@ -6,6 +6,7 @@ Author(s): Egbert Bouman
 import asyncio
 import logging
 import os
+import time
 import time as timemod
 from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
@@ -14,6 +15,7 @@ from shutil import rmtree
 from typing import Callable, Dict, List, Optional, Union
 
 from ipv8.taskmanager import TaskManager
+from ipv8.util import succeed
 
 from tribler.core import notifications
 from tribler.core.components.libtorrent.download_manager.dht_health_manager import DHTHealthManager
@@ -57,6 +59,9 @@ DEFAULT_LT_EXTENSIONS = [
     lt.create_ut_pex_plugin,
     lt.create_smart_ban_plugin
 ]
+
+MIN_DHT_PEERS_COUNT = 60
+PARALLEL_CHECKPOINT_LOADING_COUNT = 10
 
 
 def encode_atp(atp):
@@ -107,9 +112,16 @@ class DownloadManager(TaskManager):
 
         self.downloads: Dict[bytes, Download] = {}
 
+        self.min_dht_peers = MIN_DHT_PEERS_COUNT
+        self.dht_peers_count = 0  # To report to GUI
+        self._dht_ready_time = 0  # For logging: a time when we have enough DHT peers and start loading of checkpoints
+
         self.checkpoints_count = None
         self.checkpoints_loaded = 0
         self.all_checkpoints_are_loaded = False
+
+        # Limits concurrent checkpoint loads to stabilize Tribler startup with many downloads
+        self.load_checkpoint_semaphore = asyncio.Semaphore(PARALLEL_CHECKPOINT_LOADING_COUNT)
 
         self.metadata_tmpdir = None
         # Dictionary that maps infohashes to download instances. These include only downloads that have
@@ -157,7 +169,7 @@ class DownloadManager(TaskManager):
             return -1
         return rate // 1024
 
-    async def _check_dht_ready(self, min_dht_peers=60):
+    async def _check_dht_ready(self):
         """
         Checks whether we got enough DHT peers. If the number of DHT peers is low,
         checking for a bunch of torrents in a short period of time may result in several consecutive requests
@@ -165,7 +177,13 @@ class DownloadManager(TaskManager):
         which results in DHT checks stuck for hours.
         See https://github.com/Tribler/tribler/issues/5319
         """
-        while not (self.get_session() and self.get_session().status().dht_nodes > min_dht_peers):
+        while True:
+            session = self.get_session()
+            self.dht_peers_count = self.get_session().status().dht_nodes if session else 0
+            if self.dht_peers_count >= self.min_dht_peers:
+                self._dht_ready_time = time.time()
+                break
+
             await asyncio.sleep(1)
 
     def initialize(self):
@@ -896,28 +914,40 @@ class DownloadManager(TaskManager):
         self._logger.info("Load checkpoints...")
         checkpoint_filenames = list(self.get_checkpoint_dir().glob('*.conf'))
         self.checkpoints_count = len(checkpoint_filenames)
+        checkpoint_futures = []
+
         for i, filename in enumerate(checkpoint_filenames, start=1):
-            await self.load_checkpoint(filename)
+            # Allowing no more than PARALLEL_CHECKPOINT_LOADING_COUNT checkpoints at the same time
+            await self.load_checkpoint_semaphore.acquire()
+
+            self._logger.info(f"Loading checkpoint {i}/{self.checkpoints_count}")
+            fut = await self.load_checkpoint(filename)
+            fut.add_done_callback(lambda _: self.load_checkpoint_semaphore.release())
+            checkpoint_futures.append(fut)
+
             self.checkpoints_loaded = i
             await sleep(.01)
+
+        await gather(*checkpoint_futures)  # Wait until all downloads are truly loaded
         self.all_checkpoints_are_loaded = True
-        self._logger.info("Checkpoints are loaded")
+        t = time.time() - self._dht_ready_time
+        self._logger.info(f"All checkpoints are loaded in {t:.3f} seconds")
 
     async def load_checkpoint(self, filename):
         try:
             config = DownloadConfig.load(filename)
         except Exception:
             self._logger.exception("Could not open checkpoint file %s", filename)
-            return
+            return succeed(False)
 
         metainfo = config.get_metainfo()
         if not metainfo:
             self._logger.error("Could not resume checkpoint %s; metainfo not found", filename)
-            return
+            return succeed(False)
         if not isinstance(metainfo, dict):
             self._logger.error("Could not resume checkpoint %s; metainfo is not dict %s %s",
                                filename, type(metainfo), repr(metainfo))
-            return
+            return succeed(False)
 
         try:
             url = metainfo.get(b'url', None)
@@ -926,26 +956,27 @@ class DownloadManager(TaskManager):
                     if b'infohash' in metainfo else TorrentDef.load_from_dict(metainfo))
         except (KeyError, ValueError) as e:
             self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
-            return
+            return succeed(False)
 
         if config.get_bootstrap_download():
             # In case the download is marked as bootstrap, remove it if its infohash does not
             # match the configured bootstrap infohash
             if hexlify(tdef.get_infohash()) != self.bootstrap_infohash:
                 self.remove_config(tdef.get_infohash())
-                return
+                return succeed(False)
 
         config.state_dir = self.state_dir
         if config.get_dest_dir() == '':  # removed torrent ignoring
             self._logger.info("Removing checkpoint %s destdir is %s", filename, config.get_dest_dir())
             os.remove(filename)
-            return
+            return succeed(False)
 
         try:
             if self.download_exists(tdef.get_infohash()):
                 self._logger.info("Not resuming checkpoint because download has already been added")
             else:
-                await self.start_download(tdef=tdef, config=config)
+                download = await self.start_download(tdef=tdef, config=config)
+                return download.wait_for_alert('add_torrent_alert')  # this future is done when the download is added
         except Exception:
             self._logger.exception("Not resume checkpoint due to exception while adding download")
 

@@ -33,6 +33,10 @@ TOTAL = 'total'
 LOADED = 'loaded'
 ALL_LOADED = 'all_loaded'
 
+READY = 'ready'
+PEERS_COUNT = 'peers_count'
+MIN_PEERS_COUNT = 'min_peers_count'
+
 
 @froze_it
 class DownloadsEndpoint(RESTEndpoint):
@@ -228,7 +232,12 @@ class DownloadsEndpoint(RESTEndpoint):
                         TOTAL: Integer,
                         LOADED: Integer,
                         ALL_LOADED: Boolean,
-                    })
+                    }),
+                    'dht_status': schema(DhtStatus={
+                        'ready': Boolean,
+                        'peers_count': Integer,
+                        'min_peers_count': Integer,
+                    }),
                 }),
             }
         },
@@ -248,6 +257,12 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = params.get('infohash')
         excluded = params.get('excluded')
 
+        dht_status = {
+            READY: self.download_manager._dht_ready_task.done(),
+            PEERS_COUNT: self.download_manager.dht_peers_count,
+            MIN_PEERS_COUNT: self.download_manager.min_dht_peers,
+        }
+
         checkpoints = {
             TOTAL: self.download_manager.checkpoints_count,
             LOADED: self.download_manager.checkpoints_loaded,
@@ -255,7 +270,7 @@ class DownloadsEndpoint(RESTEndpoint):
         }
 
         if not self.download_manager.all_checkpoints_are_loaded:
-            return RESTResponse({"downloads": [], "checkpoints": checkpoints})
+            return RESTResponse({"downloads": [], "checkpoints": checkpoints, "dht_status": dht_status})
 
         result = []
         downloads = (d for d in self.download_manager.get_downloads() if not d.hidden)
@@ -325,7 +340,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
             result.append(info)
 
-        return RESTResponse({"downloads": result, "checkpoints": checkpoints})
+        return RESTResponse({"downloads": result, "checkpoints": checkpoints, "dht_status": dht_status})
 
     @docs(
         tags=["Libtorrent"],
