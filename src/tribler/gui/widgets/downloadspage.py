@@ -229,19 +229,6 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         The result could consists of multiple downloads.
         Only downloads from the result will be processed.
         """
-        checkpoints = result.get('checkpoints', {})
-        if checkpoints and self.loading_message_widget:
-            # If not all checkpoints are loaded, display the number of the loaded checkpoints
-            total = checkpoints['total']
-            loaded = checkpoints['loaded']
-            if not checkpoints['all_loaded']:
-                # The column is too narrow for a long message, probably we should redesign this UI element later
-                message = f'{loaded}/{total} checkpoints'
-                self._logger.info(f'Loading checkpoints: {message}')
-                self.loading_list_item.textlabel.setText(message)
-                self.schedule_downloads_refresh()
-                return
-
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
         if loading_widget_index > -1:
             self.window().downloads_list.takeTopLevelItem(loading_widget_index)

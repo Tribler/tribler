@@ -246,7 +246,10 @@ async def test_start_download(fake_dlmgr):
     mock_download.get_def().get_infohash = MagicMock(return_value=b"1" * 20)
     mock_download.future_added = succeed(True)
     mock_ltsession.async_add_torrent = MagicMock()
+
     await fake_dlmgr.start_handle(mock_download, {})
+    await asyncio.sleep(0.1)
+
     check_was_run.assert_called()
     fake_dlmgr.downloads.clear()
 

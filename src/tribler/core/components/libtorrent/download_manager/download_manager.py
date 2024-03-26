@@ -686,20 +686,24 @@ class DownloadManager(TaskManager):
             download.post_alert('add_torrent_alert', dict(handle=existing_handle))
         else:
             # Otherwise, add it anew
-            self._logger.debug("Adding handle %s", hexlify(infohash))
-            # To prevent flooding the DHT with a short burst of queries and triggering
-            # flood protection, we postpone adding torrents until we get enough DHT peers.
-            # The asynchronous wait should be done as close as possible to the actual
-            # Libtorrent calls, so the higher-level download-adding logic does not block.
-            # Otherwise, e.g. if added to the Session init sequence, this results in startup
-            # time increasing by 10-20 seconds.
-            # See https://github.com/Tribler/tribler/issues/5319
-            if self.dht_readiness_timeout > 0 and self._dht_ready_task is not None:
-                try:
-                    await wait_for(shield(self._dht_ready_task), timeout=self.dht_readiness_timeout)
-                except asyncio.TimeoutError:
-                    self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
-            ltsession.async_add_torrent(encode_atp(atp))
+            _ = self.register_anonymous_task('AddTorrent', self._async_add_torrent, ltsession, infohash, atp,
+                                             ignore=(Exception,))
+
+    async def _async_add_torrent(self, ltsession, infohash, atp):
+        self._logger.debug("Adding handle %s", hexlify(infohash))
+        # To prevent flooding the DHT with a short burst of queries and triggering
+        # flood protection, we postpone adding torrents until we get enough DHT peers.
+        # The asynchronous wait should be done as close as possible to the actual
+        # Libtorrent calls, so the higher-level download-adding logic does not block.
+        # Otherwise, e.g. if added to the Session init sequence, this results in startup
+        # time increasing by 10-20 seconds.
+        # See https://github.com/Tribler/tribler/issues/5319
+        if self.dht_readiness_timeout > 0 and self._dht_ready_task is not None:
+            try:
+                await wait_for(shield(self._dht_ready_task), timeout=self.dht_readiness_timeout)
+            except asyncio.TimeoutError:
+                self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
+        ltsession.async_add_torrent(encode_atp(atp))
 
     def get_libtorrent_version(self):
         try:
