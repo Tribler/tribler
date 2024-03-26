@@ -270,7 +270,7 @@ class Download(TaskManager):
 
             for future, future_setter, getter in self.futures.pop(alert_type, []):
                 if not future.done():
-                    future_setter(getter(alert) if getter else alert)
+                    future_setter(getter(alert) if getter else None)
         except Exception as e:
             self._logger.exception(f'process_alert failed with {e.__class__.__name__}: {e} '
                                    f'for alert {safe_repr(alert)}')
