@@ -11,12 +11,11 @@ from pony.orm import db_session
 
 from tribler.core import notifications
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.database.db.tribler_database import TriblerDatabase
-from tribler.core.components.knowledge.rules.rules_content_items import content_items_rules
-from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
-from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.core.components.database.db.store import MetadataStore
+from tribler.core.components.database.db.tribler_database import TriblerDatabase
+from tribler.core.components.knowledge.rules.rules_general_tags import general_rules
+from tribler.core.components.knowledge.rules.tag_rules_base import extract_only_valid_tags
 from tribler.core.utilities.async_force_switch import force_switch
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.unicode import hexlify
@@ -214,11 +213,7 @@ class KnowledgeRulesProcessor(TaskManager):
             self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str, predicate=ResourceType.TAG,
                                  objects=tags)
 
-        if content_items := set(extract_only_valid_tags(title, rules=content_items_rules)):
-            self.save_statements(subject_type=ResourceType.TORRENT, subject=infohash_str,
-                                 predicate=ResourceType.CONTENT_ITEM, objects=content_items)
-
-        return len(tags) + len(content_items) + 1
+        return len(tags)
 
     @db_session
     def save_statements(self, subject_type: ResourceType, subject: str, predicate: ResourceType, objects: Set[str]):

@@ -2,22 +2,22 @@ import operator
 import time
 import typing
 from binascii import unhexlify
-from collections import defaultdict
 from dataclasses import asdict
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
+from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
+from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
 
-from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
-from ipv8.REST.schema import schema
 from tribler.core.components.database.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
+from tribler.core.components.knowledge.rules.content_bundling import group_content_by_number
 from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.restapi.rest.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
@@ -26,8 +26,8 @@ from tribler.core.utilities.pony_utils import run_threaded
 from tribler.core.utilities.utilities import froze_it, parse_bool
 
 TORRENT_CHECK_TIMEOUT = 20
-SNIPPETS_TO_SHOW = 3  # The number of snippets we return from the search results
-MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
+SNIPPETS_TO_SHOW = 50  # The number of snippets we return from the search results
+MAX_TORRENTS_IN_SNIPPETS = 10  # The maximum number of torrents in each snippet
 
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
@@ -221,33 +221,19 @@ class DatabaseEndpoint(RESTEndpoint):
         """
         Build a list of snippets that bundle torrents describing the same content item.
         For each search result we determine the content item it is associated to and bundle it inside a snippet.
-        We sort the snippets based on the number of torrents inside the snippet.
         Within each snippet, we sort on torrent popularity, putting the torrent with the most seeders on top.
         Torrents bundled in a snippet are filtered out from the search results.
         """
-        content_to_torrents: typing.Dict[str, list] = defaultdict(list)
-        for search_result in search_results:
-            if "infohash" not in search_result:
-                continue
-            with db_session:
-                content_items: typing.List[str] = self.tribler_db.knowledge.get_objects(
-                    subject_type=ResourceType.TORRENT,
-                    subject=search_result["infohash"],
-                    predicate=ResourceType.CONTENT_ITEM)
-            if content_items:
-                for content_id in content_items:
-                    content_to_torrents[content_id].append(search_result)
+        results = {r['name']: r for r in search_results}
+        groups = group_content_by_number(results.keys())
+        content_to_torrents = {k: [results[title] for title in v] for k, v in groups.items()}
 
         # Sort the search results within each snippet by the number of seeders
         for torrents_list in content_to_torrents.values():
             torrents_list.sort(key=operator.itemgetter("num_seeders"), reverse=True)
 
-        # Determine the most popular content items - this is the one we show
-        sorted_content_info = list(content_to_torrents.items())
-        sorted_content_info.sort(key=lambda x: x[1][0]["num_seeders"], reverse=True)
-
         snippets: typing.List[typing.Dict] = []
-        for content_info in sorted_content_info:
+        for content_info in content_to_torrents.items():
             content_id = content_info[0]
             torrents_in_snippet = content_to_torrents[content_id][:MAX_TORRENTS_IN_SNIPPETS]
 
