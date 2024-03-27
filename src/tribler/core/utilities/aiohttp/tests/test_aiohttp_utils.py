@@ -70,6 +70,6 @@ async def test_query_uri_handled_exceptions(e):
 
 async def test_query_uri_unhandled_exceptions():
     # test that the function `query_uri` does not handle exceptions outside the `HANDLED_EXCEPTIONS` list.
-    with patch.object(ClientSession, 'get', AsyncMock(side_effect=ValueError)):
-        with pytest.raises(ValueError):
+    with patch.object(ClientSession, 'get', AsyncMock(side_effect=ZeroDivisionError)):
+        with pytest.raises(ZeroDivisionError):
             await query_uri('any.uri')
