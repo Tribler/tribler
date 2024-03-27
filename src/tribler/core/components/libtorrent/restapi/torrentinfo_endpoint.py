@@ -100,7 +100,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         elif scheme in (HTTP_SCHEME, HTTPS_SCHEME):
             try:
                 response = await query_http_uri(uri)
-            except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, AsyncTimeoutError) as e:
+            except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, AsyncTimeoutError,
+                    ValueError) as e:
                 self._logger.warning(f'Error while querying http uri: {e}')
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
