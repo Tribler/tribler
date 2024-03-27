@@ -345,6 +345,15 @@ class TriblerSQLiteProvider(sqlite.SQLiteProvider):
             lock_hold_duration = time.time() - acquire_time
             info.lock_hold_total_duration += lock_hold_duration
 
+    def release(self, connection, cache=None):
+        super().release(connection, cache)
+
+        # This method is called after exiting the db_session context manager. Usually, after db_session finishes,
+        # PonyORM releases the connection to the connection pool. However, if the thread finishes, the connection
+        # remains open. Later, if such a connection is garbage collected, it may lead to memory corruption errors.
+        # To avoid this, we close the connection after the db_session is over by calling the `disconnect` method.
+        self.pool.disconnect()
+
 
 db_session = TriblerDbSession()
 orm.db_session = orm.core.db_session = db_session
