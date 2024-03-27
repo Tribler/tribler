@@ -1,3 +1,4 @@
+import gc
 from unittest.mock import MagicMock
 
 import pytest
@@ -8,9 +9,6 @@ from tribler.core.components.libtorrent.download_manager.download_config import 
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
 from tribler.core.tests.tools.common import TESTS_DATA_DIR, TORRENT_UBUNTU_FILE, TORRENT_VIDEO_FILE
 from tribler.core.utilities.unicode import hexlify
-
-
-# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -95,3 +93,24 @@ def dual_movie_tdef() -> TorrentDef:
     tdef.add_content(TORRENT_UBUNTU_FILE)
     tdef.save()
     return tdef
+
+
+@pytest.fixture(autouse=True)
+def ensure_gc(request):
+    """ Ensure that the garbage collector runs after each test.
+    This is critical for test stability as we use Libtorrent and need to ensure all its destructors are called. """
+    # For this fixture, it is necessary for it to be called as late as possible within the current test's scope.
+    # Therefore it should be placed at the first place in the "function" scope.
+    # If there are two or more autouse fixtures within this scope, the order should be explicitly set through using
+    # this fixture as a dependency.
+    # See the discussion in https://github.com/Tribler/tribler/pull/7542 for more information.
+
+    yield
+    # Without "yield" the fixture triggers the garbage collection at the beginning of the (next) test.
+    # For that reason, the errors triggered during the garbage collection phase will take place not in the erroneous
+    # test but in the randomly scheduled next test. Usually, these errors are silently suppressed, as any exception in
+    # __del__ methods is silently suppressed, but they still can somehow affect the test.
+    #
+    # By adding the yield we move the garbage collection phase to the end of the current test, to not affect the next
+    # test.
+    gc.collect()
