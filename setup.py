@@ -5,7 +5,7 @@ from pathlib import Path
 
 from setuptools import find_packages
 
-from build import app_executable, build_exe_options, setup
+from build import setup, setup_options, setup_executables
 
 
 def read_version_from_file(file_path):
@@ -86,6 +86,6 @@ setup(
         "Topic :: Security :: Cryptography",
         "Operating System :: OS Independent",
     ],
-    options={"build_exe": build_exe_options},
-    executables=[app_executable]
+    options=setup_options,
+    executables=setup_executables
 )

@@ -2,17 +2,15 @@
 This file includes the build configuration for the Tribler.
 The exports of this file are used in setup.py to build the executable or wheel package.
 
-Building executable depends on cx_Freeze.
-
-1) If cx_Freeze is not installed,
-setuptools is used to build the wheel package.
+There are two build options:
+1) setuptools is used to build the wheel package.
 
 To create a wheel package:
 python setup.py bdist_wheel
 
-2) If cx_Freeze is installed,
+2) Building executable is done using cx_Freeze.
 
-To create a build:
+To build an executable:
 python setup.py build
 
 To create a distributable package:
@@ -21,38 +19,23 @@ python setup.py bdist
 To create a distributable package for a specific platform:
 python setup.py bdist_mac
 python setup.py bdist_win
+
+Building wheel and building executable had to be separated because cx_Freeze does not
+support building wheels. Therefore, the build options are separated into two functions
+and the appropriate function is called based on the command line arguments.
 """
-import os
-import re
-import shutil
 import sys
-from pathlib import Path
 
-from setuptools import find_packages
 
-try:
-    import cx_Freeze
-except ImportError:
-    cx_Freeze = None
-
-if cx_Freeze is None:
-    # If cx_Freeze is not installed, use setuptools to build the wheel package
+def get_wheel_build_options():
     from setuptools import setup
-    app_executable = None
-    build_exe_options = {}
+    setup_options = {"build_exe": {}}
+    setup_executables = None
+    return setup, setup_options, setup_executables
 
-else:
+
+def get_freeze_build_options():
     from cx_Freeze import setup, Executable
-
-    app_name = "Tribler" if sys.platform != "linux" else "tribler"
-    app_script = "src/tribler/run.py"
-    app_icon_path = "build/win/resources/tribler.ico" if sys.platform == "win32" else "build/mac/resources/tribler.icns"
-    app_executable = Executable(
-        target_name=app_name,
-        script=app_script,
-        base="Win32GUI" if sys.platform == "win32" else None,
-        icon=app_icon_path,
-    )
 
     # These packages will be included in the build
     sys.path.insert(0, 'src')
@@ -96,12 +79,35 @@ else:
         'matplotlib'
     ]
 
-    build_exe_options = {
-        "packages": included_packages,
-        "excludes": excluded_packages,
-        "include_files": included_files,
-        "include_msvcr": True,
-        'build_exe': 'dist/tribler'
+    setup_options = {
+        "build_exe": {
+            "packages": included_packages,
+            "excludes": excluded_packages,
+            "include_files": included_files,
+            "include_msvcr": True,
+            'build_exe': 'dist/tribler'
+        }
     }
 
-__all__ = ["setup", "app_executable", "build_exe_options"]
+    app_name = "Tribler" if sys.platform != "linux" else "tribler"
+    app_script = "src/tribler/run.py"
+    app_icon_path = "build/win/resources/tribler.ico" if sys.platform == "win32" else "build/mac/resources/tribler.icns"
+    setup_executables = [
+        Executable(
+            target_name=app_name,
+            script=app_script,
+            base="Win32GUI" if sys.platform == "win32" else None,
+            icon=app_icon_path,
+        )
+    ]
+    return setup, setup_options, setup_executables
+
+
+# Based on the command line arguments, get the build options.
+# If the command line arguments include 'setup.py' and 'bdist_wheel',
+# then the options are for building a wheel package.
+# Otherwise, the options are for building an executable (any other).
+if {'setup.py', 'bdist_wheel'}.issubset(sys.argv):
+    setup, setup_options, setup_executables = get_wheel_build_options()
+else:
+    setup, setup_options, setup_executables = get_freeze_build_options()
