@@ -28,7 +28,8 @@ async def query_uri(uri: str, connector: Optional[BaseConnector] = None, headers
                 if return_json:
                     return await response.json(content_type=None)
                 return await response.read()
-        except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, asyncio.TimeoutError) as e:
+        except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError, asyncio.TimeoutError,
+                ValueError) as e:
             message = f'Error while querying http uri. {e.__class__.__name__}: {e}'
             logger.warning(message, exc_info=e)
             raise AiohttpException(message) from e

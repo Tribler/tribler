@@ -282,3 +282,33 @@ def test_unable_to_open_db_file_reason_added(process_manager):
                        match=r'^unable to open database file: parent directory.*does not exist$'):
         with process_manager.connect():
             pass
+
+
+@patch('sqlite3.connect', MagicMock(side_effect=sqlite3.OperationalError('error text')))
+def test_connect_operational_error(process_manager):
+    # All OperationalError exceptions except "unable to open database file" should be re-raised
+    with pytest.raises(sqlite3.OperationalError, match=r'^error text$'):
+        with process_manager.connect():
+            pass  # pragma: no cover
+
+
+@patch('sqlite3.connect', MagicMock(side_effect=sqlite3.DatabaseError('error text')))
+@patch('pathlib.Path.unlink', MagicMock(side_effect=PermissionError))
+def test_connect_database_error_suppress_permission_error(process_manager):
+    # All OperationalError exceptions except "unable to open database file" should be re-raised
+    with pytest.raises(sqlite3.DatabaseError, match=r'^error text$'):
+        with process_manager.connect():
+            pass  # pragma: no cover
+
+
+@patch('sqlite3.connect', MagicMock(side_effect=sqlite3.DatabaseError('error text')))
+def test_connect_database_error_raise_non_permission_error(process_manager):
+
+    class TestError(Exception):
+        pass
+
+    with patch('pathlib.Path.unlink', MagicMock(side_effect=TestError)):
+        # All OperationalError exceptions except "unable to open database file" should be re-raised
+        with pytest.raises(TestError):
+            with process_manager.connect():
+                pass  # pragma: no cover
