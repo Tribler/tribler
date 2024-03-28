@@ -254,9 +254,6 @@ class DownloadsEndpoint(RESTEndpoint):
             ALL_LOADED: self.download_manager.all_checkpoints_are_loaded,
         }
 
-        if not self.download_manager.all_checkpoints_are_loaded:
-            return RESTResponse({"downloads": [], "checkpoints": checkpoints})
-
         result = []
         downloads = (d for d in self.download_manager.get_downloads() if not d.hidden)
         if infohash:
