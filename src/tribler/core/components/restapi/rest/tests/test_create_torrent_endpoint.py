@@ -1,15 +1,16 @@
 import random
 import string
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from ipv8.util import succeed
 
 from tribler.core.components.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings
 from tribler.core.components.restapi.rest.base_api_test import do_request
-from tribler.core.components.restapi.rest.rest_endpoint import HTTP_REQUEST_ENTITY_TOO_LARGE, MAX_REQUEST_SIZE
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_REQUEST_ENTITY_TOO_LARGE
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
+
+TARGET = 'tribler.core.components.libtorrent.restapi.create_torrent_endpoint'
 
 
 # pylint: disable=redefined-outer-name
@@ -32,7 +33,7 @@ async def test_create_torrent(rest_api, tmp_path, download_manager):
     def fake_create_torrent_file(*_, **__):
         with open(TESTS_DATA_DIR / "bak_single.torrent", mode='rb') as torrent_file:
             encoded_metainfo = torrent_file.read()
-        return succeed({"metainfo": encoded_metainfo, "base_dir": str(tmp_path)})
+        return {"metainfo": encoded_metainfo, "base_dir": str(tmp_path)}
 
     download_manager.download_defaults = DownloadDefaultsSettings()
     download_manager.create_torrent_file = fake_create_torrent_file
@@ -47,8 +48,9 @@ async def test_create_torrent(rest_api, tmp_path, download_manager):
         "name": "test_torrent",
         "export_dir": str(tmp_path)
     }
-    response_dict = await do_request(rest_api, 'createtorrent?download=1', expected_code=200, request_type='POST',
-                                     post_data=post_data)
+    with patch(f'{TARGET}.create_torrent_file', fake_create_torrent_file):
+        response_dict = await do_request(rest_api, 'createtorrent?download=1', expected_code=200, request_type='POST',
+                                         post_data=post_data)
     assert response_dict["torrent"]
     assert start_download.call_args[1]['config'].get_hops() == DownloadDefaultsSettings(
     ).number_hops  # pylint: disable=unsubscriptable-object
@@ -62,13 +64,12 @@ async def test_create_torrent_io_error(rest_api, download_manager):
     def fake_create_torrent_file(*_, **__):
         raise OSError("test")
 
-    download_manager.create_torrent_file = fake_create_torrent_file
-
     post_data = {
         "files": ["non_existing_file.avi"]
     }
-    error_response = await do_request(rest_api, 'createtorrent', expected_code=500, request_type='POST',
-                                      post_data=post_data)
+    with patch(f'{TARGET}.create_torrent_file', fake_create_torrent_file):
+        error_response = await do_request(rest_api, 'createtorrent', expected_code=500, request_type='POST',
+                                          post_data=post_data)
     expected_response = {
         "error": {
             "code": "OSError",
