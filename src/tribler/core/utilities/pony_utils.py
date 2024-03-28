@@ -226,7 +226,7 @@ class TriblerDbSession(core.DBSessionContextManager):
         db_session_duration = time.time() - start_time
 
         threshold = SLOW_DB_SESSION_DURATION_THRESHOLD if self.duration_threshold is None else self.duration_threshold
-        if db_session_duration > threshold:
+        if db_session_duration >= threshold:
             self._log_warning(db_session_duration, info)
 
     @staticmethod
