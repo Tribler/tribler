@@ -1,5 +1,5 @@
-import base64
 import json
+from base64 import b64encode
 
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
@@ -9,8 +9,9 @@ from marshmallow.fields import String
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.libtorrent.torrentdef import TorrentDef
-from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, RESTEndpoint, RESTResponse, \
-    MAX_REQUEST_SIZE
+from tribler.core.components.libtorrent.utils.torrent_utils import create_torrent_file
+from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, MAX_REQUEST_SIZE, RESTEndpoint, \
+    RESTResponse
 from tribler.core.components.restapi.rest.schema import HandledErrorSchema
 from tribler.core.components.restapi.rest.utils import return_handled_exception
 from tribler.core.utilities.path_util import Path
@@ -96,7 +97,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params['piece length'] = 0  # auto
 
         try:
-            result = await self.download_manager.create_torrent_file(file_path_list, recursive_bytes(params))
+            result = create_torrent_file(file_path_list, recursive_bytes(params))
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(request, e)
@@ -115,4 +116,4 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config.set_hops(self.download_manager.download_defaults.number_hops)
             await self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
 
-        return RESTResponse(json.dumps({"torrent": base64.b64encode(result['metainfo']).decode('utf-8')}))
+        return RESTResponse(json.dumps({"torrent": b64encode(result['metainfo']).decode('utf-8')}))

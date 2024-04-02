@@ -11,7 +11,7 @@ from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional
 
 from ipv8.taskmanager import TaskManager
 
@@ -21,7 +21,6 @@ from tribler.core.components.libtorrent.download_manager.download import Downloa
 from tribler.core.components.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, LibtorrentSettings
 from tribler.core.components.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
-from tribler.core.components.libtorrent.utils import torrent_utils
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.utilities import path_util
 from tribler.core.utilities.aiohttp.aiohttp_utils import unshorten
@@ -379,9 +378,6 @@ class DownloadManager(TaskManager):
             settings["proxy_password"] = auth[1]
         self.set_session_settings(ltsession, settings)
 
-    def set_max_connections(self, conns, hops=None):
-        self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
-
     def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
@@ -392,12 +388,6 @@ class DownloadManager(TaskManager):
         for session in self.ltsessions.values():
             self.set_session_settings(session, settings_dict)
 
-    def get_upload_rate_limit(self, hops=None):
-        # Rate conversion due to the fact that we had a different system with Swift
-        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = self.get_session(hops).upload_rate_limit()
-        return self.reverse_convert_rate(rate=libtorrent_rate)
-
     def set_download_rate_limit(self, rate, hops=None):
         libtorrent_rate = self.convert_rate(rate=rate)
 
@@ -405,10 +395,6 @@ class DownloadManager(TaskManager):
         settings_dict = {'download_rate_limit': libtorrent_rate}
         for session in self.ltsessions.values():
             self.set_session_settings(session, settings_dict)
-
-    def get_download_rate_limit(self, hops=0):
-        libtorrent_rate = self.get_session(hops=hops).download_rate_limit()
-        return self.reverse_convert_rate(rate=libtorrent_rate)
 
     def process_alert(self, alert, hops=0):
         alert_type = alert.__class__.__name__
@@ -559,13 +545,6 @@ class DownloadManager(TaskManager):
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert, hops=hops)
-
-    def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
-        if hops is None:
-            for session in self.ltsessions.values():
-                getattr(session, funcname)(*args, **kwargs)
-        else:
-            getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
     async def start_download_from_uri(self, uri, config=None):
         self._logger.info(f'Start download from URI: {uri}')
@@ -973,40 +952,9 @@ class DownloadManager(TaskManager):
         """
         return self.state_dir / STATEDIR_CHECKPOINT_DIR
 
-    @staticmethod
-    async def create_torrent_file(file_path_list, params=None):
-        """
-        Creates a torrent file.
-
-        :param file_path_list: files to add in torrent file
-        :param params: optional parameters for torrent file
-        :return: a Deferred that fires when the torrent file has been created
-        """
-        return await asyncio.get_event_loop().run_in_executor(None, torrent_utils.create_torrent_file,
-                                                              file_path_list, params or {})
-
     def get_downloads_by_name(self, torrent_name):
         downloads = self.get_downloads()
         return [d for d in downloads if d.get_def().get_name_utf8() == torrent_name]
-
-    @staticmethod
-    def set_libtorrent_proxy_settings(config: LibtorrentSettings, proxy_type, server=None, auth=None):
-        """
-        Set which proxy LibTorrent should use (default = 0).
-
-        :param config: libtorrent config
-        :param proxy_type: int (0 = no proxy server,
-                                1 = SOCKS4,
-                                2 = SOCKS5,
-                                3 = SOCKS5 + auth,
-                                4 = HTTP,
-                                5 = HTTP + auth)
-        :param server: (host, port) tuple or None
-        :param auth: (username, password) tuple or None
-        """
-        config.proxy_type = proxy_type
-        config.proxy_server = server if proxy_type else ':'
-        config.proxy_auth = auth if proxy_type in [3, 5] else ':'
 
     @staticmethod
     def get_libtorrent_proxy_settings(config: LibtorrentSettings):
