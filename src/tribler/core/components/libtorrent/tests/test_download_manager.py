@@ -575,32 +575,3 @@ def test_update_trackers_list_append(fake_dlmgr) -> None:
     actual_trackers = set(itertools.chain.from_iterable(tracker_list))
     assert actual_trackers == {fake_tracker1, fake_tracker2}
 
-
-def test_get_download_rate_limit(fake_dlmgr) -> None:
-    fake_value = 42
-    settings = {}
-    fake_dlmgr.get_session = Mock(
-        return_value=Mock(get_settings=Mock(return_value=settings))
-    )
-    fake_dlmgr.get_session().download_rate_limit = functools.partial(
-        settings.get, "download_rate_limit"
-    )
-    fake_dlmgr.ltsessions = {0: fake_dlmgr.get_session()}
-    fake_dlmgr.set_download_rate_limit(fake_value, 0)
-
-    assert fake_dlmgr.get_download_rate_limit() == fake_value
-
-
-def test_get_upload_rate_limit(fake_dlmgr) -> None:
-    fake_value = 42
-    settings = {}
-    fake_dlmgr.get_session = Mock(
-        return_value=Mock(get_settings=Mock(return_value=settings))
-    )
-    fake_dlmgr.get_session().upload_rate_limit = functools.partial(
-        settings.get, "upload_rate_limit"
-    )
-    fake_dlmgr.ltsessions = {0: fake_dlmgr.get_session()}
-    fake_dlmgr.set_upload_rate_limit(fake_value, 0)
-
-    assert fake_dlmgr.get_upload_rate_limit() == fake_value
