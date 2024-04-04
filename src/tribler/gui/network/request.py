@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from json import JSONDecodeError
 from time import time
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from urllib.parse import urlencode
@@ -148,7 +149,11 @@ class Request(QObject):
             return
 
         self.logger.debug('Create a json response')
-        result = json.loads(data)
+        try:
+            result = json.loads(data)
+        except JSONDecodeError as e:
+            text = self.manager.show_error(self, {"error": {"message": f"{data}\n{str(e)}"}})
+            raise Warning(text)
         if isinstance(result, dict):
             result[REQUEST_ID] = self.id
         is_error = 'error' in result

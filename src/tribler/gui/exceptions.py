@@ -1,15 +1,12 @@
-from tribler.core.exceptions import CoreError
+class CoreConnectionError(Exception):
+    pass
 
 
-class CoreConnectionError(CoreError):
-    ...
+class CoreConnectTimeoutError(Exception):
+    pass
 
 
-class CoreConnectTimeoutError(CoreError):
-    ...
-
-
-class CoreCrashedError(CoreError):
+class CoreCrashedError(Exception):
     """This error raises in case of tribler core finished with error"""
 
 
@@ -17,5 +14,5 @@ class TriblerGuiTestException(Exception):
     """Can be intentionally generated in GUI by pressing Ctrl+Alt+Shift+G"""
 
 
-class UpgradeError(CoreError):
+class UpgradeError(Exception):
     """The error raises by UpgradeManager in GUI process and should stop Tribler"""

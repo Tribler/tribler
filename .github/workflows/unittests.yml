@@ -1,0 +1,54 @@
+name: Unittests
+on: [pull_request, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.7'
+          cache: 'pip'
+      - run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          cd src
+          python run_all_tests.py -a
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+      - uses: actions/cache/restore@v4
+        id: restore_cache
+        with:
+          path: libsodium.dll
+          key: cache_libsodium_dll
+      - run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          cd src
+          python run_all_tests.py -a
+      - uses: actions/cache/save@v4
+        if: steps.restore_cache.outputs.cache-hit != 'true'
+        with:
+          path: libsodium.dll
+          key: cache_libsodium_dll
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          cd src
+          python run_all_tests.py -a
+

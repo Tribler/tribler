@@ -1,7 +1,12 @@
--r requirements-core.txt
+-r pyipv8/requirements.txt
 
-Pillow==10.2.0
-PyQt5==5.15.10
-PyQt5-sip==12.13.0
-pyqtgraph==0.13.4
-PyQtWebEngine==5.15.6
+bitarray
+configobj
+ipv8-rust-tunnels
+libtorrent==1.2.19
+lz4
+pony
+
+PyQt5
+numpy
+pyqtgraph

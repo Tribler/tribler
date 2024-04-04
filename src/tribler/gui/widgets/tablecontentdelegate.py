@@ -1,14 +1,13 @@
 from math import floor
 from typing import Dict
+from sys import platform
 
 from PyQt5.QtCore import QEvent, QModelIndex, QObject, QPointF, QRect, QRectF, QSize, Qt, pyqtSignal
 from PyQt5.QtGui import QBrush, QColor, QCursor, QFont, QIcon, QPainter, QPainterPath, QPalette, QPen
 from PyQt5.QtWidgets import QApplication, QComboBox, QStyle, QStyleOptionViewItem, QStyledItemDelegate, QToolTip
-from psutil import LINUX
 
-from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.database.db.serialization import COLLECTION_NODE, REGULAR_TORRENT, \
-    SNIPPET
+from tribler.core.database.layers.knowledge import ResourceType
+from tribler.core.database.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
 from tribler.gui.defs import (
     COMMIT_STATUS_COMMITTED,
     COMMIT_STATUS_NEW,
@@ -588,7 +587,7 @@ class CategoryLabel(QObject):
         text_flags = Qt.AlignHCenter | Qt.AlignVCenter | Qt.TextSingleLine
         text_box = painter.boundingRect(option.rect, text_flags, self.category)
 
-        if LINUX:
+        if platform == "linux":
             # On Linux, the default font sometimes does not contain the emoji characters.
             current_font = painter.font()
             painter.setFont(QFont("Noto Color Emoji"))

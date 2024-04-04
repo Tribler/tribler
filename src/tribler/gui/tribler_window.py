@@ -1,106 +1,39 @@
 import logging
 import os
 import signal
-import sys
 import time
+from binascii import hexlify
 from pathlib import Path
 from typing import Optional
 
 from PyQt5 import QtCore, uic
-from PyQt5.QtCore import (
-    QCoreApplication,
-    QDir,
-    QObject,
-    QRect,
-    QSize, QStringListModel,
-    QTimer,
-    QUrl,
-    Qt,
-    pyqtSignal,
-    pyqtSlot,
-)
-from PyQt5.QtGui import (
-    QDesktopServices,
-    QFontDatabase,
-    QIcon,
-    QKeyEvent,
-    QKeySequence,
-    QPixmap,
-)
-from PyQt5.QtWidgets import (
-    QAction,
-    QApplication,
-    QCompleter,
-    QFileDialog,
-    QLineEdit,
-    QListWidget,
-    QMainWindow,
-    QShortcut,
-    QStyledItemDelegate,
-    QSystemTrayIcon,
-    QTreeWidget,
-)
-from psutil import LINUX
+from PyQt5.QtCore import (QCoreApplication, QDir, QObject, QRect, QSize, QStringListModel, QTimer, QUrl, Qt, pyqtSignal,
+                          pyqtSlot, QSettings,)
+from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeySequence, QPixmap
+from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow,
+                             QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget)
 
-from tribler.core.upgrade.version_manager import VersionHistory
-from tribler.core.utilities.network_utils import default_network_utils
-from tribler.core.utilities.process_manager import ProcessManager
-from tribler.core.utilities.rest_utils import (
-    url_is_valid_file,
-    url_to_path,
-)
-from tribler.core.utilities.unicode import hexlify
-from tribler.core.utilities.utilities import parse_query
-from tribler.core.version import version_id
-from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
-from tribler.gui.defs import (
-    BUTTON_TYPE_CONFIRM,
-    BUTTON_TYPE_NORMAL,
-    CATEGORY_SELECTOR_FOR_POPULAR_ITEMS,
-    DARWIN,
-    PAGE_DOWNLOADS,
-    PAGE_LOADING,
-    PAGE_POPULAR,
-    PAGE_SEARCH_RESULTS,
-    PAGE_SETTINGS,
-    SHUTDOWN_WAITING_PERIOD,
-)
+from tribler.gui.defs import (BUTTON_TYPE_CONFIRM, BUTTON_TYPE_NORMAL, CATEGORY_SELECTOR_FOR_POPULAR_ITEMS, DARWIN,
+                              PAGE_DOWNLOADS, PAGE_LOADING, PAGE_POPULAR, PAGE_SEARCH_RESULTS, PAGE_SETTINGS,
+                              SHUTDOWN_WAITING_PERIOD)
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.createtorrentdialog import CreateTorrentDialog
 from tribler.gui.dialogs.startdownloaddialog import StartDownloadDialog
 from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import TriblerGuiTestException
-from tribler.gui.network.request_manager import (
-    RequestManager,
-    request_manager,
-)
+from tribler.gui.network.request_manager import RequestManager, request_manager
+from tribler.gui.queries import Query
 from tribler.gui.tribler_action_menu import TriblerActionMenu
-from tribler.gui.upgrade_manager import UpgradeManager
-from tribler.gui.utilities import (
-    connect,
-    create_api_key,
-    format_api_key,
-    get_font_path,
-    get_gui_setting,
-    get_image_path,
-    get_ui_file_path,
-    is_dir_writable,
-    set_api_key,
-    tr,
-)
+from tribler.gui.utilities import (connect, create_api_key, format_api_key, get_font_path, get_gui_setting,
+                                   get_image_path, get_ui_file_path, is_dir_writable, set_api_key)
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
-from tribler.gui.widgets.tablecontentmodel import (
-    PopularTorrentsModel,
-)
-from tribler.gui.widgets.triblertablecontrollers import (
-    PopularContentTableViewController,
-)
+from tribler.gui.widgets.tablecontentmodel import PopularTorrentsModel
+from tribler.gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
-# fmt: off
 
 fc_loading_list_item, _ = uic.loadUiType(get_ui_file_path('loading_list_item.ui'))
 
@@ -136,21 +69,9 @@ class TriblerWindow(QMainWindow):
     tribler_crashed = pyqtSignal(str)
     received_search_completions = pyqtSignal(object)
 
-    def __init__(
-            self,
-            process_manager: ProcessManager,
-            app_manager: AppManager,
-            settings,
-            root_state_dir: Path,
-            core_args=None,
-            core_env=None,
-            api_port: Optional[int] = None,
-            api_key: Optional[str] = None,
-            run_core=True,
-    ):
+    def __init__(self, app_manager: AppManager, root_state_dir: Path, api_port: int, api_key: Optional[str] = None):
         QMainWindow.__init__(self)
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.process_manager = process_manager
         self.app_manager = app_manager
 
         QCoreApplication.setOrganizationDomain("nl")
@@ -160,15 +81,7 @@ class TriblerWindow(QMainWindow):
         self.setWindowIcon(QIcon(QPixmap(get_image_path('tribler.png'))))
 
         self.root_state_dir = root_state_dir
-        self.gui_settings = settings
-
-        if api_port:
-            if not default_network_utils.is_port_free(api_port):
-                raise RuntimeError(
-                    "Tribler configuration conflicts with the current OS state: "
-                    "REST API port %i already in use" % api_port
-                )
-            process_manager.current_process.set_api_port(api_port)
+        self.gui_settings = QSettings('nl.tudelft.tribler')
 
         api_key = format_api_key(api_key or get_gui_setting(self.gui_settings, "api_key", None) or create_api_key())
         set_api_key(self.gui_settings, api_key)
@@ -179,18 +92,11 @@ class TriblerWindow(QMainWindow):
         self.core_connected = False
         self.ui_started = False
         self.tribler_settings = None
-        self.tribler_version = version_id
         self.debug_window = None
 
-        self.core_args = core_args
-        self.core_env = core_env
-
         self.error_handler = ErrorHandler(self)
-        self.events_manager = EventRequestManager(api_port, api_key, self.error_handler)
-        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key,
-                                        app_manager, process_manager, self.events_manager)
-        self.version_history = VersionHistory(self.root_state_dir)
-        self.upgrade_manager = UpgradeManager(self.version_history)
+        self.events_manager = EventRequestManager(api_port, api_key, self.error_handler, root_state_dir)
+        self.core_manager = CoreManager(self.root_state_dir, api_port, api_key, app_manager, self.events_manager)
         self.pending_requests = {}
         self.pending_uri_requests = []
         self.dialog = None
@@ -203,18 +109,12 @@ class TriblerWindow(QMainWindow):
         self.shutdown_timer = None
         self.add_torrent_url_dialog_active = False
 
-        # We use colored Emojis at several locations in our user interface. Not all Linux distributions have a font
-        # available to render these characters. If we are on Linux, try to load the .ttf file from the Tribler data
-        # directory, if the font is not installed yet. This font should be embedded by PyInstaller when building the
-        # executable.
-        if LINUX and "Noto Color Emoji" not in QFontDatabase().families():
+        if "Noto Color Emoji" not in QFontDatabase().families():
             emoji_ttf_path = get_font_path("NotoColorEmoji.ttf")
             if os.path.exists(emoji_ttf_path):
                 result = QFontDatabase.addApplicationFont(emoji_ttf_path)
                 if result == -1:
                     self.logger.warning("Failed to load font %s!", emoji_ttf_path)
-
-        sys.excepthook = self.error_handler.gui_error
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
         RequestManager.window = self
@@ -254,7 +154,7 @@ class TriblerWindow(QMainWindow):
         connect(
             self.core_manager.events_manager.received_remote_query_results, self.search_results_page.update_loading_page
         )
-        self.settings_page.initialize_settings_page(version_history=self.version_history)
+        self.settings_page.initialize_settings_page()
         self.downloads_page.initialize_downloads_page()
         self.loading_page.initialize_loading_page()
 
@@ -278,13 +178,13 @@ class TriblerWindow(QMainWindow):
 
             # Create the tray icon menu
             menu = TriblerActionMenu(self)
-            menu.addAction(tr('Show Tribler window'), self.raise_window)
+            menu.addAction('Show Tribler window', self.raise_window)
             menu.addSeparator()
             self.create_add_torrent_menu(menu)
             menu.addSeparator()
-            menu.addAction(tr('Show downloads'), self.clicked_menu_button_downloads)
+            menu.addAction('Show downloads', self.clicked_menu_button_downloads)
             menu.addSeparator()
-            menu.addAction(tr('Quit Tribler'), self.close_tribler)
+            menu.addAction('Quit Tribler', self.close_tribler)
             self.tray_icon.setContextMenu(menu)
 
         self.debug_panel_button.setHidden(True)
@@ -351,10 +251,8 @@ class TriblerWindow(QMainWindow):
         self.setStyleSheet(stylesheet)
 
         self.core_manager.start(
-            core_args=self.core_args,
-            core_env=self.core_env,
-            run_core=run_core,
-            upgrade_manager=self.upgrade_manager,
+            core_args=[],
+            core_env={},
         )
 
     def on_test_tribler_gui_exception(self, *_):
@@ -432,19 +330,17 @@ class TriblerWindow(QMainWindow):
         self.core_manager.stop(quit_app_on_core_finished=False)
         close_dialog = ConfirmationDialog(
             self.window(),
-            tr("<b>CRITICAL ERROR</b>"),
-            tr(
-                "You are running low on disk space (<100MB). Please make sure to have "
-                "sufficient free space available and restart Tribler again."
-            ),
-            [(tr("Close Tribler"), BUTTON_TYPE_NORMAL)],
+            "<b>CRITICAL ERROR</b>",
+            "You are running low on disk space (<100MB). Please make sure to have "
+                "sufficient free space available and restart Tribler again.",
+            [("Close Tribler", BUTTON_TYPE_NORMAL)],
         )
         connect(close_dialog.button_clicked, lambda _: close_tribler_gui())
         close_dialog.show()
 
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
-            self.tray_show_message(tr("Download finished"), tr("Download of %s has finished.") % {torrent_info['name']})
+            self.tray_show_message("Download finished", "Download of %s has finished." % {torrent_info['name']})
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -492,7 +388,6 @@ class TriblerWindow(QMainWindow):
 
     def on_receive_settings(self, settings):
         self.tribler_settings = settings['settings']
-        gui_sentry_reporter.additional_information['settings'] = self.tribler_settings
         self.start_ui()
 
     def start_ui(self):
@@ -512,7 +407,7 @@ class TriblerWindow(QMainWindow):
         self.setWindowTitle(f"Tribler {self.tribler_version}")
 
         self.popular_page.initialize_root_model(
-            PopularTorrentsModel(channel_info={"name": tr("Popular torrents")}, hide_xxx=self.hide_xxx)
+            PopularTorrentsModel(channel_info={"name": "Popular torrents"}, hide_xxx=self.hide_xxx)
         )
         self.popular_page.explanation_tooltip_button.setHidden(False)
 
@@ -556,8 +451,8 @@ class TriblerWindow(QMainWindow):
         current_settings = get_gui_setting(self.gui_settings, "recent_download_locations", "")
         recent_locations = current_settings.split(",") if len(current_settings) > 0 else []
         if isinstance(destination, str):
-            destination = destination.encode('utf-8')
-        encoded_destination = hexlify(destination)
+            destination = destination.encode()
+        encoded_destination = hexlify(destination).decode()
         if encoded_destination in recent_locations:
             recent_locations.remove(encoded_destination)
         recent_locations.insert(0, encoded_destination)
@@ -579,16 +474,16 @@ class TriblerWindow(QMainWindow):
         # Check if destination directory is writable
         is_writable, error = is_dir_writable(destination)
         if not is_writable:
-            gui_error_message = tr(
+            gui_error_message = (
                 "Insufficient write permissions to <i>%s</i> directory. Please add proper "
                 "write permissions on the directory and add the torrent again. %s"
             ) % (destination, error)
             ConfirmationDialog.show_message(
-                self.window(), tr("Download error <i>%s</i>") % uri, gui_error_message, "OK"
+                self.window(), "Download error <i>%s</i>" % uri, gui_error_message, "OK"
             )
             return
 
-        anon_hops = int(self.tribler_settings['download_defaults']['number_hops']) if anon_download else 0
+        anon_hops = int(self.tribler_settings['libtorrent']['download_defaults']['number_hops']) if anon_download else 0
         safe_seeding = 1 if safe_seeding else 0
         request_manager.put("downloads",
                             on_success=callback if callback else self.on_download_added,
@@ -647,10 +542,10 @@ class TriblerWindow(QMainWindow):
         """
         menu = menu if menu is not None else TriblerActionMenu(self)
 
-        browse_files_action = QAction(tr("Import torrent from file"), self)
-        browse_directory_action = QAction(tr("Import torrent(s) from directory"), self)
-        add_url_action = QAction(tr("Import torrent from magnet/URL"), self)
-        create_torrent_action = QAction(tr("Create torrent from file(s)"), self)
+        browse_files_action = QAction("Import torrent from file", self)
+        browse_directory_action = QAction("Import torrent(s) from directory", self)
+        add_url_action = QAction("Import torrent from magnet/URL", self)
+        create_torrent_action = QAction("Create torrent from file(s)", self)
 
         connect(browse_files_action.triggered, self.on_add_torrent_browse_file)
         connect(browse_directory_action.triggered, self.on_add_torrent_browse_dir)
@@ -675,12 +570,12 @@ class TriblerWindow(QMainWindow):
         self.create_dialog.show()
 
     def on_create_torrent_updates(self, update_dict):
-        self.tray_show_message(tr("Torrent updates"), update_dict['msg'])
+        self.tray_show_message("Torrent updates", update_dict['msg'])
 
     def on_add_torrent_browse_file(self, *_):
         self.raise_window()  # For the case when the action is triggered by tray icon
         filenames, *_ = QFileDialog.getOpenFileNames(
-            self, tr("Please select the .torrent file"), QDir.homePath(), tr("Torrent files%s") % " (*.torrent)"
+            self, "Please select the .torrent file", QDir.homePath(), "Torrent files%s" % " (*.torrent)"
         )
         if not filenames:
             return
@@ -691,7 +586,7 @@ class TriblerWindow(QMainWindow):
         self.process_uri_request()
 
     def start_download_from_uri(self, uri):
-        uri = uri.decode('utf-8') if isinstance(uri, bytes) else uri
+        uri = uri.decode() if isinstance(uri, bytes) else uri
 
         ask_download_settings = get_gui_setting(self.gui_settings, "ask_download_settings", True, is_bool=True)
         if ask_download_settings:
@@ -707,9 +602,9 @@ class TriblerWindow(QMainWindow):
         else:
             self.window().perform_start_download_request(
                 uri,
-                self.window().tribler_settings['download_defaults']['anonymity_enabled'],
-                self.window().tribler_settings['download_defaults']['safeseeding_enabled'],
-                self.tribler_settings['download_defaults']['saveas'],
+                self.window().tribler_settings["libtorrent"]['download_defaults']['anonymity_enabled'],
+                self.window().tribler_settings["libtorrent"]['download_defaults']['safeseeding_enabled'],
+                self.tribler_settings["libtorrent"]['download_defaults']['saveas'],
                 [],
             )
             self.process_uri_request()
@@ -726,7 +621,7 @@ class TriblerWindow(QMainWindow):
                 )
             else:
                 ConfirmationDialog.show_error(
-                    self, tr("Tribler UI Error"), tr("Something went wrong. Please try again.")
+                    self, "Tribler UI Error", "Something went wrong. Please try again."
                 )
                 logging.exception("Error while trying to download. Either dialog or dialog.dialog_widget is None")
 
@@ -742,7 +637,7 @@ class TriblerWindow(QMainWindow):
         self.raise_window()  # For the case when the action is triggered by tray icon
         chosen_dir = QFileDialog.getExistingDirectory(
             self,
-            tr("Please select the directory containing the .torrent files"),
+            "Please select the directory containing the .torrent files",
             QDir.homePath(),
             QFileDialog.ShowDirsOnly,
         )
@@ -751,11 +646,11 @@ class TriblerWindow(QMainWindow):
             self.selected_torrent_files = list(Path(chosen_dir).glob("*.torrent"))
             self.dialog = ConfirmationDialog(
                 self,
-                tr("Add torrents from directory"),
-                tr("Add %s torrent files from the following directory to your Tribler channel: \n\n%s")
+                "Add torrents from directory",
+                "Add %s torrent files from the following directory to your Tribler channel: \n\n%s"
                 % (len(self.selected_torrent_files), chosen_dir),
-                [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
-                checkbox_text=tr("Add torrents to My Channel"),
+                [("ADD", BUTTON_TYPE_NORMAL), ("CANCEL", BUTTON_TYPE_CONFIRM)],
+                checkbox_text="Add torrents to My Channel",
             )
             connect(self.dialog.button_clicked, self.on_confirm_add_directory_dialog)
             self.dialog.show()
@@ -785,12 +680,12 @@ class TriblerWindow(QMainWindow):
         if not self.add_torrent_url_dialog_active:
             self.dialog = ConfirmationDialog(
                 self,
-                tr("Add torrent from URL/magnet link"),
-                tr("Please enter the URL/magnet link in the field below:"),
-                [(tr("ADD"), BUTTON_TYPE_NORMAL), (tr("CANCEL"), BUTTON_TYPE_CONFIRM)],
+                "Add torrent from URL/magnet link",
+                "Please enter the URL/magnet link in the field below:",
+                [("ADD", BUTTON_TYPE_NORMAL), ("CANCEL", BUTTON_TYPE_CONFIRM)],
                 show_input=True,
             )
-            self.dialog.dialog_widget.dialog_input.setPlaceholderText(tr("URL/magnet link"))
+            self.dialog.dialog_widget.dialog_input.setPlaceholderText("URL/magnet link")
             self.dialog.dialog_widget.dialog_input.setFocus()
             connect(self.dialog.button_clicked, self.on_torrent_from_url_dialog_done)
             connect(self.dialog.close_event, on_close_event)
@@ -852,7 +747,7 @@ class TriblerWindow(QMainWindow):
         if not query_text:
             return
 
-        query = parse_query(query_text)
+        query = Query(original_query=query_text)
         if self.search_results_page.search(query):
             self._logger.info(f'Do search for query: {query}')
             self.deselect_all_menu_buttons()
@@ -866,6 +761,9 @@ class TriblerWindow(QMainWindow):
             self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
+
+        params = {'popular': True, 'metadata_type': 300}
+        request_manager.put('search/remote', lambda x: None, data=params)
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
@@ -896,7 +794,7 @@ class TriblerWindow(QMainWindow):
         self.delete_tray_icon()
         self.show_loading_screen()
         self.hide_status_bar()
-        self.loading_text_label.setText(tr("Shutting down..."))
+        self.loading_text_label.setText("Shutting down...")
         if self.debug_window:
             self.debug_window.setHidden(True)
 
@@ -959,16 +857,14 @@ class TriblerWindow(QMainWindow):
 
     def clicked_skip_conversion(self):
         self.dialog = ConfirmationDialog(
-            self,
-            tr("Abort the conversion of Channels database"),
-            tr(
+                self,
+                "Abort the conversion of Channels database",
                 "The upgrade procedure is now <b>converting your personal channel</b> and channels "
                 "collected by the previous installation of Tribler.<br>"
                 "Are you sure you want to abort the conversion process?<br><br>"
                 "<p style='color:red'><b> !!! WARNING !!! <br>"
-                "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>"
-            ),
-            [(tr("ABORT"), BUTTON_TYPE_CONFIRM), (tr("CONTINUE"), BUTTON_TYPE_NORMAL)],
+                "You will lose your personal channel and subscribed channels if you ABORT now! </b> </p> <br>",
+            [("ABORT", BUTTON_TYPE_CONFIRM), ("CONTINUE", BUTTON_TYPE_NORMAL)],
         )
         connect(self.dialog.button_clicked, self.on_skip_conversion_dialog)
         self.dialog.show()
@@ -989,10 +885,9 @@ class TriblerWindow(QMainWindow):
 
     def on_config_error_signal(self, stacktrace):
         self._logger.error(f"Config error: {stacktrace}")
-        user_message = tr(
-            "Tribler recovered from a corrupted config. Please check your settings and update if necessary."
-        )
-        ConfirmationDialog.show_error(self, tr("Tribler config error"), user_message)
+        ConfirmationDialog.show_error(self, "Tribler config error",
+                                      ("Tribler recovered from a corrupted config. "
+                                       "Please check your settings and update if necessary."))
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key_Escape:

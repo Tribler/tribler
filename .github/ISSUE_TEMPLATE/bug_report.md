@@ -1,33 +1,14 @@
 ---
 name: Bug report
-about: Create a report to help us improve Tribler
+about: Create a report to help us improve
 title: ''
-labels: ['type: bug']
+labels: 'priority: unknown'
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Traceback and/or steps to reproduce**
 
-**To Reproduce**
-Steps to reproduce the behavior:
-
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Desktop (please complete the following information):**
-
-- OS: [e.g. Windows 11]
-- Tribler's version [e.g. 7.10.0]
-
-**Additional context**
-Add any other context about the problem here.
+```python
+Insert your traceback here!
+```

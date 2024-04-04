@@ -1,6 +1,0 @@
-venv
-venv**
-.github
-.pytest**
-doc
-scripts

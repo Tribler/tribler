@@ -1,0 +1,3 @@
+[submodule "pyipv8"]
+	path = pyipv8
+	url = git@github.com:Tribler/py-ipv8.git

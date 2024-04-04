@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import time
@@ -6,17 +8,17 @@ from typing import Optional
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
-from tribler.core import notifications
-from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.utilities.notifier import Notifier
-from tribler.gui import gui_sentry_reporter
-from tribler.gui.exceptions import CoreConnectTimeoutError, CoreConnectionError
+from tribler.core.notifier import Notifier, Notification
+from tribler.gui.exceptions import CoreConnectTimeoutError
+from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, make_network_errors_dict
+from tribler.tribler_config import TriblerConfigManager
 
 received_events = []
 
 CORE_CONNECTION_TIMEOUT = 180
 RECONNECT_INTERVAL_MS = 100
+logger = logging.getLogger(__name__)
 
 
 class EventRequestManager(QNetworkAccessManager):
@@ -34,10 +36,11 @@ class EventRequestManager(QNetworkAccessManager):
     change_loading_text = pyqtSignal(str)
     config_error_signal = pyqtSignal(str)
 
-    def __init__(self, api_port: Optional[int], api_key, error_handler):
+    def __init__(self, api_port: Optional[int], api_key, error_handler, root_state_dir):
         QNetworkAccessManager.__init__(self)
         self.api_port = api_port
         self.api_key = api_key
+        self.root_state_dir = root_state_dir
         self.request: Optional[QNetworkRequest] = None
         self.start_time = time.time()
         self.connect_timer = QTimer()
@@ -53,20 +56,21 @@ class EventRequestManager(QNetworkAccessManager):
         connect(self.connect_timer.timeout, self.reconnect)
 
         self.notifier = notifier = Notifier()
-        notifier.add_observer(notifications.events_start, self.on_events_start)
-        notifier.add_observer(notifications.tribler_exception, self.on_tribler_exception)
-        notifier.add_observer(notifications.tribler_new_version, self.on_tribler_new_version)
-        notifier.add_observer(notifications.torrent_finished, self.on_torrent_finished)
-        notifier.add_observer(notifications.low_space, self.on_low_space)
-        notifier.add_observer(notifications.remote_query_results, self.on_remote_query_results)
-        notifier.add_observer(notifications.tribler_shutdown_state, self.on_tribler_shutdown_state)
-        notifier.add_observer(notifications.report_config_error, self.on_report_config_error)
+        notifier.add(Notification.events_start, self.on_events_start)
+        notifier.add(Notification.tribler_exception, self.on_tribler_exception)
+        notifier.add(Notification.tribler_new_version, self.on_tribler_new_version)
+        notifier.add(Notification.torrent_finished, self.on_torrent_finished)
+        notifier.add(Notification.low_space, self.on_low_space)
+        notifier.add(Notification.remote_query_results, self.on_remote_query_results)
+        notifier.add(Notification.tribler_shutdown_state, self.on_tribler_shutdown_state)
+        notifier.add(Notification.report_config_error, self.on_report_config_error)
 
-    def create_request(self) -> QNetworkRequest:
+    def create_request(self) -> QNetworkRequest | None:
         if not self.api_port:
-            raise RuntimeError("Can't create a request: api_port is not set")
+            logger.warning("Can't create a request: api_port is not set (%d).", self.api_port)
+            return
 
-        url = QUrl(f"http://localhost:{self.api_port}/events")
+        url = QUrl(f"http://127.0.0.1:{self.api_port}/events")
         request = QNetworkRequest(url)
         request.setRawHeader(b'X-Api-Key', self.api_key.encode('ascii'))
         return request
@@ -76,13 +80,10 @@ class EventRequestManager(QNetworkAccessManager):
         self.request = self.create_request()
 
     def on_events_start(self, public_key: str, version: str):
-        # if public key format is changed, don't forget to change it at the core side as well
-        if public_key:
-            gui_sentry_reporter.set_user(public_key.encode('utf-8'))
         self.core_connected.emit(version)
 
     def on_tribler_exception(self, error: dict):
-        self.error_handler.core_error(ReportedError(**error))
+        self.error_handler.core_error(**error)
 
     def on_tribler_new_version(self, version: str):
         self.new_version_available.emit(version)
@@ -120,12 +121,6 @@ class EventRequestManager(QNetworkAccessManager):
         if self.shutting_down:
             return
 
-        if self.receiving_data:
-            self.receiving_data = False
-            self._logger.error('The connection to the Tribler Core was lost, trying to reconnect')
-            self.reconnect(reschedule_on_err=True)
-            return
-
         should_retry = reschedule_on_err and time.time() < self.start_time + CORE_CONNECTION_TIMEOUT
         error_name = self.network_errors.get(error, error)
         self._logger.info(f"Error {error_name} while trying to connect to Tribler Core at port[{self.api_port}]"
@@ -145,12 +140,11 @@ class EventRequestManager(QNetworkAccessManager):
         if not self.receiving_data:
             self.receiving_data = True
             self._logger.info('Starts receiving data from Core')
+        request_manager.set_api_port(self.api_port)
 
-        if self.receivers(self.finished) == 0:
-            connect(self.finished, lambda reply: self.on_finished())
         self.connect_timer.stop()
         data = self.reply.readAll()
-        self.current_event_string += bytes(data).decode('utf8')
+        self.current_event_string += bytes(data).decode()
         if len(self.current_event_string) > 0 and self.current_event_string[-2:] == '\n\n':
             for event in self.current_event_string.split('\n\n'):
                 if len(event) == 0:
@@ -165,7 +159,7 @@ class EventRequestManager(QNetworkAccessManager):
                 topic_name = json_dict.get("topic", "noname")
                 args = json_dict.get("args", [])
                 kwargs = json_dict.get("kwargs", {})
-                self.notifier.notify_by_topic_name(topic_name, *args, **kwargs)
+                self.notifier.notify(topic_name, *args, **kwargs)
 
             self.current_event_string = ""
 
@@ -180,9 +174,6 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer.start(RECONNECT_INTERVAL_MS)
 
     def connect_to_core(self, reschedule_on_err=True):
-        if not self.api_port:
-            raise RuntimeError("Can't connect to core: api_port is not set")
-
         if reschedule_on_err:
             self._logger.info(f"Set event request manager timeout to {CORE_CONNECTION_TIMEOUT} seconds")
             self.start_time = time.time()
@@ -193,6 +184,13 @@ class EventRequestManager(QNetworkAccessManager):
 
     def _connect_to_core(self, reschedule_on_err):
         self._logger.info(f"Connecting to events endpoint ({'with' if reschedule_on_err else 'without'} retrying)")
+
+        config_manager = TriblerConfigManager(self.root_state_dir / "configuration.json")
+        if config_manager.get("api/https_enabled"):
+            self.set_api_port(config_manager.get("api/https_port"))
+        else:
+            self.set_api_port(config_manager.get("api/http_port"))
+
         if self.reply is not None:
             self.reply.deleteLater()
 
@@ -201,6 +199,10 @@ class EventRequestManager(QNetworkAccessManager):
 
         if not self.request:
             self.request = self.create_request()
+
+        if not self.request:
+            self.connect_timer.start(RECONNECT_INTERVAL_MS)
+            return
 
         self.reply = self.get(self.request)
 

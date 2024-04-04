@@ -4,8 +4,8 @@ from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, QPoint, Qt, pyqtSignal
 from PyQt5.QtWidgets import QComboBox, QSizePolicy, QWidget
 
-from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.knowledge.knowledge_constants import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
+from tribler.core.database.layers.knowledge import ResourceType
+from tribler.core.knowledge.community import MAX_RESOURCE_LENGTH, MIN_RESOURCE_LENGTH
 from tribler.gui.defs import TAG_HORIZONTAL_MARGIN
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
 from tribler.gui.network.request_manager import request_manager

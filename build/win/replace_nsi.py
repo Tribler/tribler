@@ -29,3 +29,4 @@ if __name__ == '__main__':
     tribler_nsi.write_text(content)
 
     logger.info(f'Content of tribler.nsi: {content}')
+

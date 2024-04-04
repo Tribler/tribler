@@ -176,3 +176,4 @@ if sys.platform == 'darwin':
 if sys.platform == 'win32':
     shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt', 'plugins', 'platforms'),
                     os.path.join('dist', 'tribler', 'platforms'))
+

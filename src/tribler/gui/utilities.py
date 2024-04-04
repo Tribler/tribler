@@ -27,7 +27,7 @@ from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
-from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
+from tribler.core.database.layers.knowledge import ResourceType
 from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off

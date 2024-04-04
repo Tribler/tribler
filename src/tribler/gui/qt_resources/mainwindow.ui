@@ -824,40 +824,6 @@ margin: 10px;</string>
               </widget>
              </item>
              <item>
-              <widget class="UnderlineTabButton" name="settings_data_button">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>36</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>36</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
-               <property name="text">
-                <string>DATA</string>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
               <widget class="UnderlineTabButton" name="settings_debug_button">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -983,7 +949,7 @@ QCheckBox::indicator { margin: 4px; }
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>6</number>
+                 <number>0</number>
                 </property>
                 <widget class="QWidget" name="settings_general_tab">
                  <property name="sizePolicy">
@@ -1002,25 +968,7 @@ QCheckBox::indicator { margin: 4px; }
                   <property name="formAlignment">
                    <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
                   </property>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_35">
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold;
-color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>Family filter</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="2" column="0">
-                   <widget class="QCheckBox" name="family_filter_checkbox">
-                    <property name="text">
-                     <string>Family filter enabled? (requires Tribler restart)</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="0">
+                  <item row="0" column="0">
                    <widget class="QLabel" name="label_4">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1031,7 +979,7 @@ color: white;margin-top:10px;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="4" column="0">
+                  <item row="1" column="0">
                    <widget class="QWidget" name="settings_download_location_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_8">
                      <property name="spacing">
@@ -1138,14 +1086,14 @@ color: white;margin-top:10px;</string>
                     </layout>
                    </widget>
                   </item>
-                  <item row="5" column="0">
+                  <item row="2" column="0">
                    <widget class="QCheckBox" name="always_ask_location_checkbox">
                     <property name="text">
                      <string>Always ask download settings?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="6" column="0">
+                  <item row="3" column="0">
                    <widget class="QLabel" name="default_download_settings_header">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1156,21 +1104,21 @@ color: white;margin-top:10px;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="7" column="0">
+                  <item row="4" column="0">
                    <widget class="QCheckBox" name="download_settings_anon_checkbox">
                     <property name="text">
                      <string>Download anonymously using proxies</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="8" column="0">
+                  <item row="5" column="0">
                    <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
                     <property name="text">
                      <string>Encrypted anonymous seeding using proxies</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="9" column="0">
+                  <item row="6" column="0">
                    <widget class="QLabel" name="label_22">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1181,7 +1129,7 @@ color: white;margin-top:10px;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="0">
+                  <item row="7" column="0">
                    <widget class="QWidget" name="settings_watch_folder_widget" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_watchfolder">
                      <property name="spacing">
@@ -1288,7 +1236,7 @@ color: white;margin-top:10px;</string>
                     </layout>
                    </widget>
                   </item>
-                  <item row="11" column="0">
+                  <item row="8" column="0">
                    <widget class="QLabel" name="label_31">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;
@@ -1299,59 +1247,28 @@ color: white;margin-top:10px</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="12" column="0">
+                  <item row="9" column="0">
                    <widget class="QCheckBox" name="minimize_to_tray_checkbox">
                     <property name="text">
                      <string>Minimize to system tray?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="13" column="0">
+                  <item row="10" column="0">
                    <widget class="QCheckBox" name="use_monochrome_icon_checkbox">
                     <property name="text">
                      <string>Use monochrome icon?</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="14" column="0">
+                  <item row="11" column="0">
                    <widget class="QCheckBox" name="channel_autocommit_checkbox">
                     <property name="text">
                      <string>Commit changes automatically (requires Tribler restart)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="0">
-                   <layout class="QFormLayout" name="formLayout_2">
-                    <property name="formAlignment">
-                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <item row="0" column="0">
-                     <widget class="QLabel" name="language_selector_label">
-                      <property name="text">
-                       <string>Select interface language
-(requires Tribler restart)</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QComboBox" name="language_selector">
-                      <property name="minimumSize">
-                       <size>
-                        <width>200</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                  <item row="15" column="0">
+                  <item row="12" column="0">
                    <widget class="QLabel" name="label_7">
                     <property name="font">
                      <font>
@@ -1368,7 +1285,7 @@ color: white;margin-top:10px;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="16" column="0">
+                  <item row="13" column="0">
                    <widget class="QCheckBox" name="disable_tags_checkbox">
                     <property name="text">
                      <string>Hide tags from content items</string>
@@ -2136,120 +2053,6 @@ High anonymity</string>
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="settings_data_tab">
-                 <layout class="QFormLayout" name="formLayout">
-                  <property name="fieldGrowthPolicy">
-                   <enum>QFormLayout::ExpandingFieldsGrow</enum>
-                  </property>
-                  <property name="labelAlignment">
-                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-                  </property>
-                  <property name="formAlignment">
-                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-                  </property>
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="tribler_data_setting_heading">
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold; color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>Tribler state directory</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="0" colspan="2">
-                   <widget class="QLabel" name="tribler_data_setting_brief">
-                    <property name="styleSheet">
-                     <string notr="true">color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>This is where Tribler stores housekeeping data which includes databases and config files. Note that, your torrent data is not stored here.</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="2" column="0" colspan="2">
-                   <widget class="QWidget" name="state_dir_current" native="true">
-                    <layout class="QVBoxLayout" name="state_dir_current_layout">
-                     <item>
-                      <widget class="QLabel" name="sd_current_version">
-                       <property name="styleSheet">
-                        <string notr="true">font-weight: bold; color: white;</string>
-                       </property>
-                       <property name="text">
-                        <string>Current version</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item row="3" column="0" colspan="2">
-                   <widget class="QWidget" name="state_dir_list" native="true">
-                    <layout class="QVBoxLayout" name="state_dir_list_layout">
-                     <item>
-                      <widget class="QLabel" name="sd_old_version">
-                       <property name="styleSheet">
-                        <string notr="true">font-weight: bold; color: white;</string>
-                       </property>
-                       <property name="text">
-                        <string>Older versions</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                  <item row="4" column="0" colspan="2">
-                   <widget class="QPushButton" name="btn_remove_old_state_dir">
-                    <property name="enabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>250</width>
-                      <height>32</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>250</width>
-                      <height>32</height>
-                     </size>
-                    </property>
-                    <property name="cursor">
-                     <cursorShape>PointingHandCursor</cursorShape>
-                    </property>
-                    <property name="layoutDirection">
-                     <enum>Qt::LeftToRight</enum>
-                    </property>
-                    <property name="autoFillBackground">
-                     <bool>false</bool>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">border-radius:16px; margin-left:16px; background-color:#e67300; color:#fff;</string>
-                    </property>
-                    <property name="text">
-                     <string>Remove selected versions</string>
-                    </property>
-                    <property name="autoDefault">
-                     <bool>false</bool>
-                    </property>
-                    <property name="default">
-                     <bool>false</bool>
-                    </property>
-                    <property name="flat">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
                 <widget class="QWidget" name="settings_debug_tab">
                  <layout class="QFormLayout" name="settigsDebugFormLayout">
                   <property name="fieldGrowthPolicy">
@@ -2402,39 +2205,6 @@ color: white;</string>
                    </widget>
                   </item>
                   <item row="6" column="0">
-                   <widget class="QLabel" name="label_66">
-                    <property name="styleSheet">
-                     <string notr="true">font-weight: bold;color: white;</string>
-                    </property>
-                    <property name="text">
-                     <string>CPU Priority [0-5]</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="7" column="0" colspan="2">
-                   <widget class="QSlider" name="slider_cpu_level">
-                    <property name="maximum">
-                     <number>5</number>
-                    </property>
-                    <property name="pageStep">
-                     <number>1</number>
-                    </property>
-                    <property name="value">
-                     <number>1</number>
-                    </property>
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="8" column="0">
-                   <widget class="QLabel" name="cpu_priority_value">
-                    <property name="text">
-                     <string>Current priority = 1</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="9" column="0">
                    <widget class="QLabel" name="label_90">
                     <property name="styleSheet">
                      <string notr="true">font-weight: bold;color: white;</string>
@@ -2444,14 +2214,14 @@ color: white;</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="0" colspan="2">
+                  <item row="7" column="0" colspan="2">
                    <widget class="QCheckBox" name="checkbox_enable_network_statistics">
                     <property name="text">
                      <string>Enable network statistics (requires restart)</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="11" column="0">
+                  <item row="8" column="0">
                    <widget class="QLabel" name="network_statistics_warning">
                     <property name="text">
                      <string>Note: Enabling statistics slightly slows down Tribler</string>

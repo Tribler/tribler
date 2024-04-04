@@ -7,8 +7,9 @@ from urllib.parse import unquote_plus
 from PyQt5 import uic
 from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QFileDialog, QSizePolicy
+from yarl import URL
 
-from tribler.core.utilities.rest_utils import FILE_SCHEME, MAGNET_SCHEME, scheme_from_url, url_to_path
+from tribler.core.libtorrent.uris import url_to_path
 from tribler.gui.defs import METAINFO_MAX_RETRIES, METAINFO_TIMEOUT
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.dialogs.dialogcontainer import DialogContainer
@@ -33,11 +34,11 @@ class StartDownloadDialog(DialogContainer):
         DialogContainer.__init__(self, parent)
 
         torrent_name = download_uri
-        scheme = scheme_from_url(download_uri)
+        scheme = URL(download_uri).scheme
 
-        if scheme == FILE_SCHEME:
+        if scheme == "file":
             torrent_name = url_to_path(torrent_name)
-        elif scheme == MAGNET_SCHEME:
+        elif scheme == "magnet":
             torrent_name = unquote_plus(torrent_name)
 
         self.download_uri = download_uri
@@ -90,17 +91,17 @@ class StartDownloadDialog(DialogContainer):
                 self.dialog_widget.destination_input.addItems(recent_locations)
             else:
                 self.dialog_widget.destination_input.setCurrentText(
-                    self.window().tribler_settings['download_defaults']['saveas']
+                    self.window().tribler_settings['libtorrent']['download_defaults']['saveas']
                 )
 
         self.dialog_widget.torrent_name_label.setText(torrent_name)
 
         connect(self.dialog_widget.anon_download_checkbox.stateChanged, self.on_anon_download_state_changed)
         self.dialog_widget.anon_download_checkbox.setChecked(
-            self.window().tribler_settings['download_defaults']['anonymity_enabled']
+            self.window().tribler_settings['libtorrent']['download_defaults']['anonymity_enabled']
         )
         self.dialog_widget.safe_seed_checkbox.setChecked(
-            self.window().tribler_settings['download_defaults']['safeseeding_enabled']
+            self.window().tribler_settings['libtorrent']['download_defaults']['safeseeding_enabled']
         )
 
         self.dialog_widget.safe_seed_checkbox.setEnabled(self.dialog_widget.anon_download_checkbox.isChecked())

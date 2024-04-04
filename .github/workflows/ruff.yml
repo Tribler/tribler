@@ -1,0 +1,23 @@
+name: Ruff
+on: [pull_request, workflow_dispatch]
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install ruff
+        run: pip install ruff
+      - name: Get changed Python files
+        id: changed-py-files
+        uses: tj-actions/changed-files@v42
+        with:
+          files: |
+            *.py
+            **/*.py
+      - name: Run ruff
+        if: steps.changed-py-files.outputs.any_changed == 'true'
+        run: ruff check ${{ steps.changed-py-files.outputs.all_changed_files }}

@@ -2,12 +2,12 @@ import logging
 import os
 import os.path
 import sys
+from pathlib import Path
 from typing import List
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 
-from tribler.core.utilities.rest_utils import path_to_url
-from tribler.core.utilities.unicode import ensure_unicode
+from tribler.gui.app_manager import AppManager
 from tribler.gui.code_executor import CodeExecutor
 from tribler.gui.single_application import QtSingleApplication
 from tribler.gui.utilities import connect
@@ -25,11 +25,12 @@ class TriblerApplication(QtSingleApplication):
     This class represents the main Tribler application.
     """
 
-    def __init__(self, app_name: str, args: list, start_local_server: bool = False):
-        QtSingleApplication.__init__(self, app_name, start_local_server, args)
+    def __init__(self):
+        QtSingleApplication.__init__(self, "triblerapp")
         self._logger = logging.getLogger(self.__class__.__name__)
         self.code_executor = None
         connect(self.message_received, self.on_app_message)
+        self.manager = AppManager(self)
 
     def on_app_message(self, msg):
         if msg.startswith('file') or msg.startswith('magnet'):
@@ -42,8 +43,8 @@ class TriblerApplication(QtSingleApplication):
     def parse_sys_args(self, args):
         for arg in args[1:]:
             if os.path.exists(arg):
-                file_path = ensure_unicode(arg, 'utf8')
-                uri = path_to_url(file_path)
+                file_path = arg.decode()
+                uri = Path(file_path).as_uri()
                 self.handle_uri(uri)
             elif arg.startswith('magnet'):
                 self.handle_uri(arg)
@@ -68,7 +69,7 @@ class TriblerApplication(QtSingleApplication):
         urls = []
         for arg in sys.argv[1:]:
             if os.path.exists(arg) and arg.endswith(".torrent"):
-                urls.append((path_to_url(arg)))
+                urls.append(Path(arg).as_uri())
             elif arg.startswith('magnet'):
                 urls.append(arg)
         return urls
@@ -89,6 +90,6 @@ class TriblerApplication(QtSingleApplication):
 
     def event(self, event):
         if event.type() == QEvent.FileOpen and event.file().endswith(".torrent"):
-            uri = path_to_url(event.file())
+            uri = Path(event.file()).as_uri()
             self.handle_uri(uri)
         return QtSingleApplication.event(self, event)

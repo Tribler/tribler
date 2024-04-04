@@ -1,2 +1,0 @@
-libtorrent==1.2.19
-sentry-sdk==1.31.0

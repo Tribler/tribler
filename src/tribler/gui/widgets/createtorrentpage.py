@@ -7,12 +7,11 @@ from PyQt5.QtWidgets import QAction, QFileDialog, QWidget
 from tribler.gui.defs import BUTTON_TYPE_NORMAL
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, get_image_path
 
 
-class CreateTorrentPage(AddBreadcrumbOnShowMixin, QWidget):
+class CreateTorrentPage(QWidget):
     """
     The CreateTorrentPage is the page where users can create torrent files so they can be added to their channel.
     """

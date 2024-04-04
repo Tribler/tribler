@@ -5,7 +5,7 @@ from PyQt5.QtCore import QEvent, QModelIndex, QRect, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QGuiApplication, QMouseEvent, QMovie
 from PyQt5.QtWidgets import QAbstractItemView, QApplication, QHeaderView, QLabel, QTableView
 
-from tribler.core.components.database.db.serialization import SNIPPET
+from tribler.core.database.serialization import SNIPPET
 from tribler.gui.dialogs.editmetadatadialog import EditMetadataDialog
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.utilities import connect, data_item2uri, get_image_path, index2uri

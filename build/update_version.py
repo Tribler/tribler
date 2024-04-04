@@ -44,3 +44,4 @@ if __name__ == '__main__':
         f'commit_id = "{commit}"\n'
         f'sentry_url = "{sentry_url}"\n'
     )
+

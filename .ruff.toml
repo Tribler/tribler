@@ -1,0 +1,99 @@
+lint.select = ["ALL"]
+lint.fixable = ["ALL"]
+lint.unfixable = []
+
+lint.ignore = [
+    "ANN003",
+    "ANN101",
+    "ARG001",
+    "ARG002",
+    "ARG005",
+    "BLE001",
+    "COM812",
+    "COM819",
+    "D100",
+    "D104",
+    "D200",
+    "D203",
+    "D205",
+    "D212",
+    "D400",
+    "D401",
+    "D404",
+    "D405",
+    "E501",
+    "E722",
+    "E731",
+    "E741",
+    "EM",
+    "ERA001",
+    "F403",
+    "F405",
+    "FBT",
+    "INP001",
+    "N818",
+    "N999",
+    "PD",
+    "PERF203",
+    "PLR2004",
+    "PT",
+    "PTH",
+    "Q000",
+    "Q003",
+    "RUF012",
+    "S101",
+    "S104",
+    "S105",
+    "S106",
+    "S107",
+    "S303",
+    "S311",
+    "S324",
+    "TID",
+    "TRY002",
+    "TRY300",
+    "TRY301",
+    "TRY401",
+    "UP006",  # Backward compatibility, remove after Python >= 3.9
+]
+
+exclude = [
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".github",
+    ".hg",
+    ".idea",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+line-length = 120
+
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+target-version = "py37"
+
+[lint.pylint]
+max-args = 6
+max-returns = 8
+max-branches = 12
+max-statements = 50
+

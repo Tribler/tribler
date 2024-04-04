@@ -5,7 +5,7 @@ from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QStyle, QStyleOption, QWidget
 
-from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 
 
 class DownloadProgressBar(QWidget):
@@ -41,7 +41,6 @@ class DownloadProgressBar(QWidget):
         self.set_fraction(download.get("progress", 0.0))
 
     def set_fraction(self, fraction):
-        self.show_pieces = False
         self.fraction = fraction
         self.repaint()
 

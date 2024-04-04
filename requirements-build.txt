@@ -11,3 +11,4 @@ markupsafe==2.0.1; sys_platform == 'linux2' or sys_platform == 'linux'
 PyGObject==3.44.1; sys_platform == 'linux2' or sys_platform == 'linux'
 
 requests==2.31.0
+

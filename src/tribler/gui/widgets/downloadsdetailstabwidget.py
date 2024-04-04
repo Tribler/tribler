@@ -7,7 +7,7 @@ from typing import Dict, Optional
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QTabWidget, QTreeWidgetItem
 
-from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.gui.defs import STATUS_STRING
 from tribler.gui.utilities import compose_magnetlink, connect, copy_to_clipboard, format_size, format_speed, tr
 from tribler.gui.widgets.torrentfiletreewidget import PreformattedTorrentFileTreeWidget
@@ -148,14 +148,18 @@ class DownloadsDetailsTabWidget(QTabWidget):
         if "files" not in self.current_download:
             self.current_download["files"] = []
 
+        self.window().download_progress_bar.show_pieces = True
         self.window().download_progress_bar.update_with_download(self.current_download)
         self.window().download_detail_name_label.setText(self.current_download['name'])
 
-        status = DownloadStatus(self.current_download["status_code"])
-        status_string = STATUS_STRING[status]
-        if status == DownloadStatus.STOPPED_ON_ERROR:
-            status_string += f" (error: {self.current_download['error']})"
-        self.window().download_detail_status_label.setText(status_string)
+        if self.current_download["vod_mode"]:
+            self.window().download_detail_status_label.setText('Streaming')
+        else:
+            status = DownloadStatus(self.current_download["status_code"])
+            status_string = STATUS_STRING[status]
+            if status == DownloadStatus.STOPPED_ON_ERROR:
+                status_string += f" (error: {self.current_download['error']})"
+            self.window().download_detail_status_label.setText(status_string)
 
         self.window().download_detail_filesize_label.setText(
             tr("%(num_bytes)s in %(num_files)d files")

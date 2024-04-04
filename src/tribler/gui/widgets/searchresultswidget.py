@@ -5,10 +5,9 @@ from dataclasses import dataclass, field
 
 from PyQt5 import uic
 
-from tribler.core.components.database.db.serialization import REGULAR_TORRENT
-from tribler.core.utilities.utilities import Query, to_fts_query
+from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
+from tribler.gui.queries import Query, to_fts_query
 from tribler.gui.utilities import connect, get_ui_file_path, tr
 from tribler.gui.widgets.tablecontentmodel import SearchResultsModel
 
@@ -44,7 +43,7 @@ class SearchRequest:
         return self.peers == self.peers_complete
 
 
-class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
+class SearchResultsWidget(widget_form, widget_class):
     def __init__(self, parent=None):
         widget_class.__init__(self, parent=parent)
         self._logger = logging.getLogger(self.__class__.__name__)

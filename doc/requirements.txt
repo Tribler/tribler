@@ -1,15 +1,3 @@
-aiohttp==3.9.2
-aiohttp_apispec==2.2.3
-pydantic==1.10.14
-pygments==2.17.2
-sphinx==7.1.2
-sphinx_rtd_theme==2.0.0
-sphinxcontrib-httpdomain==1.8.1
-sphinxcontrib-openapi==0.8.3
-configobj==5.0.8
-pyipv8==2.12.0
-
-setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
-certifi>=2023.7.22 # not directly required, pinned by Snyk to avoid a vulnerability
-cryptography>=41.0.5 # not directly required, pinned by Snyk to avoid a vulnerability
-requests>=2.31.0 # not directly required, pinned by Snyk to avoid a vulnerability
+astroid>=3.0.0
+sphinx-autoapi
+sphinx-rtd-theme>=1.3.0

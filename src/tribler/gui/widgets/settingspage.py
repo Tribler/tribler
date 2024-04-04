@@ -2,38 +2,30 @@ import json
 import logging
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QFileDialog, QMessageBox, QSizePolicy, QWidget
+from PyQt5.QtWidgets import QFileDialog, QSizePolicy, QWidget
 
-from tribler.core.utilities.osutils import get_root_state_directory
-from tribler.core.utilities.path_util import Path
-from tribler.core.utilities.simpledefs import MAX_LIBTORRENT_RATE_LIMIT
-from tribler.gui import gui_sentry_reporter
 from tribler.gui.defs import (
     DARWIN,
     PAGE_SETTINGS_ANONYMITY,
     PAGE_SETTINGS_BANDWIDTH,
     PAGE_SETTINGS_CONNECTION,
-    PAGE_SETTINGS_DATA,
     PAGE_SETTINGS_DEBUG,
     PAGE_SETTINGS_GENERAL,
     PAGE_SETTINGS_SEEDING,
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import (
-    AVAILABLE_TRANSLATIONS,
     connect,
-    format_size,
     get_gui_setting,
     is_dir_writable,
     seconds_to_hhmm_string,
     string_to_seconds,
-    tr,
 )
+from tribler.tribler_config import DEFAULT_CONFIG
 
 
-class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
+class SettingsPage(QWidget):
     """
     This class is responsible for displaying and adjusting the settings present in Tribler.
     """
@@ -45,12 +37,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.settings = None
-        self.version_history = None
-        self.lang_list = sorted([lang_name for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items()])
-        self.lang_list.insert(0, tr("System default"))
 
-    def initialize_settings_page(self, version_history):
-        self.version_history = version_history
+    def initialize_settings_page(self):
         if DARWIN:
             self.window().minimize_to_tray_checkbox.setHidden(True)
         self.window().settings_tab.initialize()
@@ -60,31 +48,16 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().download_location_chooser_button.clicked, self.on_choose_download_dir_clicked)
         connect(self.window().watch_folder_chooser_button.clicked, self.on_choose_watch_dir_clicked)
 
-        connect(self.window().family_filter_checkbox.stateChanged, self.on_family_filter_checkbox_changed)
         connect(self.window().developer_mode_enabled_checkbox.stateChanged, self.on_developer_mode_checkbox_changed)
         connect(self.window().use_monochrome_icon_checkbox.stateChanged, self.on_use_monochrome_icon_checkbox_changed)
         connect(self.window().minimize_to_tray_checkbox.stateChanged, self.on_minimize_to_tray_changed)
         connect(self.window().download_settings_anon_checkbox.stateChanged, self.on_anon_download_state_changed)
-        connect(self.window().log_location_chooser_button.clicked, self.on_choose_log_dir_clicked)
-        connect(self.window().btn_remove_old_state_dir.clicked, self.on_remove_version_dirs)
-
-        self.window().language_selector.addItems(self.lang_list)
-
-        selected_lang_code = self.window().gui_settings.value('translation', None)
-        if selected_lang_code is not None:
-            for lang_name, lang_code in AVAILABLE_TRANSLATIONS.items():
-                if selected_lang_code == lang_code:
-                    self.window().language_selector.setCurrentIndex(self.lang_list.index(lang_name))
-                    break
 
         self.update_stacked_widget_height()
 
     def showEvent(self, *args):
         super().showEvent(*args)
         self.window().settings_tab.process_button_click(self.window().settings_general_button)
-
-    def on_family_filter_checkbox_changed(self, _):
-        self.window().gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
 
     def on_developer_mode_checkbox_changed(self, _):
         self.window().gui_settings.setValue("debug", self.window().developer_mode_enabled_checkbox.isChecked())
@@ -129,59 +102,34 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
             self.window().watchfolder_location_input.setText(watch_dir)
 
-    def on_choose_log_dir_clicked(self, checked):
-        previous_log_dir = self.window().log_location_input.text() or ""
-        log_dir = QFileDialog.getExistingDirectory(
-            self.window(), tr("Please select the log directory"), previous_log_dir, QFileDialog.ShowDirsOnly
-        )
-
-        if not log_dir or log_dir == previous_log_dir:
-            return
-
-        is_writable, error = is_dir_writable(log_dir)
-        if not is_writable:
-            gui_error_message = f"<i>{log_dir}</i> is not writable. [{error}]"
-            ConfirmationDialog.show_message(self.window(), tr("Insufficient Permissions"), gui_error_message, "OK")
-        else:
-            self.window().log_location_input.setText(log_dir)
-
     def initialize_with_settings(self, settings):
         if not settings:
             return
         self.settings = settings = settings["settings"]
         gui_settings = self.window().gui_settings
+        down_default_settings = settings['libtorrent']['download_defaults']
 
         self.window().settings_stacked_widget.show()
         self.window().settings_tab.show()
 
         # General settings
-        self.window().family_filter_checkbox.setChecked(
-            get_gui_setting(gui_settings, 'family_filter', True, is_bool=True)
-        )
         self.window().use_monochrome_icon_checkbox.setChecked(
             get_gui_setting(gui_settings, "use_monochrome_icon", False, is_bool=True)
         )
         self.window().minimize_to_tray_checkbox.setChecked(
             get_gui_setting(gui_settings, "minimize_to_tray", False, is_bool=True)
         )
-        self.window().download_location_input.setText(settings['download_defaults']['saveas'])
+        self.window().download_location_input.setText(down_default_settings['saveas'])
         self.window().always_ask_location_checkbox.setChecked(
             get_gui_setting(gui_settings, "ask_download_settings", True, is_bool=True)
         )
-        self.window().download_settings_anon_checkbox.setChecked(settings['download_defaults']['anonymity_enabled'])
-        self.window().download_settings_anon_seeding_checkbox.setChecked(
-            settings['download_defaults']['safeseeding_enabled']
-        )
-        self.window().watchfolder_enabled_checkbox.setChecked(settings['watch_folder']['enabled'])
-        self.window().watchfolder_location_input.setText(settings['watch_folder']['directory'])
+        self.window().download_settings_anon_checkbox.setChecked(down_default_settings['anonymity_enabled'])
+        self.window().download_settings_anon_seeding_checkbox.setChecked(down_default_settings['safeseeding_enabled'])
 
         # Tags settings
         self.window().disable_tags_checkbox.setChecked(
             get_gui_setting(gui_settings, "disable_tags", False, is_bool=True)
         )
-
-        # Log directory
-        self.window().log_location_input.setText(settings['general']['log_dir'])
 
         # Connection settings
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
@@ -205,112 +153,22 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.window().download_rate_limit_input.setText(str(settings['libtorrent']['max_download_rate'] // 1024))
 
         # Seeding settings
-        getattr(self.window(), "seeding_" + settings['download_defaults']['seeding_mode'] + "_radio").setChecked(True)
-        self.window().seeding_time_input.setText(seconds_to_hhmm_string(settings['download_defaults']['seeding_time']))
-        ind = self.window().seeding_ratio_combobox.findText(str(settings['download_defaults']['seeding_ratio']))
+        getattr(self.window(), "seeding_" + down_default_settings['seeding_mode'] + "_radio").setChecked(True)
+        self.window().seeding_time_input.setText(seconds_to_hhmm_string(down_default_settings['seeding_time']))
+        ind = self.window().seeding_ratio_combobox.findText(str(down_default_settings['seeding_ratio']))
         if ind != -1:
             self.window().seeding_ratio_combobox.setCurrentIndex(ind)
 
         # Anonymity settings
-        self.window().number_hops_slider.setValue(int(settings['download_defaults']['number_hops']))
-
-        # Data settings
-        self.load_settings_data_tab()
+        self.window().number_hops_slider.setValue(int(down_default_settings['number_hops']))
 
         # Debug
         self.window().developer_mode_enabled_checkbox.setChecked(
             get_gui_setting(gui_settings, "debug", False, is_bool=True)
         )
-        self.window().checkbox_enable_resource_log.setChecked(settings['resource_monitor']['enabled'])
-
-        cpu_priority = 1
-        if 'cpu_priority' in settings['resource_monitor']:
-            cpu_priority = int(settings['resource_monitor']['cpu_priority'])
-        self.window().slider_cpu_level.setValue(cpu_priority)
-        self.show_updated_cpu_priority(cpu_priority)
-        connect(self.window().slider_cpu_level.valueChanged, self.show_updated_cpu_priority)
-        self.window().checkbox_enable_network_statistics.setChecked(settings['ipv8']['statistics'])
+        self.window().checkbox_enable_network_statistics.setChecked(settings['statistics'])
 
         self.window().settings_stacked_widget.setCurrentIndex(0)
-
-    def _version_dir_checkbox(self, state_dir, enabled=True):
-        path = Path(state_dir)
-        text = f"{state_dir}   {format_size(path.size())}"
-        checkbox = QCheckBox(text)
-        checkbox.setEnabled(enabled)
-        return checkbox
-
-    def load_settings_data_tab(self):
-        self.refresh_current_version_checkbox()
-        self.refresh_old_version_checkboxes()
-
-    def refresh_current_version_checkbox(self):
-        code_version_dir = self.version_history.code_version.directory
-        self.refresh_version_checkboxes(self.window().state_dir_current, [code_version_dir], enabled=False)
-
-    def refresh_old_version_checkboxes(self):
-        old_state_dirs = self.version_history.get_disposable_state_directories()
-        self.refresh_version_checkboxes(self.window().state_dir_list, old_state_dirs, enabled=True)
-
-    def refresh_version_checkboxes(self, parent, old_state_dirs, enabled=True):
-        version_dirs_layout = parent.layout()
-        for checkbox in parent.findChildren(QCheckBox):
-            version_dirs_layout.removeWidget(checkbox)
-            checkbox.setParent(None)
-            checkbox.deleteLater()
-
-        for state_dir in old_state_dirs:
-            version_dir_checkbox = self._version_dir_checkbox(state_dir, enabled=enabled)
-            version_dirs_layout.addWidget(version_dir_checkbox)
-
-    def on_remove_version_dirs(self, _):
-        root_version_dir = str(get_root_state_directory())
-
-        def dir_from_checkbox_text(checkbox):
-            # eg text: "/home/<user>/.Tribler/v7.8   5 GB"
-            state_dir = checkbox.text().rpartition("   ")[0]
-            if not state_dir.startswith(root_version_dir):
-                return None  # safety check just in case
-            return Path(state_dir).parts[-1]
-
-        dirs_selected_for_deletion = []
-        for checkbox in self.window().state_dir_list.findChildren(QCheckBox):
-            if checkbox.isChecked():
-                state_dir = dir_from_checkbox_text(checkbox)
-                if state_dir:
-                    dirs_selected_for_deletion.append(state_dir)
-
-        if self.on_confirm_remove_version_dirs(dirs_selected_for_deletion):
-            self.version_history.remove_state_dirs(dirs_selected_for_deletion)
-            self.refresh_old_version_checkboxes()
-
-    def on_confirm_remove_version_dirs(self, selected_versions):
-        message_box = QMessageBox()
-        message_box.setIcon(QMessageBox.Question)
-
-        if selected_versions:
-            version_dirs_str = "\n- ".join(selected_versions)
-            versions_info = tr("Versions: \n- %s") % version_dirs_str
-
-            title = tr("Confirm delete older versions?")
-            message_body = tr("Are you sure to remove the selected versions? \nYou can not undo this action.")
-            message_body += f"\n\n {versions_info}"
-
-            message_buttons = QMessageBox.No | QMessageBox.Yes
-        else:
-            title = tr("No versions selected")
-            message_body = tr("Select a version to delete.")
-            message_buttons = QMessageBox.Close
-
-        message_box.setWindowTitle(title)
-        message_box.setText(message_body)
-        message_box.setStandardButtons(message_buttons)
-
-        user_choice = message_box.exec_()
-        return user_choice == QMessageBox.Yes
-
-    def show_updated_cpu_priority(self, value):
-        self.window().cpu_priority_value.setText(tr("Current Priority = %s") % value)
 
     def load_settings(self):
         self.window().settings_stacked_widget.hide()
@@ -328,8 +186,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_SEEDING)
         elif tab_button_name == "settings_anonymity_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_ANONYMITY)
-        elif tab_button_name == "settings_data_button":
-            self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_DATA)
         elif tab_button_name == "settings_debug_button":
             self.window().settings_stacked_widget.setCurrentIndex(PAGE_SETTINGS_DEBUG)
 
@@ -350,25 +206,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
     def save_settings(self, checked):
         # Create a dictionary with all available settings
-        settings_data = {
-            'general': {},
-            'Tribler': {},
-            'download_defaults': {},
-            'libtorrent': {},
-            'watch_folder': {},
-            'tunnel_community': {},
-            'trustchain': {},
-            'resource_monitor': {},
-            'ipv8': {},
-            'chant': {},
-        }
-        settings_data['download_defaults']['saveas'] = self.window().download_location_input.text()
-        settings_data['general']['log_dir'] = self.window().log_location_input.text()
-
-        settings_data['watch_folder']['enabled'] = self.window().watchfolder_enabled_checkbox.isChecked()
-        if settings_data['watch_folder']['enabled']:
-            settings_data['watch_folder']['directory'] = self.window().watchfolder_location_input.text()
-
+        settings_data = DEFAULT_CONFIG
+        settings_data['libtorrent']['download_defaults']['saveas'] = self.window().download_location_input.text()
         settings_data['libtorrent']['proxy_type'] = self.window().lt_proxy_type_combobox.currentIndex()
 
         if (
@@ -384,8 +223,8 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             except ValueError:
                 ConfirmationDialog.show_error(
                     self.window(),
-                    tr("Invalid proxy port number"),
-                    tr("You've entered an invalid format for the proxy port number. Please enter a whole number."),
+                    "Invalid proxy port number",
+                    "You've entered an invalid format for the proxy port number. Please enter a whole number.",
                 )
                 return
         else:
@@ -405,11 +244,9 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                tr("Invalid number of connections"),
-                tr(
-                    "You've entered an invalid format for the maximum number of connections. "
-                    "Please enter a whole number."
-                ),
+                "Invalid number of connections",
+                "You've entered an invalid format for the maximum number of connections. "
+                "Please enter a whole number."
             )
             return
         if max_conn_download == 0:
@@ -419,26 +256,23 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         try:
             if self.window().upload_rate_limit_input.text():
                 user_upload_rate_limit = int(float(self.window().upload_rate_limit_input.text()) * 1024)
-                if user_upload_rate_limit < MAX_LIBTORRENT_RATE_LIMIT:
+                if user_upload_rate_limit < 2147483647:
                     settings_data['libtorrent']['max_upload_rate'] = user_upload_rate_limit
                 else:
                     raise ValueError
             if self.window().download_rate_limit_input.text():
                 user_download_rate_limit = int(float(self.window().download_rate_limit_input.text()) * 1024)
-                if user_download_rate_limit < MAX_LIBTORRENT_RATE_LIMIT:
+                if user_download_rate_limit < 2147483647:
                     settings_data['libtorrent']['max_download_rate'] = user_download_rate_limit
                 else:
                     raise ValueError
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                tr("Invalid value for bandwidth limit"),
-                tr(
-                    "You've entered an invalid value for the maximum upload/download rate. \n"
-                    "The rate is specified in KB/s and the value permitted is between 0 and %d KB/s.\n"
-                    "Note that the decimal values are truncated."
-                )
-                % (MAX_LIBTORRENT_RATE_LIMIT / 1024),
+                "Invalid value for bandwidth limit",
+                "You've entered an invalid value for the maximum upload/download rate. \n"
+                "The rate is specified in KB/s and the value permitted is between 0 and 2097151 KB/s.\n"
+                "Note that the decimal values are truncated."
             )
             return
 
@@ -448,54 +282,36 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
             if getattr(self.window(), "seeding_" + seeding_mode + "_radio").isChecked():
                 selected_mode = seeding_mode
                 break
-        settings_data['download_defaults']['seeding_mode'] = selected_mode
-        settings_data['download_defaults']['seeding_ratio'] = float(self.window().seeding_ratio_combobox.currentText())
+        settings_data['libtorrent']['download_defaults']['seeding_mode'] = selected_mode
+        settings_data['libtorrent']['download_defaults']['seeding_ratio'] = float(self.window().seeding_ratio_combobox.currentText())
 
         try:
-            settings_data['download_defaults']['seeding_time'] = string_to_seconds(
+            settings_data['libtorrent']['download_defaults']['seeding_time'] = string_to_seconds(
                 self.window().seeding_time_input.text()
             )
         except ValueError:
             ConfirmationDialog.show_error(
                 self.window(),
-                tr("Invalid seeding time"),
-                tr("You've entered an invalid format for the seeding time (expected HH:MM)"),
+                "Invalid seeding time",
+                "You've entered an invalid format for the seeding time (expected HH:MM)"
             )
             return
 
         settings_data['tunnel_community']['exitnode_enabled'] = False
-        settings_data['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
-        settings_data['download_defaults'][
-            'anonymity_enabled'
-        ] = self.window().download_settings_anon_checkbox.isChecked()
-        settings_data['download_defaults'][
-            'safeseeding_enabled'
-        ] = self.window().download_settings_anon_seeding_checkbox.isChecked()
-
-        settings_data['resource_monitor']['enabled'] = self.window().checkbox_enable_resource_log.isChecked()
-        settings_data['resource_monitor']['cpu_priority'] = int(self.window().slider_cpu_level.value())
+        settings_data['libtorrent']['download_defaults']['number_hops'] = self.window().number_hops_slider.value()
+        settings_data['libtorrent']['download_defaults']['anonymity_enabled'] = self.window().download_settings_anon_checkbox.isChecked()
+        settings_data['libtorrent']['download_defaults']['safeseeding_enabled'] = self.window().download_settings_anon_seeding_checkbox.isChecked()
 
         # network statistics
-        settings_data['ipv8']['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
+        settings_data['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
 
-        # TODO: do it in RESTful style, on the REST return JSON instead
         # In case the default save dir has changed, add it to the top of the list of last download locations.
         # Otherwise, the user could absentmindedly click through the download dialog and start downloading into
         # the last used download dir, and not into the newly designated default download dir.
-        if self.settings['download_defaults']['saveas'] != settings_data['download_defaults']['saveas']:
-            self.window().update_recent_download_locations(settings_data['download_defaults']['saveas'])
+        if self.settings['libtorrent']['download_defaults']['saveas'] != settings_data['libtorrent']['download_defaults']['saveas']:
+            self.window().update_recent_download_locations(settings_data['libtorrent']['download_defaults']['saveas'])
         self.settings = settings_data
         request_manager.post("settings", self.on_settings_saved, data=json.dumps(settings_data))
-
-    def save_language_selection(self):
-        ind = self.window().language_selector.currentIndex()
-        if ind < 0:
-            return
-        lang = self.lang_list[ind] if ind else None
-        selected_lang = AVAILABLE_TRANSLATIONS.get(lang)
-        if lang is None:
-            self.window().gui_settings.remove('translation')
-        self.window().gui_settings.setValue('translation', selected_lang)
 
     def on_settings_saved(self, data):
         if not data:
@@ -503,19 +319,16 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         # Now save the GUI settings
         gui_settings = self.window().gui_settings
 
-        gui_settings.setValue("family_filter", self.window().family_filter_checkbox.isChecked())
         gui_settings.setValue("disable_tags", self.window().disable_tags_checkbox.isChecked())
         gui_settings.setValue("ask_download_settings", self.window().always_ask_location_checkbox.isChecked())
         gui_settings.setValue("use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked())
         gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
-        self.save_language_selection()
-        self.window().tray_show_message(tr("Tribler settings"), tr("Settings saved"))
+        self.window().tray_show_message("Tribler settings", "Settings saved")
 
         def on_receive_settings(response):
             settings = response['settings']
 
             self.window().tribler_settings = settings
-            gui_sentry_reporter.additional_information['settings'] = settings
 
         request_manager.get("settings", on_receive_settings, capture_errors=False)
 

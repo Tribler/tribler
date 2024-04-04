@@ -1,101 +1,16 @@
-# Python
 *.pyc
 *.pyo
 
-# Apple
-.DS_Store
-
-
-doc/restapi/swagger.yaml
-*.autosave
-*.stats
-.*project
-local.properties
-*.bak
-*~
-/*.log
-/.Tribler
-/.coverage
-/.dir-locals.el
-/.gdb_history
-**.idea/
-/.noseids
-/TAGS
-/bootstraptribler.txt
-/core
-/debian/files
-/debian/tribler.debhelper.log
-/debian/tribler.postinst.debhelper
-/debian/tribler.postrm.debhelper
-/debian/tribler.prerm.debhelper
-/debian/tribler.substvars
-/output
-\#*\#
-\.\#
-flycheck_*
-memorydump.out
-test_file
-test_file.torrent
-screenshots
-
-# Ignore nosetest coverage output
-cover/
-htmlcov/
-.coverage
-
-# Ignore nosetest output logs
-logs
-resources.log
-# Ignore trial temp dirs
-_trial_temp*/
-_trial_temp*.lock
-
-# Android
-*.apk
-
-/android/TriblerService/dist
-/android/TriblerService/typescript
-
-/android/TriblerApp/app/src/main/jniLibs
-/android/TriblerApp/app/src/main/jni/include/python2.7
-/android/TriblerApp/app/src/main/jni/lib
-/android/TriblerApp/app/src/main/assets/private.mp3
-
-# Android Studio
-/android/TriblerApp/app/*.iml
-/android/TriblerApp/*.iml
-/android/TriblerApp/app/build
-/android/TriblerApp/build
-/android/TriblerApp/.gradle
-/android/TriblerApp/captures
-
-# Documentation
-doc/_build/
-
-# Twisted
-twisted/plugins/dropin.cache
-twistd.pid
-
-# PyInstaller
-build/tribler
+.idea/
 dist/
+output/
+screenshots/
 
-# Annotation files
-annotations.txt
+src/ec_multichain.pem
+src/secondary_key.pem
 
-# Screenshots taken by GUI tests
-tribler/gui/screenshots
+src/state_directory/
+src/venv/
 
-#venv
-venv/
+src/tribler/src/tribler/gui/screenshots/
 
-_build/
-
-.Tribler/
-
-.mailmap
-
-# this folder is dedicated to storing local experimental code that don't want to be committed
-local/
-
-scripts/application_tester/output/

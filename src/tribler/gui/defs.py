@@ -6,10 +6,10 @@ from collections import namedtuple
 
 from PyQt5.QtGui import QColor
 
-from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 
 DEFAULT_API_PROTOCOL = "http"
-DEFAULT_API_HOST = "localhost"
+DEFAULT_API_HOST = "127.0.0.1"
 
 # Define stacked widget page indices
 PAGE_SEARCH_RESULTS = 0
@@ -25,8 +25,7 @@ PAGE_SETTINGS_CONNECTION = 1
 PAGE_SETTINGS_BANDWIDTH = 2
 PAGE_SETTINGS_SEEDING = 3
 PAGE_SETTINGS_ANONYMITY = 4
-PAGE_SETTINGS_DATA = 5
-PAGE_SETTINGS_DEBUG = 6
+PAGE_SETTINGS_DEBUG = 5
 
 STATUS_STRING = {
     DownloadStatus.ALLOCATING_DISKSPACE: "Allocating disk space",

@@ -10,12 +10,11 @@ from typing import Callable, Dict, List
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
-from tribler.core.components.database.db.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
-from tribler.core.utilities.search_utils import item_rank
-from tribler.core.utilities.simpledefs import CHANNEL_STATE
-from tribler.core.utilities.utilities import to_fts_query
+from tribler.core.database.ranks import item_rank
+from tribler.core.database.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, HEALTH_CHECKING
 from tribler.gui.network.request_manager import request_manager
+from tribler.gui.queries import to_fts_query
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
@@ -368,6 +367,7 @@ class RemoteTableModel(QAbstractTableModel):
     def on_query_results(self, response, remote=False, on_top=False):
         """
         Updates the table with the response.
+
         :param response: List of the items to be added to the model
         :param remote: True if response is from a remote peer. Default: False
         :param on_top: True if items should be added at the top of the list

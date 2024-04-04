@@ -1,7 +1,0 @@
-#https://bandit.readthedocs.io/en/latest/config.html
-
-skips:
-  - B101 # assert_used
-
-exclude_dirs:
-  - '*/test_*.py'

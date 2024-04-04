@@ -1,7 +1,6 @@
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
-from tribler.gui import gui_sentry_reporter
 from tribler.gui.utilities import connect
 
 
@@ -26,8 +25,6 @@ class TabButtonPanel(QWidget):
 
     def process_button_click(self, button):
         """ This method is called when a button is clicked."""
-        gui_sentry_reporter.add_breadcrumb(message=f'{button.objectName()}.Click', category='UI', level='info')
-
         self.deselect_all_buttons(except_select=button)
         self.clicked_tab_button.emit(button.objectName())
 

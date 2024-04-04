@@ -1,14 +1,13 @@
 from base64 import b64encode
+from sys import platform
 
 from PyQt5 import uic
 from PyQt5.QtCore import QDir, Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QFileDialog
-from psutil import LINUX
 
-from tribler.core.components.database.db.orm_bindings.torrent_metadata import NEW
-from tribler.core.components.database.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE
-from tribler.core.utilities.simpledefs import CHANNEL_STATE
+from tribler.core.database.orm_bindings.torrent_metadata import NEW
+from tribler.core.database.serialization import CHANNEL_TORRENT, COLLECTION_NODE
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -17,7 +16,6 @@ from tribler.gui.defs import (
 )
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
 from tribler.gui.widgets.tablecontentmodel import ChannelContentModel, SearchResultsModel
@@ -27,7 +25,7 @@ widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods
-class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
+class ChannelContentsWidget(widget_form, widget_class):
     model_query_completed = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -116,7 +114,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         connect(self.channel_back_button.clicked, self.go_back)
         connect(self.channel_name_label.linkActivated, self.on_breadcrumb_clicked)
 
-        if LINUX:
+        if platform == "linux":
             # On Linux, the default font sometimes does not contain the emoji characters.
             self.category_selector.setStyleSheet("font-family: Noto Color Emoji")
 
@@ -171,7 +169,7 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
         self.model_query_completed.emit()
 
     def initialize_root_model_from_channel_info(self, channel_info):
-        if channel_info.get("state") == CHANNEL_STATE.PERSONAL.value:
+        if channel_info.get("state") == "Personal":
             self.default_channel_model = self.personal_channel_model
         else:
             self.default_channel_model = ChannelContentModel

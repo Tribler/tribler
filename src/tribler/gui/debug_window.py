@@ -8,19 +8,16 @@ from binascii import unhexlify
 from time import localtime, strftime, time
 
 import libtorrent
-import psutil
 from PyQt5 import QtGui, uic
 from PyQt5.QtCore import QTimer, Qt, pyqtSignal
-from PyQt5.QtGui import QBrush, QColor, QTextCursor
-from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QHeaderView, QMainWindow, QMessageBox, QTreeWidgetItem
+from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtWidgets import QDesktopWidget, QFileDialog, QMainWindow, QMessageBox, QTreeWidgetItem
 
-from tribler.core.utilities.utilities import has_bep33_support
 from tribler.gui.defs import DEBUG_PANE_REFRESH_TIMEOUT, GB, MB
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.event_request_manager import received_events as tribler_received_events
 from tribler.gui.network.request import Request
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.resource_monitor import GuiResourceMonitor
 from tribler.gui.utilities import connect, format_size, get_ui_file_path
 from tribler.gui.widgets.graphs.timeseriesplot import TimeSeriesPlot
 from tribler.gui.widgets.ipv8health import MonitorWidget
@@ -78,38 +75,26 @@ class DebugWindow(QMainWindow):
         uic.loadUi(get_ui_file_path('debugwindow.ui'), self)
         self.setWindowTitle("Tribler debug pane")
 
-        connect(self.window().toggle_profiler_button.clicked, self.on_toggle_profiler_button_clicked)
-
         self.window().debug_tab_widget.setCurrentIndex(0)
         self.window().ipv8_tab_widget.setCurrentIndex(0)
         self.window().tunnel_tab_widget.setCurrentIndex(0)
         self.window().dht_tab_widget.setCurrentIndex(0)
-        self.window().system_tab_widget.setCurrentIndex(0)
         connect(self.window().debug_tab_widget.currentChanged, self.tab_changed)
         connect(self.window().ipv8_tab_widget.currentChanged, self.ipv8_tab_changed)
         connect(self.window().communities_tree_widget.itemClicked, self.on_community_clicked)
         connect(self.window().tunnel_tab_widget.currentChanged, self.tunnel_tab_changed)
         connect(self.window().dht_tab_widget.currentChanged, self.dht_tab_changed)
         connect(self.window().events_tree_widget.itemClicked, self.on_event_clicked)
-        connect(self.window().system_tab_widget.currentChanged, self.system_tab_changed)
         self.load_general_tab()
-
-        self.window().open_files_tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
 
         self.window().community_peers_tree_widget.hide()
 
         # Enable/disable tabs, based on settings
         self.window().debug_tab_widget.setTabEnabled(2, settings is not None)
-        self.window().debug_tab_widget.setTabEnabled(3, settings and settings['ipv8']['enabled'])
-        self.window().system_tab_widget.setTabEnabled(3, settings and settings['resource_monitor']['enabled'])
-        self.window().system_tab_widget.setTabEnabled(4, settings and settings['resource_monitor']['enabled'])
-
-        # Refresh logs
-        connect(self.window().log_refresh_button.clicked, lambda _: self.load_logs_tab())
-        connect(self.window().log_tab_widget.currentChanged, lambda index: self.load_logs_tab())
+        self.window().debug_tab_widget.setTabEnabled(3, settings is not None)
 
         # IPv8 statistics enabled?
-        self.ipv8_statistics_enabled = settings['ipv8']['statistics']
+        self.ipv8_statistics_enabled = settings['statistics']
 
         # Libtorrent tab
         self.init_libtorrent_tab()
@@ -125,10 +110,6 @@ class DebugWindow(QMainWindow):
         self.refresh_timer = None
         self.rest_request = None
         self.ipv8_health_widget = None
-
-        # GUI resource monitor
-        self.resource_monitor = GuiResourceMonitor()
-        self.resource_monitor.start()
 
         # QT settings
         self.gui_settings = gui_settings
@@ -187,11 +168,7 @@ class DebugWindow(QMainWindow):
         elif index == 6:
             self.run_with_timer(self.load_events_tab)
         elif index == 7:
-            self.system_tab_changed(self.window().system_tab_widget.currentIndex())
-        elif index == 8:
             self.load_libtorrent_data()
-        elif index == 9:
-            self.load_logs_tab()
 
     def ipv8_tab_changed(self, index):
         if index == 0:
@@ -254,7 +231,6 @@ class DebugWindow(QMainWindow):
             "Python version", sys.version.replace('\n', ''), self.window().general_tree_widget  # to fit in one line
         )
         self.create_and_add_widget_item("Libtorrent version", libtorrent.version, self.window().general_tree_widget)
-        self.create_and_add_widget_item("BEP33 support", has_bep33_support(), self.window().general_tree_widget)
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
 
         self.create_and_add_widget_item(
@@ -264,17 +240,6 @@ class DebugWindow(QMainWindow):
             "Number of known torrents", data["num_torrents"], self.window().general_tree_widget
         )
         self.create_and_add_widget_item("", "", self.window().general_tree_widget)
-
-        disk_usage = psutil.disk_usage('/')
-        self.create_and_add_widget_item(
-            "Total disk space", format_size(disk_usage.total), self.window().general_tree_widget
-        )
-        self.create_and_add_widget_item(
-            "Used disk space", format_size(disk_usage.used), self.window().general_tree_widget
-        )
-        self.create_and_add_widget_item(
-            "Free disk space", format_size(disk_usage.free), self.window().general_tree_widget
-        )
 
         # Show GUI settings
         self.show_gui_settings()
@@ -618,27 +583,6 @@ class DebugWindow(QMainWindow):
             item.setText(1, f"{strftime('%H:%M:%S', localtime(timestamp))}")
             self.window().events_tree_widget.addTopLevelItem(item)
 
-    def load_open_files_tab(self):
-        # Fill the open files (GUI) tree widget
-        my_process = psutil.Process()
-        self.window().open_files_tree_widget.clear()
-        gui_item = QTreeWidgetItem(self.window().open_files_tree_widget)
-
-        try:
-            open_files = my_process.open_files()
-            gui_item.setText(0, "GUI (%d)" % len(open_files))
-            self.window().open_files_tree_widget.addTopLevelItem(gui_item)
-
-            for open_file in open_files:
-                item = QTreeWidgetItem()
-                item.setText(0, open_file.path)
-                item.setText(1, "%d" % open_file.fd)
-                gui_item.addChild(item)
-        except psutil.AccessDenied as exc:
-            gui_item.setText(0, f"Unable to get open files for GUI ({exc})")
-
-        request_manager.get("debug/open_files", self.on_core_open_files)
-
     def on_core_open_files(self, data):
         if not data:
             return
@@ -814,42 +758,6 @@ class DebugWindow(QMainWindow):
 
         if self.memory_plot_timer:
             self.memory_plot_timer.stop()
-
-    def load_logs_tab(self):
-        # Max lines from GUI
-        max_log_lines = self.window().max_lines_value.text()
-
-        tab_index = self.window().log_tab_widget.currentIndex()
-        tab_name = "core" if tab_index == 0 else "gui"
-
-        request_manager.get("debug/log", self.display_logs,
-                            url_params={'process': tab_name, 'max_lines': max_log_lines})
-
-    def display_logs(self, data):
-        if not data:
-            return
-        tab_index = self.window().log_tab_widget.currentIndex()
-        log_display_widget = (
-            self.window().core_log_display_area if tab_index == 0 else self.window().gui_log_display_area
-        )
-
-        log_display_widget.moveCursor(QTextCursor.End)
-
-        key_content = 'content'
-        key_max_lines = 'max_lines'
-
-        if not key_content in data or not data[key_content]:
-            log_display_widget.setPlainText('No logs found')
-        else:
-            log_display_widget.setPlainText(data[key_content])
-
-        if not key_max_lines in data or not data[key_max_lines]:
-            self.window().max_lines_value.setText('')
-        else:
-            self.window().max_lines_value.setText(str(data[key_max_lines]))
-
-        sb = log_display_widget.verticalScrollBar()
-        sb.setValue(sb.maximum())
 
     def show(self):
         super().show()

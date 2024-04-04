@@ -1,15 +1,14 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from PyQt5.QtCore import QTimer, QUrl, Qt, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtNetwork import QNetworkRequest
 from PyQt5.QtWidgets import QAbstractItemView, QAction, QFileDialog, QWidget
 
-from tribler.core.sentry_reporter.sentry_tools import get_first_item
-from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.gui.defs import (
     BUTTON_TYPE_CONFIRM,
     BUTTON_TYPE_NORMAL,
@@ -23,7 +22,6 @@ from tribler.gui.defs import (
 from tribler.gui.dialogs.confirmationdialog import ConfirmationDialog
 from tribler.gui.network.request import REQUEST_ID
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, format_speed, tr
 from tribler.gui.widgets.downloadsdetailstabwidget import DownloadDetailsTabs
@@ -44,8 +42,7 @@ button_name2filter = {
 }
 
 
-# pylint: disable=too-many-instance-attributes, too-many-public-methods
-class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
+class DownloadsPage(QWidget):
     """
     This class is responsible for managing all items on the downloads page.
     The downloads page shows all downloads and specific details about a download.
@@ -58,7 +55,7 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.export_dir = None
         self.filter = DOWNLOADS_FILTER_ALL
-        self.download_widgets: Dict = {}  # key: infohash, value: QTreeWidgetItem
+        self.download_widgets = {}  # key: infohash, value: QTreeWidgetItem
         self.background_refresh_downloads_timer = QTimer()
         self.downloads_last_update = 0
         self.selected_items: List[DownloadWidgetItem] = []
@@ -187,7 +184,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         )
 
     def on_received_selected_download(self, result):
-        """ Process the result of the refresh request for the selected download."""
+        """
+        Process the result of the refresh request for the selected download.
+        """
 
         if not result:
             return
@@ -206,10 +205,11 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.process_refresh_result(result)
 
     def on_received_non_selected_downloads(self, result):
-        """ Process the result of the refresh request for the non-selected downloads."""
-
+        """
+        Process the result of the refresh request for the non-selected downloads.
+        """
         if not result or "downloads" not in result:
-            self._logger.warning('Received unexpected result, ignoring it.')
+            self._logger.warning("Received unexpected result, ignoring it.")
             return  # This might happen when closing Tribler
 
         request_id = result[REQUEST_ID]
@@ -224,10 +224,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         self.process_refresh_result(result)
 
     def process_refresh_result(self, result):
-        """ Process the result of the refresh request.
-
-        The result could consists of multiple downloads.
-        Only downloads from the result will be processed.
+        """
+        Process the result of the refresh request.
         """
         loading_widget_index = self.window().downloads_list.indexOfTopLevelItem(self.loading_message_widget)
         if loading_widget_index > -1:
@@ -508,8 +506,9 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             data, _ = result
             self.on_export_download_request_done(filename, data)
 
-        item = get_first_item(self.selected_items)
+        item = self.selected_items[0:1]
         if action == 0 and item:
+            item = item[0]
             filename = self.dialog.dialog_widget.dialog_input.text()
             request_manager.get(
                 f"downloads/{item.infohash}/torrent",

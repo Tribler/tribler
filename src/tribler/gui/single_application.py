@@ -20,12 +20,12 @@ class QtSingleApplication(QApplication):
 
     message_received = pyqtSignal(str)
 
-    def __init__(self, win_id: str, start_local_server: bool, *argv):
+    def __init__(self, win_id: str, *argv):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f'Start Tribler application. Win id: "{win_id}". '
                          f'Sys argv: "{sys.argv}"')
 
-        QApplication.__init__(self, *argv)
+        QApplication.__init__(self, list(argv))
         self.tribler_window: Optional[TriblerWindow] = None
 
         self._id = win_id
@@ -41,21 +41,16 @@ class QtSingleApplication(QApplication):
         self._incoming_stream = None
         self._server = None
 
-        if self.connected_to_previous_instance:
-            self.logger.info('Another instance is running')
-            self._stream_to_running_app = QTextStream(self._outgoing_connection)
-            self._stream_to_running_app.setCodec('UTF-8')
-        elif start_local_server:
-            # Cleanup any past, crashed server.
-            error = self._outgoing_connection.error()
-            self.logger.info(f'No running instances (socket error: {error})')
-            if error == QLocalSocket.ConnectionRefusedError:
-                self.logger.info('Received QLocalSocket.ConnectionRefusedError; removing server.')
-                self.cleanup_crashed_server()
-            self._outgoing_connection = None
-            self._server = QLocalServer()
-            self._server.listen(self._id)
-            connect(self._server.newConnection, self._on_new_connection)
+        # Cleanup any past, crashed server.
+        error = self._outgoing_connection.error()
+        self.logger.info(f'No running instances (socket error: {error})')
+        if error == QLocalSocket.ConnectionRefusedError:
+            self.logger.info('Received QLocalSocket.ConnectionRefusedError; removing server.')
+            self.cleanup_crashed_server()
+        self._outgoing_connection = None
+        self._server = QLocalServer()
+        self._server.listen(self._id)
+        connect(self._server.newConnection, self._on_new_connection)
 
     def cleanup_crashed_server(self):
         self.logger.info('Cleaning up crashed server...')

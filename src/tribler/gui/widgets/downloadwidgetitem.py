@@ -6,7 +6,7 @@ from typing import Dict, Optional
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressBar, QTreeWidgetItem, QVBoxLayout, QWidget
 
-from tribler.core.utilities.simpledefs import DownloadStatus
+from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.gui.defs import STATUS_STRING
 from tribler.gui.utilities import duration_to_string, format_size, format_speed
 
@@ -87,16 +87,19 @@ class DownloadWidgetItem(QTreeWidgetItem):
         except RuntimeError:
             self._logger.error("The underlying GUI widget has already been removed.")
 
-        status = DownloadStatus(self.download_info["status_code"])
-        status_string = STATUS_STRING[status]
-        self.setText(3, status_string)
+        if self.download_info["vod_mode"]:
+            self.setText(3, "Streaming")
+        else:
+            status = DownloadStatus(self.download_info["status_code"])
+            status_string = STATUS_STRING[status]
+            self.setText(3, status_string)
         self.setText(4, f"{self.download_info['num_connected_seeds']} ({self.download_info['num_seeds']})")
         self.setText(5, f"{self.download_info['num_connected_peers']} ({self.download_info['num_peers']})")
         self.setText(6, format_speed(self.download_info["speed_down"]))
         self.setText(7, format_speed(self.download_info["speed_up"]))
 
         all_time_ratio = self.download_info['all_time_ratio']
-        all_time_ratio = '∞' if all_time_ratio == math.inf else f'{all_time_ratio:.3f}'
+        all_time_ratio = "∞" if all_time_ratio == math.inf else f'{all_time_ratio:.3f}'
         self.setText(8, all_time_ratio)
 
         self.setText(9, "yes" if self.download_info["anon_download"] else "no")
