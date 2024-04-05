@@ -716,9 +716,6 @@ class DownloadManager(TaskManager):
                 logger.debug("Removing handle %s", hexlify(infohash))
                 ltsession = self.get_session(download.config.get_hops())
                 ltsession.remove_torrent(handle, int(remove_content))
-            # We need to wait even if the handle is invalid. It's important to synchronize
-            # here because the upcoming call to shutdown will also cancel future_removed.
-            await download.future_removed
         else:
             logger.debug("Cannot remove handle %s because it does not exists", hexlify(infohash))
         await download.shutdown()

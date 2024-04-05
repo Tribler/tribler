@@ -165,7 +165,7 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("metainfo error", response_body_json["error"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
-        self.assertEqual(0.5, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
+        self.assertEqual(10, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
         self.assertEqual("magnet://", self.download_manager.get_metainfo.call_args.kwargs["url"])
 
@@ -402,7 +402,7 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("metainfo error", response_body_json["error"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
-        self.assertEqual(0.5, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
+        self.assertEqual(10.0, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
         self.assertEqual("magnet://", self.download_manager.get_metainfo.call_args.kwargs["url"])
 
@@ -425,7 +425,7 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("metainfo error", response_body_json["error"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
-        self.assertEqual(0.5, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
+        self.assertEqual(10.0, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
         self.assertEqual("magnet://", self.download_manager.get_metainfo.call_args.kwargs["url"])
 
