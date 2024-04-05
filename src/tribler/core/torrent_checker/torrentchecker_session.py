@@ -83,6 +83,7 @@ class TrackerSession(TaskManager):
         """
         if not self.is_failed:
             self.is_failed = True
+            self.register_anonymous_task("Cleanup", self.cleanup)
             result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
             if msg:
                 result_msg += f" (error: {msg})"
