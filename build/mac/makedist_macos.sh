@@ -27,8 +27,8 @@ python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
 
-echo Building Tribler using Cx_Freeze
-python3 setup.py build
+echo Building Tribler using PyInstaller
+pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
