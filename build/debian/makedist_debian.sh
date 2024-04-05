@@ -30,7 +30,8 @@ python3 ./build/update_version.py -r .
 python3 ./build/debian/update_metainfo.py -r .
 
 # ----- Build binaries
-python3 -m PyInstaller tribler.spec --log-level="${LOG_LEVEL}"
+echo Building Tribler using Cx_Freeze
+python3 setup.py build
 
 # ----- Build dpkg
 cp -r ./dist/tribler ./build/debian/tribler/usr/share/tribler

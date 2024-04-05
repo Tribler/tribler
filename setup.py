@@ -5,7 +5,7 @@ from pathlib import Path
 
 from setuptools import find_packages
 
-from build import setup, setup_options, setup_executables
+from build.win.build import setup, setup_options, setup_executables
 
 
 def read_version_from_file(file_path):
@@ -21,6 +21,8 @@ def read_version_from_file(file_path):
 
 def read_requirements(file_name, directory='.'):
     file_path = os.path.join(directory, file_name)
+    if not os.path.exists(file_path):
+        return []
     requirements = []
     with open(file_path, 'r', encoding='utf-8') as file:
         for line in file:
