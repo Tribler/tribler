@@ -301,6 +301,12 @@ class Download(TaskManager):
 
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             self.config.set_metainfo(self.tdef.get_metainfo())
+        else:
+            self.config.set_metainfo({
+                "infohash": self.tdef.get_infohash(),
+                "name": self.tdef.get_name_as_unicode(),
+                "url": self.tdef.get_url()
+            })
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
