@@ -7,12 +7,15 @@ import shutil
 import sys
 
 import aiohttp_apispec
-import sentry_sdk
+
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 sys.path.append(src_dir)
+
+pyipv8_dir = os.path.join(root_dir, "pyipv8")
+sys.path.append(pyipv8_dir)
 
 from tribler.core.version import version_id
 
@@ -32,7 +35,6 @@ for file in os.listdir(os.path.join(src_dir, "tribler", "gui", "widgets")):
 data_to_copy = [
     (os.path.join(src_dir, "tribler", "gui", "qt_resources"), 'qt_resources'),
     (os.path.join(src_dir, "tribler", "gui", "images"), 'images'),
-    (os.path.join(src_dir, "tribler", "gui", "i18n"), 'i18n'),
     (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
     (os.path.join(src_dir, "tribler", "gui"), 'tribler_source/tribler/gui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
@@ -69,18 +71,6 @@ excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tk
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
 pony_deps = ['pony', 'pony.orm', 'pony.orm.dbproviders', 'pony.orm.dbproviders.sqlite']
 
-
-# Sentry hidden imports
-def get_sentry_hooks():
-    package = sentry_sdk.integrations
-    sentry_hooks = ['sentry_sdk', 'sentry_sdk.integrations']
-    for _, modname, _ in pkgutil.walk_packages(path=package.__path__,
-                                               prefix=package.__name__ + '.',
-                                               onerror=lambda x: None):
-        sentry_hooks.append(modname)
-    return sentry_hooks
-
-
 # Hidden imports
 hiddenimports = [
     'csv',
@@ -105,7 +95,6 @@ hiddenimports = [
 ]
 hiddenimports += widget_files
 hiddenimports += pony_deps
-hiddenimports += get_sentry_hooks()
 
 # Fix for issue: Could not load a pixbuf from icon theme.
 # Unrecognized image file format (gdk-pixbuf-error-quark, 3).

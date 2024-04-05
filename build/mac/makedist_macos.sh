@@ -27,6 +27,7 @@ python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
 
+echo Building Tribler using PyInstaller
 pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
 mkdir -p dist/installdir

@@ -39,11 +39,10 @@ def get_freeze_build_options():
 
     # These packages will be included in the build
     sys.path.insert(0, 'src')
+    sys.path.insert(0, 'pyipv8')
     included_packages = [
         "aiohttp_apispec",
-        "PIL",
         "pkg_resources",
-        "pyipv8",
         "pyqtgraph",
         "requests",
         "tribler.core",
