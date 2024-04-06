@@ -1,7 +1,7 @@
 -r requirements-core.txt
 
-Pillow==9.3.0
-PyQt5==5.15.1
-PyQt5-sip==12.8.1
-pyqtgraph==0.12.3
-PyQtWebEngine==5.15.2
+Pillow==10.3.0
+PyQt5==5.15.10
+PyQt5-sip==12.13.0
+pyqtgraph==0.13.3  # The latest version that supports Python 3.8
+PyQtWebEngine==5.15.6
