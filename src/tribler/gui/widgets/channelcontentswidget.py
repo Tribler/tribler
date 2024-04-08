@@ -26,9 +26,9 @@ from tribler.gui.widgets.tablecontentmodel import (
     ChannelPreviewModel,
     DiscoveredChannelsModel,
     PersonalChannelsModel,
-    SearchResultsModel,
     SimplifiedPersonalChannelsModel,
 )
+from tribler.gui.widgets.search_results_model import SearchResultsModel
 from tribler.gui.widgets.triblertablecontrollers import ContentTableViewController
 
 CHANNEL_COMMIT_DELAY = 30000  # milliseconds

@@ -185,7 +185,7 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
 
         # Tags settings
         self.window().disable_tags_checkbox.setChecked(
-            get_gui_setting(gui_settings, "disable_tags", False, is_bool=True)
+            get_gui_setting(gui_settings, "disable_tags", True, is_bool=True)
         )
 
         # Log directory

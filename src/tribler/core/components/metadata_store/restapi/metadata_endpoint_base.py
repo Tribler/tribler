@@ -4,7 +4,6 @@ from typing import Optional
 from pony.orm import db_session
 
 from tribler.core.components.knowledge.db.knowledge_db import KnowledgeDatabase, ResourceType
-from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.db.serialization import CHANNEL_TORRENT, COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.components.metadata_store.db.store import MetadataStore
@@ -40,11 +39,10 @@ metadata_type_to_search_scope = {
 
 class MetadataEndpointBase(RESTEndpoint):
     def __init__(self, metadata_store: MetadataStore, *args, knowledge_db: KnowledgeDatabase = None,
-                 tag_rules_processor: KnowledgeRulesProcessor = None, **kwargs):
+                  **kwargs):
         super().__init__(*args, **kwargs)
         self.mds = metadata_store
         self.knowledge_db: Optional[KnowledgeDatabase] = knowledge_db
-        self.tag_rules_processor: Optional[KnowledgeRulesProcessor] = tag_rules_processor
 
     @classmethod
     def sanitize_parameters(cls, parameters):
