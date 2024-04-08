@@ -13,6 +13,7 @@ IF NOT EXIST build\win (
 REM locate Python directory and set up Python environment
 python3 build\win\locate-python.py > tmp_pythonhome.txt
 SET /p PYTHONHOME= < tmp_pythonhome.txt
+ECHO PYTHONHOME SET TO %PYTHONHOME%
 DEL /f /q tmp_pythonhome.txt
 REM Arno: Add . to find our core
 SET PYTHONPATH=.;%PYTHONHOME%
@@ -36,7 +37,7 @@ call build\win\clean.bat
 REM ----- Prepare venv & install dependencies before the build
 
 python3 -m venv build-env
-./build-env/Scripts/activate.bat
+build-env/Scripts/activate.bat
 python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements-build.txt
 
