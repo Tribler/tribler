@@ -1,7 +1,6 @@
 import os
-from binascii import unhexlify
 from typing import List, Set
-from unittest.mock import MagicMock, Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from pony.orm import db_session
@@ -89,29 +88,27 @@ async def test_get_popular_torrents(rest_api, endpoint, metadata_store):
     Test that the endpoint responds with its known entries.
     """
     fake_entry = {
-                "name": "Torrent Name",
-                "category": "",
-                "infohash": "ab" * 20,
-                "size": 1,
-                "num_seeders": 1234,
-                "num_leechers": 123,
-                "last_tracker_check": 17000000,
-                "created": 15000000,
-                "tag_processor_version": 1,
-                "type": REGULAR_TORRENT,
-                "id": 0,
-                "origin_id": 0,
-                "public_key": "ab" * 64,
-                "status": 2,
-                "statements": []
-            }
+        "name": "Torrent Name",
+        "category": "",
+        "infohash": "ab" * 20,
+        "size": 1,
+        "num_seeders": 1234,
+        "num_leechers": 123,
+        "last_tracker_check": 17000000,
+        "created": 15000000,
+        "tag_processor_version": 1,
+        "type": REGULAR_TORRENT,
+        "id": 0,
+        "origin_id": 0,
+        "public_key": "ab" * 64,
+        "status": 2,
+        "statements": []
+    }
     fake_state = Mock(return_value=Mock(get_progress=Mock(return_value=0.5)))
     metadata_store.get_entries = Mock(return_value=[Mock(to_simple_dict=Mock(return_value=fake_entry.copy()))])
-    endpoint.tag_rules_processor = Mock(process_queue=AsyncMock())
     endpoint.download_manager.get_download = Mock(return_value=Mock(get_state=fake_state))
     response = await do_request(rest_api, "metadata/torrents/popular")
 
-    endpoint.tag_rules_processor.process_queue.assert_called_once()
     assert response == {'results': [{**fake_entry, **{"progress": 0.5}}], 'first': 1, 'last': 50}
 
 
@@ -120,29 +117,27 @@ async def test_get_popular_torrents_filter_xxx(rest_api, endpoint, metadata_stor
     Test that the endpoint responds with its known entries with xxx statements stripped, if requested.
     """
     fake_entry = {
-                "name": next(iter(default_xxx_filter.xxx_terms)),
-                "category": "",
-                "infohash": "ab" * 20,
-                "size": 1,
-                "num_seeders": 1234,
-                "num_leechers": 123,
-                "last_tracker_check": 17000000,
-                "created": 15000000,
-                "tag_processor_version": 1,
-                "type": REGULAR_TORRENT,
-                "id": 0,
-                "origin_id": 0,
-                "public_key": "ab" * 64,
-                "status": 2,
-                "statements": [next(iter(default_xxx_filter.xxx_terms))]
-            }
+        "name": next(iter(default_xxx_filter.xxx_terms)),
+        "category": "",
+        "infohash": "ab" * 20,
+        "size": 1,
+        "num_seeders": 1234,
+        "num_leechers": 123,
+        "last_tracker_check": 17000000,
+        "created": 15000000,
+        "tag_processor_version": 1,
+        "type": REGULAR_TORRENT,
+        "id": 0,
+        "origin_id": 0,
+        "public_key": "ab" * 64,
+        "status": 2,
+        "statements": [next(iter(default_xxx_filter.xxx_terms))]
+    }
     fake_state = Mock(return_value=Mock(get_progress=Mock(return_value=0.5)))
     metadata_store.get_entries = Mock(return_value=[Mock(to_simple_dict=Mock(return_value=fake_entry.copy()))])
-    endpoint.tag_rules_processor = Mock(process_queue=AsyncMock())
     endpoint.download_manager.get_download = Mock(return_value=Mock(get_state=fake_state))
     response = await do_request(rest_api, "metadata/torrents/popular", params={"hide_xxx": 1})
 
-    endpoint.tag_rules_processor.process_queue.assert_called_once()
     fake_entry["statements"] = []  # Should be stripped
     assert response == {'results': [{**fake_entry, **{"progress": 0.5}}], 'first': 1, 'last': 50}
 
@@ -152,30 +147,28 @@ async def test_get_popular_torrents_no_db(rest_api, endpoint, metadata_store):
     Test that the endpoint responds with its known entries with statements intact, if no db is present.
     """
     fake_entry = {
-                "name": "Torrent Name",
-                "category": "",
-                "infohash": "ab" * 20,
-                "size": 1,
-                "num_seeders": 1234,
-                "num_leechers": 123,
-                "last_tracker_check": 17000000,
-                "created": 15000000,
-                "tag_processor_version": 1,
-                "type": REGULAR_TORRENT,
-                "id": 0,
-                "origin_id": 0,
-                "public_key": "ab" * 64,
-                "status": 2,
-                "statements": [next(iter(default_xxx_filter.xxx_terms))]
-            }
+        "name": "Torrent Name",
+        "category": "",
+        "infohash": "ab" * 20,
+        "size": 1,
+        "num_seeders": 1234,
+        "num_leechers": 123,
+        "last_tracker_check": 17000000,
+        "created": 15000000,
+        "tag_processor_version": 1,
+        "type": REGULAR_TORRENT,
+        "id": 0,
+        "origin_id": 0,
+        "public_key": "ab" * 64,
+        "status": 2,
+        "statements": [next(iter(default_xxx_filter.xxx_terms))]
+    }
     fake_state = Mock(return_value=Mock(get_progress=Mock(return_value=0.5)))
     metadata_store.get_entries = Mock(return_value=[Mock(to_simple_dict=Mock(return_value=fake_entry.copy()))])
-    endpoint.tag_rules_processor = Mock(process_queue=AsyncMock())
     endpoint.download_manager.get_download = Mock(return_value=Mock(get_state=fake_state))
     endpoint.tribler_db = None
     response = await do_request(rest_api, "metadata/torrents/popular")
 
-    endpoint.tag_rules_processor.process_queue.assert_called_once()
     assert response == {'results': [{**fake_entry, **{"progress": 0.5}}], 'first': 1, 'last': 50}
 
 
@@ -297,72 +290,3 @@ async def test_search_with_space(rest_api, metadata_store):
     results = {item["name"] for item in parsed["results"]}
     assert results == {'abc.def', 'abc def'}  # but not 'abcxyz def'
 
-
-async def test_single_snippet_in_search(rest_api, metadata_store):
-    """
-    Test building a simple snippet of a single item.
-    """
-    with db_session:
-        content_ih = random_infohash()
-        metadata_store.TorrentMetadata(title='abc', infohash=content_ih)
-
-    def mocked_get_subjects(*_, **__) -> List[str]:
-        return ["Abc"]
-
-    with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_subjects):
-        s1 = to_fts_query("abc")
-        results = await do_request(rest_api, f'metadata/search/local?txt_filter={s1}', expected_code=200)
-
-        assert len(results["results"]) == 1
-        snippet = results["results"][0]
-        assert snippet["type"] == SNIPPET
-        assert snippet["torrents"] == 1
-        assert len(snippet["torrents_in_snippet"]) == 1
-        assert snippet["torrents_in_snippet"][0]["infohash"] == hexlify(content_ih)
-
-
-async def test_multiple_snippets_in_search(rest_api, metadata_store):
-    """
-    Test two snippets with two torrents in each snippet.
-    """
-    with db_session:
-        infohashes = [random_infohash() for _ in range(5)]
-        for ind, infohash in enumerate(infohashes):
-            torrent_state = metadata_store.TorrentState(infohash=infohash, seeders=ind)
-            metadata_store.TorrentMetadata(title=f'abc {ind}', infohash=infohash, health=torrent_state, public_key=b'')
-
-    def mocked_get_objects(*__, subject=None, **___) -> List[str]:
-        subject = unhexlify(subject)
-        if subject in {infohashes[0], infohashes[1]}:
-            return ["Content item 1"]
-        if subject in {infohashes[2], infohashes[3]}:
-            return ["Content item 2"]
-        return []
-
-    with patch.object(KnowledgeDataAccessLayer, 'get_objects', wraps=mocked_get_objects):
-        s1 = to_fts_query("abc")
-        parsed = await do_request(rest_api, f'metadata/search/local?txt_filter={s1}', expected_code=200)
-        results = parsed["results"]
-
-        assert len(results) == 3
-        for snippet in results[:2]:
-            assert snippet["type"] == SNIPPET
-            assert snippet["torrents"] == 2
-
-        # Test that the right torrents have been assigned to the appropriate content items, and that they are in the
-        # right sorted order.
-        assert results[0]["torrents_in_snippet"][0]["infohash"] == hexlify(infohashes[3])
-        assert results[0]["torrents_in_snippet"][1]["infohash"] == hexlify(infohashes[2])
-        assert results[1]["torrents_in_snippet"][0]["infohash"] == hexlify(infohashes[1])
-        assert results[1]["torrents_in_snippet"][1]["infohash"] == hexlify(infohashes[0])
-
-        # There is one item that has not been assigned to the snippet.
-        assert results[2]["type"] == REGULAR_TORRENT
-        assert results[2]["infohash"] == hexlify(infohashes[4])
-
-
-def test_build_snippets_no_infohash(endpoint: DatabaseEndpoint):
-    """ Test building snippets without infohash. The `build_snippets` should return the same results."""
-    search_results = [{'dictionary': 'without infohash'}]
-    result = endpoint.build_snippets(search_results)
-    assert result == search_results

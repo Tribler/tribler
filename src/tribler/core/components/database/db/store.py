@@ -492,9 +492,9 @@ class MetadataStore:
             t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
             health_list = list(
                 select(
-                    health
-                    for health in self.TorrentState
-                    if health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
+                    health for health in self.TorrentState
+                    if health.has_data == 1  # The condition had to be written this way for the partial index to work
+                    and health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
                 ).order_by(
                     lambda health: (desc(health.seeders), desc(health.leechers), desc(health.last_check))
                 )[:POPULAR_TORRENTS_COUNT]
@@ -529,7 +529,8 @@ class MetadataStore:
         )
 
         if health_checked_after is not None:
-            pony_query = pony_query.where(lambda g: g.health.last_check >= health_checked_after)
+            pony_query = pony_query.where(lambda g: g.health.has_data == 1  # Has to be written this way for index
+                                          and g.health.last_check >= health_checked_after)
 
         # Sort the query
         pony_query = pony_query.sort_by("desc(g.rowid)" if sort_desc else "g.rowid")

@@ -520,8 +520,7 @@ class HealthLabelMixin:
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
 
-        # This dumb check is required because some endpoints do not return entry type
-        if 'type' not in data_item or data_item['type'] in [REGULAR_TORRENT]:
+        if data_item.get('type') == REGULAR_TORRENT:
             self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
 
         return True

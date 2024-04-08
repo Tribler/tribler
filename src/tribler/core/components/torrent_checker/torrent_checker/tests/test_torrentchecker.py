@@ -173,7 +173,7 @@ async def test_check_random_tracker_not_alive(torrent_checker):
 async def test_task_select_tracker(torrent_checker):
     with db_session:
         tracker = torrent_checker.mds.TrackerState(url="http://localhost/tracker")
-        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker})
+        torrent_checker.mds.TorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker}, last_check=1)
 
     controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
     controlled_session.connect_to_tracker = lambda: succeed(None)

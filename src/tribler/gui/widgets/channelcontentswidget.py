@@ -20,7 +20,8 @@ from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import connect, disconnect, get_image_path, get_ui_file_path, tr
-from tribler.gui.widgets.tablecontentmodel import ChannelContentModel, SearchResultsModel
+from tribler.gui.widgets.search_results_model import SearchResultsModel
+from tribler.gui.widgets.tablecontentmodel import ChannelContentModel
 from tribler.gui.widgets.triblertablecontrollers import ContentTableViewController
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('torrents_list.ui'))
@@ -263,7 +264,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
 
             self.connect_current_model()
             self.update_labels()
-
 
     def update_navigation_breadcrumbs(self):
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
