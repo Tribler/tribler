@@ -6,7 +6,7 @@ import pytest
 from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
     duration_to_string, \
     format_api_key, \
-    quote_plus_unicode, set_api_key, unicode_quoter
+    format_size, quote_plus_unicode, set_api_key, unicode_quoter
 
 
 def test_quoter_char():
@@ -247,3 +247,10 @@ def test_wrong_parameters_in_original_string(warning: Mock):
 
     warning.assert_called_once_with('TypeError: Wrong number of parameters in translation "translated", '
                                     'original string: "original"')
+
+
+def test_format_size():
+    assert format_size(0) == '0.0 B'
+    assert format_size(1) == '1.0 B'
+    assert format_size(1.5) == '1.5 B'
+    assert format_size(2000) == '2.0 kB'
