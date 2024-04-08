@@ -28,14 +28,14 @@ import sys
 
 
 def get_wheel_build_options():
-    from setuptools import setup
-    setup_options = {"build_exe": {}}
-    setup_executables = None
-    return setup, setup_options, setup_executables
+    from setuptools import setup as _setup  # pylint: disable=import-outside-toplevel
+    _setup_options = {"build_exe": {}}
+    _setup_executables = None
+    return _setup, _setup_options, _setup_executables
 
 
 def get_freeze_build_options():
-    from cx_Freeze import setup, Executable
+    from cx_Freeze import setup as _setup, Executable  # pylint: disable=import-outside-toplevel
 
     # These packages will be included in the build
     sys.path.insert(0, 'src')
@@ -79,7 +79,7 @@ def get_freeze_build_options():
         'matplotlib'
     ]
 
-    setup_options = {
+    _setup_options = {
         "build_exe": {
             "packages": included_packages,
             "excludes": excluded_packages,
@@ -92,7 +92,7 @@ def get_freeze_build_options():
     app_name = "Tribler" if sys.platform != "linux" else "tribler"
     app_script = "src/tribler/run.py"
     app_icon_path = "build/win/resources/tribler.ico" if sys.platform == "win32" else "build/mac/resources/tribler.icns"
-    setup_executables = [
+    _setup_executables = [
         Executable(
             target_name=app_name,
             script=app_script,
@@ -100,7 +100,7 @@ def get_freeze_build_options():
             icon=app_icon_path,
         )
     ]
-    return setup, setup_options, setup_executables
+    return _setup, _setup_options, _setup_executables
 
 
 # Based on the command line arguments, get the build options.
