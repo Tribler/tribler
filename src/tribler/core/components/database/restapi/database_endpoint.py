@@ -1,24 +1,21 @@
-import operator
 import time
 import typing
 from binascii import unhexlify
-from collections import defaultdict
 from dataclasses import asdict
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
+from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
+from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
 
-from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
-from ipv8.REST.schema import schema
 from tribler.core.components.database.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.database.db.layers.knowledge_data_access_layer import ResourceType
-from tribler.core.components.database.db.serialization import REGULAR_TORRENT, SNIPPET
+from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
-from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.restapi.rest.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
@@ -61,7 +58,6 @@ class DatabaseEndpoint(RESTEndpoint):
                  torrent_checker: typing.Optional[TorrentChecker],
                  metadata_store: MetadataStore,
                  tribler_db: TriblerDatabase = None,
-                 tag_rules_processor: KnowledgeRulesProcessor = None,
                  middlewares=(),
                  client_max_size=MAX_REQUEST_SIZE):
         super().__init__(middlewares, client_max_size)
@@ -69,7 +65,6 @@ class DatabaseEndpoint(RESTEndpoint):
         self.torrent_checker = torrent_checker
         self.mds = metadata_store
         self.tribler_db: typing.Optional[TriblerDatabase] = tribler_db
-        self.tag_rules_processor: typing.Optional[KnowledgeRulesProcessor] = tag_rules_processor
 
     def setup_routes(self):
         self.app.add_routes(
@@ -204,9 +199,6 @@ class DatabaseEndpoint(RESTEndpoint):
             for entry in contents:
                 contents_list.append(entry.to_simple_dict())
 
-        if self.tag_rules_processor:
-            await self.tag_rules_processor.process_queue()
-
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_statements_to_metadata_list(contents_list, hide_xxx=sanitized["hide_xxx"])
         response_dict = {
@@ -216,64 +208,6 @@ class DatabaseEndpoint(RESTEndpoint):
         }
 
         return RESTResponse(response_dict)
-
-    def build_snippets(self, search_results: typing.List[typing.Dict]) -> typing.List[typing.Dict]:
-        """
-        Build a list of snippets that bundle torrents describing the same content item.
-        For each search result we determine the content item it is associated to and bundle it inside a snippet.
-        We sort the snippets based on the number of torrents inside the snippet.
-        Within each snippet, we sort on torrent popularity, putting the torrent with the most seeders on top.
-        Torrents bundled in a snippet are filtered out from the search results.
-        """
-        content_to_torrents: typing.Dict[str, list] = defaultdict(list)
-        for search_result in search_results:
-            if "infohash" not in search_result:
-                continue
-            with db_session:
-                content_items: typing.List[str] = self.tribler_db.knowledge.get_objects(
-                    subject_type=ResourceType.TORRENT,
-                    subject=search_result["infohash"],
-                    predicate=ResourceType.CONTENT_ITEM)
-            if content_items:
-                for content_id in content_items:
-                    content_to_torrents[content_id].append(search_result)
-
-        # Sort the search results within each snippet by the number of seeders
-        for torrents_list in content_to_torrents.values():
-            torrents_list.sort(key=operator.itemgetter("num_seeders"), reverse=True)
-
-        # Determine the most popular content items - this is the one we show
-        sorted_content_info = list(content_to_torrents.items())
-        sorted_content_info.sort(key=lambda x: x[1][0]["num_seeders"], reverse=True)
-
-        snippets: typing.List[typing.Dict] = []
-        for content_info in sorted_content_info:
-            content_id = content_info[0]
-            torrents_in_snippet = content_to_torrents[content_id][:MAX_TORRENTS_IN_SNIPPETS]
-
-            snippet = {
-                "type": SNIPPET,
-                "infohash": content_id,
-                "category": "",
-                "name": content_id,
-                "torrents": len(content_info[1]),
-                "torrents_in_snippet": torrents_in_snippet
-            }
-            snippets.append(snippet)
-
-        snippets = snippets[:SNIPPETS_TO_SHOW]
-
-        # Filter out search results that are included in a snippet
-        torrents_in_snippets = set()
-        for snippet in snippets:
-            snippet_id = snippet["infohash"]
-            infohases = {search_result["infohash"] for search_result in content_to_torrents[snippet_id]}
-            torrents_in_snippets |= infohases
-
-        search_results = [search_result for search_result in search_results if
-                          (("infohash" not in search_result) or
-                           (search_result["infohash"] not in torrents_in_snippets))]
-        return snippets + search_results
 
     @docs(
         tags=['Metadata'],
@@ -346,13 +280,7 @@ class DatabaseEndpoint(RESTEndpoint):
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
 
-        if self.tag_rules_processor:
-            await self.tag_rules_processor.process_queue()
-
         self.add_statements_to_metadata_list(search_results, hide_xxx=sanitized["hide_xxx"])
-
-        if sanitized["first"] == 1:  # Only show a snippet on top
-            search_results = self.build_snippets(search_results)
 
         response_dict = {
             "results": search_results,

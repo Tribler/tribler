@@ -1,7 +1,7 @@
 from typing import Dict, List
 
+from tribler.core.components.database.db.serialization import SNIPPET
 from tribler.core.components.knowledge.rules.content_bundling import calculate_diversity, group_content_by_number
-from tribler.core.components.metadata_store.db.serialization import SNIPPET
 from tribler.gui.widgets.tablecontentmodel import ChannelContentModel, get_item_uid
 
 
