@@ -11,9 +11,9 @@ from pony.orm import db_session, desc, select
 from pony.utils import between
 
 from tribler.core import notifications
-from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT
 from tribler.core.components.database.db.store import MetadataStore
+from tribler.core.components.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.components.torrent_checker.torrent_checker import DHT
 from tribler.core.components.torrent_checker.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, \
     TrackerResponse
@@ -121,7 +121,9 @@ class TorrentChecker(TaskManager):
         url = tracker.url
         with db_session:
             dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
-            torrents = select(ts for ts in tracker.torrents if ts.last_check + dynamic_interval < int(time.time()))
+            torrents = select(ts for ts in tracker.torrents
+                              if ts.has_data == 1  # The condition had to be written this way for the index to work
+                              and ts.last_check + dynamic_interval < int(time.time()))
             infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
 
         if len(infohashes) == 0:
@@ -195,8 +197,8 @@ class TorrentChecker(TaskManager):
         now = int(time.time())
         last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
-                                .select(lambda g: g.has_data and g.self_checked
-                                                  and between(g.last_check, last_fresh_time, now))
+                                .select(lambda g: g.has_data == 1  # Had to be written this way for index to work
+                                                  and g.self_checked and between(g.last_check, last_fresh_time, now))
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
@@ -220,11 +222,15 @@ class TorrentChecker(TaskManager):
         By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
         """
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        popular_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                                order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
+        popular_torrents = list(self.mds.TorrentState.select(
+            lambda g: g.has_data == 1  # The condition had to be written this way for the partial index to work
+                      and g.last_check < last_fresh_time
+        ).order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        old_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                            order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
+        old_torrents = list(self.mds.TorrentState.select(
+            lambda g: g.has_data == 1  # The condition had to be written this way for the partial index to work
+                      and g.last_check < last_fresh_time
+        ).order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
         selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
@@ -240,6 +246,33 @@ class TorrentChecker(TaskManager):
         results = await gather_coros(coros)
         self._logger.info(f'Results for local torrents check: {results}')
         return selected_torrents, results
+
+    @db_session
+    def torrents_to_check_in_user_channel(self):
+        """
+        Returns a list of outdated torrents of user's channel which
+        has not been checked recently.
+        """
+        last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
+        channel_torrents = list(self.mds.TorrentMetadata.select(
+            lambda g: g.public_key == self.mds.my_public_key_bin
+                      and g.metadata_type == REGULAR_TORRENT
+                      and g.health.has_data == 1  # The condition had to be written this way for the index to work
+                      and g.health.last_check < last_fresh_time)
+                                .order_by(lambda g: g.health.last_check)
+                                .limit(USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE))
+        return channel_torrents
+
+    async def check_torrents_in_user_channel(self) -> List[Union[HealthInfo, BaseException]]:
+        """
+        Perform a full health check of torrents in user's channel
+        """
+        selected_torrents = self.torrents_to_check_in_user_channel()
+        self._logger.info(f'Check {len(selected_torrents)} torrents in user channel')
+        coros = [self.check_torrent_health(t.infohash) for t in selected_torrents]
+        results = await gather_coros(coros)
+        self._logger.info(f'Results for torrents in user channel: {results}')
+        return results
 
     def get_next_tracker(self):
         while tracker := self.tracker_manager.get_next_tracker():

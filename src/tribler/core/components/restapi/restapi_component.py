@@ -2,6 +2,7 @@ from itertools import chain
 from typing import Type
 
 from ipv8.REST.root_endpoint import RootEndpoint as IPV8RootEndpoint
+
 from tribler.core.components.component import Component
 from tribler.core.components.content_discovery.content_discovery_component import ContentDiscoveryComponent
 from tribler.core.components.content_discovery.restapi.search_endpoint import SearchEndpoint
@@ -97,8 +98,7 @@ class RESTComponent(Component):
         self.maybe_add(LibTorrentEndpoint, libtorrent_component.download_manager)
         self.maybe_add(TorrentInfoEndpoint, libtorrent_component.download_manager)
         self.maybe_add(DatabaseEndpoint, libtorrent_component.download_manager, torrent_checker,
-                       db_component.mds, tribler_db=db_component.db,
-                       tag_rules_processor=knowledge_component.rules_processor)
+                       db_component.mds, tribler_db=db_component.db)
         self.maybe_add(SearchEndpoint, content_discovery_component.community)
         self.maybe_add(KnowledgeEndpoint, db=db_component.db, community=knowledge_component.community)
 

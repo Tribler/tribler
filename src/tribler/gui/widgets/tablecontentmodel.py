@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum, auto
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
@@ -186,36 +186,32 @@ class RemoteTableModel(QAbstractTableModel):
         self.sort_desc = bool(order)
         self.reset()
 
-    def add_items(self, new_items, on_top=False, remote=False):
-        """
-        Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
-        New items are prepended to the end of the model.
-        Note that item_uid_map tracks items twice: once by public_key+id and once by infohash. This is necessary to
-        support status updates from TorrentChecker based on infohash only.
-        :param new_items: list(item)
-        :param on_top: True if new_items should be added on top of the table
-        :param remote: True if new_items are from a remote peer. Default: False
-        :return: None
-        """
-        if not new_items:
-            return
+    @staticmethod
+    def create_uid_map(items):
+        uid_map = {}
+        insert_index = 0
+        for item in items:
+            item_uid = get_item_uid(item)
+            uid_map[item_uid] = insert_index
+            if 'infohash' in item:
+                uid_map[item['infohash']] = insert_index
+            insert_index += 1
+        return uid_map
 
-        # Note: If we want to block the signal like itemChanged, we must use QSignalBlocker object or blockSignals
-
+    def extract_unique_new_items(self, items: List, on_top: bool, remote: bool) -> Tuple[List, int]:
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
         insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
         name_mapping = {item['name']: item for item in self.data_items} if self.group_by_name else {}
         now = time.time()
-        for item in new_items:
+        for item in items:
             if remote:
                 item['remote'] = True
                 item['item_added_at'] = now
                 if self.highlight_remote_results:
                     self.highlighted_items.append(item)
-            if self.sort_by_rank:
-                if 'rank' not in item:
-                    item['rank'] = item_rank(self.text_filter, item)
+            if self.sort_by_rank and 'rank' not in item:
+                item['rank'] = item_rank(self.text_filter, item)
 
             item_uid = get_item_uid(item)
             if item_uid not in self.item_uid_map:
@@ -235,7 +231,23 @@ class RemoteTableModel(QAbstractTableModel):
                         name_mapping[item['name']] = item
 
                     insert_index += 1
+        return unique_new_items, insert_index
 
+    def add_items(self, new_items, on_top=False, remote=False):
+        """
+        Adds new items to the table model. All items are mapped to their unique ids to avoid the duplicates.
+        New items are prepended to the end of the model.
+        Note that item_uid_map tracks items twice: once by public_key+id and once by infohash. This is necessary to
+        support status updates from TorrentChecker based on infohash only.
+        :param new_items: list(item)
+        :param on_top: True if new_items should be added on top of the table
+        :param remote: True if new_items are from a remote peer. Default: False
+        :return: None
+        """
+        if not new_items:
+            return
+
+        unique_new_items, insert_index = self.extract_unique_new_items(new_items, on_top, remote)
         # If no new items are found, skip
         if not unique_new_items:
             return
@@ -253,17 +265,9 @@ class RemoteTableModel(QAbstractTableModel):
             torrents.sort(key=lambda item: item['rank'], reverse=True)
             new_data_items = non_torrents + torrents
 
-            new_item_uid_map = {}
-            insert_index = 0
-            for item in new_data_items:
-                item_uid = get_item_uid(item)
-                new_item_uid_map[item_uid] = insert_index
-                if 'infohash' in item:
-                    new_item_uid_map[item['infohash']] = insert_index
-                insert_index += 1
             self.beginResetModel()
             self.data_items = new_data_items
-            self.item_uid_map = new_item_uid_map
+            self.item_uid_map = self.create_uid_map(new_data_items)
             self.endResetModel()
             return
 
@@ -635,60 +639,10 @@ class ChannelContentModel(RemoteTableModel):
         self.on_query_results(response, remote=True)
 
 
-class SearchResultsModel(ChannelContentModel):
-    def __init__(self, original_query, **kwargs):
-        self.original_query = original_query
-        self.remote_results = {}
-        title = self.format_title()
-        super().__init__(channel_info={"name": title}, **kwargs)
-        self.remote_results_received = False
-        self.postponed_remote_results = []
-        self.highlight_remote_results = True
-        self.group_by_name = True
-        self.sort_by_rank = True
-
-    def format_title(self):
-        q = self.original_query
-        q = q if len(q) < 50 else q[:50] + '...'
-        return f'Search results for {q}'
-
-    def perform_initial_query(self):
-        return self.perform_query(first=1, last=200)
-
-    def on_query_results(self, response, remote=False, on_top=False):
-        super().on_query_results(response, remote=remote, on_top=on_top)
-        self.add_remote_results([])  # to trigger adding postponed results
-        self.show_remote_results()
-
-    @property
-    def all_local_entries_loaded(self):
-        return self.loaded
-
-    def add_remote_results(self, results):
-        if not self.all_local_entries_loaded:
-            self.postponed_remote_results.extend(results)
-            return []
-
-        results = self.postponed_remote_results + results
-        self.postponed_remote_results = []
-        new_items = []
-        for item in results:
-            uid = get_item_uid(item)
-            if uid not in self.item_uid_map and uid not in self.remote_results:
-                self.remote_results_received = True
-                new_items.append(item)
-                self.remote_results[uid] = item
-        return new_items
-
-    def show_remote_results(self):
-        if not self.all_local_entries_loaded:
-            return
-
-        remote_items = list(self.remote_results.values())
-        self.remote_results.clear()
-        self.remote_results_received = False
-        if remote_items:
-            self.add_items(remote_items, remote=True)
+class ChannelPreviewModel(ChannelContentModel):
+    def perform_query(self, **kwargs):
+        kwargs["remote"] = True
+        super().perform_query(**kwargs)
 
 
 class PopularTorrentsModel(ChannelContentModel):

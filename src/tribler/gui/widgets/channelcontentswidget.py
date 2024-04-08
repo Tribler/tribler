@@ -264,7 +264,6 @@ class ChannelContentsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class)
             self.connect_current_model()
             self.update_labels()
 
-
     def update_navigation_breadcrumbs(self):
         # Assemble the channels navigation breadcrumb by utilising RichText links feature
         self.channel_name_label.setTextFormat(Qt.RichText)

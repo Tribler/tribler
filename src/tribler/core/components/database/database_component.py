@@ -3,7 +3,6 @@ from tribler.core.components.component import Component
 from tribler.core.components.database.db.store import MetadataStore
 from tribler.core.components.database.db.tribler_database import TriblerDatabase
 from tribler.core.components.key.key_component import KeyComponent
-from tribler.core.components.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 from tribler.core.utilities.simpledefs import STATEDIR_DB_DIR
 
 
@@ -53,7 +52,7 @@ class DatabaseComponent(Component):
             key_component.primary_key,
             notifier=self.session.notifier,
             disable_sync=config.gui_test_mode,
-            tag_processor_version=KnowledgeRulesProcessor.version
+            tag_processor_version=0
         )
         self.mds = metadata_store
         self.session.notifier.add_observer(notifications.torrent_metadata_added,

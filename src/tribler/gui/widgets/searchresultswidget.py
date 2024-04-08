@@ -10,7 +10,7 @@ from tribler.core.utilities.utilities import Query, to_fts_query
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import connect, get_ui_file_path, tr
-from tribler.gui.widgets.tablecontentmodel import SearchResultsModel
+from tribler.gui.widgets.search_results_model import SearchResultsModel
 
 widget_form, widget_class = uic.loadUiType(get_ui_file_path('search_results.ui'))
 
