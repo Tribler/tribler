@@ -506,10 +506,8 @@ class ChannelContentModel(RemoteTableModel):
                 column_type == Column.SIZE
                 and "torrents" not in self.columns
                 and "torrents" in item
-                and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE, SNIPPET)
+                and item["type"] in (CHANNEL_TORRENT, COLLECTION_NODE)
         ):
-            if item["type"] == SNIPPET:
-                return ""
             return item["torrents"]
 
         # 'subscribed' column gets special treatment in case of ToolTipRole, because
