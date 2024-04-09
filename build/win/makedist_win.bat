@@ -48,7 +48,10 @@ REM packs them in the installer .EXE
 ECHO Install pip dependencies for correct py-installer's work
 python3 -m pip install --upgrade -r build\win\requirements.txt
 
-%PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
+REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
+REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
+ECHO Building Tribler using Cx_Freeze
+python3 setup.py build
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
@@ -67,9 +70,9 @@ REM copy C:\build\vc_redist_110.exe dist\tribler
 copy C:\build\vc_redist_140.exe dist\tribler
 
 REM Copy various libraries required on runtime (libsodium and openssl)
-copy C:\build\libsodium.dll dist\tribler
-REM Sandip, 2019-10-24: No need to copy openssl dlls separately
-REM copy C:\build\openssl\*.dll dist\tribler
+copy C:\build\libsodium.dll dist\tribler\lib
+REM Sandip, 2024-03-26: Some openssl dlls are missing so need to be copied manually.
+copy C:\build\openssl\*.dll dist\tribler\lib
 
 
 @echo Running NSIS
