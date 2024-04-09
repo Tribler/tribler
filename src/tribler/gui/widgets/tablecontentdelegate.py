@@ -29,8 +29,8 @@ from tribler.gui.defs import (
     TAG_TEXT_HORIZONTAL_PADDING,
     TAG_TOP_MARGIN,
 )
-from tribler.gui.utilities import get_color, get_gui_setting, get_health, get_image_path, \
-    get_objects_with_predicate, tr
+from tribler.gui.utilities import format_size, get_color, get_gui_setting, get_health, get_image_path, \
+    get_objects_with_predicate, pretty_date, tr
 from tribler.gui.widgets.tablecontentmodel import Column, RemoteTableModel
 from tribler.gui.widgets.tableiconbuttons import DownloadIconButton
 
@@ -453,6 +453,38 @@ class TagsMixin:
             self.edit_tags_icon.paint(painter, edit_rect)
 
 
+def calculate_panel_y(y: int, index: int) -> int:
+    return y + 60 + TORRENT_IN_SNIPPET_HEIGHT // 2 + TORRENT_IN_SNIPPET_HEIGHT * index - 6
+
+
+class SnippetSizeColumnMixin:
+    def draw_size(self, painter: QPainter, option: QStyleOptionViewItem, _, data_item: Dict) -> None:
+        if data_item.get('type') != SNIPPET:
+            return
+
+        for index, torrent in enumerate(data_item["torrents_in_snippet"]):
+            painter.save()
+            panel_y = calculate_panel_y(option.rect.topLeft().y(), index)
+            text_box = QRect(option.rect.left() + 5, panel_y + 5, 0, 0)
+            txt = format_size(torrent['size'])
+            draw_text(painter, text_box, txt, color=TRIBLER_NEUTRAL)
+            painter.restore()
+
+
+class SnippetCreatedColumnMixin:
+    def draw_created(self, painter: QPainter, option: QStyleOptionViewItem, _, data_item: Dict) -> None:
+        if data_item.get('type') != SNIPPET:
+            return
+
+        for index, torrent in enumerate(data_item["torrents_in_snippet"]):
+            painter.save()
+            panel_y = calculate_panel_y(option.rect.topLeft().y(), index)
+            text_box = QRect(option.rect.left() + 5, panel_y + 5, 0, 0)
+            txt = pretty_date(torrent['created'])
+            draw_text(painter, text_box, txt, color=TRIBLER_NEUTRAL)
+            painter.restore()
+
+
 class RatingControlMixin:
     def draw_rating_control(self, painter, option, index, data_item):
         # Draw empty cell as the background
@@ -516,12 +548,14 @@ class DownloadControlsMixin:
 
 
 class HealthLabelMixin:
-    def draw_health_column(self, painter, option, index, data_item):
+    def draw_health_column(self, painter, option, index, data_item: Dict):
         # Draw empty cell as the background
         self.paint_empty_background(painter, option)
-
-        if data_item.get('type') == REGULAR_TORRENT:
-            self.health_status_widget.paint(painter, option.rect, index, hover=index == self.hover_index)
+        if data_item.get('type') != SNIPPET:
+            hover = index == self.hover_index
+        else:
+            hover = False
+        self.health_status_widget.paint(painter, option.rect, index, hover)
 
         return True
 
@@ -533,6 +567,8 @@ class TriblerContentDelegate(
     DownloadControlsMixin,
     HealthLabelMixin,
     TagsMixin,
+    SnippetSizeColumnMixin,
+    SnippetCreatedColumnMixin,
 ):
     def __init__(self, table_view, parent=None):
         # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
@@ -554,6 +590,8 @@ class TriblerContentDelegate(
             (Column.CATEGORY, self.draw_category_label),
             (Column.HEALTH, self.draw_health_column),
             (Column.STATUS, self.draw_commit_status_column),
+            (Column.SIZE, self.draw_size),
+            (Column.CREATED, self.draw_created),
         ]
         self.table_view = table_view
 
@@ -691,10 +729,10 @@ class HealthStatusDisplay(QObject):
             self.paint_elements(painter, rect, panel_y, health, data_item, hover)
         elif data_item["type"] == SNIPPET:
             for ind, torrent_in_snippet in enumerate(data_item["torrents_in_snippet"]):
-                panel_y = rect.topLeft().y() + 60 + TORRENT_IN_SNIPPET_HEIGHT // 2 + TORRENT_IN_SNIPPET_HEIGHT * ind - 6
+                panel_y = calculate_panel_y(rect.topLeft().y(), ind)
                 health = get_health(torrent_in_snippet['num_seeders'], torrent_in_snippet['num_leechers'],
                                     torrent_in_snippet['last_tracker_check'])
-                self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=False)
+                self.paint_elements(painter, rect, panel_y, health, torrent_in_snippet, hover, draw_health_text=True)
 
     def paint_elements(self, painter, rect, panel_y, health, data_item, hover=False, draw_health_text=True):
         painter.save()
