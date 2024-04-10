@@ -11,7 +11,7 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QAction, QDialog, QMessageBox, QTreeWidgetItem
 
 from tribler.core.components.reporter.reported_error import ReportedError
-from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
+from tribler.core.sentry_reporter.sentry_reporter import PROCESS_ARCHITECTURE, SentryReporter
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.sentry_reporter.sentry_tools import CONTEXT_DELIMITER, LONG_TEXT_DELIMITER
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
@@ -142,6 +142,7 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
         stack = self.error_text_edit.toPlainText()
 
         post_data = {
+            PROCESS_ARCHITECTURE: platform.architecture()[0],
             "version": self.tribler_version,
             "machine": platform.machine(),
             "os": platform.platform(),

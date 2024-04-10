@@ -27,6 +27,7 @@ TYPE = 'type'
 LAST_CORE_OUTPUT = 'last_core_output'
 LAST_PROCESSES = 'last_processes'
 PLATFORM = 'platform'
+PROCESS_ARCHITECTURE = 'process_architecture'
 OS = 'os'
 MACHINE = 'machine'
 COMMENTS = 'comments'
@@ -213,6 +214,7 @@ class SentryReporter:
 
         # tags
         tags = event[TAGS]
+        tags[PROCESS_ARCHITECTURE] = get_value(post_data, PROCESS_ARCHITECTURE)
         tags[VERSION] = get_value(post_data, VERSION)
         tags[MACHINE] = get_value(post_data, MACHINE)
         tags[OS] = get_value(post_data, OS)
