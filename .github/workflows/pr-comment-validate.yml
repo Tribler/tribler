@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: refs/pull/${{ github.event.issue.number }}/head
+          submodules: 'true'
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version }}
