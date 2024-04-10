@@ -11,6 +11,7 @@ import encodings.idna  # pylint: disable=unused-import
 
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryStrategy
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
+from tribler.core.utilities import linecache_patch
 from tribler.core.utilities.asyncio_fixes.finish_accept_patch import apply_finish_accept_patch
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.osutils import get_root_state_directory
@@ -78,6 +79,7 @@ def init_boot_logger():
 
 
 def main():
+    linecache_patch.patch()
     init_boot_logger()
 
     parsed_args = RunTriblerArgsParser().parse_args()
