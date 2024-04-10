@@ -12,10 +12,7 @@ from PyQt5.QtWidgets import QAction, QDialog, QMessageBox
 
 from tribler.core.components.reporter.reported_error import ReportedError
 from tribler.core.sentry_reporter.sentry_reporter import ADDITIONAL_INFORMATION, COMMENTS, LAST_PROCESSES, MACHINE, \
-    OS, \
-    OS_ENVIRON, PLATFORM, \
-    SYSINFO, SentryReporter, \
-    VERSION
+    OS, OS_ENVIRON, PLATFORM, PROCESS_ARCHITECTURE, SYSINFO, SentryReporter, VERSION
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.tribler_action_menu import TriblerActionMenu
@@ -99,7 +96,8 @@ class FeedbackDialog(AddBreadcrumbOnShowMixin, QDialog):
             VERSION: tribler_version,
             MACHINE: platform.machine(),
             OS: platform.platform(),
-            PLATFORM: sys.platform
+            PLATFORM: sys.platform,
+            PROCESS_ARCHITECTURE: platform.architecture()[0]
         })
 
         self.info = {
