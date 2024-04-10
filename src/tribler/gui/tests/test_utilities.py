@@ -5,10 +5,9 @@ from urllib.parse import unquote_plus
 
 import pytest
 
-from tribler.gui.utilities import TranslatedString, compose_magnetlink, create_api_key, dict_item_is_any_of, \
-    duration_to_string, \
-    format_api_key, \
-    format_size, get_i18n_file_path, get_languages_file_content, quote_plus_unicode, set_api_key, unicode_quoter
+from tribler.gui.utilities import I18N_DIR, LANGUAGES_FILE, TranslatedString, compose_magnetlink, create_api_key, \
+    dict_item_is_any_of, duration_to_string, format_api_key, format_size, get_i18n_file_path, \
+    get_languages_file_content, quote_plus_unicode, set_api_key, unicode_quoter
 
 
 def test_quoter_char():
