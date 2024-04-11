@@ -363,9 +363,7 @@ class TestDownloadManager(TestBase):
         self.manager.start()
         await sleep(0)
 
-        for task in self.manager.get_tasks():
-            if task.get_name() == "start":
-                await task
+        await self.manager.get_task("start")
 
         self.assertTrue(self.manager.all_checkpoints_are_loaded)
 

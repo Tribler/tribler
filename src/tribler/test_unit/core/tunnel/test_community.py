@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import TimeoutError as AsyncTimeoutError
-from asyncio import sleep, wait_for
+from asyncio import gather, sleep, wait_for
 from collections import defaultdict
 from io import BytesIO
 from typing import TYPE_CHECKING
@@ -198,9 +198,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(0).download_states[b'a'] = 3
 
         self.overlay(0).monitor_downloads([])
-        for task in self.overlay(0).get_tasks():
-            if task.get_name().startswith("TriblerTunnelCommunity:remove_circuit"):
-                await task
+        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
 
         self.assertNotIn(0, self.overlay(0).circuits)
 
@@ -250,9 +248,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(0).download_states[b'a'] = 3
 
         self.overlay(0).monitor_downloads([])
-        for task in self.overlay(0).get_tasks():
-            if task.get_name().startswith("TriblerTunnelCommunity:remove_circuit"):
-                await task
+        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
 
         self.assertNotIn(0, self.overlay(0).circuits)
 
@@ -271,9 +267,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(0).download_states[b"a"] = 3
 
         self.overlay(0).monitor_downloads([])
-        for task in self.overlay(0).get_tasks():
-            if task.get_name().startswith("TriblerTunnelCommunity:remove_circuit"):
-                await task
+        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
 
         self.assertNotIn(0, self.overlay(0).circuits)
 
@@ -372,9 +366,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         await self.introduce_nodes()
         self.overlay(0).create_circuit(1, exit_flags=[PEER_FLAG_EXIT_HTTP])
         await sleep(0)
-        for task in self.overlay(1).get_tasks():
-            if task.get_name().startswith("TriblerTunnelCommunity:on_packet_from_circuit"):
-                await task
+        await gather(*self.overlay(1).get_anonymous_tasks("on_packet_from_circuit"))
 
         with patch.dict(tribler.core.tunnel.community.__dict__, {"open_connection": open_connection}),\
                 self.assertRaises(AsyncTimeoutError):
