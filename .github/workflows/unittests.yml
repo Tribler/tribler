@@ -15,7 +15,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd src
-          python run_all_tests.py -a
+          python run_unit_tests.py -a
   windows:
     runs-on: windows-latest
     steps:
@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd src
-          python run_all_tests.py -a
+          python run_unit_tests.py -a
       - uses: actions/cache/save@v4
         if: steps.restore_cache.outputs.cache-hit != 'true'
         with:
@@ -56,5 +56,5 @@ jobs:
       - name: Run unit tests
         run: |
           cd src
-          python run_all_tests.py -a
+          python run_unit_tests.py -a
 
