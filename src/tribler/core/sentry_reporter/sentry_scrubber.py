@@ -174,17 +174,22 @@ class SentryScrubber:
         if isinstance(entity, dict):
             result = {}
             for key, value in entity.items():
-                if key in self.dict_keys_for_scrub:
+                if key in self.dict_keys_for_scrub and isinstance(value, str):
                     value = value.strip()
                     fake_value = obfuscate_string(value)
                     placeholder = self.create_placeholder(fake_value)
                     self.add_sensitive_pair(value, placeholder)
-                result[key] = self.scrub_entity_recursively(value, depth)
+                    result[key] = placeholder
+                else:
+                    result[key] = self.scrub_entity_recursively(value, depth)
             return result
 
         return entity
 
     def add_sensitive_pair(self, text, placeholder):
+        if not (text and text.strip()):  # We should not replace empty substrings in the middle of other strings
+            return
+
         if text in self.sensitive_occurrences:
             return
 

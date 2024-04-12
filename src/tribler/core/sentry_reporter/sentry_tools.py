@@ -118,9 +118,6 @@ def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
 
     The same random words will be generated for the same given strings.
     """
-    if not s:
-        return s
-
     faker = Faker(locale='en_US')
     faker.seed_instance(s)
     return faker.word(part_of_speech=part_of_speech)
