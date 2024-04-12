@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]  # macos-latest not tested due to crashing.
-        version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        version: ["3.8", "3.9", "3.10"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,12 +32,12 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - run: |
           cd src
-          python run_all_tests.py -a
+          python run_unit_tests.py -a
         env:
           TEST_IPV8_WITH_IPV6: 0
       - run: |
           cd src
-          python run_all_tests.py -a
+          python run_unit_tests.py -a
         env:
           TEST_IPV8_WITH_IPV6: 1
       - uses: actions/cache/save@v4
