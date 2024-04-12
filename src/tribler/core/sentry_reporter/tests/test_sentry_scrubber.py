@@ -213,16 +213,16 @@ def test_scrub_event(scrubber):
     }
     assert scrubber.scrub_event(event) == {
         'the very first item': '<highlight>',
-        'server_name': '<protection>',
+        'server_name': '<kid>',
         CONTEXTS: {
             REPORTER: {
                 'any': {
-                    'USERNAME': '<father>',
+                    'USERNAME': '<conference>',
                     'USERDOMAIN_ROAMINGPROFILE': '<protection>',
                     'PATH': '/users/<highlight>/apps',
                     'TMP_WIN': 'C:\\Users\\<restaurant>\\AppData\\Local\\Temp',
-                    'USERDOMAIN': '<marriage>',
-                    'COMPUTERNAME': '<message>',
+                    'USERDOMAIN': '<tune>',
+                    'COMPUTERNAME': '<lady>',
                 },
                 STACKTRACE: [
                     'Traceback (most recent call last):',
@@ -301,15 +301,20 @@ def test_scrub_dict(scrubber):
     assert scrubber.scrub_entity_recursively(None) is None
     assert scrubber.scrub_entity_recursively({}) == {}
 
-    given = {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U'}
+    assert scrubber.scrub_entity_recursively({'key': [1]}) == {'key': [1]}  # non-string values should not lead to error
+
+    given = {'PATH': '/home/username/some/', 'USERDOMAIN': 'UD', 'USERNAME': 'U', 'REPEATED': 'user username UD U',
+             'key': ''}
     assert scrubber.scrub_entity_recursively(given) == {'PATH': '/home/<highlight>/some/',
                                                         'REPEATED': 'user <highlight> <school> <night>',
                                                         'USERDOMAIN': '<school>',
-                                                        'USERNAME': '<night>'}
+                                                        'USERNAME': '<night>',
+                                                        'key': '<dress>'}
 
-    assert 'username' in scrubber.sensitive_occurrences.keys()
-    assert 'UD' in scrubber.sensitive_occurrences.keys()
-    assert 'U' in scrubber.sensitive_occurrences.keys()
+    assert 'username' in scrubber.sensitive_occurrences
+    assert 'UD' in scrubber.sensitive_occurrences
+    assert 'U' in scrubber.sensitive_occurrences
+    assert '' not in scrubber.sensitive_occurrences
 
 
 def test_scrub_list(scrubber):

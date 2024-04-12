@@ -144,8 +144,7 @@ def test_extract_dict():
 
 
 OBFUSCATED_STRINGS = [
-    (None, None),
-    ('', ''),
+    ('', 'dress'),
     ('any', 'challenge'),
     ('string', 'quality'),
 ]
