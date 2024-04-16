@@ -273,34 +273,27 @@ color: #eee;</string>
 									<bool>false</bool>
 								</property>
 								<property name="styleSheet">
-									<string notr="true">QWidget {
-background-color: #202020;
+									<string notr="true">
+QWidget {
+	background-color: #202020;
+	font-size: 14px;
+	color: white;
+	text-align: left;
 }
 
 QPushButton {
-color: #B5B5B5;
-border: none;
-background: none;
-text-align: left;
-font-size: 14px;
-padding-left: 20px;
-border-left: 4px solid transparent;
-}
-
-QPushButton::hover {
-color: white;
+	color: #B5B5B5;
+	border: none;
+	background: none;
+	padding-left: 20px;
+	border-left: 4px solid transparent;
 }
 
 QPushButton::checked {
-border-left: 4px solid #e67300;
-color: white;
+	border-left: 4px solid #e67300;
+	color: white;
 }
-
-QLabel{
-padding-left:20px;
-color: #B5B5B5;
-}
-</string>
+									</string>
 								</property>
 								<layout class="QVBoxLayout" name="verticalLayout_2">
 									<property name="spacing">
@@ -310,7 +303,7 @@ color: #B5B5B5;
 										<number>0</number>
 									</property>
 									<item>
-										<widget class="QPushButton" name="add_torrent_button">
+										<widget class="QToolButton" name="add_torrent_button">
 											<property name="sizePolicy">
 												<sizepolicy hsizetype="Preferred" vsizetype="Fixed">
 													<horstretch>0</horstretch>
@@ -327,17 +320,21 @@ color: #B5B5B5;
 												<cursorShape>PointingHandCursor</cursorShape>
 											</property>
 											<property name="styleSheet">
-												<string notr="true">QPushButton#add_torrent_button {
+												<string notr="true">
+QToolButton#add_torrent_button {
     border-style: outset;
-    border-width: 2px;
+    border-width: 1px;
     border-radius: 15px;
     border-color: grey;
-    padding-left: 5px;
-    margin-left: 17px;
-    margin-right: 30px;
-    font: bold;
+    margin-left: 15px;
+    padding-left: 10px;
+    margin-right: 10px;
 }
-QPushButton::menu-indicator{width:0px;}</string>
+QToolButton::menu-indicator {
+    image: none;
+	width: 0px;
+}
+                                                </string>
 											</property>
 											<property name="text">
 												<string>Add torrent</string>
@@ -349,12 +346,15 @@ QPushButton::menu-indicator{width:0px;}</string>
 											</property>
 											<property name="iconSize">
 												<size>
-													<width>16</width>
-													<height>16</height>
+													<width>15</width>
+													<height>15</height>
 												</size>
 											</property>
-											<property name="flat">
-												<bool>true</bool>
+											<property name="toolButtonStyle">
+												<enum>Qt::ToolButtonTextBesideIcon</enum>
+											</property>
+											<property name="popupMode">
+												<enum>QToolButton::InstantPopup</enum>
 											</property>
 										</widget>
 									</item>
@@ -425,7 +425,7 @@ QPushButton::menu-indicator{width:0px;}</string>
 											<property name="sizeHint" stdset="0">
 												<size>
 													<width>20</width>
-													<height>14</height>
+													<height>5</height>
 												</size>
 											</property>
 										</spacer>
