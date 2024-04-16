@@ -10,7 +10,7 @@ from typing import Callable, Dict, List, Tuple
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
-from tribler.core.components.database.db.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
+from tribler.core.components.database.db.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler.core.utilities.search_utils import item_rank
 from tribler.core.utilities.simpledefs import CHANNEL_STATE
 from tribler.core.utilities.utilities import to_fts_query
@@ -641,11 +641,3 @@ class ChannelPreviewModel(ChannelContentModel):
     def perform_query(self, **kwargs):
         kwargs["remote"] = True
         super().perform_query(**kwargs)
-
-
-class PopularTorrentsModel(ChannelContentModel):
-    columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
-
-    def __init__(self, *args, **kwargs):
-        kwargs["endpoint_url"] = 'metadata/torrents/popular'
-        super().__init__(*args, **kwargs)

@@ -93,9 +93,7 @@ from tribler.gui.utilities import (
     tr,
 )
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
-from tribler.gui.widgets.tablecontentmodel import (
-    PopularTorrentsModel,
-)
+from tribler.gui.widgets.popular.popular_torrents_model import PopularTorrentsModel
 from tribler.gui.widgets.triblertablecontrollers import (
     PopularContentTableViewController,
 )
@@ -864,9 +862,8 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_popular(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_popular.setChecked(True)
-        if self.stackedWidget.currentIndex() == PAGE_POPULAR:
-            self.popular_page.go_back_to_level(0)
-            self.popular_page.reset_view()
+        self.popular_page.go_back_to_level(0)
+        self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 
