@@ -4,27 +4,30 @@ import asyncio
 import logging
 import random
 import time
-from asyncio import CancelledError
+from asyncio import CancelledError, DatagramTransport
 from binascii import hexlify
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
 from pony.utils import between
 
-from tribler.core.database.serialization import REGULAR_TORRENT
-from tribler.core.database.store import MetadataStore
 from tribler.core.libtorrent.trackers import MalformedTrackerURLException, is_valid_url
-from tribler.core.notifier import Notifier, Notification
+from tribler.core.notifier import Notification, Notifier
 from tribler.core.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, TrackerResponse
-from tribler.core.torrent_checker.torrentchecker_session import (FakeDHTSession, TrackerSession, UdpSocketManager,
-                                                                 create_tracker_session)
+from tribler.core.torrent_checker.torrentchecker_session import (
+    FakeDHTSession,
+    TrackerSession,
+    UdpSocketManager,
+    create_tracker_session,
+)
 from tribler.core.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
-from tribler.tribler_config import TriblerConfigManager
 
 if TYPE_CHECKING:
+    from tribler.core.database.store import MetadataStore
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.tribler_config import TriblerConfigManager
 
 TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
@@ -39,7 +42,7 @@ TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 ho
 
 def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerResponse]) -> HealthInfo:
     """
-    Finds the "best" health info (with the max number of seeders) for a specified infohash
+    Finds the "best" health info (with the max number of seeders) for a specified infohash.
     """
     result = HealthInfo(infohash, last_check=0)
     for response in responses:
@@ -50,13 +53,20 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerRes
 
 
 class TorrentChecker(TaskManager):
-    def __init__(self,
+    """
+    A class to check the health of torrents.
+    """
+
+    def __init__(self,  # noqa: PLR0913
                  config: TriblerConfigManager,
                  download_manager: DownloadManager,
                  notifier: Notifier,
                  tracker_manager: TrackerManager,
                  metadata_store: MetadataStore,
-                 socks_listen_ports: Optional[List[int]] = None):
+                 socks_listen_ports: List[int] | None = None) -> None:
+        """
+        Create a new TorrentChecker.
+        """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.tracker_manager = tracker_manager
@@ -74,19 +84,25 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The content_discovery community gossips this information around.
-        self._torrents_checked: Optional[Dict[bytes, HealthInfo]] = None
+        self._torrents_checked: Dict[bytes, HealthInfo] | None = None
 
-    async def initialize(self):
-        self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
-        self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
+    async def initialize(self) -> None:
+        """
+        Start all the looping tasks for the checker and creata socket.
+        """
+        _, = self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
+        _, = self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
-    async def listen_on_udp(self):
+    async def listen_on_udp(self) -> DatagramTransport:
+        """
+        Start listening on a UDP port.
+        """
         loop = asyncio.get_event_loop()
         transport, _ = await loop.create_datagram_endpoint(lambda: self.socket_mgr, local_addr=('0.0.0.0', 0))
         return transport
 
-    async def create_socket_or_schedule(self):
+    async def create_socket_or_schedule(self) -> None:
         """
         This method attempts to bind to a UDP port. If it fails for some reason (i.e. no network connection), we try
         again later.
@@ -94,10 +110,10 @@ class TorrentChecker(TaskManager):
         try:
             self.udp_transport = await self.listen_on_udp()
         except OSError as e:
-            self._logger.error("Error when creating UDP socket in torrent checker: %s", e)
+            self._logger.exception("Error when creating UDP socket in torrent checker: %s", e)
             self.register_task("listen_udp_port", self.create_socket_or_schedule, delay=10)
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """
         Shutdown the torrent health checker.
 
@@ -112,7 +128,7 @@ class TorrentChecker(TaskManager):
 
         await self.shutdown_task_manager()
 
-    async def check_random_tracker(self):
+    async def check_random_tracker(self) -> None:
         """
         Calling this method will fetch a random tracker from the database, select some torrents that have this
         tracker, and perform a request to these trackers.
@@ -136,7 +152,7 @@ class TorrentChecker(TaskManager):
 
         if len(infohashes) == 0:
             # We have no torrent to recheck for this tracker. Still update the last_check for this tracker.
-            self._logger.info(f"No torrent to check for tracker {url}")
+            self._logger.info("No torrent to check for tracker %s", url)
             self.tracker_manager.update_tracker_info(url)
             return
 
@@ -157,32 +173,36 @@ class TorrentChecker(TaskManager):
         for infohash in infohashes:
             session.add_infohash(infohash)
 
-        self._logger.info(f"Selected {len(infohashes)} new torrents to check on random tracker: {url}")
+        self._logger.info("Selected %d new torrents to check on random tracker: %s", len(infohashes), url)
         try:
             response = await self.get_tracker_response(session)
         except Exception as e:
             self._logger.warning(e)
         else:
             health_list = response.torrent_health_list
-            self._logger.info(f"Received {len(health_list)} health info results from tracker: {health_list}")
+            self._logger.info("Received %d health info results from tracker: %s", len(health_list), str(health_list))
 
     async def get_tracker_response(self, session: TrackerSession) -> TrackerResponse:
+        """
+        Get the response from a given session.
+        """
         t1 = time.time()
         try:
             result = await session.connect_to_tracker()
         except CancelledError:
-            self._logger.info(f"Tracker session is being cancelled: {session.tracker_url}")
+            self._logger.info("Tracker session is being cancelled: %s", session.tracker_url)
             raise
         except Exception as e:
             exception_str = str(e).replace('\n]', ']')
-            self._logger.warning(f"Got session error for the tracker: {session.tracker_url}\n{exception_str}")
+            self._logger.warning("Got session error for the tracker: %s\n%s", session.tracker_url, exception_str)
             self.tracker_manager.update_tracker_info(session.tracker_url, False)
-            raise e
+            raise e  # noqa: TRY201
         finally:
             await self.clean_session(session)
 
         t2 = time.time()
-        self._logger.info(f"Got response from {session.__class__.__name__} in {t2 - t1:.3f} seconds: {result}")
+        self._logger.info("Got response from %s in %f seconds: %s", session.__class__.__name__, round(t2 - t1, 3),
+                          str(result))
 
         with db_session:
             for health in result.torrent_health_list:
@@ -192,15 +212,21 @@ class TorrentChecker(TaskManager):
 
     @property
     def torrents_checked(self) -> Dict[bytes, HealthInfo]:
+        """
+        Get the checked torrents and their health information.
+        """
         if self._torrents_checked is None:
             self._torrents_checked = self.load_torrents_checked_from_db()
             lines = '\n'.join(f'    {health}' for health in sorted(self._torrents_checked.values(),
                                                                    key=lambda health: -health.last_check))
-            self._logger.info(f'Initially loaded self-checked torrents:\n{lines}')
+            self._logger.info("Initially loaded self-checked torrents:\n%d", lines)
         return self._torrents_checked
 
     @db_session
     def load_torrents_checked_from_db(self) -> Dict[bytes, HealthInfo]:
+        """
+        Load the health information from the database.
+        """
         result = {}
         now = int(time.time())
         last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
@@ -216,7 +242,7 @@ class TorrentChecker(TaskManager):
         return result
 
     @db_session
-    def torrents_to_check(self):
+    def torrents_to_check(self) -> list:
         """
         Two categories of torrents are selected (popular & old). From the pool of selected torrents, a certain
         number of them are submitted for health check. The torrents that are within the freshness window are
@@ -237,20 +263,22 @@ class TorrentChecker(TaskManager):
                             order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
-        selected_torrents = random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
-        return selected_torrents
+        return random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
 
     async def check_local_torrents(self) -> Tuple[List, List]:
         """
         Perform a full health check on a few popular and old torrents in the database.
         """
         selected_torrents = self.torrents_to_check()
-        self._logger.info(f'Check {len(selected_torrents)} local torrents')
+        self._logger.info("Check %d local torrents", len(selected_torrents))
         results = [await self.check_torrent_health(t.infohash) for t in selected_torrents]
-        self._logger.info(f'Results for local torrents check: {results}')
+        self._logger.info("Results for local torrents check: %s", str(results))
         return selected_torrents, results
 
-    def get_next_tracker(self):
+    def get_next_tracker(self) -> Any | None:  # noqa: ANN401
+        """
+        Return the next unchecked tracker.
+        """
         while tracker := self.tracker_manager.get_next_tracker():
             url = tracker.url
 
@@ -263,25 +291,31 @@ class TorrentChecker(TaskManager):
 
         return None
 
-    def is_blacklisted_tracker(self, tracker_url):
+    def is_blacklisted_tracker(self, tracker_url: str) -> bool:
+        """
+        Check if a given url is in the blacklist.
+        """
         return tracker_url in self.tracker_manager.blacklist
 
     @db_session
-    def get_valid_trackers_of_torrent(self, infohash):
-        """ Get a set of valid trackers for torrent. Also remove any invalid torrent."""
+    def get_valid_trackers_of_torrent(self, infohash: bytes) -> set[str]:
+        """
+        Get a set of valid trackers for torrent. Also remove any invalid torrent.
+        """
         db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
         return {tracker.url for tracker in db_tracker_list
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
-    async def check_torrent_health(self, infohash: bytes, timeout=20, scrape_now=False) -> HealthInfo:
+    async def check_torrent_health(self, infohash: bytes, timeout: float = 20, scrape_now: bool = False) -> HealthInfo:
         """
         Check the health of a torrent with a given infohash.
+
         :param infohash: Torrent infohash.
         :param timeout: The timeout to use in the performed requests
         :param scrape_now: Flag whether we want to force scraping immediately
         """
         infohash_hex = hexlify(infohash).decode()
-        self._logger.info(f'Check health for the torrent: {infohash_hex}')
+        self._logger.info("Check health for the torrent: %s", infohash_hex)
         tracker_set = []
 
         # We first check whether the torrent is already in the database and checked before
@@ -291,48 +325,58 @@ class TorrentChecker(TaskManager):
                 last_check = torrent_state.last_check
                 time_diff = time.time() - last_check
                 if time_diff < MIN_TORRENT_CHECK_INTERVAL and not scrape_now:
-                    self._logger.info(f"Time interval too short, not doing torrent health check for {infohash_hex}")
+                    self._logger.info("Time interval too short, not doing torrent health check for %s", infohash_hex)
                     return torrent_state.to_health()
 
                 # get torrent's tracker list from DB
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
-                self._logger.info(f'Trackers for {infohash_hex}: {tracker_set}')
+                self._logger.info("Trackers for %s: %s", infohash_hex, str(tracker_set))
 
         responses = []
         for tracker_url in tracker_set:
             if session := self.create_session_for_request(tracker_url, timeout=timeout):
                 session.add_infohash(infohash)
-                responses.append(await self.get_tracker_response(session))
+                try:
+                    responses.append(await self.get_tracker_response(session))
+                except Exception as e:
+                    responses.append(e)
 
         session = FakeDHTSession(self.download_manager, timeout)
         session.add_infohash(infohash)
-        self._logger.info(f'DHT session has been created for {infohash_hex}: {session}')
+        self._logger.info("DHT session has been created for %s: %s", infohash_hex, str(session))
         self.sessions["DHT"].append(session)
 
-        self._logger.info(f'{len(responses)} responses for {infohash_hex} have been received: {responses}')
+        self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
         health = aggregate_responses_for_infohash(infohash, successful_responses)
         if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
             health.last_check = int(time.time())
             health.self_checked = True
             self.update_torrent_health(health)
+        return health
 
-    def create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
-        self._logger.debug(f'Creating a session for the request: {tracker_url}')
+    def create_session_for_request(self, tracker_url: str, timeout: float = 20) -> TrackerSession | None:
+        """
+        Create a tracker session for a given url.
+        """
+        self._logger.debug("Creating a session for the request: %s", tracker_url)
 
         required_hops = self.config.get("libtorrent/download_defaults/number_hops")
         actual_hops = len(self.socks_listen_ports or [])
         if required_hops > actual_hops:
-            self._logger.warning(f"Dropping the request. Required amount of hops not reached. "
-                                 f'Required hops: {required_hops}. Actual hops: {actual_hops}')
+            self._logger.warning("Dropping the request. Required amount of hops not reached. "
+                                 "Required hops: %d. Actual hops: %d", required_hops, actual_hops)
             return None
         proxy = ('127.0.0.1', self.socks_listen_ports[required_hops - 1]) if required_hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
-        self._logger.info(f'Tracker session has been created: {session}')
+        self._logger.info("Tracker session has been created: %s", str(session))
         self.sessions[tracker_url].append(session)
         return session
 
-    async def clean_session(self, session):
+    async def clean_session(self, session: TrackerSession) -> None:
+        """
+        Destruct a given session.
+        """
         url = session.tracker_url
 
         self.tracker_manager.update_tracker_info(url, not session.is_failed)
@@ -350,19 +394,19 @@ class TorrentChecker(TaskManager):
         Returns True if the update was successful, False otherwise.
         """
         if not health.is_valid():
-            self._logger.warning(f'Invalid health info ignored: {health}')
+            self._logger.warning("Invalid health info ignored: %s", health)
             return False
 
         if not health.self_checked:
-            self._logger.error(f'Self-checked torrent health expected. Got: {health}')
+            self._logger.error("Self-checked torrent health expected. Got: %s", health)
             return False
 
-        self._logger.debug(f'Update torrent health: {health}')
+        self._logger.debug("Update torrent health: %s", health)
         with db_session:
             # Update torrent state
             torrent_state = self.mds.TorrentState.get_for_update(infohash=health.infohash)
             if not torrent_state:
-                self._logger.warning(f"Unknown torrent: {hexlify(health.infohash)}")
+                self._logger.warning("Unknown torrent: %s", hexlify(health.infohash).decode())
                 return False
 
             prev_health = torrent_state.to_health()
@@ -382,7 +426,10 @@ class TorrentChecker(TaskManager):
         self.notify(health)
         return True
 
-    def notify(self, health: HealthInfo):
+    def notify(self, health: HealthInfo) -> None:
+        """
+        Send a health update to the GUI.
+        """
         self.notifier.notify(Notification.channel_entity_updated, channel_update_dict={
             'infohash': hexlify(health.infohash).decode(),
             'num_seeders': health.seeders,

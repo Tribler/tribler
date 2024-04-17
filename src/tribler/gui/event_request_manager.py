@@ -56,6 +56,7 @@ class EventRequestManager(QNetworkAccessManager):
         connect(self.connect_timer.timeout, self.reconnect)
 
         self.notifier = notifier = Notifier()
+        notifier.add(Notification.channel_entity_updated, self.on_channel_entity_updated)
         notifier.add(Notification.events_start, self.on_events_start)
         notifier.add(Notification.tribler_exception, self.on_tribler_exception)
         notifier.add(Notification.tribler_new_version, self.on_tribler_new_version)
@@ -78,6 +79,9 @@ class EventRequestManager(QNetworkAccessManager):
     def set_api_port(self, api_port: int):
         self.api_port = api_port
         self.request = self.create_request()
+
+    def on_channel_entity_updated(self, channel_update_dict: dict):
+        self.node_info_updated.emit(channel_update_dict)
 
     def on_events_start(self, public_key: str, version: str):
         self.core_connected.emit(version)
