@@ -302,7 +302,10 @@ class TorrentChecker(TaskManager):
         for tracker_url in tracker_set:
             if session := self.create_session_for_request(tracker_url, timeout=timeout):
                 session.add_infohash(infohash)
-                responses.append(await self.get_tracker_response(session))
+                try:
+                    responses.append(await self.get_tracker_response(session))
+                except Exception as e:
+                    responses.append(e)
 
         session = FakeDHTSession(self.download_manager, timeout)
         session.add_infohash(infohash)
@@ -316,6 +319,7 @@ class TorrentChecker(TaskManager):
             health.last_check = int(time.time())
             health.self_checked = True
             self.update_torrent_health(health)
+        return health
 
     def create_session_for_request(self, tracker_url, timeout=20) -> Optional[TrackerSession]:
         self._logger.debug(f'Creating a session for the request: {tracker_url}')
