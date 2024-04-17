@@ -2,25 +2,30 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import typing
-from pathlib import Path
+import encodings.idna  # noqa: F401 (https://github.com/pyinstaller/pyinstaller/issues/1113)
 import logging.config
 import os
 import sys
-
-# https://github.com/pyinstaller/pyinstaller/issues/1113
-import encodings.idna  # pylint: disable=unused-import
+import typing
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
 class Arguments(typing.TypedDict):
+    """
+    The possible command-line arguments to the core process.
+    """
+
     torrent: str
     core: bool
     log_level: str
 
 
 def parse_args() -> Arguments:
+    """
+    Parse the command-line arguments.
+    """
     parser = argparse.ArgumentParser(prog='Tribler [Experimental]', description='Run Tribler BitTorrent client')
     parser.add_argument('torrent', help='torrent file to download', default='', nargs='?')
     parser.add_argument('--core', action="store_true", help="run core process")
@@ -33,20 +38,24 @@ def get_root_state_directory(requested_path: os.PathLike | None) -> Path:
     """
     Get the default application state directory.
     """
-    root_state_dir = Path(requested_path) if os.path.isabs(requested_path) else Path(os.getcwd(), requested_path)
+    root_state_dir = (Path(requested_path) if os.path.isabs(requested_path)
+                      else (Path(os.environ.get("APPDATA", "~")) / ".TriblerExperimental").expanduser().absolute())
     root_state_dir.mkdir(parents=True, exist_ok=True)
     return root_state_dir
 
 
-def main():
+def main() -> None:
+    """
+    The main script entry point for either the GUI or the core process.
+    """
     asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     parsed_args = parse_args()
     logging.basicConfig(level=getattr(logging, parsed_args["log_level"]), stream=sys.stdout)
-    logger.info(f'Run Tribler: {parsed_args}')
+    logger.info("Run Tribler: %s", parsed_args)
 
     root_state_dir = get_root_state_directory(os.environ.get('TSTATEDIR', 'state_directory'))
-    logger.info(f'Root state dir: {root_state_dir}')
+    logger.info("Root state dir: %s", root_state_dir)
 
     api_port, api_key = int(os.environ.get('CORE_API_PORT', '-1')), os.environ.get('CORE_API_KEY')
 
