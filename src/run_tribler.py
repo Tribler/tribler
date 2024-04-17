@@ -13,6 +13,7 @@ from tribler.core.sentry_reporter.sentry_reporter import SentryReporter, SentryS
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities import linecache_patch
 from tribler.core.utilities.asyncio_fixes.finish_accept_patch import apply_finish_accept_patch
+from tribler.core.utilities.asyncio_fixes.proactor_recvfrom_patch import apply_proactor_recvfrom_patch
 from tribler.core.utilities.slow_coro_detection.main_thread_stack_tracking import start_main_thread_stack_tracing
 from tribler.core.utilities.osutils import get_root_state_directory
 from tribler.core.utilities.utilities import is_frozen
@@ -97,6 +98,7 @@ def main():
     if parsed_args.core:
         if sys.platform == 'win32':
             apply_finish_accept_patch()
+            apply_proactor_recvfrom_patch()
 
         from tribler.core.utilities.pony_utils import track_slow_db_sessions
         track_slow_db_sessions()
