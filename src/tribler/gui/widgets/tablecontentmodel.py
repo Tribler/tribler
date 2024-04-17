@@ -640,6 +640,7 @@ class SearchResultsModel(ChannelContentModel):
         self.original_query = original_query
         self.remote_results = {}
         title = self.format_title()
+        kwargs["text_filter"] = original_query
         super().__init__(channel_info={"name": title}, **kwargs)
         self.remote_results_received = False
         self.postponed_remote_results = []

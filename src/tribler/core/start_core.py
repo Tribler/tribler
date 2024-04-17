@@ -2,16 +2,21 @@ from __future__ import annotations
 
 import logging.config
 from asyncio import run
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tribler.core.session import Session
 from tribler.tribler_config import TriblerConfigManager
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 logger = logging.getLogger(__name__)
-CONFIG_FILE_NAME = 'triblerd.conf'
 
 
 async def run_session(config: TriblerConfigManager) -> None:
+    """
+    Start the Session and wait for it to shut itself down.
+    """
     session = Session(config)
     await session.start()
     await session.shutdown_event.wait()
@@ -26,7 +31,7 @@ def run_core(api_port: int, api_key: str | None, state_dir: Path) -> None:
 
     Returns an exit code value, which is non-zero if the Tribler session finished with an error.
     """
-    logger.info(f'Start tribler core. API port: "{api_port}". API key: "{api_key}". State dir: "{state_dir}".')
+    logger.info("Start tribler core. API port: %d. API key: %s. State dir: %s.", api_port, api_key, state_dir)
 
     config = TriblerConfigManager(state_dir / "configuration.json")
     config.set("state_dir", str(state_dir))

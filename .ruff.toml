@@ -81,6 +81,7 @@ exclude = [
     "build",
     "dist",
     "node_modules",
+    "src/tribler/gui",
     "venv",
 ]
 
