@@ -49,7 +49,7 @@ touch dist/installdir
 mkdir -p dist/temp
 
 # sign app
-codesign --deep --force --verbose --sign "$SIGN_MSG" dist/installdir/$APPNAME.app
+codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
 
 # create image
 hdiutil create -fs HFS+ -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
