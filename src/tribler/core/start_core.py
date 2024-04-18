@@ -35,6 +35,11 @@ def run_core(api_port: int, api_key: str | None, state_dir: Path) -> None:
 
     config = TriblerConfigManager(state_dir / "configuration.json")
     config.set("state_dir", str(state_dir))
+
+    if config.get("api/refresh_port_on_start"):
+        config.set("api/http_port", 0)
+        config.set("api/https_port", 0)
+
     if api_key is None:
         config.set("api/key", api_key)
         config.write()
