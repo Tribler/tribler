@@ -1,4 +1,5 @@
 from asyncio import Future, sleep
+from base64 import b64encode
 from pathlib import Path
 from typing import Generator
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
@@ -6,6 +7,7 @@ from unittest.mock import MagicMock, Mock, PropertyMock, patch
 import libtorrent as lt
 import pytest
 from _pytest.logging import LogCaptureFixture
+from bitarray import bitarray
 from ipv8.util import succeed
 from libtorrent import bencode
 
@@ -494,11 +496,16 @@ def test_get_pieces_bitmask(mock_handle, test_download):
     """
     Testing whether a correct pieces bitmask is returned when requested
     """
+
+    def _repr(s):
+        """ Helper function to return the base64 representation of a bitarray"""
+        return b64encode(bitarray(s).tobytes())
+
     test_download.handle.status().pieces = [True, False, True, False, False]
-    assert test_download.get_pieces_base64() == b"oA=="
+    assert test_download.get_pieces_base64() == _repr('10100')
 
     test_download.handle.status().pieces = [True] * 16
-    assert test_download.get_pieces_base64() == b"//8="
+    assert test_download.get_pieces_base64() == _repr('1111111111111111')
 
 
 async def test_resume_data_failed(test_download):
