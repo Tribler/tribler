@@ -9,6 +9,7 @@ from hashlib import md5
 from typing import Any, Dict, List, Optional
 
 import sentry_sdk
+import sentry_sdk.utils
 from faker import Faker
 from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.threading import ThreadingIntegration
@@ -22,11 +23,31 @@ from tribler.core.sentry_reporter.sentry_tools import (
     parse_stacktrace,
 )
 
+
+def fix_sentry_logger(sentry_logger):
+    # Sentry log requires reconfiguration to be useful. By default, Sentry does not show even error-level log records
+    # until the debug option for Sentry is enabled. That means that unsuccessful attempts to send report are ignored.
+    # Enabling debug for Sentry is not recommended in production, and it sends the debug messages to stderr via
+    # a separate handler that is not in line with how Tribler handles logs. As a solution, Sentry developers recommend
+    # manual logger reconfiguration: https://github.com/getsentry/sentry-python/issues/1191#issuecomment-1023721841
+
+    for f in list(sentry_logger.filters):
+        sentry_logger.removeFilter(f)
+
+    for h in list(sentry_logger.handlers):
+        sentry_logger.removeHandler(h)
+
+    sentry_logger.setLevel(logging.WARNING)
+
+
+fix_sentry_logger(sentry_sdk.utils.logger)
+
 VALUE = 'value'
 TYPE = 'type'
 LAST_CORE_OUTPUT = 'last_core_output'
 LAST_PROCESSES = 'last_processes'
 PLATFORM = 'platform'
+PROCESS_ARCHITECTURE = 'process_architecture'
 OS = 'os'
 MACHINE = 'machine'
 COMMENTS = 'comments'
@@ -213,6 +234,7 @@ class SentryReporter:
 
         # tags
         tags = event[TAGS]
+        tags[PROCESS_ARCHITECTURE] = get_value(post_data, PROCESS_ARCHITECTURE)
         tags[VERSION] = get_value(post_data, VERSION)
         tags[MACHINE] = get_value(post_data, MACHINE)
         tags[OS] = get_value(post_data, OS)
