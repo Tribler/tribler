@@ -67,7 +67,7 @@ jobs:
     steps:
       - name: Check if PR has label
         id: label_check
-        uses: docker://agilepathway/pull-request-label-checker:v1.2.9
+        uses: docker://agilepathway/pull-request-label-checker:v1.6.29
         with:
           one_of: 'PR: safe to check'
           repo_token: ${{ secrets.GITHUB_TOKEN }}
