@@ -90,8 +90,8 @@ class TorrentChecker(TaskManager):
         """
         Start all the looping tasks for the checker and creata socket.
         """
-        _, = self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
-        _, = self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
+        self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
+        self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
     async def listen_on_udp(self) -> DatagramTransport:
@@ -219,7 +219,7 @@ class TorrentChecker(TaskManager):
             self._torrents_checked = self.load_torrents_checked_from_db()
             lines = '\n'.join(f'    {health}' for health in sorted(self._torrents_checked.values(),
                                                                    key=lambda health: -health.last_check))
-            self._logger.info("Initially loaded self-checked torrents:\n%d", lines)
+            self._logger.info("Initially loaded self-checked torrents:\n%s", lines)
         return self._torrents_checked
 
     @db_session
