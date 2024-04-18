@@ -508,6 +508,12 @@ def test_get_pieces_bitmask(mock_handle, test_download):
     assert test_download.get_pieces_base64() == _repr('1111111111111111')
 
 
+def test_get_pieces_bitmask_corrupted(mock_handle, test_download):
+    """ Test that the get_pieces_base64() method returns an empty byte string when the pieces bitmask is corrupted. """
+    test_download.handle.status().pieces = [4]
+    assert test_download.get_pieces_base64() == b''
+
+
 async def test_resume_data_failed(test_download):
     """
     Testing whether the correct operations happen when an error is raised during resume data saving

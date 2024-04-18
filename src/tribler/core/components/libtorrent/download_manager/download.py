@@ -119,7 +119,7 @@ class Download(TaskManager):
 
     def __str__(self):
         return "Download <name: '%s' hops: %d checkpoint_disabled: %d>" % \
-            (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
+               (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
         return self.__str__()
@@ -248,7 +248,10 @@ class Download(TaskManager):
         Returns a base64 encoded bitmask of the pieces that we have.
         """
         binary_gen = (int(boolean) for boolean in self.handle.status().pieces)
-        bits = bitarray(binary_gen)
+        try:
+            bits = bitarray(binary_gen)
+        except ValueError:
+            return b''
         return base64.b64encode(bits.tobytes())
 
     def post_alert(self, alert_type: str, alert_dict: Optional[Dict] = None):
