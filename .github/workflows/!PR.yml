@@ -74,12 +74,17 @@ jobs:
           allow_failure: true
 
       - name: Check if user has write access
+        id: permission_check
         if: steps.label_check.outputs.label_check == 'failure'
-        uses: lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f
+        uses: actions-cool/check-user-permission@956b2e73cdfe3bcb819bb7225e490cb3b18fd76e
         with:
-          permission: write
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.triggering_actor }}
+          require: 'write'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fail if user has no access
+        if: steps.label_check.outputs.label_check == 'failure' && steps.permission_check.outputs.require-result == 'false'
+        run: exit 1
 
   # ----------------------------------------------------------------------------
   # PR stage: Draft
