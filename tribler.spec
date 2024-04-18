@@ -14,6 +14,8 @@ root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 sys.path.append(src_dir)
 
+import tribler.core.components as known_components
+
 pyipv8_dir = os.path.join(root_dir, "pyipv8")
 sys.path.append(pyipv8_dir)
 
@@ -95,6 +97,7 @@ hiddenimports = [
 ]
 hiddenimports += widget_files
 hiddenimports += pony_deps
+hiddenimports += [x for member in known_components.__dict__.values() for x in getattr(member, "hiddenimports", set())]
 
 # Fix for issue: Could not load a pixbuf from icon theme.
 # Unrecognized image file format (gdk-pixbuf-error-quark, 3).
