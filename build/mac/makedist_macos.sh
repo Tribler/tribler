@@ -7,7 +7,6 @@ set -e # exit when any command fails
 
 APPNAME=Tribler
 LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
-SIGN_MSG=${SIGN_MSG:-"Developer ID Application: Your Name (Team ID)"}
 
 if [ -e .TriblerVersion ]; then
     DMGNAME="Tribler-$(cat .TriblerVersion)"
@@ -48,8 +47,11 @@ touch dist/installdir
 
 mkdir -p dist/temp
 
-# sign app
-codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    echo "Signing $APPNAME.app with ID: $APPLE_DEV_ID"
+    SIGN_MSG="Developer ID Application: $APPLE_DEV_ID"
+    codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
+fi
 
 # create image
 hdiutil create -fs HFS+ -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
@@ -115,6 +117,8 @@ if [ ! -z "$DMGNAME" ]; then
 fi
 
 # sign the dmg and verify
-codesign --force --verify --verbose --sign "$SIGN_MSG" dist/$DMGNAME.dmg
-codesign --verify --verbose=4 dist/$DMGNAME.dmg
-spctl --assess --type open --context context:primary-signature -v dist/$DMGNAME.dmg
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    codesign --force --verify --verbose --sign "$SIGN_MSG" dist/$DMGNAME.dmg
+    codesign --verify --verbose=4 dist/$DMGNAME.dmg
+    spctl --assess --type open --context context:primary-signature -v dist/$DMGNAME.dmg
+fi
