@@ -14,10 +14,11 @@ root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
 sys.path.append(src_dir)
 
-import tribler.core.components as known_components
-
 pyipv8_dir = os.path.join(root_dir, "pyipv8")
 sys.path.append(pyipv8_dir)
+
+# Import components that are not imported by the main script
+import tribler.core.components as known_components
 
 from tribler.core.version import version_id
 
