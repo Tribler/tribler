@@ -24,6 +24,7 @@ class ApiConfig(TypedDict):
     https_enabled: bool
     https_host: str
     https_port: int
+    refresh_port_on_start: bool
 
 
 class ContentDiscoveryCommunityConfig(TypedDict):
@@ -164,7 +165,8 @@ DEFAULT_CONFIG = {
         "https_enabled": False,
         "https_host": "127.0.0.1",
         "https_port": 0,
-        "https_certfile": "https_certfile"
+        "https_certfile": "https_certfile",
+        "refresh_port_on_start": True
     },
 
     "ipv8": ipv8_default_config,
