@@ -3,19 +3,15 @@ import json
 import os
 import random
 import time
-from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
 import tribler.core.version
 from tribler.core.tests.tools.common import TESTS_DATA_DIR
-from tribler.core.upgrade.version_manager import (
-    TriblerVersion,
-    VERSION_HISTORY_FILENAME,
-    VersionError,
-    VersionHistory, NoDiskSpaceAvailableError, RESERVED_STORAGE,
-)
+from tribler.core.upgrade.version_manager import (NoDiskSpaceAvailableError, RESERVED_STORAGE, TriblerVersion,
+                                                  VERSION_HISTORY_FILENAME, VersionError, VersionHistory)
+from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_CHECKPOINT_DIR, STATEDIR_DB_DIR
 
 DUMMY_STATE_DIR = TESTS_DATA_DIR / "state_dir_dummy"
@@ -400,6 +396,23 @@ def test_installed_versions_and_removal(tmpdir_factory):
     assert len(installed_versions) == len(major_versions) * len(minor_versions) - 2
 
 
+def test_corrupted_version_file(tmpdir):
+    # Scenario: corrupted version history file, should be deleted
+    corrupted_version_history_file = Path(tmpdir) / "version_history.json"
+    corrupted_version_history_file.touch()
+    VersionHistory(Path(tmpdir))
+    assert not corrupted_version_history_file.exists()
+
+
+@patch('os.remove', Mock(side_effect=PermissionError))
+def test_corrupted_version_file_error_on_removal(tmpdir):
+    # Scenario: corrupted version history file, if error occurs while deleting, should be left as is
+    corrupted_version_history_file = Path(tmpdir) / "version_history.json"
+    corrupted_version_history_file.touch()
+    VersionHistory(Path(tmpdir))
+    assert corrupted_version_history_file.exists()
+
+
 # pylint: disable=too-many-statements
 def test_coverage(tmpdir):
     root_state_dir = Path(tmpdir)
@@ -438,11 +451,6 @@ def test_coverage(tmpdir):
         v5.copy_state_from(v4)
     v5.copy_state_from(v4, overwrite=True)
     assert (v5.directory / 'triblerd.conf').read_text() == "abc"
-
-    (root_state_dir / "version_history.json").write_text('{"last_version": "7.7"}')
-
-    with pytest.raises(VersionError, match="Invalid history file structure"):
-        VersionHistory(root_state_dir)
 
     (root_state_dir / VERSION_HISTORY_FILENAME).write_text(
         '{"last_version": "7.7", "history": {"1": "7.3.1a", "2": "7.7", "3": "7.5.1a", "4": "7.6.1b", "5": "7.8.1"}}')
