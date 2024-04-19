@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from unittest.mock import MagicMock, Mock, patch
 
@@ -6,7 +7,7 @@ import pytest
 from tribler.core.sentry_reporter.sentry_reporter import (
     ADDITIONAL_INFORMATION, BROWSER, COMMENTS, CONTEXTS, LAST_CORE_OUTPUT, MACHINE, NAME, OS, OS_ENVIRON,
     PLATFORM, PLATFORM_DETAILS,
-    REPORTER, STACKTRACE, STACKTRACE_CONTEXT, STACKTRACE_EXTRA, SYSINFO, SentryReporter,
+    PROCESS_ARCHITECTURE, REPORTER, STACKTRACE, STACKTRACE_CONTEXT, STACKTRACE_EXTRA, SYSINFO, SentryReporter,
     SentryStrategy,
     TAGS, TRIBLER, TYPE, VALUE, VERSION, this_sentry_strategy,
 )
@@ -26,7 +27,7 @@ DEFAULT_EVENT = {
             ADDITIONAL_INFORMATION: {},
         },
     },
-    TAGS: {MACHINE: None, OS: None, PLATFORM: None, PLATFORM_DETAILS: None, VERSION: None},
+    TAGS: {MACHINE: None, OS: None, PLATFORM: None, PLATFORM_DETAILS: None, PROCESS_ARCHITECTURE: None, VERSION: None},
 }
 
 
@@ -242,8 +243,9 @@ def test_send_post_data(sentry_reporter):
     expected[CONTEXTS][REPORTER][STACKTRACE] = ['l1', 'l2']
     expected[CONTEXTS][REPORTER][STACKTRACE_EXTRA] = ['l3', 'l4']
     expected[CONTEXTS][REPORTER][COMMENTS] = 'comment'
+    expected[CONTEXTS][REPORTER][ADDITIONAL_INFORMATION] = defaultdict(dict)
     expected[TAGS] = {MACHINE: 'x86_64', OS: 'posix', PLATFORM: None, PLATFORM_DETAILS: None,
-                      VERSION: '0.0.0'}
+                      PROCESS_ARCHITECTURE: None, VERSION: '0.0.0'}
 
     assert actual == expected
 
