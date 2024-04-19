@@ -47,6 +47,13 @@ touch dist/installdir
 
 mkdir -p dist/temp
 
+# Sign the app if environment variables are set
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    echo "Signing $APPNAME.app with ID: $APPLE_DEV_ID"
+    SIGN_MSG="Developer ID Application: $APPLE_DEV_ID"
+    codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
+fi
+
 # create image
 hdiutil create -fs HFS+ -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
 
@@ -108,4 +115,11 @@ python3 ./build/mac/licenseDMG.py dist/$APPNAME.dmg LICENSE
 
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
+fi
+
+# Sign the dmg package and verify it
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    codesign --force --verify --verbose --sign "$SIGN_MSG" dist/$DMGNAME.dmg
+    codesign --verify --verbose=4 dist/$DMGNAME.dmg
+    spctl --assess --type open --context context:primary-signature -v dist/$DMGNAME.dmg
 fi
