@@ -199,3 +199,13 @@ async def test_on_got_invalid_metainfo(rest_api):
     path = f"magnet:?xt=urn:btih:{hexlify(UBUNTU_1504_INFOHASH)}&dn={quote_plus('test torrent')}"
     res = await do_request(rest_api, f'torrentinfo?uri={path}', expected_code=HTTP_INTERNAL_SERVER_ERROR)
     assert "error" in res
+
+
+@patch(f'{TARGET}.unshorten', new=AsyncMock(return_value='file://any/file'))
+@patch.object(TorrentDef, 'load', new=AsyncMock(side_effect=PermissionError))
+async def test_get_torrent_info_permission_denied(endpoint: TorrentInfoEndpoint):
+    # Test that a PermissionError is handled correctly when loading a torrent file from disk
+    # The correct behaviour is to return a 500 error.
+    request = MagicMock()
+    response = await endpoint.get_torrent_info(request)
+    assert response.status == HTTP_INTERNAL_SERVER_ERROR
