@@ -633,8 +633,8 @@ class DownloadManager(TaskManager):
             download.post_alert('add_torrent_alert', {"handle": existing_handle})
         else:
             # Otherwise, add it anew
-            _ = self.register_anonymous_task('AddTorrent', self._async_add_torrent, ltsession, infohash, atp,
-                                             ignore=(Exception,))
+            _ = self.replace_task(f"AddTorrent{infohash}", self._async_add_torrent, ltsession, infohash, atp,
+                                  ignore=(Exception,))
 
     async def _async_add_torrent(self, ltsession, infohash, atp):
         self._logger.debug("Adding handle %s", hexlify(infohash))
