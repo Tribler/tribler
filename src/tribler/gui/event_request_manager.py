@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import time
@@ -196,7 +197,8 @@ class EventRequestManager(QNetworkAccessManager):
             self.set_api_port(config_manager.get("api/http_port"))
 
         if self.reply is not None:
-            self.reply.deleteLater()
+            with contextlib.suppress(RuntimeError):
+                self.reply.deleteLater()
 
         # A workaround for Qt5 bug. See https://github.com/Tribler/tribler/issues/7018
         self.setNetworkAccessible(QNetworkAccessManager.Accessible)

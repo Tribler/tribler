@@ -204,7 +204,7 @@ DEFAULT_CONFIG = {
         ),
     "rendezvous": RendezvousConfig(enabled=True),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
-    "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=1, max_circuits=8),
+    "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
     "user_activity": UserActivityConfig(enabled=True, max_query_history=500, health_check_interval=5.0),
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".TriblerExperimental").expanduser().absolute()),
