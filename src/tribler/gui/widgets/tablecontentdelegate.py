@@ -307,11 +307,6 @@ class TagsMixin:
         debug = False  # change to True to see the search rank of items and to highlight remote items
         item_name = data_item["name"]
 
-        group = data_item.get("group")
-        if group:
-            has_remote_items = any(group_item.get('remote') for group_item in group.values())
-            item_name += f"    (+ {len(group)} similar{' *' if debug and has_remote_items else ''})"
-
         if debug:
             rank = data_item.get("rank")
             if rank is not None:

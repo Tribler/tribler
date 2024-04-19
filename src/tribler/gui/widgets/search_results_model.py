@@ -14,7 +14,6 @@ class SearchResultsModel(ChannelContentModel):
         self.remote_results_received = False
         self.postponed_remote_results = []
         self.highlight_remote_results = True
-        self.group_by_name = True
         self.sort_by_rank = True
         self.original_search_results = []
 
