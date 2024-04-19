@@ -63,7 +63,8 @@ jobs:
 
   gatekeeper: # check user's permissions
     runs-on: ubuntu-latest
-    permissions: read-all
+    permissions:
+      pull-requests: write
     steps:
       - name: Check if PR has label
         id: label_check
@@ -80,6 +81,27 @@ jobs:
         with:
           username: ${{ github.triggering_actor }}
           require: 'write'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find Comment
+        if: steps.label_check.outputs.label_check == 'failure' && steps.permission_check.outputs.require-result == 'false'
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: add the label
+
+      - name: Create comment
+        if: steps.label_check.outputs.label_check == 'failure' && steps.permission_check.outputs.require-result == 'false' && steps.fc.outputs.comment-id == ''
+        uses: peter-evans/create-or-update-comment@48bb05bd5554c378187694936d277d48652922e7
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Hi @${{ github.actor }}, thank you for contributing to Tribler! 🚀
+            
+            This PR was created by an outside collaborator, so some checks were not run for security reasons.
+            To trigger the full set of checks, any member of the Tribler team can add the label `PR: safe to check` to the current PR.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fail if user has no access
