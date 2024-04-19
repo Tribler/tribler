@@ -190,7 +190,7 @@ class DownloadsPage(QWidget):
 
         if not result:
             return
-        downloads = result.get("downloads")
+        downloads = [d for d in result.get("downloads", []) if 'pieces' in d]
         if not downloads or len(downloads) != 1:
             self._logger.warning(
                 f'Received unexpected number of downloads ({len(downloads)} instead of 1), ignoring the result.'
