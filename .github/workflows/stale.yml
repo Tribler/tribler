@@ -7,7 +7,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v8
+      - uses: actions/stale@v9
         with:
           stale-issue-message: 'This issue has not seen activity for 60 days. It is now marked as stale. Please provide additional information or this issue may be closed in the future. We value your contribution and would love to hear more!'
           stale-issue-label: 'status: stale'
