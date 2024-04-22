@@ -4,4 +4,4 @@ file-read-backwards==3.0.0
 psutil==5.9.5
 colorlog==6.7.0
 configobj==5.0.8
-aiohttp==3.9.0
+aiohttp==3.9.4
