@@ -72,6 +72,7 @@ jobs:
         with:
           one_of: 'PR: safe to check'
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+          allow_failure: true
 
       - name: Check if user has write access
         id: permission_check
