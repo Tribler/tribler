@@ -8,6 +8,7 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from distutils.version import LooseVersion
+from json import JSONDecodeError
 from operator import attrgetter
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -234,7 +235,17 @@ class VersionHistory:
         self.files_to_copy = self.fill_files_to_copy()
         self.versions = versions = OrderedDict()
         if self.file_path.exists():
-            self.load(self.file_path)
+            try:
+                self.load(self.file_path)
+            except VersionError as version_error:
+                message = f'Error during loading version file. {version_error.__class__.__name__}: {version_error}'
+                self.logger.warning(message)
+                try:
+                    self.logger.info('Removing corrupted version file...')
+                    os.remove(self.file_path)
+                except OSError as os_error:
+                    message = f'Error during removing corrupted version file {os_error.__class__.__name__}: {os_error}'
+                    self.logger.warning(message)
 
         versions_by_time = []
         last_run_version = None
@@ -313,9 +324,13 @@ class VersionHistory:
 
     def load(self, file_path: Path):
         self.logger.info(f'Load: {file_path}')
-        self.file_data = json.loads(file_path.read_text().strip())
+        file_content = file_path.read_text().strip()
+        try:
+            self.file_data = json.loads(file_content)
+        except JSONDecodeError as e:
+            raise VersionError(f"Invalid history file structure. {e.__class__.__name__}: {e}") from e
         if "history" not in self.file_data:
-            raise VersionError("Invalid history file structure")
+            raise VersionError("Invalid history file structure. Missed 'history' block.")
 
         # timestamps needs to be converted to float before sorting
         history_items = [(float(time_str), version_str) for time_str, version_str in self.file_data["history"].items()]
