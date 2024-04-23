@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 import operator
-import time
 import typing
 from binascii import unhexlify
 from collections import defaultdict
@@ -12,16 +13,22 @@ from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
+from typing_extensions import Self
 
 from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
 from tribler.core.database.serialization import REGULAR_TORRENT, SNIPPET
-from tribler.core.database.store import MetadataStore
-from tribler.core.database.tribler_database import TriblerDatabase
-from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.notifier import Notification
 from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
-from tribler.core.torrent_checker.torrent_checker import TorrentChecker
+
+if typing.TYPE_CHECKING:
+    from aiohttp.abc import Request
+    from multidict import MultiDictProxy, MultiMapping
+
+    from tribler.core.database.store import MetadataStore
+    from tribler.core.database.tribler_database import TriblerDatabase
+    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
 TORRENT_CHECK_TIMEOUT = 20
 SNIPPETS_TO_SHOW = 3  # The number of snippets we return from the search results
@@ -30,23 +37,23 @@ MAX_TORRENTS_IN_SNIPPETS = 4  # The maximum number of torrents in each snippet
 # This dict is used to translate JSON fields into the columns used in Pony for _sorting_.
 # id_ is not in the list because there is not index on it, so we never really want to sort on it.
 json2pony_columns = {
-    'category': "tags",
-    'name': "title",
-    'size': "size",
-    'infohash': "infohash",
-    'date': "torrent_date",
-    'created': "torrent_date",
-    'status': 'status',
-    'votes': 'votes',
-    'subscribed': 'subscribed',
-    'health': 'HEALTH',
+    "category": "tags",
+    "name": "title",
+    "size": "size",
+    "infohash": "infohash",
+    "date": "torrent_date",
+    "created": "torrent_date",
+    "status": "status",
+    "votes": "votes",
+    "subscribed": "subscribed",
+    "health": "HEALTH",
 }
 
 
 def parse_bool(obj: str) -> bool:
     """
-    Parse input to boolean True or False
-    Allow parsing text 'false', 'true' '1', '0' to boolean
+    Parse input to boolean True or False.
+    Allow parsing text 'false', 'true' '1', '0' to boolean.
 
     :param obj: Object to parse
     """
@@ -57,49 +64,54 @@ class DatabaseEndpoint(RESTEndpoint):
     """
     This is the top-level endpoint class that serves other endpoints.
 
-    # /metadata
-    #          /torrents
-    #          /<public_key>
+     /metadata
+              /torrents
+              /<public_key>
     """
-    path = '/metadata'
 
-    def __init__(self,
+    path = "/metadata"
+
+    def __init__(self,  # noqa: PLR0913
                  download_manager: DownloadManager,
-                 torrent_checker: typing.Optional[TorrentChecker],
+                 torrent_checker: TorrentChecker | None,
                  metadata_store: MetadataStore,
-                 tribler_db: TriblerDatabase = None,
-                 middlewares=(),
-                 client_max_size=MAX_REQUEST_SIZE):
+                 tribler_db: TriblerDatabase | None = None,
+                 middlewares: tuple = (),
+                 client_max_size: int = MAX_REQUEST_SIZE) -> None:
+        """
+        Create a new database endpoint.
+        """
         super().__init__(middlewares, client_max_size)
         self.download_manager = download_manager
         self.torrent_checker = torrent_checker
         self.mds = metadata_store
-        self.tribler_db: typing.Optional[TriblerDatabase] = tribler_db
+        self.tribler_db: TriblerDatabase | None = tribler_db
         self.app.add_routes(
             [
-                web.get('/torrents/{infohash}/health', self.get_torrent_health),
-                web.get('/torrents/popular', self.get_popular_torrents),
-                web.get('/search/local', self.local_search),
-                web.get('/search/completions', self.completions)
+                web.get("/torrents/{infohash}/health", self.get_torrent_health),
+                web.get("/torrents/popular", self.get_popular_torrents),
+                web.get("/search/local", self.local_search),
+                web.get("/search/completions", self.completions)
             ]
         )
 
     @classmethod
-    def sanitize_parameters(cls, parameters):
+    def sanitize_parameters(cls: type[Self],
+                            parameters: MultiDictProxy | MultiMapping[str]) -> dict[str, str | float | set | None]:
         """
         Sanitize the parameters for a request that fetches channels.
         """
         sanitized = {
-            "first": int(parameters.get('first', 1)),
-            "last": int(parameters.get('last', 50)),
-            "sort_by": json2pony_columns.get(parameters.get('sort_by')),
-            "sort_desc": parse_bool(parameters.get('sort_desc', "true")),
-            "txt_filter": parameters.get('txt_filter'),
-            "hide_xxx": parse_bool(parameters.get('hide_xxx', "false")),
-            "category": parameters.get('category'),
+            "first": int(parameters.get("first", 1)),
+            "last": int(parameters.get("last", 50)),
+            "sort_by": json2pony_columns.get(parameters.get("sort_by")),
+            "sort_desc": parse_bool(parameters.get("sort_desc", "true")),
+            "txt_filter": parameters.get("txt_filter"),
+            "hide_xxx": parse_bool(parameters.get("hide_xxx", "false")),
+            "category": parameters.get("category"),
         }
-        if 'tags' in parameters:
-            sanitized['tags'] = parameters.getall('tags')
+        if "tags" in parameters:
+            sanitized["tags"] = parameters.getall("tags")
         if "max_rowid" in parameters:
             sanitized["max_rowid"] = int(parameters["max_rowid"])
         if "channel_pk" in parameters:
@@ -109,13 +121,16 @@ class DatabaseEndpoint(RESTEndpoint):
         return sanitized
 
     @db_session
-    def add_statements_to_metadata_list(self, contents_list):
+    def add_statements_to_metadata_list(self, contents_list: list[dict]) -> None:
+        """
+        Load statements from the database and attach them to the torrent descriptions in the content list.
+        """
         if self.tribler_db is None:
-            self._logger.error(f'Cannot add statements to metadata list: '
-                               f'tribler_db is not set in {self.__class__.__name__}')
+            self._logger.error("Cannot add statements to metadata list: tribler_db is not set in %s",
+                               self.__class__.__name__)
             return
         for torrent in contents_list:
-            if torrent['type'] == REGULAR_TORRENT:
+            if torrent["type"] == REGULAR_TORRENT:
                 raw_statements = self.tribler_db.knowledge.get_simple_statements(
                     subject_type=ResourceType.TORRENT,
                     subject=torrent["infohash"]
@@ -127,92 +142,98 @@ class DatabaseEndpoint(RESTEndpoint):
         summary="Fetch the swarm health of a specific torrent.",
         parameters=[
             {
-                'in': 'path',
-                'name': 'infohash',
-                'description': 'Infohash of the download to remove',
-                'type': 'string',
-                'required': True,
+                "in": "path",
+                "name": "infohash",
+                "description": "Infohash of the download to remove",
+                "type": "string",
+                "required": True,
             },
             {
-                'in': 'query',
-                'name': 'timeout',
-                'description': 'Timeout to be used in the connections to the trackers',
-                'type': 'integer',
-                'default': 20,
-                'required': False,
+                "in": "query",
+                "name": "timeout",
+                "description": "Timeout to be used in the connections to the trackers",
+                "type": "integer",
+                "default": 20,
+                "required": False,
             },
         ],
         responses={
             200: {
-                'schema': schema(
+                "schema": schema(
                     HealthCheckResponse={
-                        'checking': Boolean()
+                        "checking": Boolean()
                     }
                 ),
-                'examples': [
-                    {'checking': 1},
+                "examples": [
+                    {"checking": 1},
                 ],
             }
         },
     )
-    async def get_torrent_health(self, request):
-        self._logger.info(f'Get torrent health request: {request}')
+    async def get_torrent_health(self, request: Request) -> RESTResponse:
+        """
+        Fetch the swarm health of a specific torrent.
+        """
+        self._logger.info("Get torrent health request: %s", str(request))
         try:
-            timeout = int(request.query.get('timeout', TORRENT_CHECK_TIMEOUT))
+            timeout = int(request.query.get("timeout", TORRENT_CHECK_TIMEOUT))
         except ValueError as e:
             return RESTResponse({"error": f"Error processing timeout parameter: {e}"}, status=HTTP_BAD_REQUEST)
 
         if self.torrent_checker is None:
-            return RESTResponse({'checking': False})
+            return RESTResponse({"checking": False})
 
-        infohash = unhexlify(request.match_info['infohash'])
+        infohash = unhexlify(request.match_info["infohash"])
         await self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
-        return RESTResponse({'checking': True})
+        return RESTResponse({"checking": True})
 
-    def add_download_progress_to_metadata_list(self, contents_list):
+    def add_download_progress_to_metadata_list(self, contents_list: list[dict]) -> None:
+        """
+        Retrieve the download status from libtorrent and attach it to the torrent descriptions in the content list.
+        """
         for torrent in contents_list:
-            if torrent['type'] == REGULAR_TORRENT:
-                dl = self.download_manager.get_download(unhexlify(torrent['infohash']))
+            if torrent["type"] == REGULAR_TORRENT:
+                dl = self.download_manager.get_download(unhexlify(torrent["infohash"]))
                 if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
-                    torrent['progress'] = dl.get_state().get_progress()
+                    torrent["progress"] = dl.get_state().get_progress()
 
     @docs(
-        tags=['Metadata'],
-        summary='Get the list of most popular torrents.',
+        tags=["Metadata"],
+        summary="Get the list of most popular torrents.",
         responses={
             200: {
-                'schema': schema(
+                "schema": schema(
                     GetPopularTorrentsResponse={
-                        'results': [TorrentSchema],
-                        'first': Integer(),
-                        'last': Integer(),
+                        "results": [TorrentSchema],
+                        "first": Integer(),
+                        "last": Integer(),
                     }
                 )
             }
         },
     )
-    async def get_popular_torrents(self, request):
+    async def get_popular_torrents(self, request: Request) -> RESTResponse:
+        """
+        Get the list of most popular torrents.
+        """
         sanitized = self.sanitize_parameters(request.query)
         sanitized["metadata_type"] = REGULAR_TORRENT
         sanitized["popular"] = True
 
         with db_session:
-            contents = self.mds.get_entries(**sanitized)
-            contents_list = []
-            for entry in contents:
-                contents_list.append(entry.to_simple_dict())
+            contents_list = [entry.to_simple_dict() for entry in self.mds.get_entries(**sanitized)]
 
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_statements_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
-            "first": sanitized['first'],
-            "last": sanitized['last'],
+            "first": sanitized["first"],
+            "last": sanitized["last"],
         }
 
         return RESTResponse(response_dict)
 
-    def build_snippets(self, search_results: typing.List[typing.Dict]) -> typing.List[typing.Dict]:
+    def build_snippets(self, search_results: list[dict]) -> list[dict]:
         """
         Build a list of snippets that bundle torrents describing the same content item.
         For each search result we determine the content item it is associated to and bundle it inside a snippet.
@@ -271,36 +292,39 @@ class DatabaseEndpoint(RESTEndpoint):
         return snippets + search_results
 
     @docs(
-        tags=['Metadata'],
+        tags=["Metadata"],
         summary="Perform a search for a given query.",
         responses={
             200: {
-                'schema': schema(
+                "schema": schema(
                     SearchResponse={
-                        'results': [MetadataSchema],
-                        'first': Integer(),
-                        'last': Integer(),
-                        'sort_by': String(),
-                        'sort_desc': Integer(),
-                        'total': Integer(),
+                        "results": [MetadataSchema],
+                        "first": Integer(),
+                        "last": Integer(),
+                        "sort_by": String(),
+                        "sort_desc": Integer(),
+                        "total": Integer(),
                     }
                 )
             }
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def local_search(self, request):
+    async def local_search(self, request: Request) -> RESTResponse:
+        """
+        Perform a search for a given query.
+        """
         try:
             sanitized = self.sanitize_parameters(request.query)
-            tags = sanitized.pop('tags', None)
+            tags = sanitized.pop("tags", None)
         except (ValueError, KeyError):
             return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
 
-        include_total = request.query.get('include_total', '')
+        include_total = request.query.get("include_total", "")
 
         mds: MetadataStore = self.mds
 
-        def search_db():
+        def search_db() -> tuple[list[dict], int, int]:
             with db_session:
                 pony_query = mds.get_entries(**sanitized)
                 search_results = [r.to_simple_dict() for r in pony_query]
@@ -325,7 +349,7 @@ class DatabaseEndpoint(RESTEndpoint):
                         predicate=ResourceType.TAG,
                         case_sensitive=False)
                     if infohash_set:
-                        sanitized['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
+                        sanitized["infohash_set"] = {bytes.fromhex(s) for s in infohash_set}
 
             search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:
@@ -350,25 +374,28 @@ class DatabaseEndpoint(RESTEndpoint):
         return RESTResponse(response_dict)
 
     @docs(
-        tags=['Metadata'],
+        tags=["Metadata"],
         summary="Return auto-completion suggestions for a given query.",
-        parameters=[{'in': 'query', 'name': 'q', 'description': 'Search query', 'type': 'string', 'required': True}],
+        parameters=[{"in": "query", "name": "q", "description": "Search query", "type": "string", "required": True}],
         responses={
             200: {
-                'schema': schema(
+                "schema": schema(
                     CompletionsResponse={
-                        'completions': [String],
+                        "completions": [String],
                     }
                 ),
-                'examples': {'completions': ['pioneer one', 'pioneer movie']},
+                "examples": {"completions": ["pioneer one", "pioneer movie"]},
             }
         },
     )
-    async def completions(self, request):
+    async def completions(self, request: Request) -> RESTResponse:
+        """
+        Return auto-completion suggestions for a given query.
+        """
         args = request.query
-        if 'q' not in args:
+        if "q" not in args:
             return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        keywords = args['q'].strip().lower()
+        keywords = args["q"].strip().lower()
         results = self.mds.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})

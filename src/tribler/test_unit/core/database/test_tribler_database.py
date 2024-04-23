@@ -22,7 +22,7 @@ class TestTriblerDatabase(TestBase):
         Test if set_misc works as expected.
         """
         self.db.set_misc(key='string', value='value')
-        self.db.set_misc(key='integer', value=1)
+        self.db.set_misc(key='integer', value="1")
 
         self.assertEqual("value", self.db.get_misc(key='string'))
         self.assertEqual("1", self.db.get_misc(key='integer'))
@@ -33,7 +33,7 @@ class TestTriblerDatabase(TestBase):
         Test if get_misc returns proper values.
         """
         self.assertIsNone(self.db.get_misc(key="non existent"))
-        self.assertEqual(42, self.db.get_misc(key="non existent", default=42))
+        self.assertEqual("42", self.db.get_misc(key="non existent", default="42"))
 
     @db_session
     def test_default_version(self) -> None:

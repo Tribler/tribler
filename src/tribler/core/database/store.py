@@ -1,34 +1,53 @@
+from __future__ import annotations
+
 import enum
+import logging
+import re
 import threading
 from asyncio import get_running_loop
 from dataclasses import dataclass, field
-import logging
-import re
 from datetime import datetime, timedelta
-from os import PathLike
 from os.path import getsize
 from pathlib import Path
 from time import sleep, time
-from typing import Optional, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
-from ipv8.types import IPv8, PrivateKey
 from lz4.frame import LZ4FrameDecompressor
 from pony import orm
-from pony.orm import db_session, desc, left_join, raw_sql, select, Database
+from pony.orm import Database, db_session, desc, left_join, raw_sql, select
 from pony.orm.dbproviders.sqlite import keep_exception
 
-from tribler.core.database.orm_bindings import torrent_metadata
-from tribler.core.database.orm_bindings import misc, torrent_state as torrent_state_, tracker_state
+from tribler.core.database.orm_bindings import misc, torrent_metadata, tracker_state
+from tribler.core.database.orm_bindings import torrent_state as torrent_state_
 from tribler.core.database.orm_bindings.torrent_metadata import NULL_KEY_SUBST
 from tribler.core.database.ranks import torrent_rank
-from tribler.core.database.serialization import (CHANNEL_TORRENT, COLLECTION_NODE, HealthItemsPayload,
-                                                 REGULAR_TORRENT, read_payload_with_offset, NULL_KEY)
-
+from tribler.core.database.serialization import (
+    CHANNEL_TORRENT,
+    COLLECTION_NODE,
+    NULL_KEY,
+    REGULAR_TORRENT,
+    HealthItemsPayload,
+    TorrentMetadataPayload,
+    read_payload_with_offset,
+)
 from tribler.core.torrent_checker.dataclasses import HealthInfo
-from tribler.core.notifier import Notifier
+
+if TYPE_CHECKING:
+    from os import PathLike
+    from sqlite3 import Connection
+
+    from ipv8.types import PrivateKey
+    from pony.orm.core import Entity, Query
+
+    from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
+    from tribler.core.notifier import Notifier
 
 
 class ObjState(enum.Enum):
+    """
+    Different states of information in the store.
+    """
+
     UPDATED_LOCAL_VERSION = enum.auto()  # We updated the local version of the ORM object with the received one
     LOCAL_VERSION_NEWER = enum.auto()  # The local version of the ORM object is newer than the received one
     LOCAL_VERSION_SAME = enum.auto()  # The local version of the ORM object is the same as the received one
@@ -38,10 +57,13 @@ class ObjState(enum.Enum):
 
 @dataclass
 class ProcessingResult:
-    # This class is used to return results of processing of a payload by process_payload.
-    # It includes the ORM object created as a result of processing, the state of the object
-    # as indicated by ObjState enum, and missing dependencies list that includes a list of query
-    # arguments for get_entries to query the sender back through Remote Query Community
+    """
+    This class is used to return results of processing of a payload by process_payload.
+    It includes the ORM object created as a result of processing, the state of the object
+    as indicated by ObjState enum, and missing dependencies list that includes a list of query
+    arguments for get_entries to query the sender back through Remote Query Community.
+    """
+
     md_obj: object = None
     obj_state: object = None
     missing_deps: list = field(default_factory=list)
@@ -104,16 +126,23 @@ sql_create_partial_index_torrentstate_last_check = """
 
 
 class MetadataStore:
-    def __init__(
+    """
+    Storage of metadata for channels and torrents.
+    """
+
+    def __init__(  # noqa: PLR0913
             self,
             db_filename: PathLike,
             private_key: PrivateKey,
-            disable_sync=False,
-            notifier: Notifier = None,
-            check_tables=True,
+            disable_sync: bool = False,
+            notifier: Notifier | None = None,
+            check_tables: bool = True,
             db_version: int = CURRENT_DB_VERSION,
             tag_processor_version: int = 0
-    ):
+    ) -> None:
+        """
+        Create a new metadata store.
+        """
         self.notifier = notifier  # Reference to app-level notification service
         self.db_path = db_filename
         self.my_key = private_key
@@ -133,7 +162,7 @@ class MetadataStore:
         # This attribute is internally called by Pony on startup, though pylint cannot detect it
         # with the static analysis.
         @self.db.on_connect
-        def on_connect(_, connection):
+        def on_connect(_: Database, connection: Connection) -> None:
             cursor = connection.cursor()
             cursor.execute("PRAGMA journal_mode = WAL")
             cursor.execute("PRAGMA synchronous = NORMAL")
@@ -167,7 +196,7 @@ class MetadataStore:
             create_db = not Path(db_filename).exists()
             db_path_string = str(db_filename)
 
-        self.db.bind(provider='sqlite', filename=db_path_string, create_db=create_db, timeout=120.0)
+        self.db.bind(provider="sqlite", filename=db_path_string, create_db=create_db, timeout=120.0)
         self.db.generate_mapping(
             create_tables=create_db, check_tables=check_tables
         )  # Must be run out of session scope
@@ -181,72 +210,98 @@ class MetadataStore:
             with db_session:
                 self.MiscData(name="db_version", value=str(db_version))
 
-    def set_value(self, key: str, value: str):
+    def set_value(self, key: str, value: str) -> None:
+        """
+        Set a generic key to a value.
+        """
         obj = self.MiscData.get_for_update(name=key) or self.MiscData(name=key)
         obj.value = value
 
-    def get_value(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_value(self, key: str, default: str | None = None) -> str | None:
+        """
+        Retrieve the value for a given key.
+        """
         data = self.MiscData.get(name=key)
         return data.value if data else default
 
-    def drop_indexes(self):
+    def drop_indexes(self) -> None:
+        """
+        Drop the indices for this database.
+        """
         cursor = self.db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='index' and name like 'idx_%'")
         for [index_name] in cursor.fetchall():
             cursor.execute(f"drop index {index_name}")
 
-    def get_objects_to_create(self):
+    def get_objects_to_create(self) -> list[Entity]:
+        """
+        Get the objects that need to be created.
+        """
         connection = self.db.get_connection()
         schema = self.db.schema
         provider = schema.provider
         created_tables = set()
-        result = []
-        for table in schema.order_tables_to_create():
-            for db_object in table.get_objects_to_create(created_tables):
-                if not db_object.exists(provider, connection):
-                    result.append(db_object)
-        return result
+        return [db_object for table in schema.order_tables_to_create()
+                for db_object in table.get_objects_to_create(created_tables)
+                if not db_object.exists(provider, connection)]
 
-    def get_db_file_size(self):
+    def get_db_file_size(self) -> int:
+        """
+        Get the physical size on disk (always 0 for memory dbs).
+        """
         return 0 if self.db_path == ":memory:" else getsize(self.db_path)
 
-    def drop_fts_triggers(self):
+    def drop_fts_triggers(self) -> None:
+        """
+        Drop the FTS triggers.
+        """
         cursor = self.db.get_connection().cursor()
         cursor.execute("select name from sqlite_master where type='trigger' and name like 'fts_%'")
         for [trigger_name] in cursor.fetchall():
             cursor.execute(f"drop trigger {trigger_name}")
 
-    def create_fts_triggers(self):
+    def create_fts_triggers(self) -> None:
+        """
+        Create the FTS triggers.
+        """
         cursor = self.db.get_connection().cursor()
         cursor.execute(sql_add_fts_trigger_insert)
         cursor.execute(sql_add_fts_trigger_delete)
         cursor.execute(sql_add_fts_trigger_update)
 
-    def fill_fts_index(self):
+    def fill_fts_index(self) -> None:
+        """
+        Insert the FTS indices.
+        """
         cursor = self.db.get_connection().cursor()
         cursor.execute("insert into FtsIndex(rowid, title) select rowid, title from ChannelNode")
 
-    def create_torrentstate_triggers(self):
+    def create_torrentstate_triggers(self) -> None:
+        """
+        Create the torrent state triggers.
+        """
         cursor = self.db.get_connection().cursor()
         cursor.execute(sql_add_torrentstate_trigger_after_insert)
         cursor.execute(sql_add_torrentstate_trigger_after_update)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
+        """
+        Disconnect the connection to the database.
+        """
         self._shutting_down = True
         self.db.disconnect()
 
-    async def run_threaded(self, func: Callable, *args, **kwargs):
+    async def run_threaded(self, func: Callable, *args: Any, **kwargs) -> Any:  # noqa: ANN401
         """
-        Run `func` threaded and close DB connection at the end of the execution.
+        Run ``func`` threaded and close DB connection at the end of the execution.
 
-        :param db: the DB to be closed
         :param func: the function to be executed threaded
         :param args: args for the function call
         :param kwargs: kwargs for the function call
         :return: a result of the func call.
         """
 
-        def wrapper():
+        def wrapper():  # noqa: ANN202
             try:
                 return func(*args, **kwargs)
             finally:
@@ -256,21 +311,28 @@ class MetadataStore:
 
         return await get_running_loop().run_in_executor(None, wrapper)
 
-    async def process_compressed_mdblob_threaded(self, compressed_data, **kwargs):
+    async def process_compressed_mdblob_threaded(self, compressed_data: bytes, **kwargs) -> list[ProcessingResult]:
+        """
+        Decompress the given data in a thread and return a list of uncompressed results.
+        """
         try:
             return await self.run_threaded(self.process_compressed_mdblob, compressed_data, **kwargs)
         except Exception as e:
-            self._logger.exception("DB transaction error when tried to process compressed mdblob: "
-                                   f"{e.__class__.__name__}: {e}", exc_info=e)
+            self._logger.exception("DB transaction error when tried to process compressed mdblob: %s: %s",
+                                   e.__class__.__name__, str(e), exc_info=e)
             return []
 
-    def process_compressed_mdblob(self, compressed_data, skip_personal_metadata_payload=True):
+    def process_compressed_mdblob(self, compressed_data: bytes,
+                                  skip_personal_metadata_payload: bool = True) -> list[ProcessingResult]:
+        """
+        Decompress the given data and return a list of uncompressed results.
+        """
         try:
             with LZ4FrameDecompressor() as decompressor:
                 decompressed_data = decompressor.decompress(compressed_data)
                 unused_data = decompressor.unused_data
         except RuntimeError as e:
-            self._logger.warning(f"Unable to decompress mdblob: {str(e)}")
+            self._logger.warning("Unable to decompress mdblob: %s", str(e))
             return []
 
         health_info = None
@@ -278,7 +340,7 @@ class MetadataStore:
             try:
                 health_info = HealthItemsPayload.unpack(unused_data)
             except Exception as e:
-                self._logger.warning(f"Unable to parse health information: {type(e).__name__}: {str(e)}")
+                self._logger.warning("Unable to parse health information: %s: %s", type(e).__name__, str(e))
                 raise
 
         return self.process_squashed_mdblob(decompressed_data, health_info=health_info,
@@ -292,26 +354,27 @@ class MetadataStore:
         :return: True if a new TorrentState object was added
         """
         if not health.is_valid():
-            self._logger.warning(f'Invalid health info ignored: {health}')
+            self._logger.warning("Invalid health info ignored: %s", str(health))
             return False
 
         torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
 
         if torrent_state and health.should_replace(torrent_state.to_health()):
-            self._logger.debug(f"Update health info {health}")
+            self._logger.debug("Update health info %s", str(health))
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
                               self_checked=False)
             return False
 
         if not torrent_state:
-            self._logger.debug(f"Add health info {health}")
+            self._logger.debug("Add health info %s", str(health))
             self.TorrentState.from_health(health)
             return True
 
         return False
 
-    def process_squashed_mdblob(self, chunk_data, external_thread=False, health_info=None,
-                                skip_personal_metadata_payload=True):
+    def process_squashed_mdblob(self, chunk_data: bytes, external_thread: bool = False,  # noqa: C901
+                                health_info: list[tuple[int, int, int]] | None = None,
+                                skip_personal_metadata_payload: bool = True) -> list[ProcessingResult]:
         """
         Process raw concatenated payloads blob. This routine breaks the database access into smaller batches.
         It uses a congestion-control like algorithm to determine the optimal batch size, targeting the
@@ -323,7 +386,6 @@ class MetadataStore:
             imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
-
         offset = 0
         payload_list = []
         while offset < len(chunk_data):
@@ -334,7 +396,7 @@ class MetadataStore:
         if health_info and len(health_info) == len(payload_list):
             with db_session:
                 for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
-                    if hasattr(payload, 'infohash'):
+                    if hasattr(payload, "infohash"):
                         health = HealthInfo(payload.infohash, last_check=last_check,
                                             seeders=seeders, leechers=leechers)
                         self.process_torrent_health(health)
@@ -345,7 +407,7 @@ class MetadataStore:
         while start < total_size:
             end = start + self.batch_size
             batch = payload_list[start:end]
-            batch_start_time = datetime.now()
+            batch_start_time = datetime.now()  # noqa: DTZ005
 
             # We separate the sessions to minimize database locking.
             with db_session(immediate=True):
@@ -353,7 +415,7 @@ class MetadataStore:
                     result.extend(self.process_payload(payload, skip_personal_metadata_payload))
 
             # Batch size adjustment
-            batch_end_time = datetime.now() - batch_start_time
+            batch_end_time = datetime.now() - batch_start_time  # noqa: DTZ005
             target_coeff = batch_end_time.total_seconds() / self.reference_timedelta.total_seconds()
             if len(batch) == self.batch_size:
                 # Adjust batch size only for full batches
@@ -380,7 +442,11 @@ class MetadataStore:
         return result
 
     @db_session
-    def process_payload(self, payload, skip_personal_metadata_payload=True):
+    def process_payload(self, payload: TorrentMetadataPayload,
+                        skip_personal_metadata_payload: bool = True) -> list[ProcessingResult]:
+        """
+        Write a payload to our database (if necessary).
+        """
         # Don't process our own torrents
         if skip_personal_metadata_payload and payload.public_key == self.my_public_key_bin:
             return []
@@ -408,14 +474,19 @@ class MetadataStore:
         return [ProcessingResult(md_obj=obj, obj_state=ObjState.NEW_OBJECT)]
 
     @db_session
-    def get_num_torrents(self):
+    def get_num_torrents(self) -> int:
+        """
+        Get the number of torrents in the database.
+        """
         return orm.count(self.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
 
-    def search_keyword(self, query, origin_id=None):
-        # Requires FTS5 table "FtsIndex" to be generated and populated.
-        # FTS table is maintained automatically by SQL triggers.
-        # BM25 ranking is embedded in FTS5.
+    def search_keyword(self, query: str, origin_id: int | None = None) -> list[TorrentMetadata]:
+        """
+        Search for an FTS query, potentially restricted to a given origin id.
 
+        Requires FTS5 table "FtsIndex" to be generated and populated. FTS table is maintained automatically by SQL
+        triggers. BM25 ranking is embedded in FTS5.
+        """
         # Sanitize FTS query
         if not query or query == "*":
             return []
@@ -455,32 +526,33 @@ class MetadataStore:
                 ) fts
                 LEFT JOIN ChannelNode cn on fts.rowid = cn.rowid
                 LEFT JOIN main.TorrentState ts on cn.health = ts.rowid
-                ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC  
+                ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC
                 LIMIT 1000
             """)
         return left_join(g for g in self.TorrentMetadata if g.rowid in fts_ids)
 
     @db_session
-    def get_entries_query(
+    def get_entries_query(  # noqa: C901, PLR0912, PLR0913
             self,
-            metadata_type=None,
-            channel_pk=None,
-            hide_xxx=False,
-            origin_id=None,
-            sort_by=None,
-            sort_desc=True,
-            max_rowid=None,
-            txt_filter=None,
-            category=None,
-            infohash=None,
-            infohash_set=None,
-            id_=None,
-            self_checked_torrent=None,
-            health_checked_after=None,
-            popular=None,
-    ):
+            metadata_type: int | None = None,
+            channel_pk: bytes | None = None,
+            hide_xxx: bool = False,
+            origin_id: int | None = None,
+            sort_by: str | None = None,
+            sort_desc: bool = True,
+            max_rowid: int | None = None,
+            txt_filter: str | None = None,
+            category: str | None = None,
+            infohash: bytes | None =None,
+            infohash_set: set[bytes] | None = None,
+            id_: int | None = None,
+            self_checked_torrent: bool | None = None,
+            health_checked_after: int | None = None,
+            popular: bool | None = None,
+    ) -> Query:
         """
         This method implements REST-friendly way to get entries from the database.
+
         :return: PonyORM query object corresponding to the given params.
         """
         # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
@@ -493,7 +565,8 @@ class MetadataStore:
         infohash_set = infohash_set or ({infohash} if infohash else None)
         if popular:
             if metadata_type != REGULAR_TORRENT:
-                raise TypeError('With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed')
+                msg = "With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed"
+                raise TypeError(msg)
 
             t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
             health_list = list(
@@ -606,14 +679,18 @@ class MetadataStore:
 
         return pony_query
 
-    async def get_entries_threaded(self, **kwargs):
+    async def get_entries_threaded(self, **kwargs) -> list[TorrentMetadata]:
+        """
+        Retrieve entries in a thread and return a list of results.
+        """
         return await self.run_threaded(self.get_entries, **kwargs)
 
     @db_session
-    def get_entries(self, first=1, last=None, **kwargs):
+    def get_entries(self, first: int = 1, last: int | None = None, **kwargs) -> list[TorrentMetadata]:
         """
         Get some torrents. Optionally sort the results by a specific field, or filter the channels based
         on a keyword/whether you are subscribed to it.
+
         :return: A list of class members
         """
         pony_query = self.get_entries_query(**kwargs)
@@ -625,33 +702,42 @@ class MetadataStore:
         return result
 
     @db_session
-    def get_total_count(self, **kwargs):
+    def get_total_count(self, **kwargs) -> int | None:
         """
-        Get total count of torrents that would be returned if there would be no pagination/limits/sort
+        Get total count of torrents that would be returned if there would be no pagination/limits/sort.
         """
         for p in ["first", "last", "sort_by", "sort_desc"]:
             kwargs.pop(p, None)
         return self.get_entries_query(**kwargs).count()
 
     @db_session
-    def get_entries_count(self, **kwargs):
+    def get_entries_count(self, **kwargs) -> int | None:
+        """
+        Get the count of torrents that would be returned if there would be no pagination/limits.
+        """
         for p in ["first", "last"]:
             kwargs.pop(p, None)
         return self.get_entries_query(**kwargs).count()
 
     @db_session
     def get_max_rowid(self) -> int:
+        """
+        Get the highest-known row id.
+        """
         return select(max(obj.rowid) for obj in self.TorrentMetadata).get() or 0
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
 
-    def get_auto_complete_terms(self, text, max_terms, limit=200):
+    def get_auto_complete_terms(self, text: str, max_terms: int) -> list[str]:
+        """
+        Get the auto-completion terms for a given query.
+        """
         if not text:
             return []
 
         words = self.fts_keyword_search_re.findall(text)
         if not words:
-            return ""
+            return []
 
         fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)
         suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
@@ -663,15 +749,14 @@ class MetadataStore:
                 FROM ChannelNode cn
                 LEFT JOIN TorrentState ts ON cn.health = ts.rowid
                 WHERE cn.rowid in (
-                    SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $fts_query ORDER BY rowid DESC LIMIT $limit
+                    SELECT rowid FROM FtsIndex WHERE FtsIndex MATCH $fts_query ORDER BY rowid DESC LIMIT $max_terms
                 )
                 ORDER BY coalesce(ts.seeders, 0) DESC
-            """)
+            """, globals={"fts_query": fts_query, "max_terms": max_terms})
 
         result = []
         for title in titles:
-            title = title.lower()
-            match = suggestion_re.search(title)
+            match = suggestion_re.search(title.lower())
             if match:
                 # group(2) is the ending of the last word (if the word is not finished) or the next word
                 continuation = match.group(2)
