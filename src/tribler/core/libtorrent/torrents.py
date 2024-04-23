@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import logging
 from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
 from os.path import getsize
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, TypedDict
 
 import libtorrent as lt
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +18,7 @@ logger = logging.getLogger(__name__)
 def check_handle(default=None):
     """
     Return the libtorrent handle if it's available, else return the default value.
+
     Author(s): Egbert Bouman
     """
 
@@ -33,6 +37,7 @@ def check_handle(default=None):
 def require_handle(func):
     """
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
+
     Author(s): Egbert Bouman
     """
 
@@ -70,7 +75,7 @@ def require_handle(func):
 
 def check_vod(default=None):
     """
-    Check if torrent is vod mode, else return default
+    Check if torrent is vod mode, else return default.
     """
 
     def wrap(f):
@@ -84,7 +89,7 @@ def check_vod(default=None):
     return wrap
 
 
-def common_prefix(paths_list: List[Path]) -> Path:
+def common_prefix(paths_list: list[Path]) -> Path:
     """
     Get the path prefixes component-wise.
     """
@@ -95,15 +100,34 @@ def common_prefix(paths_list: List[Path]) -> Path:
     return sorted(base_set, reverse=True)[0]
 
 
-def _existing_files(path_list: List[Path]) -> Iterable[Path]:
+def _existing_files(path_list: list[Path]) -> Iterable[Path]:
     for path in path_list:
         if not path.exists():
-            raise OSError(f'Path does not exist: {path}')
+            msg = f"Path does not exist: {path}"
+            raise OSError(msg)
         elif path.is_file():
             yield path
 
 
-def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], torrent_filepath: Optional[str] = None):
+class TorrentFileResult(TypedDict):
+    """
+    A dictionary to describe a newly-created torrent.
+    """
+
+    success: bool
+    base_dir: Path
+    torrent_file_path: str | None
+    metainfo: dict
+    infohash: bytes
+
+
+def create_torrent_file(file_path_list: list[Path], params: Dict[bytes, Any],  # noqa: C901
+                        torrent_filepath: str | None = None) -> TorrentFileResult:
+    """
+    Create a torrent file from the given paths and parameters.
+
+    If an output file path is omitted, no file will be written to disk.
+    """
     fs = lt.file_storage()
 
     # filter all non-files
@@ -117,48 +141,38 @@ def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], to
         relative = path.relative_to(base_dir)
         fs.add_file(str(relative), getsize(str(path)))
 
-    if params.get(b'piece length'):
-        piece_size = params[b'piece length']
-    else:
-        piece_size = 0
-
+    piece_size = params[b"piece length"] if params.get(b"piece length") else 0
     flags = lt.create_torrent_flags_t.optimize
-
-    # This flag doesn't exist anymore in libtorrent V1.1.0
-    if hasattr(lt.create_torrent_flags_t, 'calculate_file_hashes'):
-        flags |= lt.create_torrent_flags_t.calculate_file_hashes
-
-    params = {k: (v.decode('utf-8') if isinstance(v, bytes) else v) for k, v in params.items()}
+    params = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in params.items()}
 
     torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
-    if params.get(b'comment'):
-        torrent.set_comment(params[b'comment'])
-    if params.get(b'created by'):
-        torrent.set_creator(params[b'created by'])
+    if params.get(b"comment"):
+        torrent.set_comment(params[b"comment"])
+    if params.get(b"created by"):
+        torrent.set_creator(params[b"created by"])
     # main tracker
-    if params.get(b'announce'):
-        torrent.add_tracker(params[b'announce'])
+    if params.get(b"announce"):
+        torrent.add_tracker(params[b"announce"])
     # tracker list
-    if params.get(b'announce-list'):
+    if params.get(b"announce-list"):
         tier = 1
-        for tracker in params[b'announce-list']:
+        for tracker in params[b"announce-list"]:
             torrent.add_tracker(tracker[0], tier=tier)
             tier += 1
     # DHT nodes
     # http://www.bittorrent.org/beps/bep_0005.html
-    if params.get(b'nodes'):
-        for node in params[b'nodes']:
+    if params.get(b"nodes"):
+        for node in params[b"nodes"]:
             torrent.add_node(*node)
     # HTTP seeding
     # http://www.bittorrent.org/beps/bep_0017.html
-    if params.get(b'httpseeds'):
-        torrent.add_http_seed(params[b'httpseeds'])
+    if params.get(b"httpseeds"):
+        torrent.add_http_seed(params[b"httpseeds"])
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
-    if len(file_path_list) == 1:
-        if params.get(b'urllist', False):
-            torrent.add_url_seed(params[b'urllist'])
+    if len(file_path_list) == 1 and params.get(b"urllist", False):
+        torrent.add_url_seed(params[b"urllist"])
 
     # read the files and calculate the hashes
     lt.set_piece_hashes(torrent, str(base_dir))
@@ -167,19 +181,19 @@ def create_torrent_file(file_path_list: List[Path], params: Dict[bytes, Any], to
     torrent = lt.bencode(t1)
 
     if torrent_filepath:
-        with open(torrent_filepath, 'wb') as f:
+        with open(torrent_filepath, "wb") as f:
             f.write(torrent)
 
     return {
-        'success': True,
-        'base_dir': base_dir,
-        'torrent_file_path': torrent_filepath,
-        'metainfo': torrent,
-        'infohash': sha1(lt.bencode(t1[b'info'])).digest()
+        "success": True,
+        "base_dir": base_dir,
+        "torrent_file_path": torrent_filepath,
+        "metainfo": torrent,
+        "infohash": sha1(lt.bencode(t1[b"info"])).digest()
     }
 
 
-def get_info_from_handle(handle: lt.torrent_handle) -> Optional[lt.torrent_info]:
+def get_info_from_handle(handle: lt.torrent_handle) -> lt.torrent_info | None:
     """
     Call handle.torrent_file() and handle RuntimeErrors.
     """

@@ -14,17 +14,19 @@ def url_to_path(file_url: str) -> str:
     Convert a URL to a path.
 
     Example:
+    -------
         'file:///path/to/file' -> '/path/to/file'
+
     """
     url = URL(file_url)
 
-    if os.name == 'nt' and url.host:
+    if os.name == "nt" and url.host:
         # UNC file path, \\server\share\path...
         # ref: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
         _, share, *segments = url.parts
-        path = (rf'\\{url.host}\{share}', *segments)
-    elif os.name == 'nt':
-        path = (url.path.lstrip('/'), )
+        path = (rf"\\{url.host}\{share}", *segments)
+    elif os.name == "nt":
+        path = (url.path.lstrip("/"), )
     else:
         path = (url.path, )
 
@@ -42,7 +44,7 @@ async def unshorten(uri: str) -> str:
     if scheme not in ("http", "https"):
         return uri
 
-    logger.info(f'Unshortening URI: {uri}')
+    logger.info("Unshortening URI: %s", uri)
 
     async with ClientSession() as session:
         try:
@@ -50,7 +52,7 @@ async def unshorten(uri: str) -> str:
                 if response.status in (301, 302, 303, 307, 308):
                     uri = response.headers.get(LOCATION, uri)
         except Exception as e:
-            logger.warning(f'Error while unshortening a URI: {e.__class__.__name__}: {e}', exc_info=e)
+            logger.warning("Error while unshortening a URI: %s: %s", e.__class__.__name__, str(e), exc_info=e)
 
-    logger.info(f'Unshorted URI: {uri}')
+    logger.info("Unshorted URI: %s", uri)
     return uri

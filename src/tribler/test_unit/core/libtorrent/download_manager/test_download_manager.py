@@ -479,7 +479,7 @@ class TestDownloadManager(TestBase):
         self.manager.ltsessions[0].get_settings = Mock(return_value=settings)
         self.manager.ltsessions[0].download_rate_limit = functools.partial(settings.get, "download_rate_limit")
 
-        self.manager.set_download_rate_limit(42, 0)
+        self.manager.set_download_rate_limit(42)
 
         self.assertEqual(42, self.manager.get_download_rate_limit())
 
@@ -491,6 +491,6 @@ class TestDownloadManager(TestBase):
         self.manager.ltsessions[0].get_settings = Mock(return_value=settings)
         self.manager.ltsessions[0].upload_rate_limit = functools.partial(settings.get, "upload_rate_limit")
 
-        self.manager.set_upload_rate_limit(42, 0)
+        self.manager.set_upload_rate_limit(42)
 
         self.assertEqual(42, self.manager.get_upload_rate_limit())

@@ -6,18 +6,24 @@ from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from copy import deepcopy
 from ssl import SSLError
+from typing import TYPE_CHECKING, Iterable
 
 import libtorrent as lt
-from aiohttp import (BaseConnector, ClientConnectorError, ClientResponseError, ClientSession, ClientTimeout,
-                     ServerConnectionError, web)
-from aiohttp.typedefs import LooseHeaders
+from aiohttp import (
+    BaseConnector,
+    ClientConnectorError,
+    ClientResponseError,
+    ClientSession,
+    ClientTimeout,
+    ServerConnectionError,
+    web,
+)
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
 from yarl import URL
 
 from tribler.core.database.orm_bindings.torrent_metadata import tdef_to_metadata_dict
-from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification
@@ -28,10 +34,16 @@ from tribler.core.restapi.rest_endpoint import (
     RESTResponse,
 )
 
+if TYPE_CHECKING:
+    from aiohttp.abc import Request
+    from aiohttp.typedefs import LooseHeaders
+
+    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+
 logger = logging.getLogger(__name__)
 
 
-def recursive_unicode(obj, ignore_errors=False):
+def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
     """
     Converts any bytes within a data structure to unicode strings. Bytes are assumed to be UTF-8 encoded text.
 
@@ -40,9 +52,9 @@ def recursive_unicode(obj, ignore_errors=False):
     """
     if isinstance(obj, dict):
         return {recursive_unicode(k, ignore_errors): recursive_unicode(v, ignore_errors) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [recursive_unicode(i, ignore_errors) for i in obj]
-    elif isinstance(obj, bytes):
+    if isinstance(obj, bytes):
         try:
             return obj.decode()
         except UnicodeDecodeError:
@@ -54,53 +66,63 @@ def recursive_unicode(obj, ignore_errors=False):
 
 async def query_uri(uri: str, connector: BaseConnector | None = None, headers: LooseHeaders | None = None,
                     timeout: ClientTimeout | None = None, return_json: bool = False, ) -> bytes | dict:
-    kwargs = {'headers': headers}
+    """
+    Retrieve the response for the given aiohttp context.
+    """
+    kwargs = {"headers": headers}
     if timeout:
         # ClientSession uses a sentinel object for the default timeout. Therefore, it should only be specified if an
         # actual value has been passed to this function.
-        kwargs['timeout'] = timeout
+        kwargs["timeout"] = timeout
 
-    async with ClientSession(connector=connector, raise_for_status=True) as session:
-        async with await session.get(uri, **kwargs) as response:
-            if return_json:
-                return await response.json(content_type=None)
-            return await response.read()
+    async with ClientSession(connector=connector, raise_for_status=True) as session, \
+            await session.get(uri, **kwargs) as response:
+        if return_json:
+            return await response.json(content_type=None)
+        return await response.read()
 
 
 class TorrentInfoEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
-    path = '/torrentinfo'
 
-    def __init__(self, download_manager: DownloadManager):
+    path = "/torrentinfo"
+
+    def __init__(self, download_manager: DownloadManager) -> None:
+        """
+        Create a new torrent info endpoint.
+        """
         super().__init__()
         self.download_manager = download_manager
-        self.app.add_routes([web.get('', self.get_torrent_info)])
+        self.app.add_routes([web.get("", self.get_torrent_info)])
 
     @docs(
         tags=["Libtorrent"],
         summary="Return metainfo from a torrent found at a provided URI.",
         parameters=[{
-            'in': 'query',
-            'name': 'torrent',
-            'description': 'URI for which to return torrent information. This URI can either represent '
-                           'a file location, a magnet link or a HTTP(S) url.',
-            'type': 'string',
-            'required': True
+            "in": "query",
+            "name": "torrent",
+            "description": "URI for which to return torrent information. This URI can either represent "
+                           "a file location, a magnet link or a HTTP(S) url.",
+            "type": "string",
+            "required": True
         }],
         responses={
             200: {
-                'description': 'Return a hex-encoded json-encoded string with torrent metainfo',
-                "schema": schema(GetMetainfoResponse={'metainfo': String})
+                "description": "Return a hex-encoded json-encoded string with torrent metainfo",
+                "schema": schema(GetMetainfoResponse={"metainfo": String})
             }
         }
     )
-    async def get_torrent_info(self, request):
+    async def get_torrent_info(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0911, PLR0912, PLR0915
+        """
+        Return metainfo from a torrent found at a provided URI.
+        """
         params = request.query
-        hops = params.get('hops')
-        uri = params.get('uri')
-        self._logger.info(f'URI: {uri}')
+        hops = params.get("hops")
+        uri = params.get("uri")
+        self._logger.info("URI: %s", uri)
         if hops:
             try:
                 hops = int(hops)
@@ -126,7 +148,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 response = await query_uri(uri)
             except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError,
                     AsyncTimeoutError, ValueError) as e:
-                self._logger.warning(f'Error while querying http uri: {e}')
+                self._logger.warning("Error while querying http uri: %s", str(e))
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
             if response.startswith(b'magnet'):
@@ -148,7 +170,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             else:
                 metainfo = lt.bdecode(response)
         elif scheme == "magnet":
-            self._logger.info(f'magnet scheme detected')
+            self._logger.info("magnet scheme detected")
 
             try:
                 try:
@@ -169,7 +191,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         if not metainfo:
             return RESTResponse({"error": "metainfo error"}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        if not isinstance(metainfo, dict) or b'info' not in metainfo:
+        if not isinstance(metainfo, dict) or b"info" not in metainfo:
             self._logger.warning("Received metainfo is not a valid dictionary")
             return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
 

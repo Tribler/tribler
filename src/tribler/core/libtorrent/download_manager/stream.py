@@ -20,11 +20,17 @@ from __future__ import annotations
 
 import logging
 from asyncio import sleep
-from types import TracebackType
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
+
+from typing_extensions import Self
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
-from tribler.core.libtorrent.torrents import check_vod, get_info_from_handle
+from tribler.core.libtorrent.torrents import check_vod
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from tribler.core.libtorrent.download_manager.download import Download
 
 # Header and footer sizes are necessary for video client to detect file codecs and muxer metadata.
 # Without below pieces are ready, streamer should not start
@@ -54,11 +60,15 @@ MIN_PIECE_PRIO = 1
 
 
 class NotStreamingError(Exception):
-    pass
+    """
+    An attempt was made to create a chunk for no stream.
+    """
 
 
 class NoAvailableStreamError(Exception):
-    pass
+    """
+    An attempt was made to create a stream for no files.
+    """
 
 
 class Stream:
@@ -66,7 +76,10 @@ class Stream:
     Holds the streaming status of a specific download.
     """
 
-    def __init__(self, download):
+    def __init__(self, download: Download) -> None:
+        """
+        Create a stream for the given download.
+        """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.infohash = None
         self.filename = None
@@ -106,7 +119,7 @@ class Stream:
         self.__resetdeadline = download.reset_piece_deadline
         self.__resumedownload = download.resume
 
-    async def __prepare(self, download):
+    async def __prepare(self, download: Download) -> None:
         # wait for an handle first
         await download.get_handle()
         self.destdir = download.get_content_dest()
@@ -123,7 +136,7 @@ class Stream:
         self.infohash = tdef.get_infohash()
         self.mapfile = tdef.torrent_info.map_file
 
-    async def enable(self, fileindex=0, prebufpos=None):
+    async def enable(self, fileindex: int = 0, prebufpos: int | None = None) -> None:
         """
         Enable streaming mode for a given fileindex.
         """
@@ -133,7 +146,7 @@ class Stream:
 
         # if fileindex not available for torrent raise exception
         if fileindex >= len(self.files):
-            raise NoAvailableStreamError()
+            raise NoAvailableStreamError
 
         # if download is stopped for some reason, resume it.
         self.__resumedownload()
@@ -157,7 +170,7 @@ class Stream:
                 # if the prebuffposiiton is updated, update the static prebuff pieces
                 currrent_prebuf = list(self.prebuffpieces)
                 currrent_prebuf.extend(self.bytestopieces(prebufpos, self.prebuffsize))
-                self.prebuffpieces = sorted(list(set(currrent_prebuf)))
+                self.prebuffpieces = sorted(set(currrent_prebuf))
             return
 
         # update the file name and size with the file index
@@ -183,7 +196,7 @@ class Stream:
     @property
     def enabled(self) -> bool:
         """
-        Check if stream is enabled
+        Check if stream is enabled.
         """
         return self.infohash is not None and self.fileindex is not None
 
@@ -191,7 +204,7 @@ class Stream:
     @check_vod(0)
     def headerprogress(self) -> float:
         """
-        Get current progress of downloaded header pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded header pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.headerpieces, False)
 
@@ -199,7 +212,7 @@ class Stream:
     @check_vod(0)
     def footerprogress(self) -> float:
         """
-        Get current progress of downloaded footer pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded footer pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.footerpieces, False)
 
@@ -207,7 +220,7 @@ class Stream:
     @check_vod(0)
     def prebuffprogress(self) -> float:
         """
-        Get current progress of downloaded prebuff pieces of the enabled stream, if not enabled returns 0
+        Get current progress of downloaded prebuff pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.prebuffpieces, False)
 
@@ -215,7 +228,7 @@ class Stream:
     @check_vod(0)
     def prebuffprogress_consec(self) -> float:
         """
-        Get current progress of cosequently downloaded prebuff pieces of the enabled stream, if not enabled returns 0
+        Get current progress of cosequently downloaded prebuff pieces of the enabled stream, if not enabled returns 0.
         """
         return self.calculateprogress(self.prebuffpieces, True)
 
@@ -223,14 +236,14 @@ class Stream:
     @check_vod([])
     def pieceshave(self) -> list[int]:
         """
-        Get a list of Booleans indicating that individual pieces of the selected fileindex has been downloaded or not
+        Get a list of Booleans indicating that individual pieces of the selected fileindex has been downloaded or not.
         """
         return self.__lt_state().get_pieces_complete()
 
     @check_vod(True)
     def disable(self) -> None:
         """
-        Stop Streaming
+        Stop Streaming.
         """
         self.fileindex = None
         self.headerpieces = []
@@ -242,7 +255,7 @@ class Stream:
 
     def close(self) -> None:
         """
-        Close this class gracefully
+        Close this class gracefully.
         """
         # Close the coroutine. Unnecessary calls should be harmless.
         self.__prepare_coro.close()
@@ -251,7 +264,7 @@ class Stream:
     @check_vod([])
     def bytestopieces(self, bytes_begin: int, bytes_end: int) -> list[int]:
         """
-        Returns the pieces that represents the given byte range
+        Returns the pieces that represents the given byte range.
         """
         bytes_begin = min(self.filesize, bytes_begin) if bytes_begin >= 0 else self.filesize + bytes_begin
         bytes_end = min(self.filesize, bytes_end) if bytes_end > 0 else self.filesize + bytes_end
@@ -265,7 +278,7 @@ class Stream:
     @check_vod(-1)
     def bytetopiece(self, byte_begin: int) -> int:
         """
-        Finds the piece position that begin_bytes is mapped to
+        Finds the piece position that begin_bytes is mapped to.
         """
         return self.mapfile(self.fileindex, byte_begin, 0).piece
 
@@ -273,7 +286,7 @@ class Stream:
     def calculateprogress(self, pieces: list[int], consec: bool) -> float:
         """
         Claculates the download progress of a given piece list.
-        if consec is True, calcaulation is based only the pieces downloaded sequentially
+        if consec is True, calcaulation is based only the pieces downloaded sequentially.
         """
         if not pieces:
             return 1.0
@@ -289,7 +302,7 @@ class Stream:
     def iterpieces(self, have: bool | None = None, consec: bool = False,
                    startfrom: int | None = None) -> Generator[int, None, None]:
         """
-        Generator function that yield the pieces for the active fileindex
+        Generator function that yield the pieces for the active fileindex.
 
         :param have: None: nofilter, True: only pieces we have, False: only pieces we dont have
         :param consec: True: sequentially, False: all pieces
@@ -300,29 +313,25 @@ class Stream:
         for piece in range(self.firstpiece, self.lastpiece + 1):
             if startfrom is not None and piece < startfrom:
                 continue
-            if have is None:
-                yield piece
-            elif have and pieces_have[piece]:
-                yield piece
-            elif not have and not pieces_have[piece]:
+            if have is None or have and pieces_have[piece] or not have and not pieces_have[piece]:
                 yield piece
             elif consec:
                 break
 
-    async def updateprios(self):
+    async def updateprios(self) -> None:  # noqa: C901, PLR0912, PLR0915
         """
         This async function controls how the individual piece priority and deadline is configured.
         This method is called when a stream in enabled, and when a chunk reads the stream each time.
-        The performance of this method is crucical since it gets called quite frequently
+        The performance of this method is crucical since it gets called quite frequently.
         """
         if not self.enabled:
             return
 
-        def _updateprio(piece, prio, deadline=None):
+        def _updateprio(piece: int, prio: int, deadline: int | None = None) -> None:
             """
-            Utility function to update piece priorities
+            Utility function to update piece priorities.
             """
-            if not curr_prio == prio:
+            if curr_prio != prio:
                 piecepriorities[piece] = prio
                 if deadline is not None:
                     # it is cool to step deadlines with 10ms interval but in realty there is no need.
@@ -332,10 +341,10 @@ class Stream:
                     self.__resetdeadline(piece)
                     diffmap[piece] = f"{piece}:-:{curr_prio}->{prio}"
 
-        def _find_deadline(piece):
+        def _find_deadline(piece: int) -> tuple[int, int]:
             """
-            Find the cursor which has this piece closest to its start
-            Returns the deadline for the piece and the cursor startbyte
+            Find the cursor which has this piece closest to its start.
+            Returns the deadline for the piece and the cursor startbyte.
             """
             # if piece is not in piecemaps, then there is no deadline
             # if piece in piecemaps, then the deadline is the index of the related piecemap
@@ -370,23 +379,22 @@ class Stream:
             elif piece in self.prebuffpieces:
                 _updateprio(piece, 7, 2)
                 staticbuff = True
+            elif staticbuff:
+                _updateprio(piece, 0)
             else:
-                if staticbuff:
-                    _updateprio(piece, 0)
-                else:
-                    # dynamic buffering
-                    deadline, cursor = _find_deadline(piece)
-                    if cursor is not None:
-                        if deadline < len(DEADLINE_PRIO_MAP):
-                            # get prio according to deadline
-                            _updateprio(piece, DEADLINE_PRIO_MAP[deadline], deadline)
-                        else:
-                            # the deadline is outside of map, set piece prio 1 with the deadline
-                            # buffer size is bigger then prio_map
-                            _updateprio(piece, 1, deadline)
+                # dynamic buffering
+                deadline, cursor = _find_deadline(piece)
+                if cursor is not None:
+                    if deadline < len(DEADLINE_PRIO_MAP):
+                        # get prio according to deadline
+                        _updateprio(piece, DEADLINE_PRIO_MAP[deadline], deadline)
                     else:
-                        # the piece is not in buffer zone, set to min prio without deadline
-                        _updateprio(piece, MIN_PIECE_PRIO)
+                        # the deadline is outside of map, set piece prio 1 with the deadline
+                        # buffer size is bigger then prio_map
+                        _updateprio(piece, 1, deadline)
+                else:
+                    # the piece is not in buffer zone, set to min prio without deadline
+                    _updateprio(piece, MIN_PIECE_PRIO)
         if diffmap:
             # log stuff
             self._logger.info("Piece Piority changed: %s", repr(diffmap))
@@ -399,10 +407,10 @@ class Stream:
             self._logger.debug("Current Prios: %s", [(x, piecepriorities[x]) for x in self.iterpieces(have=False)])
             self.__setpieceprios(piecepriorities)
 
-    def resetprios(self, pieces=None, prio=None):
+    def resetprios(self, pieces: list[int] | None = None, prio: int | None = None) -> None:
         """
         Resets the prios and deadline of the pieces of the active fileindex,
-        If no pieces are provided, resets every piece for the fileindex
+        If no pieces are provided, resets every piece for the fileindex.
         """
         prio = prio if prio is not None else 4
         piecepriorities = self.__getpieceprios()
@@ -428,7 +436,7 @@ class StreamChunk:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         if not stream.enabled:
-            raise NotStreamingError()
+            raise NotStreamingError
         self.stream = stream
         self.file = None
         self.startpos = startpos
@@ -441,7 +449,7 @@ class StreamChunk:
         """
         return self.__seekpos
 
-    async def __aenter__(self) -> StreamChunk:
+    async def __aenter__(self) -> Self:
         """
         Open the chunk.
         """
@@ -458,28 +466,31 @@ class StreamChunk:
 
     async def open(self) -> None:
         """
-        Opens the file in the filesystem until its ready and seeks to the seekpos position
+        Opens the file in the filesystem until its ready and seeks to the seekpos position.
         """
         while not self.stream.filename.exists():
             await sleep(1)
-        self.file = open(self.stream.filename, 'rb')
+        self.file = open(self.stream.filename, 'rb')  # noqa: ASYNC101, SIM115
         self.file.seek(self.seekpos)
 
     @property
     def isclosed(self) -> bool:
+        """
+        Check if the file (if it exists) belonging to this chunk is closed.
+        """
         return self.file is None or self.file.closed
 
     @property
     def isstarted(self) -> bool:
         """
-        Checks if the this chunk has already registered itself to stream instance
+        Checks if the this chunk has already registered itself to stream instance.
         """
         return self.startpos in self.stream.cursorpiecemap
 
     @property
     def ispaused(self) -> bool:
         """
-        Checks if the chunk is in paused state
+        Checks if the chunk is in paused state.
         """
         if self.isstarted and self.stream.cursorpiecemap[self.startpos][0]:
             return True
@@ -489,7 +500,7 @@ class StreamChunk:
     def shouldpause(self) -> bool:
         """
         Checks if this chunk should pause, based on the desicion that
-        any other chunks also is streaming the same torrent or not
+        any other chunks also is streaming the same torrent or not.
         """
         for spos in self.stream.cursorpiecemap:
             if spos == self.startpos:
@@ -501,7 +512,7 @@ class StreamChunk:
 
     def pause(self, force: bool = False) -> bool:
         """
-        Sets the chunk pieces to pause, if not forced, chunk is only paused if other chunks are not paused
+        Sets the chunk pieces to pause, if not forced, chunk is only paused if other chunks are not paused.
         """
         if not self.ispaused and (self.shouldpause or force):
             self.stream.cursorpiecemap[self.startpos][0] = True
@@ -510,7 +521,7 @@ class StreamChunk:
 
     def resume(self, force: bool = False) -> bool:
         """
-        Sets the chunk pieces to resume, if not forced, chunk is only resume if other chunks are paused
+        Sets the chunk pieces to resume, if not forced, chunk is only resume if other chunks are paused.
         """
         if self.ispaused and (not self.shouldpause or force):
             self.stream.cursorpiecemap[self.startpos][0] = False
@@ -519,8 +530,8 @@ class StreamChunk:
 
     async def seek(self, positionbyte: int) -> list[int]:
         """
-        Seeks the stream to the related picece that represents the position byte
-        Also updates the dynamic buffer accordingly
+        Seeks the stream to the related picece that represents the position byte.
+        Also updates the dynamic buffer accordingly.
         """
         buffersize = 0
         pospiece = self.stream.bytetopiece(positionbyte)

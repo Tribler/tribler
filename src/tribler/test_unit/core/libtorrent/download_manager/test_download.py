@@ -688,8 +688,8 @@ class TestDownload(TestBase):
 
         result = download.get_tracker_status()
 
-        self.assertEqual([42, "Disabled"], result["[DHT]"])
-        self.assertEqual([7, "Working"], result["[PeX]"])
+        self.assertEqual((42, "Disabled"), result["[DHT]"])
+        self.assertEqual((7, "Working"), result["[PeX]"])
 
     def test_get_tracker_status_get_peer_info_error(self) -> None:
         """
@@ -703,8 +703,8 @@ class TestDownload(TestBase):
 
         result = download.get_tracker_status()
 
-        self.assertEqual([0, "Working"], result["[DHT]"])
-        self.assertEqual([0, "Working"], result["[PeX]"])
+        self.assertEqual((0, "Working"), result["[DHT]"])
+        self.assertEqual((0, "Working"), result["[PeX]"])
 
     async def test_shutdown(self) -> None:
         """

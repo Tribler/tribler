@@ -10,13 +10,19 @@ import math
 from enum import Enum
 from typing import TYPE_CHECKING
 
-import libtorrent
-
 if TYPE_CHECKING:
-    from tribler.core.libtorrent.download_manager.download import Download
+    from pathlib import Path
+
+    import libtorrent
+
+    from tribler.core.libtorrent.download_manager.download import Download, PeerDict, PeerDictHave
 
 
 class DownloadStatus(Enum):
+    """
+    The libtorrent status for a download.
+    """
+
     ALLOCATING_DISKSPACE = 0
     WAITING_FOR_HASHCHECK = 1
     HASHCHECKING = 2
@@ -54,7 +60,7 @@ class DownloadState:
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download: Download, lt_status: libtorrent.torrent_status, error) -> None:
+    def __init__(self, download: Download, lt_status: libtorrent.torrent_status, error: str | None) -> None:
         """
         Internal constructor.
 
@@ -71,8 +77,7 @@ class DownloadState:
         """
         Create a pretty printed string.
         """
-        return "DownloadState(infohash=%s, lt_status=%s, error=%s)" % \
-            (self.download.tdef.infohash, str(self.lt_status), str(self.error))
+        return f"DownloadState(infohash={self.download.tdef.infohash}, lt_status={self.lt_status}, error={self.error})"
 
     def get_download(self) -> Download:
         """
@@ -103,16 +108,19 @@ class DownloadState:
             return DownloadStatus.STOPPED_ON_ERROR
         return DownloadStatus.STOPPED
 
-    def get_error(self):
-        """ Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
-        @return An error message
+    def get_error(self) -> str:
+        """
+        Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
+
+        :return: An error message
         """
         return self.error or (self.lt_status.error if self.lt_status and self.lt_status.error else None)
 
-    def get_current_speed(self, direct):
+    def get_current_speed(self, direct: str) -> int:
         """
         Returns the current up or download speed.
-        @return The speed in bytes/s.
+
+        :return: The speed in bytes/s.
         """
         if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0
@@ -120,10 +128,11 @@ class DownloadState:
             return self.lt_status.upload_rate
         return self.lt_status.download_rate
 
-    def get_current_payload_speed(self, direct):
+    def get_current_payload_speed(self, direct: str) -> int:
         """
         Returns the current up or download payload speed.
-        @return The speed in bytes/s.
+
+        :return: The speed in bytes/s.
         """
         if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0
@@ -209,22 +218,27 @@ class DownloadState:
 
         return self.all_time_upload / self.all_time_download
 
-    def get_seeding_time(self):
+    def get_seeding_time(self) -> int:
+        """
+        The active time (not paused), while finished and while being a seed, in seconds.
+        """
         return self.lt_status.finished_time if self.lt_status else 0
 
-    def get_eta(self):
+    def get_eta(self) -> float:
         """
         Returns the estimated time to finish of download.
-        @return The time in ?, as ?.
+
+        :return: The time in ?, as ?.
         """
         return (1.0 - self.get_progress()) * (float(self.download.get_def().get_length()) /
                                               max(0.000001, self.lt_status.download_rate)) \
             if self.lt_status else 0.0
 
-    def get_num_seeds_peers(self):
+    def get_num_seeds_peers(self) -> tuple[int, int]:
         """
         Returns the sum of the number of seeds and peers.
-        @return A tuple (num seeds, num peers)
+
+        :return: A tuple (num seeds, num peers)
         """
         if not self.lt_status or self.get_status() not in [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING]:
             return 0, 0
@@ -244,16 +258,19 @@ class DownloadState:
         """
         return self.lt_status.pieces if self.lt_status else []
 
-    def get_pieces_total_complete(self):
-        """ Returns the number of total and completed pieces
-        @return A tuple containing two integers, total and completed nr of pieces
+    def get_pieces_total_complete(self) -> tuple[int, int]:
+        """
+        Returns the number of total and completed pieces.
+
+        :return: A tuple containing two integers, total and completed nr of pieces
         """
         return (len(self.lt_status.pieces), sum(self.lt_status.pieces)) if self.lt_status else (0, 0)
 
-    def get_files_completion(self):
-        """ Returns a list of filename, progress tuples indicating the progress
+    def get_files_completion(self) -> list[tuple[Path, float]]:
+        """
+        Returns a list of filename, progress tuples indicating the progress
         for every file selected using set_selected_files. Progress is a float
-        between 0 and 1
+        between 0 and 1.
         """
         completion = []
 
@@ -272,12 +289,14 @@ class DownloadState:
 
         return completion
 
-    def get_selected_files(self):
+    def get_selected_files(self) -> list[int] | None:
+        """
+        Get the selection status of the download's files, or None if it is not available.
+        """
         selected_files = self.download.config.get_selected_files()
-        if len(selected_files) > 0:
-            return selected_files
+        return selected_files if len(selected_files) > 0 else None
 
-    def get_availability(self):
+    def get_availability(self) -> float:
         """
         Return the overall availability of all pieces, using connected peers.
 
@@ -315,7 +334,7 @@ class DownloadState:
             return nr_seeders_complete + nr_leechers_complete + fraction_additonal
         return nr_seeders_complete
 
-    def get_peer_list(self, include_have: bool = True):
+    def get_peer_list(self, include_have: bool = True) -> list[PeerDict | PeerDictHave]:
         """
         Returns a list of dictionaries, one for each connected peer, containing the statistics for that peer.
         """
