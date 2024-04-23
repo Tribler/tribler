@@ -3,10 +3,14 @@ from __future__ import annotations
 import os
 import re
 from bisect import bisect
-from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generator, Sequence, cast, ItemsView, Dict
+from typing import TYPE_CHECKING, Dict, Generator, ItemsView, Sequence, cast
+
+if TYPE_CHECKING:
+    from collections import defaultdict
+
+    import libtorrent
 
 
 class TorrentFileTree:
@@ -25,11 +29,11 @@ class TorrentFileTree:
         collapsed: bool = True
         size: int = 0
 
-        def calc_size(self):
+        def calc_size(self) -> None:
             """
             Calculate the size of this Directory, assuming all subdirectories already have their size calculated.
             """
-            self.size = sum(dir.size for dir in self.directories.values()) + sum(f.size for f in self.files)
+            self.size = sum(d.size for d in self.directories.values()) + sum(f.size for f in self.files)
 
         def iter_dirs(self) -> Generator[TorrentFileTree.Directory, None, None]:
             """
@@ -38,8 +42,7 @@ class TorrentFileTree:
             We do it this way so that calc_size() can be easily/efficiently executed!
             """
             for directory in self.directories.values():
-                for entry in directory.iter_dirs():
-                    yield entry
+                yield from directory.iter_dirs()
             yield self
 
         def tostr(self, depth: int = 0, name: str = "") -> str:
@@ -67,6 +70,7 @@ class TorrentFileTree:
         """
         A File object that has a name (relative to its parent directory) and a file index in the torrent's file list.
         """
+
         name: str
         index: int
         size: int = 0
@@ -86,43 +90,43 @@ class TorrentFileTree:
             """
             return tuple(int(part) if part.isdigit() else part for part in self._sort_pattern.split(self.name))
 
-        def __lt__(self, other) -> bool:
+        def __lt__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() < other.sort_key()
 
-        def __le__(self, other) -> bool:
+        def __le__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() <= other.sort_key()
 
-        def __gt__(self, other) -> bool:
+        def __gt__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() > other.sort_key()
 
-        def __ge__(self, other) -> bool:
+        def __ge__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() >= other.sort_key()
 
-        def __eq__(self, other) -> bool:
+        def __eq__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() == other.sort_key()
 
-        def __ne__(self, other) -> bool:
+        def __ne__(self, other: TorrentFileTree.File) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
             return self.sort_key() != other.sort_key()
 
-    def __init__(self, file_storage) -> None:
+    def __init__(self, file_storage: libtorrent.file_storage) -> None:
         """
         Construct an empty tree data structure belonging to the given file storage.
 
@@ -140,7 +144,7 @@ class TorrentFileTree:
         return f"TorrentFileTree({self.root.tostr()}\n)"
 
     @classmethod
-    def from_lt_file_storage(cls, file_storage):
+    def from_lt_file_storage(cls: type[TorrentFileTree], file_storage: libtorrent.file_storage) -> TorrentFileTree:
         """
         Load in the tree contents from the given file storage, sorting the files in each directory.
         """
