@@ -22,7 +22,7 @@ def get_base_path():
     return Path(fixed_filename)
 
 
-def get_lib_path():
+def get_core_path():
     if is_frozen():
         return get_base_path() / 'tribler_source/tribler/core'
     return get_base_path()

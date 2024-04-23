@@ -4,9 +4,9 @@ import pytest
 
 from tribler.core.exceptions import OperationNotPossibleAtRuntimeException
 from tribler.core.utilities.configparser import CallbackConfigParser
-from tribler.core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_core_path
 
-CONFIG_FILES_DIR = get_lib_path() / "tests/tools/data/config_files/"
+CONFIG_FILES_DIR = get_core_path() / "tests/tools/data/config_files/"
 
 
 def test_configparser_config1():

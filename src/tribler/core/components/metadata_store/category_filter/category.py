@@ -9,10 +9,10 @@ from functools import cmp_to_key
 
 from tribler.core.components.metadata_store.category_filter.family_filter import default_xxx_filter
 from tribler.core.components.metadata_store.category_filter.init_category import getCategoryInfo
-from tribler.core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_core_path
 from tribler.core.utilities.unicode import recursive_unicode
 
-CATEGORY_CONFIG_FILE = get_lib_path() / 'components/metadata_store/category_filter/category.conf'
+CATEGORY_CONFIG_FILE = get_core_path() / 'components/metadata_store/category_filter/category.conf'
 
 
 def cmp_rank(a, b):
