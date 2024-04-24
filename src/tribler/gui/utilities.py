@@ -27,6 +27,8 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.utilities.install_dir import get_base_path
+from tribler.core.utilities.utilities import is_frozen
 from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off
@@ -194,17 +196,14 @@ def duration_to_string(seconds):
     return tr("%(seconds)is") % data
 
 
-def get_base_path():
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.dirname(tribler.gui.__file__)
-    return base_path
+def get_gui_path():
+    """ Get absolute path to resource, works for dev and for PyInstaller/cx_freeze"""
+    if is_frozen():
+        return get_base_path() / 'tribler_source/tribler/gui'
+    return get_base_path() / 'gui'
 
 
-TRANSLATIONS_DIR = os.path.join(get_base_path(), "i18n")
+TRANSLATIONS_DIR = os.path.join(get_gui_path(), "i18n")
 
 
 def get_available_translations():
@@ -224,7 +223,7 @@ AVAILABLE_TRANSLATIONS = get_available_translations()
 
 
 def get_ui_file_path(filename):
-    return os.path.join(get_base_path(), 'qt_resources', filename)
+    return os.path.join(get_gui_path(), 'qt_resources', filename)
 
 
 def get_image_path(filename: str, convert_slashes_to_forward: bool = False) -> str:
@@ -235,7 +234,7 @@ def get_image_path(filename: str, convert_slashes_to_forward: bool = False) -> s
     This can be used to ensure that images on Windows can be correctly loaded.
     Also see https://stackoverflow.com/questions/26121737/qt-stylesheet-background-image-from-filepath.
     """
-    path = os.path.join(get_base_path(), 'images', filename)
+    path = os.path.join(get_gui_path(), 'images', filename)
     if convert_slashes_to_forward:
         path = path.replace("\\", "/")
     return path
@@ -245,7 +244,7 @@ def get_font_path(filename: str) -> str:
     """
     Return a path to a particular font in the fonts directory.
     """
-    return os.path.join(get_base_path(), 'fonts', filename)
+    return os.path.join(get_gui_path(), 'fonts', filename)
 
 
 def get_gui_setting(gui_settings, value, default, is_bool=False):

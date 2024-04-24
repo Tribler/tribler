@@ -195,12 +195,13 @@ def is_frozen():
     """
     Return whether we are running in a frozen environment
     """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        sys._MEIPASS  # pylint: disable=protected-access
-    except Exception:  # pylint: disable=broad-except
-        return False
-    return True
+    if hasattr(sys, '_MEIPASS'):
+        return True  # PyInstaller creates a temp folder and stores path in _MEIPASS
+
+    if getattr(sys, 'frozen', False):
+        return True  # cx_freeze creates 'frozen' attribute
+
+    return False
 
 
 fts_query_re = re.compile(r'\w+', re.UNICODE)
