@@ -132,10 +132,14 @@ class ContentDiscoveryCommunity(Community):
         """
         Gossip random torrent health information to another peer.
         """
-        if not self.get_peers() or not self.composition.torrent_checker:
+        peers = self.get_peers()
+        if not peers or not self.composition.torrent_checker:
             return
 
-        self.ez_send(random.choice(self.get_peers()), TorrentsHealthPayload.create(self.get_random_torrents(), {}))
+        self.ez_send(random.choice(peers), TorrentsHealthPayload.create(self.get_random_torrents(), {}))
+
+        for p in random.sample(peers, min(len(peers), 5)):
+            self.ez_send(p, PopularTorrentsRequest())
 
     @lazy_wrapper(TorrentsHealthPayload)
     async def on_torrents_health(self, peer, payload: TorrentsHealthPayload):
