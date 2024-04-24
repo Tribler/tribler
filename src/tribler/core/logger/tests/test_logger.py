@@ -1,3 +1,4 @@
+import sys
 from io import BytesIO, TextIOWrapper
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -6,15 +7,22 @@ from tribler.core.logger.logger_streams import StreamWrapper
 from tribler.core.utilities.path_util import Path
 
 
-@patch('tribler.core.logger.logger.__file__', '/a/b/c/logger.py')
+@patch('tribler.core.__file__', 'xyz/tribler/core/__init__.py')
 def test_get_logger_config_path():
     config_path = get_logger_config_path()
     # take the last part of the path to ignore a drive name on Windows
-    assert config_path.parts[-4:] == ('a', 'b', 'c', 'logger.yaml')
+    assert config_path.parts[-4:] == ('tribler', 'core', 'logger', 'logger.yaml')
+
+    win_prefix = '//?/' if sys.platform.startswith('win') else ''  # added by Path.fix_win_long_file in get_base_path
+
+    with patch('sys.frozen', True, create=True):
+        with patch('sys.executable', '/a/b/c/tribler.exe', create=True):
+            config_path = get_logger_config_path()
+            assert config_path == Path(win_prefix + '/a/b/c/tribler_source/tribler/core/logger/logger.yaml')
 
     with patch('sys._MEIPASS', '/x/y/z/', create=True):
         config_path = get_logger_config_path()
-        assert config_path == Path('/x/y/z/tribler_source/tribler/core/logger/logger.yaml')
+        assert config_path == Path(win_prefix + '/x/y/z/tribler_source/tribler/core/logger/logger.yaml')
 
 
 @patch('logging.basicConfig')

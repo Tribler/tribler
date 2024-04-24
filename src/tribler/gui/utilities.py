@@ -27,6 +27,8 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 
 import tribler.gui
 from tribler.core.components.knowledge.db.knowledge_db import ResourceType
+from tribler.core.utilities.install_dir import get_base_path
+from tribler.core.utilities.utilities import is_frozen
 from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
 
 # fmt: off
@@ -195,13 +197,10 @@ def duration_to_string(seconds):
 
 
 def get_gui_path():
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.dirname(tribler.gui.__file__)
-    return base_path
+    """ Get absolute path to resource, works for dev and for PyInstaller/cx_freeze"""
+    if is_frozen():
+        return get_base_path() / 'tribler_source/tribler/gui'
+    return get_base_path() / 'gui'
 
 
 TRANSLATIONS_DIR = os.path.join(get_gui_path(), "i18n")
