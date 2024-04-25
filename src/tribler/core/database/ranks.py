@@ -3,10 +3,11 @@ Search utilities.
 
 Author(s): Jelle Roozenburg, Arno Bakker, Alexander Kozlovsky
 """
+from __future__ import annotations
+
 import re
 import time
 from collections import deque
-from typing import Deque, List, Optional, Tuple
 
 SECONDS_IN_DAY = 60 * 60 * 24
 
@@ -20,16 +21,15 @@ def item_rank(query: str, item: dict) -> float:
                  Should include key `name`, can include `num_seeders`, `num_leechers`, `created`
     :return: the torrent rank value in range [0, 1]
     """
-    title = item['name']
-    seeders = item.get('num_seeders', 0)
-    leechers = item.get('num_leechers', 0)
-    created = item.get('created', 0)
+    title = item["name"]
+    seeders = item.get("num_seeders", 0)
+    leechers = item.get("num_leechers", 0)
+    created = item.get("created", 0)
     freshness = None if created <= 0 else time.time() - created
     return torrent_rank(query, title, seeders, leechers, freshness)
 
 
-def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0,
-                 freshness: Optional[float] = None) -> float:
+def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, freshness: float | None = None) -> float:
     """
     Calculates search rank for a torrent.
 
@@ -45,9 +45,8 @@ def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0,
     tr = title_rank(query or '', title or '')
     sr = (seeders_rank(seeders or 0, leechers or 0) + 9) / 10  # range [0.9, 1]
     fr = (freshness_rank(freshness) + 9) / 10  # range [0.9, 1]
-    result = tr * sr * fr
+    return tr * sr * fr
 
-    return result
 
 
 def seeders_rank(seeders: int, leechers: int = 0) -> float:
@@ -62,9 +61,9 @@ def seeders_rank(seeders: int, leechers: int = 0) -> float:
     return sl / (100 + sl)
 
 
-def freshness_rank(freshness: Optional[float]) -> float:
+def freshness_rank(freshness: float | None) -> float:
     """
-    Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1]
+    Calculates a rank value based on the torrent freshness. The result is normalized to the range [0, 1].
 
     :param freshness: number of seconds since the torrent creation.
                       None means the actual torrent creation date is unknown.
@@ -83,7 +82,7 @@ word_re = re.compile(r'\w+', re.UNICODE)
 
 def title_rank(query: str, title: str) -> float:
     """
-    Calculate the similarity of the title string to a query string as a float value in range [0, 1]
+    Calculate the similarity of the title string to a query string as a float value in range [0, 1].
 
     :param query: a user-defined query string
     :param title: a torrent name
@@ -112,7 +111,7 @@ REMAINDER_COEFF = 10
 RANK_NORMALIZATION_COEFF = 10
 
 
-def calculate_rank(query: List[str], title: List[str]) -> float:
+def calculate_rank(query: list[str], title: list[str]) -> float:
     """
     Calculates the similarity of the title to the query as a float value in range [0, 1].
 
@@ -149,7 +148,7 @@ def calculate_rank(query: List[str], title: List[str]) -> float:
     return RANK_NORMALIZATION_COEFF / (RANK_NORMALIZATION_COEFF + total_error)
 
 
-def find_word_and_rotate_title(word: str, title: Deque[str]) -> Tuple[bool, int]:
+def find_word_and_rotate_title(word: str, title: deque[str]) -> tuple[bool, int]:
     """
     Finds the query word in the title. Returns whether it was found or not and the number of skipped words in the title.
 

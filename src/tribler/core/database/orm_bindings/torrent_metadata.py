@@ -1,18 +1,25 @@
-from binascii import unhexlify, hexlify
-from datetime import datetime
+from __future__ import annotations
+
 import random
+from binascii import hexlify, unhexlify
+from datetime import datetime
 from struct import unpack
-from typing import Optional
+from typing import TYPE_CHECKING, Any
 
 from lz4.frame import LZ4FrameCompressor
 from pony import orm
-from pony.orm import db_session
+from pony.orm import Database, db_session
+from typing_extensions import Self
 
-from tribler.core.libtorrent.torrentdef import TorrentDef
-from tribler.core.notifier import Notification, Notifier
-from tribler.core.database.serialization import (EPOCH, REGULAR_TORRENT, TorrentMetadataPayload, HealthItemsPayload,
-                                                 time2int)
+from tribler.core.database.serialization import (
+    EPOCH,
+    REGULAR_TORRENT,
+    HealthItemsPayload,
+    TorrentMetadataPayload,
+    time2int,
+)
 from tribler.core.libtorrent.trackers import get_uniformed_tracker_url
+from tribler.core.notifier import Notification, Notifier
 
 NULL_KEY_SUBST = b"\00"
 
@@ -33,6 +40,44 @@ UPDATED = 6  # One of the entry's properties was updated. It will be committed a
 
 PUBLIC_KEY_LEN = 64
 
+if TYPE_CHECKING:
+    from dataclasses import dataclass
+
+    from tribler.core.database.orm_bindings.torrent_state import TorrentState
+    from tribler.core.libtorrent.torrentdef import TorrentDef
+
+    @dataclass
+    class TorrentMetadata:
+        """
+        Database type for torrent metadata.
+        """
+
+        rowid: int
+        infohash: bytes
+        size: int | None
+        torrent_date: datetime | None
+        tracker_info: str | None
+        title: str | None
+        tags: str | None
+        metadata_type: int
+        reserved_flags: int | None
+        origin_id: int | None
+        public_key: bytes
+        id_: int
+        timestamp: int
+        signature: bytes | None
+        added_on: datetime | None
+        status: int | None
+        xxx: float | None
+        health: TorrentState | None
+        tag_processor_version: int
+
+        def serialized_health(self) -> bytes: ...  # noqa: D102
+
+        def serialized(self, key: bytes | None = None) -> bytes: ...  # noqa: D102
+
+        def to_simple_dict(self) -> dict[str, str | bytes | float | None]: ...  # noqa: D102
+
 
 def infohash_to_id(infohash: bytes) -> int:
     """
@@ -43,18 +88,18 @@ def infohash_to_id(infohash: bytes) -> int:
 
 def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
     """
-    Helper function to create a TorrentMetadata-compatible dict from TorrentDef
+    Helper function to create a TorrentMetadata-compatible dict from TorrentDef.
     """
     tags = "Unknown"
 
     try:
-        torrent_date = datetime.fromtimestamp(tdef.get_creation_date())
+        torrent_date = datetime.fromtimestamp(tdef.get_creation_date())  # noqa: DTZ006
     except (ValueError, TypeError):
         torrent_date = EPOCH
 
     tracker = tdef.get_tracker()
     if not isinstance(tracker, bytes):
-        tracker = b''
+        tracker = b""
     tracker_url = tracker.decode()
     tracker_info = get_uniformed_tracker_url(tracker_url) or ''
     return {
@@ -67,7 +112,8 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
     }
 
 
-def entries_to_chunk(metadata_list, chunk_size: int, start_index: int = 0, include_health: bool = False):
+def entries_to_chunk(metadata_list: list[TorrentMetadata], chunk_size: int, start_index: int = 0,
+                     include_health: bool = False) -> tuple[bytes, int]:
     """
     Put serialized data of one or more metadata entries into a single binary chunk. The data is added
     incrementally until it stops fitting into the designated chunk size. The first entry is added
@@ -88,7 +134,8 @@ def entries_to_chunk(metadata_list, chunk_size: int, start_index: int = 0, inclu
         last_entry_index is the index of the element of the input list that was put into the chunk the last.
     """
     if start_index >= len(metadata_list):
-        raise Exception('Could not serialize chunk: incorrect start_index', metadata_list, chunk_size, start_index)
+        msg = "Could not serialize chunk: incorrect start_index"
+        raise Exception(msg, metadata_list, chunk_size, start_index)
 
     compressor = LZ4FrameCompressor(auto_flush=True)
     metadata_buffer = compressor.begin()
@@ -122,11 +169,17 @@ def entries_to_chunk(metadata_list, chunk_size: int, start_index: int = 0, inclu
     return result, index + 1
 
 
-def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int):  # noqa: MC0001
+def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
+                   tag_processor_version: int) -> type[TorrentMetadata]:
+    """
+    Define the torrent metadata binding.
+    """
+
     class TorrentMetadata(db.Entity):
         """
         This ORM binding class is intended to store Torrent objects, i.e. infohashes along with some related metadata.
         """
+
         _discriminator_ = REGULAR_TORRENT
         _table_ = "ChannelNode"
         _CHUNK_SIZE_LIMIT = 1 * 1024 * 1024  # We use 1MB chunks as a workaround for Python's lack of string pointers
@@ -164,7 +217,7 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
         # Special class-level properties
         payload_class = TorrentMetadataPayload
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs) -> None:  # noqa: ANN401
             # Any public keys + signatures are considered to be correct at this point, and should
             # be checked after receiving the payload from the network.
 
@@ -174,7 +227,7 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
                 kwargs["health"] = health
 
             if "timestamp" not in kwargs:
-                kwargs["timestamp"] = time2int(datetime.utcnow()) * 1000
+                kwargs["timestamp"] = time2int(datetime.utcnow()) * 1000  # noqa: DTZ003
 
             if "id_" not in kwargs:
                 kwargs["id_"] = int(random.getrandbits(63))
@@ -197,23 +250,23 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
                                 infohash=kwargs.get("infohash"), title=self.title)
                 self.tag_processor_version = tag_processor_version
 
-        def add_tracker(self, tracker_url):
+        def add_tracker(self, tracker_url: str) -> None:
             sanitized_url = get_uniformed_tracker_url(tracker_url)
             if sanitized_url:
                 tracker = db.TrackerState.get_for_update(url=sanitized_url) or db.TrackerState(url=sanitized_url)
                 self.health.trackers.add(tracker)
 
-        def before_update(self):
+        def before_update(self) -> None:
             self.add_tracker(self.tracker_info)
 
-        def get_magnet(self):
+        def get_magnet(self) ->  str:
             return f"magnet:?xt=urn:btih:{hexlify(self.infohash).decode()}&dn={self.title}" + (
                 f"&tr={self.tracker_info}" if self.tracker_info else ""
             )
 
         @classmethod
         @db_session
-        def add_ffa_from_dict(cls, metadata: dict):
+        def add_ffa_from_dict(cls: type[Self], metadata: dict) -> Self:
             # To produce a relatively unique id_ we take some bytes of the infohash and convert these to a number.
             # abs is necessary as the conversion can produce a negative value, and we do not support that.
             id_ = infohash_to_id(metadata["infohash"])
@@ -228,11 +281,11 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
             return cls.from_dict(dict(metadata, public_key=b'', status=COMMITTED, id_=id_))
 
         @db_session
-        def to_simple_dict(self):
+        def to_simple_dict(self) -> dict[str, str | float]:
             """
             Return a basic dictionary with information about the channel.
             """
-            epoch = datetime.utcfromtimestamp(0)
+            epoch = datetime.utcfromtimestamp(0)  # noqa: DTZ004
             return {
                 "name": self.title,
                 "category": self.tags,
@@ -254,39 +307,40 @@ def define_binding(db, notifier: Optional[Notifier], tag_processor_version: int)
             return self._discriminator_
 
         @classmethod
-        def from_payload(cls, payload):
+        def from_payload(cls: type[Self], payload: TorrentMetadataPayload) -> Self:
             return cls(**payload.to_dict())
 
         @classmethod
-        def from_dict(cls, dct):
+        def from_dict(cls: type[Self], dct: dict) -> Self:
             return cls(**dct)
 
         @classmethod
         @db_session
-        def get_with_infohash(cls, infohash):
+        def get_with_infohash(cls: type[Self], infohash: bytes) -> Self:
             return cls.select(lambda g: g.infohash == infohash).first()
 
         @classmethod
         @db_session
-        def get_torrent_title(cls, infohash):
+        def get_torrent_title(cls: type[Self], infohash: bytes) -> str | None:
             md = cls.get_with_infohash(infohash)
             return md.title if md else None
 
         def serialized_health(self) -> bytes:
             health = self.health
             if not health or (not health.seeders and not health.leechers and not health.last_check):
-                return b';'
-            return b'%d,%d,%d;' % (health.seeders or 0, health.leechers or 0, health.last_check or 0)
+                return b";"
+            return b"%d,%d,%d;" % (health.seeders or 0, health.leechers or 0, health.last_check or 0)
 
-        def serialized(self, key=None):
+        def serialized(self, key: bytes | None = None) -> bytes:
             """
-            Serializes the object and returns the result with added signature (blob output)
+            Serializes the object and returns the result with added signature (blob output).
+
             :param key: private key to sign object with
             :return: serialized_data+signature binary string
             """
             kwargs = self.to_dict()
             payload = self.payload_class.from_dict(**kwargs)
-            payload.signature = kwargs.pop('signature', None) or payload.signature
+            payload.signature = kwargs.pop("signature", None) or payload.signature
             if key:
                 payload.add_signature(key)
             return payload.serialized() + payload.signature

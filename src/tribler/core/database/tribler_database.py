@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING
 
 from pony import orm
 from pony.orm import Database, db_session
@@ -10,14 +12,42 @@ from tribler.core.database.layers.health import HealthDataAccessLayer
 from tribler.core.database.layers.knowledge import KnowledgeDataAccessLayer
 from tribler.core.database.layers.user_activity import UserActivityLayer
 
-MEMORY = ':memory:'
+if TYPE_CHECKING:
+    import dataclasses
+
+
+    @dataclasses.dataclass
+    class Misc:
+        """
+        A miscellaneous key value mapping in the database.
+        """
+
+        name: str
+        value: str | None
+
+        def __init__(self, name: str) -> None: ...  # noqa: D107
+
+        @staticmethod
+        def get(name: str) -> Misc | None: ...  # noqa: D102
+
+        @staticmethod
+        def get_for_update(name: str) -> Misc | None: ...  # noqa: D102
+
+MEMORY = ":memory:"
 
 
 class TriblerDatabase:
-    CURRENT_VERSION = 1
-    _SCHEME_VERSION_KEY = 'scheme_version'
+    """
+    A wrapper for the Tribler database.
+    """
 
-    def __init__(self, filename: Optional[str] = None, *, create_tables: bool = True, **generate_mapping_kwargs):
+    CURRENT_VERSION = 1
+    _SCHEME_VERSION_KEY = "scheme_version"
+
+    def __init__(self, filename: str | None = None, *, create_tables: bool = True, **generate_mapping_kwargs) -> None:
+        """
+        Create a new tribler database.
+        """
         self.instance = Database()
 
         self.knowledge = KnowledgeDataAccessLayer(self.instance)
@@ -49,8 +79,11 @@ class TriblerDatabase:
             self.fill_default_data()
 
     @staticmethod
-    def define_binding(db):
-        """ Define common bindings"""
+    def define_binding(db: Database) -> type[Misc]:
+        """
+        Define common bindings.
+        """
+
         class Misc(db.Entity):
             name = orm.PrimaryKey(str)
             value = orm.Optional(str)
@@ -58,30 +91,47 @@ class TriblerDatabase:
         return Misc
 
     @db_session
-    def fill_default_data(self):
-        self.logger.info('Filling the DB with the default data')
-        self.set_misc(self._SCHEME_VERSION_KEY, self.CURRENT_VERSION)
+    def fill_default_data(self) -> None:
+        """
+        Add a misc entry for the database version.
+        """
+        self.logger.info("Filling the DB with the default data")
+        self.set_misc(self._SCHEME_VERSION_KEY, str(self.CURRENT_VERSION))
 
-    def get_misc(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_misc(self, key: str, default: str | None = None) -> str | None:
+        """
+        Retrieve a value from the database or return the default value if it is not found.
+        """
         data = self.Misc.get(name=key)
         return data.value if data else default
 
-    def set_misc(self, key: str, value: Any):
+    def set_misc(self, key: str, value: str) -> None:
+        """
+        Set or add the value of a given key.
+        """
         obj = self.Misc.get_for_update(name=key) or self.Misc(name=key)
-        obj.value = str(value)
+        obj.value = value
 
     @property
     def version(self) -> int:
-        """ Get the database version"""
-        return int(self.get_misc(key=self._SCHEME_VERSION_KEY, default=0))
+        """
+        Get the database version.
+        """
+        return int(self.get_misc(key=self._SCHEME_VERSION_KEY, default="0"))
 
     @version.setter
-    def version(self, value: int):
-        """ Set the database version"""
+    def version(self, value: int) -> None:
+        """
+        Set the database version.
+        """
         if not isinstance(value, int):
-            raise TypeError('DB version should be integer')
+            msg = "DB version should be integer"
+            raise TypeError(msg)
 
-        self.set_misc(key=self._SCHEME_VERSION_KEY, value=value)
+        self.set_misc(key=self._SCHEME_VERSION_KEY, value=str(value))
 
     def shutdown(self) -> None:
+        """
+        Disconnect from the database.
+        """
         self.instance.disconnect()

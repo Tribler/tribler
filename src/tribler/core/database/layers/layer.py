@@ -8,8 +8,11 @@ EntityImpl = TypeVar("EntityImpl", bound=Entity)
 
 
 class Layer:
+    """
+    A generic database layer.
+    """
 
-    def get_or_create(self, cls: type[EntityImpl], create_kwargs=None, **kwargs) -> EntityImpl:
+    def get_or_create(self, cls: type[EntityImpl], create_kwargs: dict | None = None, **kwargs) -> EntityImpl:
         """
         Get or create a db entity.
 
