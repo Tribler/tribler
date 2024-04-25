@@ -219,7 +219,7 @@ def test_missed_key_in_both_translated_and_original_strings(warning: Mock):
                                     'original string: "original %(key1)s"')
 
 
-@patch("tribler.gui.utilities.get_base_path")
+@patch("tribler.gui.utilities.get_gui_path")
 def test_i18n_file_path_and_languages_content(mock_get_base_path, tmp_path):
     mock_get_base_path.return_value = tmp_path
 
