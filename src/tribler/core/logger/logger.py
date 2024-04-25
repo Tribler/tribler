@@ -5,6 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from tribler.core.utilities.install_dir import get_core_path
+
 LOG_CONFIG_FILENAME = 'logger.yaml'
 GREEN = "\033[32m"
 CYAN = "\033[36m"
@@ -38,11 +40,7 @@ def load_logger_config(app_mode, log_dir, current_process_is_primary=True):
 
 
 def get_logger_config_path():
-    if not hasattr(sys, '_MEIPASS'):
-        dirname = Path(__file__).absolute().parent
-    else:
-        dirname = Path(getattr(sys, '_MEIPASS')) / "tribler_source/tribler/core/logger"
-    return dirname / LOG_CONFIG_FILENAME
+    return get_core_path() / 'logger' / LOG_CONFIG_FILENAME
 
 
 def setup_logging(app_mode, log_dir: Path, config_path: Path):

@@ -15,15 +15,16 @@ from tribler.core.check_os import (
 from tribler.core.logger.logger import load_logger_config
 from tribler.core.sentry_reporter.sentry_reporter import SentryStrategy
 from tribler.core.utilities.exit_codes.tribler_exit_codes import EXITCODE_ANOTHER_GUI_PROCESS_IS_RUNNING
+from tribler.core.utilities.install_dir import get_base_path, get_core_path
 from tribler.core.utilities.process_locking import GUI_LOCK_FILENAME, try_acquire_file_lock
 from tribler.core.utilities.process_manager import ProcessKind
 from tribler.core.utilities.process_manager.manager import setup_process_manager
-from tribler.core.utilities.utilities import show_system_popup
+from tribler.core.utilities.utilities import is_frozen, show_system_popup
 from tribler.gui import gui_sentry_reporter
 from tribler.gui.app_manager import AppManager
 from tribler.gui.tribler_app import TriblerApplication
 from tribler.gui.tribler_window import TriblerWindow
-from tribler.gui.utilities import get_translator
+from tribler.gui.utilities import get_translator, get_gui_path
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,12 @@ def run_gui(api_port: Optional[int], api_key: Optional[str], root_state_dir: Pat
     process_manager = setup_process_manager(root_state_dir, ProcessKind.GUI, current_process_owns_lock)
 
     load_logger_config('tribler-gui', root_state_dir, current_process_owns_lock)
+
+    logger.info(f"Root state dir: {root_state_dir}")
+    logger.info(f"is_frozen: {is_frozen()}")
+    logger.info(f"Base path: {get_base_path()}")
+    logger.info(f"Core path: {get_core_path()}")
+    logger.info(f"GUI path: {get_gui_path()}")
 
     # Enable tracer using commandline args: --trace-debug or --trace-exceptions
     trace_logger = check_and_enable_code_tracing('gui', root_state_dir)

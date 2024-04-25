@@ -22,7 +22,8 @@ export RESOURCES=build/mac/resources
 python3 -m venv build-env
 . ./build-env/bin/activate
 python3 -m pip install pip==23.0.1 # pin pip version to avoid "--no-use-pep517" issues with the latest version
-python3 -m pip install PyInstaller==4.2 --no-use-pep517
+python3 -m pip install pyinstaller-hooks-contrib==2024.4  # for more recent version it needs PyInstaller>=5.0
+python3 -m pip install PyInstaller==4.2 --no-use-pep517  # requires pyinstaller-hooks-contrib>=2020.6, broke on 2024.5
 python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
@@ -46,6 +47,13 @@ ln -s /Applications dist/installdir/Applications
 touch dist/installdir
 
 mkdir -p dist/temp
+
+# Sign the app if environment variables are set
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    echo "Signing $APPNAME.app with ID: $APPLE_DEV_ID"
+    SIGN_MSG="Developer ID Application: $APPLE_DEV_ID"
+    codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
+fi
 
 # create image
 hdiutil create -fs HFS+ -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
@@ -105,4 +113,11 @@ rm -f dist/temp/rw.dmg
 
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
+fi
+
+# Sign the dmg package and verify it
+if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
+    codesign --force --verify --verbose --sign "$SIGN_MSG" dist/$DMGNAME.dmg
+    codesign --verify --verbose=4 dist/$DMGNAME.dmg
+    spctl --assess --type open --context context:primary-signature -v dist/$DMGNAME.dmg
 fi

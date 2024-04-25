@@ -88,9 +88,9 @@ def _report_freeze(handle: Handle, duration: float, first_report: bool):
 
     if first_report:
         info_str = format_info(handle, include_stack=True, stack_cut_duration=stack_cut_duration)
-        logger.warning(f'Slow coroutine is occupying the loop for {duration:.3f} seconds already: {info_str}')
+        logger.warning(f'A slow coroutine step is occupying the loop for {duration:.3f} seconds already: {info_str}')
         return
 
     info_str = format_info(handle, include_stack=True, stack_cut_duration=stack_cut_duration, limit=2,
                            enable_profiling_tip=False)
-    logger.warning(f"Still executing {info_str}")
+    logger.warning(f"Still executing the slow coroutine step for {duration:.3f} seconds already: {info_str}")

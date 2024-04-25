@@ -15,7 +15,7 @@ from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.sentry_reporter.sentry_reporter import SentryReporter
 from tribler.core.utilities.async_group.async_group import AsyncGroup
 from tribler.core.utilities.crypto_patcher import patch_crypto_be_discovery
-from tribler.core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_core_path
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.notifier import Notifier
 from tribler.core.utilities.simpledefs import STATEDIR_CHANNELS_DIR, STATEDIR_DB_DIR
@@ -88,7 +88,7 @@ class Session:
         # On Mac, we bundle the root certificate for the SSL validation since Twisted is not using the root
         # certificates provided by the system trust store.
         if sys.platform == 'darwin':
-            os.environ['SSL_CERT_FILE'] = str(get_lib_path() / 'root_certs_mac.pem')
+            os.environ['SSL_CERT_FILE'] = str(get_core_path() / 'root_certs_mac.pem')
 
         coros = [comp.start() for comp in self.components.values()]
         await gather(*coros, return_exceptions=not self.failfast)

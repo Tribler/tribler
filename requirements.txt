@@ -3,5 +3,5 @@
 Pillow==10.3.0
 PyQt5==5.15.10
 PyQt5-sip==12.13.0
-pyqtgraph==0.13.4
+pyqtgraph==0.13.3
 PyQtWebEngine==5.15.6

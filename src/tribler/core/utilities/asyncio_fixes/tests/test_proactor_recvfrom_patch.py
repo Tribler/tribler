@@ -2,8 +2,11 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from tribler.core.utilities.asyncio_fixes.proactor_recvfrom_patch import ERROR_NETNAME_DELETED, ERROR_OPERATION_ABORTED, \
-    ERROR_PORT_UNREACHABLE, patched_recvfrom
+from tribler.core.utilities.asyncio_fixes.proactor_recvfrom_patch import ERROR_NETNAME_DELETED, \
+    ERROR_OPERATION_ABORTED, ERROR_PORT_UNREACHABLE, patched_recvfrom
+
+
+# pylint: disable=protected-access
 
 
 @patch('tribler.core.utilities.asyncio_fixes.proactor_recvfrom_patch._overlapped')
@@ -69,7 +72,7 @@ def test_patched_recvfrom(overlapped):
         with pytest.raises(OSErrorMock):
             finish_recvfrom(trans, key, ov, error_class=OSErrorMock)
 
-        # Should return result of ov.getresult() if no exceptions arised
+        # Should return result of ov.getresult() if no exceptions arisen
 
         ov.getresult.side_effect = None
         ov.getresult.return_value = Mock()

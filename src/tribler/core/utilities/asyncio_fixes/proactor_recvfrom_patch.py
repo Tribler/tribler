@@ -20,12 +20,15 @@ def apply_proactor_recvfrom_patch():  # pragma: no cover
     if patch_applied:
         return
 
-    from asyncio import IocpProactor
+    from asyncio import IocpProactor  # pylint: disable=import-outside-toplevel
 
     IocpProactor.recvfrom = patched_recvfrom
 
     patch_applied = True
     logger.info("Patched IocpProactor.recvfrom to handle ERROR_PORT_UNREACHABLE")
+
+
+# pylint: disable=protected-access
 
 
 def patched_recvfrom(self, conn, nbytes, flags=0):
@@ -36,12 +39,12 @@ def patched_recvfrom(self, conn, nbytes, flags=0):
     except BrokenPipeError:
         return self._result((b'', None))
 
-    def finish_recvfrom(trans, key, ov, error_class=OSError):
+    def finish_recvfrom(trans, key, ov, error_class=OSError):  # pylint: disable=unused-argument
         try:
             return ov.getresult()
         except error_class as exc:
             if exc.winerror in (ERROR_NETNAME_DELETED, ERROR_OPERATION_ABORTED):
-                raise ConnectionResetError(*exc.args)
+                raise ConnectionResetError(*exc.args)  # pylint: disable=raise-missing-from
 
             # ******************** START OF THE PATCH ********************
             # WSARecvFrom will report ERROR_PORT_UNREACHABLE when the same

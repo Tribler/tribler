@@ -7,12 +7,12 @@ from validate import Validator
 from tribler.core.components.libtorrent.settings import DownloadDefaultsSettings, get_default_download_dir
 from tribler.core.components.libtorrent.utils.libtorrent_helper import libtorrent as lt
 from tribler.core.exceptions import InvalidConfigException
-from tribler.core.utilities.install_dir import get_lib_path
+from tribler.core.utilities.install_dir import get_core_path
 from tribler.core.utilities.path_util import Path
 from tribler.core.utilities.utilities import bdecode_compat
 
 SPEC_FILENAME = 'download_config.spec'
-CONFIG_SPEC_PATH = get_lib_path() / 'components/libtorrent/download_manager' / SPEC_FILENAME
+CONFIG_SPEC_PATH = get_core_path() / 'components/libtorrent/download_manager' / SPEC_FILENAME
 NONPERSISTENT_DEFAULTS = {}
 
 
