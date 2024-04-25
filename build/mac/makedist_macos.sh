@@ -3,10 +3,10 @@ set -x # print all commands
 set -e # exit when any command fails
 
 # Script to build Tribler 64-bit on Mac
-# Initial author(s): Riccardo Petrocco, Arno Bakker
 
 APPNAME=Tribler
 LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
+BUILD_ENV=${BUILD_ENV:-"venv"}
 
 if [ -e .TriblerVersion ]; then
     DMGNAME="Tribler-$(cat .TriblerVersion)"
@@ -19,11 +19,8 @@ export RESOURCES=build/mac/resources
 
 # ----- Prepare venv & install dependencies before the build
 
-python3 -m venv build-env
-. ./build-env/bin/activate
-python3 -m pip install pip==23.0.1 # pin pip version to avoid "--no-use-pep517" issues with the latest version
-python3 -m pip install pyinstaller-hooks-contrib==2024.4  # for more recent version it needs PyInstaller>=5.0
-python3 -m pip install PyInstaller==4.2 --no-use-pep517  # requires pyinstaller-hooks-contrib>=2020.6, broke on 2024.5
+python3 -m venv "${BUILD_ENV}"
+. "${BUILD_ENV}"/bin/activate
 python3 -m pip install --upgrade -r requirements-build.txt
 
 # ----- Build
