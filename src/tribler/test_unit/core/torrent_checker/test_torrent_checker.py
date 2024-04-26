@@ -5,7 +5,7 @@ import secrets
 import time
 from binascii import unhexlify
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from ipv8.test.base import TestBase
 from ipv8.util import succeed
@@ -66,9 +66,9 @@ class TestTorrentChecker(TestBase):
         self.metadata_store.TorrentMetadata.__class__.instances = []
 
         self.tracker_manager = TrackerManager(state_dir=Path("."), metadata_store=self.metadata_store)
-        self.torrent_checker = TorrentChecker(config=TriblerConfigManager(), download_manager=MagicMock(),
-                                              notifier=MagicMock(), metadata_store=self.metadata_store,
-                                              tracker_manager=self.tracker_manager)
+        self.torrent_checker = TorrentChecker(config=TriblerConfigManager(), tracker_manager=self.tracker_manager,
+                                              download_manager=MagicMock(get_metainfo=AsyncMock()),
+                                              notifier=MagicMock(), metadata_store=self.metadata_store)
 
     async def tearDown(self) -> None:
         """

@@ -540,6 +540,13 @@ class DownloadManager(TaskManager):
 
         logger.info("Successfully retrieved metainfo for %s", infohash_hex)
         self.metainfo_cache[infohash] = {"time": timemod.time(), "meta_info": metainfo}
+        self.notifier.notify(Notification.torrent_metadata_added, metadata={
+            "infohash": infohash,
+            "size": download.tdef.get_length(),
+            "title": download.tdef.get_name_utf8(),
+            "metadata_type": 300,
+            "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
+        })
 
         if infohash in self.metainfo_requests:
             self.metainfo_requests[infohash][1] -= 1

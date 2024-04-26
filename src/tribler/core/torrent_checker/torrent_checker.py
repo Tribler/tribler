@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from tribler.tribler_config import TriblerConfigManager
 
 TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
-TORRENT_SELECTION_INTERVAL = 120  # The interval for checking the health of a random torrent
+TORRENT_SELECTION_INTERVAL = 10  # The interval for checking the health of a random torrent
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
 MAX_TORRENTS_CHECKED_PER_SESSION = 50
@@ -345,6 +345,7 @@ class TorrentChecker(TaskManager):
         session.add_infohash(infohash)
         self._logger.info("DHT session has been created for %s: %s", infohash_hex, str(session))
         self.sessions["DHT"].append(session)
+        self.register_anonymous_task("FakeDHT resolve", session.connect_to_tracker)
 
         self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
