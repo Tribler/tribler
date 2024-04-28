@@ -2,12 +2,13 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import unquote_plus
+from PyQt5.QtGui import (QGuiApplication)
 
 import pytest
 
 from tribler.gui.utilities import I18N_DIR, LANGUAGES_FILE, TranslatedString, compose_magnetlink, create_api_key, \
     dict_item_is_any_of, duration_to_string, format_api_key, format_size, get_i18n_file_path, \
-    get_languages_file_content, quote_plus_unicode, set_api_key, unicode_quoter
+    get_languages_file_content, quote_plus_unicode, set_api_key, unicode_quoter, copy_to_clipboard, get_clipboard_text
 
 
 def test_quoter_char():
@@ -277,3 +278,11 @@ def test_format_size():
     assert format_size(1) == '1.0 B'
     assert format_size(1.5) == '1.5 B'
     assert format_size(2000) == '2.0 kB'
+
+
+def test_clipboard():
+    qguiapp = QGuiApplication([])
+    test_text = "123_test"
+    copy_to_clipboard(test_text)
+    assert test_text == get_clipboard_text()
+    qguiapp.quit()

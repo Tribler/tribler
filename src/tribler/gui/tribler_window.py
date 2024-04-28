@@ -84,6 +84,7 @@ from tribler.gui.utilities import (
     connect,
     create_api_key,
     format_api_key,
+    get_clipboard_text,
     get_font_path,
     get_gui_setting,
     get_image_path,
@@ -220,6 +221,9 @@ class TriblerWindow(QMainWindow):
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
+
+        self.paste = QShortcut(QKeySequence("Ctrl+v"), self)
+        connect(self.paste.activated, self.on_paste_event)
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         connect(self.debug_pane_shortcut.activated, self.clicked_debug_panel_button)
@@ -446,6 +450,12 @@ class TriblerWindow(QMainWindow):
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
             self.tray_show_message(tr("Download finished"), tr("Download of %s has finished.") % {torrent_info['name']})
+
+    def on_paste_event(self):
+        txt = get_clipboard_text()
+        self._logger.info(f'Paste event: {txt}')
+        if txt.startswith("magnet:?xt=urn:btih:"):
+            self.start_download_from_uri(txt)
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
