@@ -131,7 +131,7 @@ class KnowledgeComponent(CommunityLauncher):
 @after("DatabaseComponent")
 @precondition('session.config.get("rendezvous/enabled")')
 @overlay("tribler.core.rendezvous.community", "RendezvousCommunity")
-class RendezvousComponent(CommunityLauncher):
+class RendezvousComponent(BaseLauncher):
 
     def get_kwargs(self, session: object) -> dict:
         from tribler.core.rendezvous.database import RendezvousDatabase
