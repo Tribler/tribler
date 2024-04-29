@@ -6,6 +6,8 @@ pytest-asyncio==0.21.1
 pytest-randomly==3.15.0
 pytest-timeout==2.2.0
 pylint-pytest==1.1.7
+pytest-dependency==0.6.0 # for GUI tests
+pytest-order==1.2.1 # for GUI tests
 
 coverage==7.3.2
 looptime==0.2 ; sys_platform != 'win32'
