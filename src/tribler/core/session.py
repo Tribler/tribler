@@ -16,7 +16,7 @@ from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorren
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler.core.notifier import Notifier
+from tribler.core.notifier import Notifier, Notification
 from tribler.core.restapi.events_endpoint import EventsEndpoint
 from tribler.core.restapi.ipv8_endpoint import IPv8RootEndpoint
 from tribler.core.restapi.rest_manager import RESTManager
@@ -121,22 +121,30 @@ class Session:
     async def shutdown(self) -> None:
         # Stop network event generators
         if self.torrent_checker:
+            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down torrent checker.")
             await self.torrent_checker.shutdown()
         if self.knowledge_processor:
+            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down knowledge processor.")
             await self.knowledge_processor.shutdown()
         if self.ipv8:
+            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down IPv8 peer-to-peer overlays.")
             await self.ipv8.stop()
 
         # Stop libtorrent managers
+        self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down download manager.")
         await self.download_manager.shutdown()
+        self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down local SOCKS5 interface.")
         for server in self.socks_servers:
             await server.stop()
 
         # Stop database activities
         if self.db:
+            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down general-purpose database.")
             self.db.shutdown()
         if self.mds:
+            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down metadata database.")
             self.mds.shutdown()
 
         # Stop communication with the GUI
+        self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down GUI connection. Going dark.")
         await self.rest_manager.stop()
