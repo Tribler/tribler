@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 import time as timemod
 from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import hexlify, unhexlify
@@ -111,6 +112,7 @@ class DownloadManager(TaskManager):
                                   lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
         self.session_stats_callback: Callable | None = None
         self.state_cb_count = 0
+        self.queued_write_bytes = -1
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready = {}
@@ -211,11 +213,18 @@ class DownloadManager(TaskManager):
         self.notify_shutdown_state("Shutting down LibTorrent Manager...")
         # If libtorrent session has pending disk io, wait until timeout (default: 30 seconds) to let it finish.
         # In between ask for session stats to check if state is clean for shutdown.
-        while not self.is_shutdown_ready() and timeout >= 1:
-            self.notify_shutdown_state("Waiting for LibTorrent to finish...")
+        end_time = time.time() + timeout
+        force_quit = end_time - time.time()
+        while not self.is_shutdown_ready() and force_quit > 0:
+            not_ready = list(self.lt_session_shutdown_ready.values()).count(False)
+            self.notify_shutdown_state(
+                f"Waiting for {not_ready} downloads to finish."
+                + (".." if self.queued_write_bytes == -1 else f" {self.queued_write_bytes} bytes left to write.")
+                + f" {force_quit:.2f} seconds left until forced shutdown."
+            )
             self.post_session_stats()
-            timeout -= 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(max(1.0, not_ready * 0.01))  # 10 ms per download, up to 1 second
+            force_quit = end_time - time.time()
 
         logger.info("Awaiting shutdown task manager...")
         await self.shutdown_task_manager()
@@ -226,19 +235,24 @@ class DownloadManager(TaskManager):
         # Save libtorrent state
         if self.has_session():
             logger.info("Saving state...")
+            self.notify_shutdown_state("Writing session state to disk.")
             with open(self.state_dir / LTSTATE_FILENAME, "wb") as ltstate_file:  # noqa: ASYNC101
                 ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         if self.has_session() and self.config.get("libtorrent/upnp"):
             logger.info("Stopping upnp...")
+            self.notify_shutdown_state("Stopping UPnP.")
             self.get_session().stop_upnp()
 
         # Remove metadata temporary directory
         if self.metadata_tmpdir:
             logger.info("Removing temp directory...")
+            self.notify_shutdown_state("Removing temporary download files.")
             self.metadata_tmpdir.cleanup()
             self.metadata_tmpdir = None
+
         logger.info("Shutdown completed")
+        self.notify_shutdown_state("Finished shutting down download manager.")
 
     def is_shutdown_ready(self) -> bool:
         """
@@ -454,9 +468,9 @@ class DownloadManager(TaskManager):
 
         elif alert_type == "session_stats_alert":
             queued_disk_jobs = alert.values["disk.queued_disk_jobs"]
-            queued_write_bytes = alert.values["disk.queued_write_bytes"]
+            self.queued_write_bytes = alert.values["disk.queued_write_bytes"]
             num_write_jobs = alert.values["disk.num_write_jobs"]
-            if queued_disk_jobs == queued_write_bytes == num_write_jobs == 0:
+            if queued_disk_jobs == self.queued_write_bytes == num_write_jobs == 0:
                 self.lt_session_shutdown_ready[hops] = True
 
             if self.session_stats_callback:
