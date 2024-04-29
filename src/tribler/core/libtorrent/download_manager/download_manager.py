@@ -354,8 +354,10 @@ class DownloadManager(TaskManager):
         settings["proxy_hostnames"] = True
         settings["proxy_peer_connections"] = True
         if server is not None:
-            settings["proxy_hostname"] = server[0]
-            settings["proxy_port"] = int(server[1])
+            proxy_host = server[0]
+            if proxy_host:
+                settings["proxy_hostname"] = proxy_host
+                settings["proxy_port"] = int(server[1]) if server[1] else 0
         if auth is not None:
             settings["proxy_username"] = auth[0]
             settings["proxy_password"] = auth[1]
