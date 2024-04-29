@@ -45,6 +45,7 @@ class RunTriblerArgsParser(argparse.ArgumentParser):
         self.add_argument('--tunnel-testnet', action="store_true", help="use a separate tunnel community")
 
 
+
 def init_sentry_reporter(reporter: SentryReporter):
     """ Initialise sentry reporter
 
