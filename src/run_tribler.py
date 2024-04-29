@@ -51,7 +51,7 @@ def main() -> None:
     asyncio.set_event_loop(asyncio.SelectorEventLoop())
 
     parsed_args = parse_args()
-    logging.basicConfig(level=getattr(logging, parsed_args["log_level"]), stream=sys.stdout)
+    logging.basicConfig(level=parsed_args["log_level"], stream=sys.stdout)
     logger.info("Run Tribler: %s", parsed_args)
 
     root_state_dir = get_root_state_directory(os.environ.get('TSTATEDIR', 'state_directory'))
