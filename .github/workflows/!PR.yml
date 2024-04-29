@@ -155,7 +155,7 @@ jobs:
     uses: ./.github/workflows/pytest.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: '{"os": ["windows-latest", "macos-latest"]}'
+      matrix: '{"os": ["windows-latest", "macos-latest-large"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
   guitest:
@@ -164,7 +164,7 @@ jobs:
     uses: ./.github/workflows/guitest.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: '{"os": ["ubuntu-latest", "macos-latest"]}'
+      matrix: '{"os": ["ubuntu-latest", "macos-latest-large-large"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
   application_tester:
@@ -173,7 +173,7 @@ jobs:
     uses: ./.github/workflows/application_tester.yml
     with:
       python-version: ${{needs.env.outputs.python-version}}
-      matrix: '{"os": ["windows-latest", "macos-latest"]}'
+      matrix: '{"os": ["windows-latest", "macos-latest-large"]}'
       ref: ${{needs.env.outputs.source-ref}}
 
   # build binaries
@@ -193,7 +193,7 @@ jobs:
     uses: ./.github/workflows/build_mac.yml
     with:
       upload: ${{ needs.env.outputs.upload-binaries == 'true' }}
-      os: macos-latest
+      os: macos-latest-large
       python-version: ${{needs.env.outputs.python-version}}
       ref: ${{needs.env.outputs.source-ref}}
 

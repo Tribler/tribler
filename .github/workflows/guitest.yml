@@ -9,7 +9,7 @@ on:
         required: false
 
       matrix:
-        default: '{"os":["windows-latest", "macos-latest", "ubuntu-latest"]}'
+        default: '{"os":["windows-latest", "macos-latest-large", "ubuntu-latest"]}'
         type: string
         required: false
 
