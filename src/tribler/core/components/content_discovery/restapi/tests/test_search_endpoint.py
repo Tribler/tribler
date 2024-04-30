@@ -35,12 +35,17 @@ async def test_create_remote_search_request(rest_api, mock_content_discovery_com
     search_txt = "foo"
     await do_request(
         rest_api,
-        f'search/remote?txt_filter={search_txt}&max_rowid=1',
+        'search/remote',
+        params={
+            'fts_text': search_txt,
+            'filter': 'bar',
+            'max_rowid': 1
+        },
         request_type="PUT",
         expected_code=200,
         expected_json={"request_uuid": str(request_uuid), "peers": peers},
     )
-    assert sent['txt_filter'] == search_txt
+    assert sent['txt_filter'] == f'"{search_txt}" "bar"'
     sent.clear()
 
     # Test querying channel data by public key, e.g. for channel preview purposes

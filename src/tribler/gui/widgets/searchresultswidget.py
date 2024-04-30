@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from PyQt5 import uic
 
 from tribler.core.components.database.db.serialization import REGULAR_TORRENT
-from tribler.core.utilities.utilities import Query, to_fts_query
+from tribler.core.utilities.utilities import Query
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.sentry_mixin import AddBreadcrumbOnShowMixin
 from tribler.gui.utilities import connect, get_ui_file_path, tr
@@ -84,18 +84,17 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
         if not self.check_can_show(query.original_query):
             return False
 
-        fts_query = to_fts_query(query.original_query)
-        if not fts_query:
+        if not query.fts_text:
             return False
 
-        self.last_search_query = query.original_query
+        self.last_search_query = query.fts_text
         self.last_search_time = time.time()
 
         model = SearchResultsModel(
             endpoint_url="metadata/search/local",
             hide_xxx=self.results_page_content.hide_xxx,
             original_query=query.original_query,
-            text_filter=to_fts_query(query.fts_text),
+            fts_text=query.fts_text,
             tags=list(query.tags),
             type_filter=[REGULAR_TORRENT],
             exclude_deleted=True,
@@ -114,9 +113,18 @@ class SearchResultsWidget(AddBreadcrumbOnShowMixin, widget_form, widget_class):
             self.search_request = SearchRequest(response["request_uuid"], query, peers)
             self.search_progress_bar.set_remote_total(len(peers))
 
-        params = {'txt_filter': fts_query, 'hide_xxx': self.hide_xxx, 'tags': list(query.tags),
-                  'metadata_type': REGULAR_TORRENT, 'exclude_deleted': True}
-        request_manager.put('search/remote', register_request, url_params=params)
+        request_manager.put(
+            endpoint='search/remote',
+            on_success=register_request,
+            url_params={
+                'hide_xxx': self.hide_xxx,
+                'tags': list(query.tags),
+                'original_query': query.original_query,
+                'fts_text': query.fts_text,
+                'metadata_type': REGULAR_TORRENT,
+                'exclude_deleted': True
+            }
+        )
 
         return True
 

@@ -20,7 +20,7 @@ from tribler.core.components.libtorrent.download_manager.download_manager import
 from tribler.core.components.restapi.rest.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 from tribler.core.components.torrent_checker.torrent_checker.torrent_checker import TorrentChecker
 from tribler.core.utilities.pony_utils import run_threaded
-from tribler.core.utilities.utilities import froze_it, parse_bool
+from tribler.core.utilities.utilities import froze_it, parse_bool, to_fts_query
 
 TORRENT_CHECK_TIMEOUT = 20
 SNIPPETS_TO_SHOW = 3  # The number of snippets we return from the search results
@@ -86,10 +86,10 @@ class DatabaseEndpoint(RESTEndpoint):
             "last": int(parameters.get('last', 50)),
             "sort_by": json2pony_columns.get(parameters.get('sort_by')),
             "sort_desc": parse_bool(parameters.get('sort_desc', True)),
-            "txt_filter": parameters.get('txt_filter'),
             "hide_xxx": parse_bool(parameters.get('hide_xxx', False)),
             "category": parameters.get('category'),
         }
+
         if 'tags' in parameters:
             sanitized['tags'] = parameters.getall('tags')
         if "max_rowid" in parameters:
@@ -192,7 +192,8 @@ class DatabaseEndpoint(RESTEndpoint):
         sanitized = self.sanitize_parameters(request.query)
         sanitized["metadata_type"] = REGULAR_TORRENT
         sanitized["popular"] = True
-
+        if t_filter := request.query.get('filter'):
+            sanitized["txt_filter"] = t_filter
         with db_session:
             contents = self.mds.get_entries(**sanitized)
             contents_list = []
@@ -236,6 +237,12 @@ class DatabaseEndpoint(RESTEndpoint):
             return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
 
         include_total = request.query.get('include_total', '')
+        query = request.query.get('fts_text')
+        if t_filter := request.query.get('filter'):
+            query += f' {t_filter}'
+        fts = to_fts_query(query)
+        sanitized['txt_filter'] = fts
+        self._logger.info(f'FTS: {fts}')
 
         mds: MetadataStore = self.mds
 

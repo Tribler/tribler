@@ -6,10 +6,9 @@ from tribler.gui.widgets.tablecontentmodel import ChannelContentModel, get_item_
 
 
 class SearchResultsModel(ChannelContentModel):
-    def __init__(self, original_query, **kwargs):
-        self.original_query = original_query
+    def __init__(self, **kwargs):
         self.remote_results = {}
-        title = self.format_title()
+        title = self.format_title(**kwargs)
         super().__init__(channel_info={"name": title}, **kwargs)
         self.remote_results_received = False
         self.postponed_remote_results = []
@@ -17,8 +16,9 @@ class SearchResultsModel(ChannelContentModel):
         self.sort_by_rank = True
         self.original_search_results = []
 
-    def format_title(self):
-        q = self.original_query
+    def format_title(self,**kwargs):
+        original_query = kwargs.get('original_query', '')
+        q = original_query
         q = q if len(q) < 50 else q[:50] + '...'
         return f'Search results for {q}'
 
