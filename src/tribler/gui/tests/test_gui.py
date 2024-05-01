@@ -323,6 +323,7 @@ def test_settings(window):
     wait_for_signal(window.settings_page.settings_edited)
 
 
+@pytest.mark.dependency
 def test_downloads(window):
     go_to_and_wait_for_downloads(window)
     screenshot(window, name="downloads_all")
@@ -336,6 +337,7 @@ def test_downloads(window):
     screenshot(window, name="downloads_inactive")
 
 
+@pytest.mark.dependency(depends=["test_downloads"])
 def test_download_start_stop_remove_recheck(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
@@ -346,6 +348,7 @@ def test_download_start_stop_remove_recheck(window):
     QTest.mouseClick(window.downloads_page.dialog.buttons[2], Qt.LeftButton)
 
 
+@pytest.mark.dependency(depends=["test_downloads"])
 def test_download_details(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
