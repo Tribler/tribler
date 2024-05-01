@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from ipv8.types import PrivateKey
     from pony.orm.core import Entity, Query
 
+    from tribler.core.database.layers.layer import EntityImpl
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
     from tribler.core.notifier import Notifier
 
@@ -64,8 +65,8 @@ class ProcessingResult:
     arguments for get_entries to query the sender back through Remote Query Community.
     """
 
-    md_obj: object = None
-    obj_state: object = None
+    md_obj: EntityImpl
+    obj_state: object
     missing_deps: list = field(default_factory=list)
 
 
@@ -739,7 +740,7 @@ class MetadataStore:
         if not words:
             return []
 
-        fts_query = '"%s"*' % ' '.join(f'{word}' for word in words)
+        fts_query = '"{}"*'.format(" ".join(f"{word}" for word in words))
         suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
         suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
 

@@ -5,31 +5,44 @@ import random
 import sys
 import time
 import uuid
-from binascii import unhexlify, hexlify
+from binascii import hexlify, unhexlify
 from itertools import count
-from typing import Any, Dict, List, Optional, Set, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from ipv8.community import Community, CommunitySettings
 from ipv8.lazy_community import lazy_wrapper
 from ipv8.requestcache import RequestCache
-from ipv8.types import Peer
 from pony.orm import OperationalError, db_session
 
 from tribler.core.content_discovery.cache import SelectRequest
-from tribler.core.content_discovery.payload import (PopularTorrentsRequest, RemoteSelectPayload,
-                                                    SelectResponsePayload, TorrentsHealthPayload,
-                                                    VersionRequest, VersionResponse)
+from tribler.core.content_discovery.payload import (
+    PopularTorrentsRequest,
+    RemoteSelectPayload,
+    SelectResponsePayload,
+    TorrentsHealthPayload,
+    VersionRequest,
+    VersionResponse,
+)
 from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
-from tribler.core.database.store import MetadataStore, ObjState
-from tribler.core.database.tribler_database import TriblerDatabase
+from tribler.core.database.store import MetadataStore, ObjState, ProcessingResult
 from tribler.core.knowledge.community import is_valid_resource
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.torrent_checker.dataclasses import HealthInfo
-from tribler.core.torrent_checker.torrent_checker import TorrentChecker
+
+if TYPE_CHECKING:
+    from ipv8.types import Peer
+
+    from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
+    from tribler.core.database.tribler_database import TriblerDatabase
+    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
 
 class ContentDiscoverySettings(CommunitySettings):
+    """
+    The settings for the content discovery community.
+    """
+
     random_torrent_interval: float = 5  # seconds
     random_torrent_count: int = 10
     max_query_peers: int = 20
@@ -37,7 +50,7 @@ class ContentDiscoverySettings(CommunitySettings):
     max_response_size: int = 100  # Max number of entries returned by SQL query
 
     binary_fields: Sequence[str] = ("infohash", "channel_pk")
-    deprecated_parameters: Sequence[str] = ('subscribed', 'attribute_ranges', 'complete_channel')
+    deprecated_parameters: Sequence[str] = ("subscribed", "attribute_ranges", "complete_channel")
 
     metadata_store: MetadataStore
     torrent_checker: TorrentChecker
@@ -48,19 +61,15 @@ class ContentDiscoverySettings(CommunitySettings):
 class ContentDiscoveryCommunity(Community):
     """
     Community for disseminating the content across the network.
-
-    Push:
-        - Every 5 seconds it gossips 10 random torrents to a random peer.
-    Pull:
-        - Every time it receives an introduction request, it sends a request
-        to return their popular torrents.
-
-    Gossiping is for checked torrents only.
     """
-    community_id = unhexlify('9aca62f878969c437da9844cba29a134917e1648')
+
+    community_id = unhexlify("9aca62f878969c437da9844cba29a134917e1648")
     settings_class = ContentDiscoverySettings
 
-    def __init__(self, settings: ContentDiscoverySettings):
+    def __init__(self, settings: ContentDiscoverySettings) -> None:
+        """
+        Create a new overlay for content discovery.
+        """
         super().__init__(settings)
         self.composition = settings
 
@@ -79,26 +88,35 @@ class ContentDiscoveryCommunity(Community):
         self.remote_queries_in_progress = 0
         self.next_remote_query_num = count().__next__  # generator of sequential numbers, for logging & debug purposes
 
-        self.logger.info('Content Discovery Community initialized (peer mid %s)', hexlify(self.my_peer.mid))
+        self.logger.info("Content Discovery Community initialized (peer mid %s)", hexlify(self.my_peer.mid))
         self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
                            interval=self.composition.random_torrent_interval)
 
-    async def unload(self):
+    async def unload(self) -> None:
+        """
+        Shut down the request cache.
+        """
         await self.request_cache.shutdown()
         await super().unload()
 
-    def sanitize_dict(self, parameters: dict[str, Any], decode=True) -> None:
+    def sanitize_dict(self, parameters: dict[str, Any], decode: bool = True) -> None:
+        """
+        Convert the binary values in the given dictionary to (decode=True) and from (decode=False) hex format.
+        """
         for field in self.composition.binary_fields:
             value = parameters.get(field)
             if value is not None:
                 parameters[field] = unhexlify(value.encode()) if decode else hexlify(value.encode()).decode()
 
-    def sanitize_query(self, query_dict: Dict[str, Any], cap=100) -> Dict[str, Any]:
+    def sanitize_query(self, query_dict: dict[str, Any], cap: int = 100) -> dict[str, Any]:
+        """
+        Convert the values in a query to the appropriate format and supply missing values.
+        """
         sanitized_dict = dict(query_dict)
 
         # We impose a cap on max numbers of returned entries to prevent DDOS-like attacks
-        first = sanitized_dict.get("first", None) or 0
-        last = sanitized_dict.get("last", None)
+        first = sanitized_dict.get("first") or 0
+        last = sanitized_dict.get("last")
         last = last if (last is not None and last <= (first + cap)) else (first + cap)
         sanitized_dict.update({"first": first, "last": last})
 
@@ -107,7 +125,10 @@ class ContentDiscoveryCommunity(Community):
 
         return sanitized_dict
 
-    def convert_to_json(self, parameters):
+    def convert_to_json(self, parameters: dict[str, Any]) -> str:
+        """
+        Sanitize and dump the given dictionary to a string using JSON.
+        """
         sanitized = dict(parameters)
         # Convert metadata_type to an int list if it is a string
         if "metadata_type" in sanitized and isinstance(sanitized["metadata_type"], str):
@@ -120,7 +141,10 @@ class ContentDiscoveryCommunity(Community):
 
         return json.dumps(sanitized)
 
-    def get_alive_checked_torrents(self) -> List[HealthInfo]:
+    def get_alive_checked_torrents(self) -> list[HealthInfo]:
+        """
+        Get torrents that we know have seeders AND leechers.
+        """
         if not self.composition.torrent_checker:
             return []
 
@@ -128,7 +152,7 @@ class ContentDiscoveryCommunity(Community):
         return [health for health in self.composition.torrent_checker.torrents_checked.values() if
                 health.seeders > 0 and health.leechers >= 0]
 
-    def gossip_random_torrents_health(self):
+    def gossip_random_torrents_health(self) -> None:
         """
         Gossip random torrent health information to another peer.
         """
@@ -142,10 +166,12 @@ class ContentDiscoveryCommunity(Community):
             self.ez_send(p, PopularTorrentsRequest())
 
     @lazy_wrapper(TorrentsHealthPayload)
-    async def on_torrents_health(self, peer, payload: TorrentsHealthPayload):
-        self.logger.debug(f"Received torrent health information for "
-                          f"{len(payload.torrents_checked)} popular torrents and"
-                          f" {len(payload.random_torrents)} random torrents")
+    async def on_torrents_health(self, peer: Peer, payload: TorrentsHealthPayload) -> None:
+        """
+        Callback for when we receive torrent health.
+        """
+        self.logger.debug("Received torrent health information for %d popular torrents"
+                          " and %d random torrents", len(payload.torrents_checked), len(payload.random_torrents))
 
         health_tuples = payload.random_torrents + payload.torrents_checked
         health_list = [HealthInfo(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
@@ -159,7 +185,10 @@ class ContentDiscoveryCommunity(Community):
             self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
     @db_session
-    def process_torrents_health(self, health_list: List[HealthInfo]):
+    def process_torrents_health(self, health_list: list[HealthInfo]) -> set[bytes]:
+        """
+        Get the infohashes that we did not know about before from the given health list.
+        """
         infohashes_to_resolve = set()
         for health in health_list:
             added = self.composition.metadata_store.process_torrent_health(health)
@@ -168,12 +197,18 @@ class ContentDiscoveryCommunity(Community):
         return infohashes_to_resolve
 
     @lazy_wrapper(PopularTorrentsRequest)
-    async def on_popular_torrents_request(self, peer, payload):
+    async def on_popular_torrents_request(self, peer: Peer, payload: PopularTorrentsRequest) -> None:
+        """
+        Callback for when we receive a request for popular torrents.
+        """
         self.logger.debug("Received popular torrents health request")
-        popular_torrents = self.get_likely_popular_torrents()
+        popular_torrents = self.get_random_torrents()
         self.ez_send(peer, TorrentsHealthPayload.create({}, popular_torrents))
 
-    def get_likely_popular_torrents(self) -> List[HealthInfo]:
+    def get_random_torrents(self) -> list[HealthInfo]:
+        """
+        Get torrent health info for torrents that were alive, last we know of.
+        """
         checked_and_alive = self.get_alive_checked_torrents()
         if not checked_and_alive:
             return []
@@ -181,27 +216,20 @@ class ContentDiscoveryCommunity(Community):
         num_torrents_to_send = min(self.composition.random_torrent_count, len(checked_and_alive))
         return random.sample(checked_and_alive, num_torrents_to_send)
 
-    def get_random_torrents(self) -> List[HealthInfo]:
-        checked_and_alive = list(self.get_alive_checked_torrents())
-        if not checked_and_alive:
-            return []
-
-        num_torrents = len(checked_and_alive)
-        num_torrents_to_send = min(self.composition.random_torrent_count, num_torrents)
-
-        random_torrents = random.sample(checked_and_alive, num_torrents_to_send)
-        return random_torrents
-
-    def get_random_peers(self, sample_size=None):
-        # Randomly sample sample_size peers from the complete list of our peers
+    def get_random_peers(self, sample_size: int | None = None) -> list[Peer]:
+        """
+        Randomly sample sample_size peers from the complete list of our peers.
+        """
         all_peers = self.get_peers()
         return random.sample(all_peers, min(sample_size or len(all_peers), len(all_peers)))
 
-    def send_search_request(self, **kwargs):
-        # Send a remote query request to multiple random peers to search for some terms
+    def send_search_request(self, **kwargs) -> tuple[uuid.UUID, list[Peer]]:
+        """
+        Send a remote query request to multiple random peers to search for some terms.
+        """
         request_uuid = uuid.uuid4()
 
-        def notify_gui(request, processing_results):
+        def notify_gui(request: SelectRequest, processing_results: list[ProcessingResult]) -> None:
             results = [
                 r.md_obj.to_simple_dict()
                 for r in processing_results
@@ -224,49 +252,59 @@ class ContentDiscoveryCommunity(Community):
         return request_uuid, peers_to_query
 
     @lazy_wrapper(VersionRequest)
-    async def on_version_request(self, peer, _):
+    async def on_version_request(self, peer: Peer, _: VersionRequest) -> None:
+        """
+        Callback for when our Tribler version and Operating System is requested.
+        """
         version_response = VersionResponse("Tribler Experimental", sys.platform)
         self.ez_send(peer, version_response)
 
     @lazy_wrapper(VersionResponse)
-    async def on_version_response(self, peer, payload):
-        pass
+    async def on_version_response(self, peer: Peer, payload: VersionResponse) -> None:
+        """
+        Callback for when we receive a Tribler version and Operating System of a peer.
+        """
 
-    def send_remote_select(self, peer, processing_callback=None, **kwargs):
-        request = SelectRequest(
-            self.request_cache,
-            hexlify(peer.mid).decode(),
-            kwargs,
-            peer,
-            processing_callback=processing_callback,
-            timeout_callback=self._on_query_timeout,
-        )
+    def send_remote_select(self, peer: Peer,
+                           processing_callback: Callable[[SelectRequest, list[ProcessingResult]], None] | None = None,
+                           **kwargs) -> SelectRequest:
+        """
+        Query a peer using an SQL statement descriptions (kwargs).
+        """
+        request = SelectRequest(self.request_cache, kwargs, peer, processing_callback, self._on_query_timeout)
         self.request_cache.add(request)
 
-        self.logger.debug(f"Select to {hexlify(peer.mid).decode()} with ({kwargs})")
+        self.logger.debug("Select to %s with (%s)", hexlify(peer.mid).decode(), str(kwargs))
         self.ez_send(peer, RemoteSelectPayload(request.number, self.convert_to_json(kwargs).encode()))
         return request
 
-    def should_limit_rate_for_query(self, sanitized_parameters: Dict[str, Any]) -> bool:
-        return 'txt_filter' in sanitized_parameters
+    def should_limit_rate_for_query(self, sanitized_parameters: dict[str, Any]) -> bool:
+        """
+        Don't allow too many queries with potentially heavy database load.
+        """
+        return "txt_filter" in sanitized_parameters
 
-    async def process_rpc_query_rate_limited(self, sanitized_parameters: Dict[str, Any]) -> List:
+    async def process_rpc_query_rate_limited(self, sanitized_parameters: dict[str, Any]) -> list:
+        """
+        Process the given query and return results.
+        """
         query_num = self.next_remote_query_num()
         if self.remote_queries_in_progress and self.should_limit_rate_for_query(sanitized_parameters):
-            self.logger.warning(f'Ignore remote query {query_num} as another one is already processing. '
-                                f'The ignored query: {sanitized_parameters}')
+            self.logger.warning("Ignore remote query %d as another one is already processing. The ignored query: %s",
+                                query_num, sanitized_parameters)
             return []
 
-        self.logger.info(f'Process remote query {query_num}: {sanitized_parameters}')
+        self.logger.info("Process remote query %d: %s", query_num, sanitized_parameters)
         self.remote_queries_in_progress += 1
         t = time.time()
         try:
             return await self.process_rpc_query(sanitized_parameters)
         finally:
             self.remote_queries_in_progress -= 1
-            self.logger.info(f'Remote query {query_num} processed in {time.time() - t} seconds: {sanitized_parameters}')
+            self.logger.info("Remote query %d processed in %f seconds: %s",
+                             query_num, time.time() - t, sanitized_parameters)
 
-    async def process_rpc_query(self, sanitized_parameters: Dict[str, Any]) -> List:
+    async def process_rpc_query(self, sanitized_parameters: dict[str, Any]) -> list:
         """
         Retrieve the result of a database query from a third party, encoded as raw JSON bytes (through `dumps`).
 
@@ -276,32 +314,36 @@ class ContentDiscoveryCommunity(Community):
         """
         if self.composition.tribler_db:
             # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
-            tags = sanitized_parameters.pop('tags', None)
+            tags = sanitized_parameters.pop("tags", None)
 
             infohash_set = self.composition.tribler_db.instance(self.search_for_tags, tags)
             if infohash_set:
-                sanitized_parameters['infohash_set'] = {bytes.fromhex(s) for s in infohash_set}
+                sanitized_parameters["infohash_set"] = {bytes.fromhex(s) for s in infohash_set}
 
             # exclude_deleted should be extracted because `get_entries_threaded` doesn't expect it as a parameter
-            sanitized_parameters.pop('exclude_deleted', None)
+            sanitized_parameters.pop("exclude_deleted", None)
 
         return await self.composition.metadata_store.get_entries_threaded(**sanitized_parameters)
 
     @db_session
-    def search_for_tags(self, tags: Optional[List[str]]) -> Optional[Set[str]]:
+    def search_for_tags(self, tags: list[str] | None) -> set[str] | None:
+        """
+        Query our local database for the given tags.
+        """
         if not tags or not self.composition.tribler_db:
             return None
         valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        result = self.composition.tribler_db.knowledge.get_subjects_intersection(
+        return self.composition.tribler_db.knowledge.get_subjects_intersection(
             subjects_type=ResourceType.TORRENT,
             objects=valid_tags,
             predicate=ResourceType.TAG,
             case_sensitive=False
         )
-        return result
 
-    def send_db_results(self, peer, request_payload_id, db_results):
-
+    def send_db_results(self, peer: Peer, request_payload_id: int, db_results: list[TorrentMetadata]) -> None:
+        """
+        Send the given results to the given peer.
+        """
         # Special case of empty results list - sending empty lz4 archive
         if len(db_results) == 0:
             self.ez_send(peer, SelectResponsePayload(request_payload_id, LZ4_EMPTY_ARCHIVE))
@@ -315,35 +357,43 @@ class ContentDiscoveryCommunity(Community):
             self.ez_send(peer, payload)
 
     @lazy_wrapper(RemoteSelectPayload)
-    async def on_remote_select(self, peer, request_payload):
+    async def on_remote_select(self, peer: Peer, request_payload: RemoteSelectPayload) -> None:
+        """
+        Callback for when another peer queries us.
+        """
         try:
             sanitized_parameters = self.parse_parameters(request_payload.json)
             # Drop selects with deprecated queries
             if any(param in sanitized_parameters for param in self.composition.deprecated_parameters):
-                self.logger.warning(f"Remote select with deprecated parameters: {sanitized_parameters}")
+                self.logger.warning("Remote select with deprecated parameters: %s", str(sanitized_parameters))
                 self.ez_send(peer, SelectResponsePayload(request_payload.id, LZ4_EMPTY_ARCHIVE))
                 return
             db_results = await self.process_rpc_query_rate_limited(sanitized_parameters)
 
             self.send_db_results(peer, request_payload.id, db_results)
         except (OperationalError, TypeError, ValueError) as error:
-            self.logger.error(f"Remote select error: {error}. Request content: {request_payload.json!r}")
+            self.logger.exception("Remote select error: %s. Request content: %s",
+                                  str(error), repr(request_payload.json))
 
-    def parse_parameters(self, json_bytes: bytes) -> Dict[str, Any]:
+    def parse_parameters(self, json_bytes: bytes) -> dict[str, Any]:
+        """
+        Load a (JSON) dict from the given bytes and sanitize it to use as a database query.
+        """
         return self.sanitize_query(json.loads(json_bytes), self.composition.max_response_size)
 
     @lazy_wrapper(SelectResponsePayload)
-    async def on_remote_select_response(self, peer, response_payload):
+    async def on_remote_select_response(self, peer: Peer,
+                                        response_payload: SelectResponsePayload) -> list[ProcessingResult] | None:
         """
         Match the response that we received from the network to a query cache
         and process it by adding the corresponding entries to the MetadataStore database.
-        This processes both direct responses and pushback (updates) responses
+        This processes both direct responses and pushback (updates) responses.
         """
-        self.logger.debug(f"Response from {hexlify(peer.mid).decode()}")
+        self.logger.debug("Response from %s", hexlify(peer.mid).decode())
 
         request: SelectRequest | None = self.request_cache.get(hexlify(peer.mid).decode(), response_payload.id)
         if request is None:
-            return
+            return None
 
         # Check for limit on the number of packets per request
         if request.packets_limit > 1:
@@ -354,7 +404,7 @@ class ContentDiscoveryCommunity(Community):
         processing_results = await self.composition.metadata_store.process_compressed_mdblob_threaded(
             response_payload.raw_blob
         )
-        self.logger.debug(f"Response result: {processing_results}")
+        self.logger.debug("Response result: %s", str(processing_results))
 
         if isinstance(request, SelectRequest) and request.processing_callback:
             request.processing_callback(request, processing_results)
@@ -365,7 +415,10 @@ class ContentDiscoveryCommunity(Community):
 
         return processing_results
 
-    def _on_query_timeout(self, request_cache):
+    def _on_query_timeout(self, request_cache: SelectRequest) -> None:
+        """
+        Remove a peer if it failed to respond to our select request.
+        """
         if not request_cache.peer_responded:
             self.logger.debug(
                 "Remote query timeout, deleting peer: %s %s %s",
@@ -376,4 +429,7 @@ class ContentDiscoveryCommunity(Community):
             self.network.remove_peer(request_cache.peer)
 
     def send_ping(self, peer: Peer) -> None:
+        """
+        Send a ping to a peer to keep it alive.
+        """
         self.send_introduction_request(peer)
