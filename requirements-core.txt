@@ -11,7 +11,7 @@ marshmallow==3.19.0
 networkx==3.1
 pony==0.7.17
 psutil==5.9.5
-pydantic==1.10.11
+pydantic==1.10.13
 PyOpenSSL==24.0.0
 pyyaml==6.0
 sentry-sdk==1.31.0
