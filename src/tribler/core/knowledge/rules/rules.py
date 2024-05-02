@@ -3,39 +3,46 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from re import Pattern
-from typing import Sequence, AnyStr, Callable, Optional, Iterable
+from typing import AnyStr, Callable, Generator, Sequence
 
 from tribler.core.knowledge.community import is_valid_resource
 
-space = r'[-\._\s]'
-two_digit_version = r'(\d{1,2}(?:\.\d{1,2})?)'
+space = r"[-\._\s]"
+two_digit_version = r"(\d{1,2}(?:\.\d{1,2})?)"
 
 
 def pattern(linux_distribution: str) -> Pattern:
-    return re.compile(f'{linux_distribution}{space}*{two_digit_version}', flags=re.IGNORECASE)
+    """
+    The regular experssion pattern for Linux distributions.
+    """
+    return re.compile(f"{linux_distribution}{space}*{two_digit_version}", flags=re.IGNORECASE)
 
 
 @dataclass
 class Rule:
-    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=lambda: [])
-    actions: Sequence[Callable[[str], str]] = field(default_factory=lambda: [])
+    """
+    A Linux distribution correction rule.
+    """
+
+    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=list)
+    actions: Sequence[Callable[[str], str]] = field(default_factory=list)
 
 
 RulesList = Sequence[Rule]
 content_items_rules: RulesList = [
-    Rule(patterns=[pattern('ubuntu')],
-         actions=[lambda s: f'Ubuntu {s}']),
-    Rule(patterns=[pattern('debian')],
-         actions=[lambda s: f'Debian {s}']),
-    Rule(patterns=[re.compile(f'linux{space}*mint{space}*{two_digit_version}', flags=re.IGNORECASE)],
-         actions=[lambda s: f'Linux Mint {s}']),
+    Rule(patterns=[pattern("ubuntu")],
+         actions=[lambda s: f"Ubuntu {s}"]),
+    Rule(patterns=[pattern("debian")],
+         actions=[lambda s: f"Debian {s}"]),
+    Rule(patterns=[re.compile(f"linux{space}*mint{space}*{two_digit_version}", flags=re.IGNORECASE)],
+         actions=[lambda s: f"Linux Mint {s}"]),
 ]
 
 # Each regex expression should contain just a single capturing group:
-square_brackets_re = re.compile(r'\[([^\[\]]+)]')
-parentheses_re = re.compile(r'\(([^()]+)\)')
-extension_re = re.compile(r'\.(\w{3,4})$')
-delimiter_re = re.compile(r'([^\s.,/|]+)')
+square_brackets_re = re.compile(r"\[([^\[\]]+)]")
+parentheses_re = re.compile(r"\(([^()]+)\)")
+extension_re = re.compile(r"\.(\w{3,4})$")
+delimiter_re = re.compile(r"([^\s.,/|]+)")
 general_rules: RulesList = [
     Rule(
         patterns=[
@@ -55,8 +62,9 @@ general_rules: RulesList = [
 ]
 
 
-def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
-    """ Extract tags by using the given rules.
+def extract_tags(text: str, rules: RulesList | None = None) -> Generator[str, None, None]:
+    """
+    Extract tags by using the given rules.
 
     Rules are represented by an array of an array of regexes.
     Each rule contains one or more regex expressions.
@@ -89,8 +97,11 @@ def extract_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
         yield from text_set
 
 
-def extract_only_valid_tags(text: str, rules: Optional[RulesList] = None) -> Iterable[str]:
+def extract_only_valid_tags(text: str, rules: RulesList | None = None) -> Generator[str, None, None]:
+    """
+    Extract individual tags from a given string.
+    """
     for tag in extract_tags(text, rules):
-        tag = tag.lower()
-        if is_valid_resource(tag):
-            yield tag
+        lc_tag = tag.lower()
+        if is_valid_resource(lc_tag):
+            yield lc_tag

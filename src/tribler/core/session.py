@@ -3,20 +3,26 @@ from __future__ import annotations
 import logging
 from asyncio import Event
 from contextlib import contextmanager, nullcontext
-from typing import Generator
+from typing import TYPE_CHECKING, Generator
 
 from ipv8.loader import IPv8CommunityLoader
 from ipv8_service import IPv8
 
-from tribler.core.components import (ContentDiscoveryComponent, DatabaseComponent, KnowledgeComponent,
-                                     RendezvousComponent, TorrentCheckerComponent, DHTDiscoveryComponent,
-                                     TunnelComponent)
+from tribler.core.components import (
+    ContentDiscoveryComponent,
+    DatabaseComponent,
+    DHTDiscoveryComponent,
+    KnowledgeComponent,
+    RendezvousComponent,
+    TorrentCheckerComponent,
+    TunnelComponent,
+)
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoint
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
-from tribler.core.notifier import Notifier, Notification
+from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.events_endpoint import EventsEndpoint
 from tribler.core.restapi.ipv8_endpoint import IPv8RootEndpoint
 from tribler.core.restapi.rest_manager import RESTManager
@@ -24,16 +30,21 @@ from tribler.core.restapi.settings_endpoint import SettingsEndpoint
 from tribler.core.restapi.shutdown_endpoint import ShutdownEndpoint
 from tribler.core.restapi.statistics_endpoint import StatisticsEndpoint
 from tribler.core.socks5.server import Socks5Server
-from tribler.tribler_config import TriblerConfigManager
+
+if TYPE_CHECKING:
+    from tribler.tribler_config import TriblerConfigManager
 
 logger = logging.getLogger(__name__)
 
 
 @contextmanager
 def rust_enhancements(session: Session) -> Generator[None, None, None]:
+    """
+    Attempt to import the IPv8 Rust anonymization backend.
+    """
     try:
-        from ipv8_rust_tunnels.endpoint import RustEndpoint
         from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES
+        from ipv8_rust_tunnels.endpoint import RustEndpoint
         INTERFACES["UDPIPv4"] = RustEndpoint
         for ifc in session.config.configuration["ipv8"]["interfaces"]:
             if ifc["interface"] == "UDPIPv4":
@@ -52,8 +63,14 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
 
 
 class Session:
+    """
+    A session manager that manages all components.
+    """
 
     def __init__(self, config: TriblerConfigManager) -> None:
+        """
+        Create a new session without initializing any components yet.
+        """
         self.config = config
 
         self.shutdown_event = Event()
@@ -78,6 +95,9 @@ class Session:
         self.torrent_checker = None
 
     def register_launchers(self) -> None:
+        """
+        Register all IPv8 launchers that allow communities to be loaded.
+        """
         self.loader.set_launcher(ContentDiscoveryComponent())
         self.loader.set_launcher(DatabaseComponent())
         self.loader.set_launcher(DHTDiscoveryComponent())
@@ -87,6 +107,9 @@ class Session:
         self.loader.set_launcher(TunnelComponent())
 
     def register_rest_endpoints(self) -> None:
+        """
+        Register all REST endpoints without initializing them.
+        """
         self.rest_manager.add_endpoint(CreateTorrentEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(DownloadsEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(EventsEndpoint(self.notifier))
@@ -98,6 +121,9 @@ class Session:
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))
 
     async def start(self) -> None:
+        """
+        Initialize and launch all components and REST endpoints.
+        """
         # REST (1/2)
         self.register_rest_endpoints()
 
@@ -119,13 +145,16 @@ class Session:
         await self.rest_manager.start()
 
     async def shutdown(self) -> None:
+        """
+        Shut down all connections and components.
+        """
         # Stop network event generators
         if self.torrent_checker:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down torrent checker.")
             await self.torrent_checker.shutdown()
         if self.knowledge_processor:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down knowledge processor.")
-            await self.knowledge_processor.shutdown()
+            await self.knowledge_processor.shutdown_task_manager()
         if self.ipv8:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down IPv8 peer-to-peer overlays.")
             await self.ipv8.stop()
