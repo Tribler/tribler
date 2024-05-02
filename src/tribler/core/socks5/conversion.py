@@ -58,7 +58,7 @@ class MethodsResponse(VariablePayload):
     names = ["version", "method"]
     format_list = ["B", "B"]
 
-    names: int
+    version: int
     method: int
 
 

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import time
 from random import choice
+from typing import TYPE_CHECKING
 
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
+
+if TYPE_CHECKING:
+    from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 
 class GoldenRatioStrategy(DiscoveryStrategy):
@@ -15,17 +21,13 @@ class GoldenRatioStrategy(DiscoveryStrategy):
     the set golden ratio.
     """
 
-    def __init__(self, overlay, golden_ratio=9 / 16, target_peers=23):
+    def __init__(self, overlay: TriblerTunnelCommunity, golden_ratio: float = 9 / 16, target_peers: int = 23) -> None:
         """
         Initialize the GoldenRatioStrategy.
 
         :param overlay: the overlay instance to walk over
-        :type overlay: TriblerTunnelCommunity
         :param golden_ratio: the ratio of normal/exit node peers to pursue (between 0.0 and 1.0)
-        :type golden_ratio: float
         :param target_peers: the amount of peers at which to start removing (>0)
-        :type target_peers: int
-        :returns: None
         """
         super().__init__(overlay)
         self.golden_ratio = golden_ratio
@@ -35,12 +37,10 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         assert target_peers > 0
         assert 0.0 <= golden_ratio <= 1.0
 
-    def take_step(self):
+    def take_step(self) -> None:
         """
         We are asked to update, see if we have enough peers to start culling them.
         If we do have enough peers, select a suitable peer to remove.
-
-        :returns: None
         """
         with self.walk_lock:
             peers = self.overlay.get_peers()
