@@ -25,22 +25,9 @@ def pytest_cmdline_main(config: Config):
     enable_extended_logging = config.option.verbose > 0
 
 
-def pytest_addoption(parser):
-    parser.addoption('--guitests', action='store_true', dest="guitests",
-                     default=False, help="enable longrundecorated tests")
-
-
 def pytest_collection_modifyitems(config, items):
     for item in items:
         item.add_marker(pytest.mark.timeout(60))
-
-    if config.getoption("--guitests"):
-        # --guitests given in cli: do not skip GUI tests
-        return
-    skip_guitests = pytest.mark.skip(reason="need --guitests option to run")
-    for item in items:
-        if "guitest" in item.keywords:
-            item.add_marker(skip_guitests)
 
 
 @pytest.hookimpl

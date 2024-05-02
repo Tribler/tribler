@@ -1,15 +1,16 @@
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
+from ipv8.REST.schema import schema
 from marshmallow.fields import List, String
 
-from ipv8.REST.schema import schema
 from tribler.core.components.content_discovery.community.content_discovery_community import ContentDiscoveryCommunity
 from tribler.core.components.content_discovery.restapi.schema import RemoteQueryParameters
+from tribler.core.components.database.restapi.database_endpoint import DatabaseEndpoint
 from tribler.core.components.restapi.rest.rest_endpoint import HTTP_BAD_REQUEST, MAX_REQUEST_SIZE, RESTEndpoint, \
     RESTResponse
-from tribler.core.utilities.utilities import froze_it
+from tribler.core.utilities.utilities import froze_it, to_fts_query
 
 
 @froze_it
@@ -31,14 +32,7 @@ class SearchEndpoint(RESTEndpoint):
 
     @classmethod
     def sanitize_parameters(cls, parameters):
-        sanitized = dict(parameters)
-        if "max_rowid" in parameters:
-            sanitized["max_rowid"] = int(parameters["max_rowid"])
-        if "channel_pk" in parameters:
-            sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
-        if "origin_id" in parameters:
-            sanitized["origin_id"] = int(parameters["origin_id"])
-        return sanitized
+        return DatabaseEndpoint.sanitize_parameters(parameters)
 
     @docs(
         tags=['Metadata'],
@@ -58,14 +52,17 @@ class SearchEndpoint(RESTEndpoint):
     )
     @querystring_schema(RemoteQueryParameters)
     async def remote_search(self, request):
-        self._logger.info('Create remote search request')
-        # Query remote results from the GigaChannel Community.
-        # Results are returned over the Events endpoint.
         try:
             sanitized = self.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+        query = request.query.get('fts_text')
+        if t_filter := request.query.get('filter'):
+            query += f' {t_filter}'
+        fts = to_fts_query(query)
+        sanitized['txt_filter'] = fts
         self._logger.info(f'Parameters: {sanitized}')
+        self._logger.info(f'FTS: {fts}')
 
         request_uuid, peers_list = self.popularity_community.send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid).decode() for p in peers_list]

@@ -297,7 +297,6 @@ def fake_core_response_popular(window):
     })
 
 
-@pytest.mark.guitest
 def test_popular_page(window):
     QTest.mouseClick(window.left_menu_button_popular, Qt.LeftButton)
     widget = window.popular_page
@@ -306,7 +305,6 @@ def test_popular_page(window):
     screenshot(window, name="popular_page")
 
 
-@pytest.mark.guitest
 def test_settings(window):
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
     QTest.mouseClick(window.settings_general_button, Qt.LeftButton)
@@ -325,7 +323,7 @@ def test_settings(window):
     wait_for_signal(window.settings_page.settings_edited)
 
 
-@pytest.mark.guitest
+@pytest.mark.dependency
 def test_downloads(window):
     go_to_and_wait_for_downloads(window)
     screenshot(window, name="downloads_all")
@@ -339,7 +337,7 @@ def test_downloads(window):
     screenshot(window, name="downloads_inactive")
 
 
-@pytest.mark.guitest
+@pytest.mark.dependency(depends=["test_downloads"])
 def test_download_start_stop_remove_recheck(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
@@ -350,7 +348,7 @@ def test_download_start_stop_remove_recheck(window):
     QTest.mouseClick(window.downloads_page.dialog.buttons[2], Qt.LeftButton)
 
 
-@pytest.mark.guitest
+@pytest.mark.dependency(depends=["test_downloads"])
 def test_download_details(window):
     go_to_and_wait_for_downloads(window)
     QTest.mouseClick(window.downloads_list.topLevelItem(0).progress_slider, Qt.LeftButton)
@@ -373,7 +371,6 @@ def test_download_details(window):
     screenshot(window, name="download_trackers")
 
 
-@pytest.mark.guitest
 def test_search_suggestions(window):
     QTest.keyClick(window.top_search_bar, 't')
     QTest.keyClick(window.top_search_bar, 'o')
@@ -381,7 +378,6 @@ def test_search_suggestions(window):
     screenshot(window, name="search_suggestions")
 
 
-@pytest.mark.guitest
 def test_search(window):
     window.top_search_bar.setText("torrent")  # This is likely to trigger some search results
     QTest.keyClick(window.top_search_bar, Qt.Key_Enter)
@@ -389,7 +385,6 @@ def test_search(window):
     screenshot(window, name="search_loading_page")
 
 
-@pytest.mark.guitest
 def test_add_download_url(window):
     go_to_and_wait_for_downloads(window)
     window.on_add_torrent_from_url()
@@ -418,7 +413,6 @@ def test_add_download_url(window):
     wait_for_signal(window.downloads_page.received_downloads)
 
 
-@pytest.mark.guitest
 def test_add_deeptorrent(window):
     # Test that the `deeptorrent.torrent` file doesn't cause the RecursionError
     #
@@ -442,7 +436,6 @@ def test_add_deeptorrent(window):
     assert not window.error_handler._handled_exceptions
 
 
-@pytest.mark.guitest
 def test_feedback_dialog(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
@@ -456,7 +449,6 @@ def test_feedback_dialog(window):
     dialog.exec_()
 
 
-@pytest.mark.guitest
 def test_feedback_dialog_report_sent(window):
     def screenshot_dialog():
         screenshot(dialog, name="feedback_dialog")
@@ -477,7 +469,6 @@ def test_feedback_dialog_report_sent(window):
     assert on_report_sent.did_send_report
 
 
-@pytest.mark.guitest
 def test_debug_pane(window):
     wait_for_variable(window, "tribler_settings")
     QTest.mouseClick(window.settings_button, Qt.LeftButton)
@@ -555,7 +546,6 @@ def test_debug_pane(window):
     window.debug_window.close()
 
 
-@pytest.mark.guitest
 def test_tags_dialog(window):
     """
     Test the behaviour of the dialog where a user can edit tags.
@@ -676,7 +666,6 @@ def test_tags_dialog(window):
     QTest.qWait(200)  # It can take a bit of time to hide the dialog
 
 
-@pytest.mark.guitest
 def test_no_tags(window):
     """
     Test removing all tags from a content item.
