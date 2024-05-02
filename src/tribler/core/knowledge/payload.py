@@ -6,6 +6,7 @@ class StatementOperation(VariablePayload):
     """
     Do not change the format of the StatementOperation, because this will result in an invalid signature.
     """
+
     names = ["subject_type", "subject", "predicate", "object", "operation", "clock", "creator_public_key"]
     format_list = ["q", "varlenHutf8", "q", "varlenHutf8", "q", "q", "74s"]
 
@@ -20,6 +21,10 @@ class StatementOperation(VariablePayload):
 
 @vp_compile
 class StatementOperationSignature(VariablePayload):
+    """
+    A single signature of an unknown statement.
+    """
+
     names = ["signature"]
     format_list = ["64s"]
 
@@ -29,9 +34,11 @@ class StatementOperationSignature(VariablePayload):
 @vp_compile
 class RawStatementOperationMessage(VariablePayload):
     """
-    RAW payload class is used for reducing ipv8 unpacking operations
+    RAW payload class is used for reducing ipv8 unpacking operations.
+
     For more information take a look at: https://github.com/Tribler/tribler/pull/6396#discussion_r728334323
     """
+
     names = ["operation", "signature"]
     format_list = ["varlenH", "varlenH"]
 
@@ -42,6 +49,10 @@ class RawStatementOperationMessage(VariablePayload):
 
 @vp_compile
 class StatementOperationMessage(VariablePayload):
+    """
+    An operation coupled to a signature.
+    """
+
     names = ["operation", "signature"]
     format_list = [StatementOperation, StatementOperationSignature]
 
@@ -52,6 +63,10 @@ class StatementOperationMessage(VariablePayload):
 
 @vp_compile
 class RequestStatementOperationMessage(VariablePayload):
+    """
+    Request a given number of statements.
+    """
+
     names = ["count"]
     format_list = ["q"]
 

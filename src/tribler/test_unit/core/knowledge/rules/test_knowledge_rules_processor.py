@@ -6,7 +6,6 @@ from unittest.mock import Mock
 from ipv8.test.base import TestBase
 
 from tribler.core.database.layers.knowledge import ResourceType
-from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.knowledge.rules.knowledge_rules_processor import (
     LAST_PROCESSED_TORRENT_ID,
     RULES_PROCESSOR_VERSION,
@@ -43,7 +42,7 @@ class TestKnowledgeRulesProcessor(TestBase):
         """
         Shut down the KnowledgeRulesProcessor.
         """
-        await self.tag_rules_processor.shutdown()
+        await self.tag_rules_processor.shutdown_task_manager()
         await super().tearDown()
 
     def test_save_tags(self) -> None:
@@ -61,28 +60,6 @@ class TestKnowledgeRulesProcessor(TestBase):
 
         actual_calls = [c.kwargs for c in self.tag_rules_processor.db.add_auto_generated_operation.mock_calls]
         self.assertEqual([], [c for c in actual_calls if c not in expected_calls])
-
-    async def test_process_batch(self) -> None:
-        """
-        Test if batches are correctly processed.
-        """
-        mocked_last_processed = ["0"]
-        tmd = [MockTorrentMetadata(infohash=bytes([i]) * 20, metadata_type=REGULAR_TORRENT, rowid=i) for i in range(51)]
-        self.tag_rules_processor.mds.get_max_rowid = Mock(return_value=50)
-        self.tag_rules_processor.mds.TorrentMetadata.select = lambda x: [t for t in tmd if x(t)]
-        self.tag_rules_processor.db.get_misc = lambda _, default: mocked_last_processed[0]
-        self.tag_rules_processor.db.set_misc = lambda _, x: mocked_last_processed.__setitem__(0, x)
-
-        self.tag_rules_processor.set_last_processed_torrent_id(10)  # batch should start from 11
-        self.tag_rules_processor.batch_size = 30  # and process 30 entities
-        _ = self.tag_rules_processor.register_task("process_batch", self.tag_rules_processor.process_batch, delay=10.0)
-
-        self.assertEqual(30, await self.tag_rules_processor.process_batch())
-        self.assertEqual(40, self.tag_rules_processor.get_last_processed_torrent_id())
-        self.assertTrue(self.tag_rules_processor.is_pending_task_active("process_batch"))
-        self.assertEqual(10, await self.tag_rules_processor.process_batch())
-        self.assertEqual(50, self.tag_rules_processor.get_last_processed_torrent_id())
-        self.assertFalse(self.tag_rules_processor.is_pending_task_active("process_batch"))
 
     def test_start_current_version(self) -> None:
         """

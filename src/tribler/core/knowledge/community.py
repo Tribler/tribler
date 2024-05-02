@@ -5,33 +5,46 @@ from cryptography.exceptions import InvalidSignature
 from ipv8.community import Community, CommunitySettings
 from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
-from ipv8.types import Key
+from ipv8.types import Key, Peer
 from pony.orm import db_session
 
 from tribler.core.database.layers.knowledge import Operation, ResourceType
-from tribler.core.knowledge.payload import (RawStatementOperationMessage, RequestStatementOperationMessage,
-                                            StatementOperation, StatementOperationMessage, StatementOperationSignature)
-from tribler.core.knowledge.operations_requests import OperationsRequests, PeerValidationError
 from tribler.core.database.tribler_database import TriblerDatabase
+from tribler.core.knowledge.operations_requests import OperationsRequests, PeerValidationError
+from tribler.core.knowledge.payload import (
+    RawStatementOperationMessage,
+    RequestStatementOperationMessage,
+    StatementOperation,
+    StatementOperationMessage,
+    StatementOperationSignature,
+)
 
 REQUESTED_OPERATIONS_COUNT = 10
 CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
 
 
 class KnowledgeCommunitySettings(CommunitySettings):
+    """
+    Settings for the knowledge community.
+    """
+
     db: TriblerDatabase
     key: LibNaCLSK
     request_interval: int = 5
 
 
 class KnowledgeCommunity(Community):
-    """ Community for disseminating knowledge across the network.
+    """
+    Community for disseminating knowledge across the network.
     """
 
-    community_id = unhexlify('d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0')
+    community_id = unhexlify("d7f7bdc8bcd3d9ad23f06f25aa8aab6754eb23a0")
     settings_class = KnowledgeCommunitySettings
 
-    def __init__(self, settings: KnowledgeCommunitySettings):
+    def __init__(self, settings: KnowledgeCommunitySettings) -> None:
+        """
+        Create a new knowledge community.
+        """
         super().__init__(settings)
         self.db = settings.db
         self.key = settings.key
@@ -42,22 +55,28 @@ class KnowledgeCommunity(Community):
 
         self.register_task("request_operations", self.request_operations, interval=settings.request_interval)
         self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL)
-        self.logger.info('Knowledge community initialized')
+        self.logger.info("Knowledge community initialized")
 
-    def request_operations(self):
+    def request_operations(self) -> None:
+        """
+        Contact peers to request operations.
+        """
         if not self.get_peers():
             return
 
         peer = random.choice(self.get_peers())
         self.requests.register_peer(peer, REQUESTED_OPERATIONS_COUNT)
-        self.logger.info(f'-> request {REQUESTED_OPERATIONS_COUNT} operations from peer {peer.mid.hex()}')
+        self.logger.info("-> request %d operations from peer %s", REQUESTED_OPERATIONS_COUNT, peer.mid.hex())
         self.ez_send(peer, RequestStatementOperationMessage(count=REQUESTED_OPERATIONS_COUNT))
 
     @lazy_wrapper(RawStatementOperationMessage)
-    def on_message(self, peer, raw: RawStatementOperationMessage):
+    def on_message(self, peer: Peer, raw: RawStatementOperationMessage) -> None:
+        """
+        Callback for when a raw statement operation message is received.
+        """
         operation, _ = self.serializer.unpack_serializable(StatementOperation, raw.operation)
         signature, _ = self.serializer.unpack_serializable(StatementOperationSignature, raw.signature)
-        self.logger.debug(f'<- message received: {operation}')
+        self.logger.debug("<- message received: %s", str(operation))
         try:
             remote_key = self.crypto.key_from_public_bin(operation.creator_public_key)
 
@@ -69,7 +88,7 @@ class KnowledgeCommunity(Community):
             with db_session():
                 is_added = self.db.knowledge.add_operation(operation, signature.signature)
                 if is_added:
-                    s = f'+ operation added ({operation.object!r} "{operation.predicate}" {operation.subject!r})'
+                    s = f"+ operation added ({operation.object!r} \"{operation.predicate}\" {operation.subject!r})"
                     self.logger.info(s)
 
         except PeerValidationError as e:  # peer has exhausted his response count
@@ -80,14 +99,17 @@ class KnowledgeCommunity(Community):
             self.logger.warning(e)
 
     @lazy_wrapper(RequestStatementOperationMessage)
-    def on_request(self, peer, operation):
+    def on_request(self, peer: Peer, operation: RequestStatementOperationMessage) -> None:
+        """
+        Callback for when statement operations are requested.
+        """
         operations_count = min(max(1, operation.count), REQUESTED_OPERATIONS_COUNT)
-        self.logger.debug('<- peer %s requested %d operations', peer.mid.hex(), operations_count)
+        self.logger.debug("<- peer %s requested %d operations", peer.mid.hex(), operations_count)
 
         with db_session:
             random_operations = self.db.knowledge.get_operations_for_gossip(count=operations_count)
 
-            self.logger.debug(f'Response {len(random_operations)} operations')
+            self.logger.debug("Response %d operations", len(random_operations))
             sent_operations = []
             for op in random_operations:
                 try:
@@ -108,33 +130,55 @@ class KnowledgeCommunity(Community):
                     self.logger.warning(e)
             if sent_operations:
                 sent_tags_info = ", ".join(f"({t})" for t in sent_operations)
-                self.logger.debug(f'-> sent operations (%s) to peer: %s', sent_tags_info, peer.mid.hex())
+                self.logger.debug("-> sent operations (%s) to peer: %s", sent_tags_info, peer.mid.hex())
 
     @staticmethod
-    def validate_operation(operation: StatementOperation):
+    def validate_operation(operation: StatementOperation) -> None:
+        """
+        Check if an operation is valid and raise an exception if it is not.
+
+        :raises ValueError: If the operation failed to validate.
+        """
         validate_resource(operation.subject)
         validate_resource(operation.object)
         validate_operation(operation.operation)
         validate_resource_type(operation.subject_type)
         validate_resource_type(operation.predicate)
 
-    def verify_signature(self, packed_message: bytes, key: Key, signature: bytes, operation: StatementOperation):
+    def verify_signature(self, packed_message: bytes, key: Key, signature: bytes,
+                         operation: StatementOperation) -> None:
+        """
+        Check if a signature is valid for the given message and raise an exception if it is not.
+
+        :raises InvalidSignature: If the message is not correctly signed.
+        """
         if not self.crypto.is_valid_signature(key, packed_message, signature):
-            raise InvalidSignature(f"Invalid signature for {operation}")
+            msg = f"Invalid signature for {operation}"
+            raise InvalidSignature(msg)
 
     def sign(self, operation: StatementOperation) -> bytes:
+        """
+        Sign the given operation using our key.
+        """
         packed = self.serializer.pack_serializable(operation)
         return self.crypto.create_signature(self.key, packed)
 
 
-def validate_resource(resource: str):
-    """Validate the resource. Raises ValueError, in the case the resource is not valid."""
+def validate_resource(resource: str) -> None:
+    """
+    Validate the resource.
+
+    :raises ValueError: If the case the resource is not valid.
+    """
     if len(resource) < MIN_RESOURCE_LENGTH or len(resource) > MAX_RESOURCE_LENGTH:
-        raise ValueError(f'Tag length should be in range [{MIN_RESOURCE_LENGTH}..{MAX_RESOURCE_LENGTH}]')
+        msg = f"Tag length should be in range [{MIN_RESOURCE_LENGTH}..{MAX_RESOURCE_LENGTH}]"
+        raise ValueError(msg)
 
 
 def is_valid_resource(resource: str) -> bool:
-    """Validate the resource. Returns False, in the case the resource is not valid."""
+    """
+    Validate the resource. Returns False, in the case the resource is not valid.
+    """
     try:
         validate_resource(resource)
     except ValueError:
@@ -142,13 +186,21 @@ def is_valid_resource(resource: str) -> bool:
     return True
 
 
-def validate_operation(operation: int):
-    """Validate the incoming operation. Raises ValueError, in the case the operation is not valid."""
+def validate_operation(operation: int) -> None:
+    """
+    Validate the incoming operation.
+
+    :raises ValueError: If the case the operation is not valid.
+    """
     Operation(operation)
 
 
-def validate_resource_type(t: int):
-    """Validate the resource type. Raises ValueError, in the case the type is not valid."""
+def validate_resource_type(t: int) -> None:
+    """
+    Validate the resource type.
+
+    :raises ValueError: If the case the type is not valid.
+    """
     ResourceType(t)
 
 
