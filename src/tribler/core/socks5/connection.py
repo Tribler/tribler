@@ -1,36 +1,53 @@
-import logging
-from asyncio import Protocol, ensure_future
-from typing import Set
+from __future__ import annotations
 
-from ipv8.messaging.anonymization.tunnel import Circuit
+import logging
+from asyncio import BaseTransport, Protocol, ensure_future
+from typing import TYPE_CHECKING
+
 from ipv8.messaging.serialization import PackError
 
-from tribler.core.socks5.conversion import (CommandRequest, CommandResponse, MethodsRequest, MethodsResponse,
-                                            REP_COMMAND_NOT_SUPPORTED, REP_SUCCEEDED, REQ_CMD_BIND, REQ_CMD_CONNECT,
-                                            REQ_CMD_UDP_ASSOCIATE, SOCKS_VERSION, socks5_serializer)
-from tribler.core.socks5.udp_connection import SocksUDPConnection, RustUDPConnection
+from tribler.core.socks5.conversion import (
+    REP_COMMAND_NOT_SUPPORTED,
+    REP_SUCCEEDED,
+    REQ_CMD_BIND,
+    REQ_CMD_CONNECT,
+    REQ_CMD_UDP_ASSOCIATE,
+    SOCKS_VERSION,
+    CommandRequest,
+    CommandResponse,
+    MethodsRequest,
+    MethodsResponse,
+    socks5_serializer,
+)
+from tribler.core.socks5.udp_connection import RustUDPConnection, SocksUDPConnection
+
+if TYPE_CHECKING:
+    from tribler.core.socks5.server import Socks5Server
 
 
 class ConnectionState:
     """
-    Enumeration of possible SOCKS5 connection states
+    Enumeration of possible SOCKS5 connection states.
     """
 
-    BEFORE_METHOD_REQUEST = 'BEFORE_METHOD_REQUEST'
-    METHOD_REQUESTED = 'METHOD_REQUESTED'
-    CONNECTED = 'CONNECTED'
-    PROXY_REQUEST_RECEIVED = 'PROXY_REQUEST_RECEIVED'
-    PROXY_REQUEST_ACCEPTED = 'PROXY_REQUEST_ACCEPTED'
+    BEFORE_METHOD_REQUEST = "BEFORE_METHOD_REQUEST"
+    METHOD_REQUESTED = "METHOD_REQUESTED"
+    CONNECTED = "CONNECTED"
+    PROXY_REQUEST_RECEIVED = "PROXY_REQUEST_RECEIVED"
+    PROXY_REQUEST_ACCEPTED = "PROXY_REQUEST_ACCEPTED"
 
 
 class Socks5Connection(Protocol):
     """
-    SOCKS5 TCP Connection handler
+    SOCKS5 TCP Connection handler.
 
-    Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests
+    Supports a subset of the SOCKS5 protocol, no authentication and no support for TCP BIND requests.
     """
 
-    def __init__(self, socksserver):
+    def __init__(self, socksserver: Socks5Server) -> None:
+        """
+        Create a socks 5 connection.
+        """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._logger.setLevel(logging.WARNING)
@@ -40,14 +57,20 @@ class Socks5Connection(Protocol):
 
         self.udp_connection = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
-        self.buffer = b''
+        self.buffer = b""
 
         self.destinations = {}
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: BaseTransport) -> None:
+        """
+        Callback for when a connection is made.
+        """
         self.transport = transport
 
-    def data_received(self, data):
+    def data_received(self, data: bytes) -> None:
+        """
+        Callback for when data comes in, try to form a message.
+        """
         self.buffer = self.buffer + data
         while len(self.buffer) > 0:
             # We are at the initial state, so we expect a handshake request.
@@ -63,14 +86,14 @@ class Socks5Connection(Protocol):
                 if self.socksserver.output_stream is not None:
                     # Swallow the data in case the tunnel community has not started yet
                     self.socksserver.output_stream.on_socks5_tcp_data(self, self.connect_to, self.buffer)
-                self.buffer = b''
+                self.buffer = b""
             else:
                 self._logger.error("Throwing away buffer, not in CONNECTED or BEFORE_METHOD_REQUEST state")
-                self.buffer = b''
+                self.buffer = b""
 
     def _try_handshake(self) -> bool:
         """
-        Try to read a HANDSHAKE request
+        Try to read a HANDSHAKE request.
 
         :return: False if command could not been processes due to lack of bytes, True otherwise
         """
@@ -86,21 +109,22 @@ class Socks5Connection(Protocol):
         # Only accept NO AUTH
         if request.version != SOCKS_VERSION or 0x00 not in request.methods:
             self._logger.error("Client has sent INVALID METHOD REQUEST")
-            self.buffer = ''
+            self.buffer = ""
             self.close()
-        else:
-            self._logger.info("Client has sent METHOD REQUEST")
+            return False
 
-            # Respond that we would like to use NO AUTHENTICATION (0x00)
-            if self.state is not ConnectionState.CONNECTED:
-                response = socks5_serializer.pack_serializable(MethodsResponse(SOCKS_VERSION, 0))
-                self.transport.write(response)
+        self._logger.info("Client has sent METHOD REQUEST")
 
-            # We are connected now, the next incoming message will be a REQUEST
-            self.state = ConnectionState.CONNECTED
-            return True
+        # Respond that we would like to use NO AUTHENTICATION (0x00)
+        if self.state is not ConnectionState.CONNECTED:
+            response = socks5_serializer.pack_serializable(MethodsResponse(SOCKS_VERSION, 0))
+            self.transport.write(response)
 
-    def _try_request(self):
+        # We are connected now, the next incoming message will be a REQUEST
+        self.state = ConnectionState.CONNECTED
+        return True
+
+    def _try_request(self) -> bool:
         """
         Try to consume a REQUEST message and respond whether we will accept the
         request.
@@ -124,7 +148,7 @@ class Socks5Connection(Protocol):
         self.state = ConnectionState.PROXY_REQUEST_RECEIVED
 
         if request.cmd == REQ_CMD_UDP_ASSOCIATE:
-            ensure_future(self.on_udp_associate_request(request))
+            ensure_future(self.on_udp_associate_request(request))  # noqa: RUF006
 
         elif request.cmd == REQ_CMD_BIND:
             payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
@@ -140,23 +164,25 @@ class Socks5Connection(Protocol):
             self.transport.write(response)
 
         else:
-            self.deny_request(request, "CMD not recognized")
+            self.deny_request()
 
         return True
 
-    def deny_request(self, request, reason):
+    def deny_request(self) -> None:
         """
-        Deny SOCKS5 request
-        @param Request request: the request to deny
+        Deny the current SOCKS5 request.
         """
         self.state = ConnectionState.CONNECTED
 
         payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
         response = socks5_serializer.pack_serializable(payload)
         self.transport.write(response)
-        self._logger.error(f"DENYING SOCKS5 request, reason: {reason}")
+        self._logger.error("DENYING SOCKS5 request")
 
-    async def on_udp_associate_request(self, request):
+    async def on_udp_associate_request(self, request: CommandRequest) -> None:
+        """
+        Callback for when the connection has associated.
+        """
         # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
         # to use to send UDP datagrams on for the association.  The server MAY use this information
         # to limit access to the association.
@@ -173,10 +199,16 @@ class Socks5Connection(Protocol):
         response = socks5_serializer.pack_serializable(payload)
         self.transport.write(response)
 
-    def connection_lost(self, _):
+    def connection_lost(self, _: Exception | None) -> None:
+        """
+        Callback for when the connection is suddenly terminated.
+        """
         self.socksserver.connection_lost(self)
 
-    def close(self, reason='unspecified'):
+    def close(self, reason: str = "unspecified") -> None:
+        """
+        Close the session.
+        """
         self._logger.info("Closing session, reason %s", reason)
         if self.udp_connection:
             self.udp_connection.close()
