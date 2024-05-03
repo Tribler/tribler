@@ -1,11 +1,28 @@
+from __future__ import annotations
+
 import random
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
-from ipv8.messaging.anonymization.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
-                                                 CIRCUIT_TYPE_RP_DOWNLOADER, CIRCUIT_TYPE_RP_SEEDER)
+from ipv8.messaging.anonymization.tunnel import (
+    CIRCUIT_ID_PORT,
+    CIRCUIT_STATE_READY,
+    CIRCUIT_TYPE_DATA,
+    CIRCUIT_TYPE_RP_DOWNLOADER,
+    CIRCUIT_TYPE_RP_SEEDER,
+    Circuit,
+)
 from ipv8.taskmanager import TaskManager, task
 
 from tribler.core.socks5.conversion import UdpPacket, socks5_serializer
+
+if TYPE_CHECKING:
+    from asyncio import Future
+
+    from tribler.core.socks5.connection import Socks5Connection
+    from tribler.core.socks5.server import Socks5Server
+    from tribler.core.socks5.udp_connection import RustUDPConnection, SocksUDPConnection
+    from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 
 class TunnelDispatcher(TaskManager):
@@ -14,7 +31,10 @@ class TunnelDispatcher(TaskManager):
     This dispatcher acts as a "secondary" proxy between the SOCKS5 UDP session and the tunnel community.
     """
 
-    def __init__(self, tunnels):
+    def __init__(self, tunnels: TriblerTunnelCommunity) -> None:
+        """
+        Create a new dispatcher.
+        """
         super().__init__()
         self.tunnels = tunnels
         self.socks_servers = []
@@ -25,12 +45,16 @@ class TunnelDispatcher(TaskManager):
         # Map to keep track of the circuit id to UDP connection.
         self.cid_to_con = {}
 
-        self.register_task('check_connections', self.check_connections, interval=30)
+        self.register_task("check_connections", self.check_connections, interval=30)
 
-    def set_socks_servers(self, socks_servers):
+    def set_socks_servers(self, socks_servers: list[Socks5Server]) -> None:
+        """
+        Set the available Socks5 servers.
+        """
         self.socks_servers = socks_servers
 
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
+    def on_incoming_from_tunnel(self, community: TriblerTunnelCommunity, circuit: Circuit, origin: int,
+                                data: bytes) -> bool:
         """
         We received some data from the tunnel community. Dispatch it to the right UDP SOCKS5 socket.
         """
@@ -42,7 +66,7 @@ class TunnelDispatcher(TaskManager):
         except KeyError:
             session_hops = circuit.goal_hops if circuit.ctype != CIRCUIT_TYPE_RP_DOWNLOADER else circuit.goal_hops - 1
             if session_hops > len(self.socks_servers) or not self.socks_servers[session_hops - 1].sessions:
-                self._logger.error("No connection found for %d hops", session_hops)
+                self._logger.exception("No connection found for %d hops", session_hops)
                 return False
             connection = next((s for s in self.socks_servers[session_hops - 1].sessions
                                if s.udp_connection and s.udp_connection.remote_udp_address), None)
@@ -56,7 +80,7 @@ class TunnelDispatcher(TaskManager):
         connection.udp_connection.send_datagram(packet)
         return True
 
-    def on_socks5_udp_data(self, udp_connection, request):
+    def on_socks5_udp_data(self, udp_connection: SocksUDPConnection, request: UdpPacket) -> bool:
         """
         We received some data from the SOCKS5 server (from the SOCKS5 client). This method
         selects a circuit to send this data over to the final destination.
@@ -79,14 +103,18 @@ class TunnelDispatcher(TaskManager):
         return True
 
     @task
-    async def on_socks5_tcp_data(self, tcp_connection, destination, request) -> bool:
+    async def on_socks5_tcp_data(self, tcp_connection: Socks5Connection, destination: tuple[str, int],
+                                 request: bytes) -> bool:
+        """
+        Callback for when we received Socks5 data over TCP.
+        """
         self._logger.debug("Got request for %s: %s", destination, request)
         hops = self.socks_servers.index(tcp_connection.socksserver) + 1
         try:
             response = await self.tunnels.perform_http_request(destination, request, hops)
-            self._logger.debug('Got response from %s: %s', destination, response)
+            self._logger.debug("Got response from %s: %s", destination, response)
         except RuntimeError as e:
-            self._logger.info('Failed to get HTTP response using tunnels: %s', e)
+            self._logger.info("Failed to get HTTP response using tunnels: %s", e)
             return False
 
         transport = tcp_connection.transport
@@ -99,8 +127,13 @@ class TunnelDispatcher(TaskManager):
 
         return True
 
-    def select_circuit(self, connection, request):
-        def add_data_if_result(result_func, connection=connection.udp_connection, request=request):
+    def select_circuit(self, connection: Socks5Connection, request: UdpPacket) -> int | None:
+        """
+        Get a circuit number for the given connection and request.
+        """
+        def add_data_if_result(result_func: Future[Circuit | None],
+                               connection: SocksUDPConnection | RustUDPConnection | None = connection.udp_connection,
+                               request: UdpPacket = request) -> bool | None:
             if result_func.result() is None:
                 return None
             return self.on_socks5_udp_data(connection, request)
@@ -136,7 +169,7 @@ class TunnelDispatcher(TaskManager):
         self._logger.debug("Select circuit %d for %s", circuit.circuit_id, request.destination)
         return circuit
 
-    def circuit_dead(self, broken_circuit):
+    def circuit_dead(self, broken_circuit: Circuit) -> set[tuple[str, int]]:
         """
         When a circuit dies, we update the destinations dictionary and remove all peers that are affected.
         """
@@ -152,14 +185,20 @@ class TunnelDispatcher(TaskManager):
         self._logger.debug("Deleted %d peers from destination list", len(destinations))
         return destinations
 
-    def connection_dead(self, connection):
+    def connection_dead(self, connection: Socks5Connection | None) -> None:
+        """
+        Callback for when a given connection is dead.
+        """
         self.con_to_cir.pop(connection, None)
         for cid, con in list(self.cid_to_con.items()):
             if con == connection:
                 self.cid_to_con.pop(cid, None)
         self._logger.error("Detected closed connection")
 
-    def check_connections(self):
+    def check_connections(self) -> None:
+        """
+        Mark connections as dead if they don't have an underlying UDP connection.
+        """
         for connection in list(self.cid_to_con.values()):
             if not connection.udp_connection:
                 self.connection_dead(connection)
