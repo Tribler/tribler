@@ -1,6 +1,7 @@
 from asyncio import Future
 from binascii import hexlify
 
+import libtorrent
 from aiohttp import web
 from aiohttp.abc import Request
 from aiohttp_apispec import docs
@@ -90,7 +91,7 @@ class LibTorrentEndpoint(RESTEndpoint):
         """
         session_stats = Future()
 
-        def on_session_stats_alert_received(alert) -> None:
+        def on_session_stats_alert_received(alert: libtorrent.alert) -> None:
             if not session_stats.done():
                 session_stats.set_result(alert.values)
 

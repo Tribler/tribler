@@ -198,7 +198,6 @@ class TestEventsEndpoint(TestBase):
         self.assertIsNone(self.endpoint.undelivered_error)
         self.assertEqual((b'data: {'
                           b'"topic": "tribler_new_version", '
-                          b'"args": [], '
                           b'"kwargs": {"version": "super cool version"}'
                           b'}\n\n'), request.payload_writer.captured[1])
 
@@ -218,6 +217,5 @@ class TestEventsEndpoint(TestBase):
         self.assertIsNone(self.endpoint.undelivered_error)
         self.assertEqual((b'data: {'
                           b'"topic": "tribler_new_version", '
-                          b'"args": [], '
                           b'"kwargs": {"version": "super cool version"}'
                           b'}\n\n'), request.payload_writer.captured[1])

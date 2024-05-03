@@ -1,18 +1,22 @@
-import asyncio
+from __future__ import annotations
+
 import json
 import time
-from asyncio import CancelledError, Queue, Event
+from asyncio import CancelledError, Event, Queue
 from contextlib import suppress
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, TypedDict
 
 import marshmallow.fields
 from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
-from ipv8.messaging.anonymization.tunnel import Circuit
 
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.rest_endpoint import RESTEndpoint
+
+if TYPE_CHECKING:
+    from aiohttp.abc import Request
+    from ipv8.messaging.anonymization.tunnel import Circuit
 
 topics_to_send_to_gui = [
     Notification.tunnel_removed,
@@ -27,7 +31,14 @@ topics_to_send_to_gui = [
     Notification.report_config_error,
 ]
 
-MessageDict = Dict[str, Any]
+
+class MessageDict(TypedDict):
+    """
+    A message fit for the GUI, usually forwarded from the Notifier.
+    """
+
+    topic: str
+    kwargs: dict[str, str]
 
 
 class EventsEndpoint(RESTEndpoint):
@@ -36,13 +47,17 @@ class EventsEndpoint(RESTEndpoint):
     pushed over this endpoint in the form of a JSON dictionary. Each JSON dictionary contains a type field that
     indicates the type of the event. Individual events are separated by a newline character.
     """
-    path = '/events'
 
-    def __init__(self, notifier: Notifier, public_key: str = None):
+    path = "/events"
+
+    def __init__(self, notifier: Notifier, public_key: str | None = None) -> None:
+        """
+        Create a new events endpoint.
+        """
         self.shutdown_event = Event()
         super().__init__()
-        self.events_responses: List[web.StreamResponse] = []
-        self.undelivered_error: Optional[Exception] = None
+        self.events_responses: list[web.StreamResponse] = []
+        self.undelivered_error: Exception | None = None
         self.public_key = public_key
         self.notifier = notifier
         self.queue = Queue()
@@ -51,7 +66,7 @@ class EventsEndpoint(RESTEndpoint):
         notifier.add(Notification.circuit_removed, self.on_circuit_removed)
         notifier.delegates.add(self.on_notification)
 
-        self.app.add_routes([web.get('', self.get_events)])
+        self.app.add_routes([web.get("", self.get_events)])
 
     @property
     def _shutdown(self) -> bool:
@@ -62,12 +77,19 @@ class EventsEndpoint(RESTEndpoint):
         if value:
             self.shutdown_event.set()
 
-    def on_notification(self, topic, *args, **kwargs):
+    def on_notification(self, topic: Notification, **kwargs) -> None:
+        """
+        Callback for when a notification is received. Check if we should forward it to the GUI.
+        """
         if topic in topics_to_send_to_gui:
-            self.send_event({"topic": topic.value.name, "args": args, "kwargs": kwargs})
+            self.send_event({"topic": topic.value.name, "kwargs": kwargs})
 
-    def on_circuit_removed(self, circuit: Circuit, additional_info: str):
-        # The original notification contains non-JSON-serializable argument, so we send another one to GUI
+    def on_circuit_removed(self, circuit: Circuit, additional_info: str) -> None:
+        """
+        Special handler for circuit removal notifications.
+
+        The original notification contains non-JSON-serializable argument, so we send another one to GUI.
+        """
         self.notifier.notify(Notification.tunnel_removed,
                              circuit_id=circuit.circuit_id,
                              bytes_up=circuit.bytes_up,
@@ -76,27 +98,39 @@ class EventsEndpoint(RESTEndpoint):
                              additional_info=additional_info)
 
     def initial_message(self) -> MessageDict:
+        """
+        Create the initial message to announce to the GUI.
+        """
         return {
             "topic": Notification.events_start.value.name,
             "kwargs": {"public_key": self.public_key, "version": "Tribler Experimental"}
         }
 
     def error_message(self, reported_error: Exception) -> MessageDict:
+        """
+        Create an error message for the GUI.
+        """
         return {
             "topic": Notification.tribler_exception.value.name,
             "kwargs": {"error": str(reported_error)},
         }
 
     def encode_message(self, message: MessageDict) -> bytes:
+        """
+        Use JSON to dump the given message to bytes.
+        """
         try:
             message = json.dumps(message)
         except (UnicodeDecodeError, TypeError) as e:
             # The message contains invalid characters; fix them
-            self._logger.error("Event contains non-unicode characters, dropping %s", repr(message))
+            self._logger.exception("Event contains non-unicode characters, dropping %s", repr(message))
             return self.encode_message(self.error_message(e))
-        return b'data: ' + message.encode() + b'\n\n'
+        return b"data: " + message.encode() + b"\n\n"
 
     def has_connection_to_gui(self) -> bool:
+        """
+        Whether the GUI has responded before.
+        """
         return bool(self.events_responses)
 
     def should_skip_message(self, message: MessageDict) -> bool:
@@ -105,33 +139,36 @@ class EventsEndpoint(RESTEndpoint):
         Issue an appropriate warning if the message cannot be sent.
         """
         if self._shutdown:
-            self._logger.warning(f"Shutdown is in progress, skip message: {message}")
+            self._logger.warning("Shutdown is in progress, skip message: %s", str(message))
             return True
 
         if not self.has_connection_to_gui():
-            self._logger.warning(f"No connections to GUI, skip message: {message}")
+            self._logger.warning("No connections to GUI, skip message: %s", str(message))
             return True
 
         return False
 
-    def send_event(self, message: MessageDict):
+    def send_event(self, message: MessageDict) -> None:
         """
-        Put event message to a queue to be sent to GUI
+        Put event message to a queue to be sent to GUI.
         """
         if not self.should_skip_message(message):
             self.queue.put_nowait(message)
 
-    async def process_queue(self):
+    async def process_queue(self) -> None:
+        """
+        Get all failed messages in the queue and send them to the GUI.
+        """
         while True:
             message = await self.queue.get()
             if not self.should_skip_message(message):
                 await self._write_data(message)
 
-    async def _write_data(self, message: MessageDict):
+    async def _write_data(self, message: MessageDict) -> None:
         """
         Write data over the event socket if it's open.
         """
-        self._logger.debug(f'Write message: {message}')
+        self._logger.debug("Write message: %s", str(message))
         try:
             message_bytes = self.encode_message(message)
         except Exception as e:
@@ -151,11 +188,12 @@ class EventsEndpoint(RESTEndpoint):
                 self._logger.warning(e, exc_info=True)
         self.events_responses = processed_responses
 
-    # An exception has occurred in Tribler. The event includes a readable
-    # string of the error and a Sentry event.
-    def on_tribler_exception(self, reported_error: Exception):
+    def on_tribler_exception(self, reported_error: Exception) -> None:
+        """
+        An exception has occurred in Tribler.
+        """
         if self._shutdown:
-            self._logger.warning('Ignoring tribler exception, because the endpoint is shutting down.')
+            self._logger.warning("Ignoring tribler exception, because the endpoint is shutting down.")
             return
 
         message = self.error_message(reported_error)
@@ -170,14 +208,12 @@ class EventsEndpoint(RESTEndpoint):
         summary="Open an EventStream for receiving Tribler events.",
         responses={
             200: {
-                "schema": schema(EventsResponse={'type': marshmallow.fields.String, 'event': marshmallow.fields.Dict})
+                "schema": schema(EventsResponse={"type": marshmallow.fields.String, "event": marshmallow.fields.Dict})
             }
         }
     )
-    async def get_events(self, request):
+    async def get_events(self, request: Request) -> web.StreamResponse:
         """
-        .. http:get:: /events
-
         A GET request to this endpoint will open the event connection.
 
             **Example request**:
@@ -186,13 +222,12 @@ class EventsEndpoint(RESTEndpoint):
 
                     curl -X GET http://localhost:20100/events
         """
-
         # Setting content-type to text/event-stream to ensure browsers will handle the content properly
         response = web.StreamResponse(status=200,
-                                      reason='OK',
-                                      headers={'Content-Type': 'text/event-stream',
-                                               'Cache-Control': 'no-cache',
-                                               'Connection': 'keep-alive'})
+                                      reason="OK",
+                                      headers={"Content-Type": "text/event-stream",
+                                               "Cache-Control": "no-cache",
+                                               "Connection": "keep-alive"})
         await response.prepare(request)
         await response.write(self.encode_message(self.initial_message()))
 
@@ -206,9 +241,9 @@ class EventsEndpoint(RESTEndpoint):
         try:
             await self.shutdown_event.wait()
         except CancelledError:
-            self._logger.warning('Event stream was canceled')
+            self._logger.warning("Event stream was canceled")
         else:
-            self._logger.info('Event stream was closed due to shutdown')
+            self._logger.info("Event stream was closed due to shutdown")
 
         # See: https://github.com/Tribler/tribler/pull/7906
         with suppress(ValueError):

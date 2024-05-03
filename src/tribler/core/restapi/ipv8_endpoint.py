@@ -4,4 +4,8 @@ from tribler.core.restapi.rest_endpoint import RESTEndpoint
 
 
 class IPv8RootEndpoint(RootEndpoint, RESTEndpoint):
-    path = '/ipv8'
+    """
+    Make the IPv8 REST endpoint Tribler-compatible.
+    """
+
+    path = "/ipv8"

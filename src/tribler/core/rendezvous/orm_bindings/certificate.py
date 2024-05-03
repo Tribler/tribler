@@ -1,11 +1,21 @@
-import dataclasses
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from pony.orm import Required
+from pony.orm import Database, Required
+from typing_extensions import Self
 
 if TYPE_CHECKING:
+    import dataclasses
+    from collections.abc import Iterable
+
+
     @dataclasses.dataclass
-    class RendezvousCertificate:
+    class RendezvousCertificate(metaclass=Iterable):
+        """
+        The database type for rendezvous certificates.
+        """
+
         public_key: bytes
         ip: bytes
         port: int
@@ -13,8 +23,17 @@ if TYPE_CHECKING:
         start: float
         stop: float
 
+        def __init__(self, public_key: bytes, ip: bytes, port: int, ping: float,  # noqa: D107, PLR0913
+                     start: float, stop: float) -> None: ...
 
-def define_binding(db):
+        @classmethod
+        def select_random(cls: type[Self], limit: int) -> list[RendezvousCertificate]: ...  # noqa: D102
+
+
+def define_binding(db: Database) -> type[RendezvousCertificate]:
+    """
+    Define the certificate binding for the given database.
+    """
     class RendezvousCertificate(db.Entity):
         public_key = Required(bytes, index=True)
         ip = Required(bytes)

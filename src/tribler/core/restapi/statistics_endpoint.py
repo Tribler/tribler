@@ -12,14 +12,18 @@ class StatisticsEndpoint(RESTEndpoint):
     """
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
-    path = '/statistics'
 
-    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None):
+    path = "/statistics"
+
+    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None) -> None:
+        """
+        Create a new statistics endpoint.
+        """
         super().__init__()
         self.mds = metadata_store
         self.ipv8 = ipv8
-        self.app.add_routes([web.get('/tribler', self.get_tribler_stats),
-                             web.get('/ipv8', self.get_ipv8_stats)])
+        self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
+                             web.get("/ipv8", self.get_ipv8_stats)])
 
     @docs(
         tags=["General"],
@@ -27,15 +31,15 @@ class StatisticsEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(TriblerStatisticsResponse={
-                    'statistics': schema(TriblerStatistics={
-                        'database_size': Integer,
-                        'torrent_queue_stats': [
+                    "statistics": schema(TriblerStatistics={
+                        "database_size": Integer,
+                        "torrent_queue_stats": [
                             schema(TorrentQueueStats={
-                                'failed': Integer,
-                                'total': Integer,
-                                'type': String,
-                                'pending': Integer,
-                                'success': Integer
+                                "failed": Integer,
+                                "total": Integer,
+                                "type": String,
+                                "pending": Integer,
+                                "success": Integer
                             })
                         ],
                     })
@@ -44,12 +48,15 @@ class StatisticsEndpoint(RESTEndpoint):
         }
     )
     def get_tribler_stats(self, _: web.Request) -> RESTResponse:
+        """
+        Return general statistics of Tribler.
+        """
         stats_dict = {}
         if self.mds:
             stats_dict = {"db_size": self.mds.get_db_file_size(),
                           "num_torrents": self.mds.get_num_torrents()}
 
-        return RESTResponse({'tribler_statistics': stats_dict})
+        return RESTResponse({"tribler_statistics": stats_dict})
 
     @docs(
         tags=["General"],
@@ -57,19 +64,22 @@ class StatisticsEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(IPv8StatisticsResponse={
-                    'statistics': schema(IPv8Statistics={
-                        'total_up': Integer,
-                        'total_down': Integer
+                    "statistics": schema(IPv8Statistics={
+                        "total_up": Integer,
+                        "total_down": Integer
                     })
                 })
             }
         }
     )
     def get_ipv8_stats(self, _: web.Request) -> RESTResponse:
+        """
+        Return general statistics of IPv8.
+        """
         stats_dict = {}
         if self.ipv8:
             stats_dict = {
                 "total_up": self.ipv8.endpoint.bytes_up,
                 "total_down": self.ipv8.endpoint.bytes_down
             }
-        return RESTResponse({'ipv8_statistics': stats_dict})
+        return RESTResponse({"ipv8_statistics": stats_dict})

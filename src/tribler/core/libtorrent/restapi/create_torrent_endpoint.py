@@ -22,7 +22,7 @@ from tribler.core.restapi.rest_endpoint import (
 )
 
 
-def recursive_bytes(obj):
+def recursive_bytes(obj):  # noqa: ANN001, ANN201
     """
     Converts any unicode strings within a Python data structure to bytes. Strings will be encoded using UTF-8.
 

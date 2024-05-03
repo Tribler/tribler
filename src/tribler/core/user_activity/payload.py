@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ipv8.messaging.lazy_payload import VariablePayloadWID, vp_compile
+from typing_extensions import Self
 
 
 @vp_compile
@@ -19,7 +20,7 @@ class InfohashPreferencePayload(VariablePayloadWID):
     weights: list[float]
 
     @classmethod
-    def fix_unpack_infohashes(cls, wire_value: bytes) -> list[bytes]:
+    def fix_unpack_infohashes(cls: type[Self], wire_value: bytes) -> list[bytes]:
         """
         Convert the wire-format to a list of 20 byte values.
         """

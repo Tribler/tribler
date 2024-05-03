@@ -9,6 +9,7 @@ from tribler.core.user_activity.payload import InfohashPreferencePayload, PullPr
 
 if TYPE_CHECKING:
     from ipv8.types import Peer
+
     from tribler.core.user_activity.manager import UserActivityManager
 
 

@@ -83,7 +83,7 @@ class DownloadsEndpoint(RESTEndpoint):
         ])
 
     @staticmethod
-    def return_404(request: Request, message: str = "this download does not exist") -> RESTResponse:
+    def return_404(message: str = "this download does not exist") -> RESTResponse:
         """
         Returns a 404 response code if your channel has not been created.
         """
@@ -447,7 +447,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         try:
             await self.download_manager.remove_download(download, remove_content=parameters["remove_data"])
@@ -517,7 +517,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         parameters = await request.json()
         vod_mode = parameters.get("vod_mode")
@@ -586,15 +586,16 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         torrent = download.get_torrent_data()
         if not torrent:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
-        return RESTResponse(lt.bencode(torrent), headers={"content-type": "application/x-bittorrent",
-                                                          "Content-Disposition": "attachment; filename=%s.torrent"
-                                                                                 % hexlify(infohash)})
+        return RESTResponse(lt.bencode(torrent), headers={
+            "content-type": "application/x-bittorrent",
+            "Content-Disposition": f"attachment; filename={hexlify(infohash)}.torrent"
+        })
 
     @docs(
         tags=["Libtorrent"],
@@ -637,7 +638,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         params = request.query
         view_start_path = params.get("view_start_path")
@@ -684,7 +685,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         params = request.query
         path = params.get("path")
@@ -722,7 +723,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         params = request.query
         path = params.get("path")
@@ -758,7 +759,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         params = request.query
         path = params.get("path")
@@ -794,7 +795,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         params = request.query
         path = params.get("path")
@@ -871,7 +872,7 @@ class DownloadsEndpoint(RESTEndpoint):
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
         if not download:
-            return DownloadsEndpoint.return_404(request)
+            return DownloadsEndpoint.return_404()
 
         file_index = int(request.match_info["fileindex"])
 

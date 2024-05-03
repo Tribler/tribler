@@ -9,12 +9,20 @@ from ipv8.messaging.anonymization.tunnel import Circuit
 
 
 class Desc(typing.NamedTuple):
+    """
+    A Notification callback descriptor.
+    """
+
     name: str
     fields: list[str]
     types: list[type]
 
 
 class Notification(Enum):
+    """
+    All possible global events that happen in Tribler.
+    """
+
     torrent_finished = Desc("torrent_finished", ["infohash", "name", "hidden"], [str, str, bool])
     tribler_shutdown_state = Desc("tribler_shutdown_state", ["state"], [str])
     tribler_new_version = Desc("tribler_new_version", ["version"], [str])
@@ -41,15 +49,27 @@ class Notification(Enum):
 
 
 class Notifier:
+    """
+    The class responsible for managing and calling observers of global Tribler events.
+    """
 
     def __init__(self) -> None:
+        """
+        Create a new notifier.
+        """
         self.observers = defaultdict(list)
         self.delegates = set()
 
     def add(self, topic: Notification, observer: Callable) -> None:
+        """
+        Add an observer for the given Notification type.
+        """
         self.observers[topic].append(observer)
 
     def notify(self, topic: Notification | str, /, **kwargs) -> None:
+        """
+        Notify all observers that have subscribed to the given topic.
+        """
         if isinstance(topic, str):
             topic = getattr(Notification, topic)
         topic_name, args, types = topic.value

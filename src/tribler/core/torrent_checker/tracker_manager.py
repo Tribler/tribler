@@ -1,19 +1,30 @@
+from __future__ import annotations
+
 import logging
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pony.orm import count, db_session
 
-from tribler.core.database.store import MetadataStore
 from tribler.core.libtorrent.trackers import get_uniformed_tracker_url
+
+if TYPE_CHECKING:
+    from tribler.core.database.store import MetadataStore
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
 TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired every 60 seconds
 
 
 class TrackerManager:
+    """
+    A manager for tracker info in the database.
+    """
 
-    def __init__(self, state_dir: Path = None, metadata_store: MetadataStore = None):
+    def __init__(self, state_dir: Path | None = None, metadata_store: MetadataStore = None) -> None:
+        """
+        Create a new tracker manager.
+        """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.state_dir = state_dir
         self.TrackerState = metadata_store.TrackerState
@@ -21,7 +32,7 @@ class TrackerManager:
         self.blacklist = []
         self.load_blacklist()
 
-    def load_blacklist(self):
+    def load_blacklist(self) -> None:
         """
         Load the tracker blacklist from tracker_blacklist.txt in the session state directory.
 
@@ -35,9 +46,10 @@ class TrackerManager:
         else:
             self._logger.info("No tracker blacklist file found at %s.", blacklist_file)
 
-    def get_tracker_info(self, tracker_url):
+    def get_tracker_info(self, tracker_url: str) -> dict[str, str | float] | None:
         """
         Gets the tracker information with the given tracker URL.
+
         :param tracker_url: The given tracker URL.
         :return: The tracker info dict if exists, None otherwise.
         """
@@ -47,16 +59,17 @@ class TrackerManager:
             tracker = list(self.TrackerState.select(lambda g: g.url == sanitized_tracker_url))
             if tracker:
                 return {
-                    'id': tracker[0].url,
-                    'last_check': tracker[0].last_check,
-                    'failures': tracker[0].failures,
-                    'is_alive': tracker[0].alive
+                    "id": tracker[0].url,
+                    "last_check": tracker[0].last_check,
+                    "failures": tracker[0].failures,
+                    "is_alive": tracker[0].alive
                 }
             return None
 
-    def add_tracker(self, tracker_url):
+    def add_tracker(self, tracker_url: str) -> None:
         """
         Adds a new tracker into the tracker info dict and the database.
+
         :param tracker_url: The new tracker URL to be added.
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
@@ -77,11 +90,12 @@ class TrackerManager:
                               alive=True,
                               torrents={})
 
-    def remove_tracker(self, tracker_url):
+    def remove_tracker(self, tracker_url: str) -> None:
         """
         Remove a given tracker from the database.
         URL is sanitized first and removed from the database. If the URL is ill formed then try removing the non-
         sanitized version.
+
         :param tracker_url: The URL of the tracker to be deleted.
         """
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
@@ -92,13 +106,13 @@ class TrackerManager:
                 option.delete()
 
     @db_session
-    def update_tracker_info(self, tracker_url, is_successful=True):
+    def update_tracker_info(self, tracker_url: str, is_successful: bool = True) -> None:
         """
         Updates a tracker information.
+
         :param tracker_url: The given tracker_url.
         :param is_successful: If the check was successful.
         """
-
         if tracker_url == "DHT":
             return
 
@@ -117,12 +131,13 @@ class TrackerManager:
         tracker.last_check = current_time
         tracker.failures = failures
         tracker.alive = is_alive
-        self._logger.info(f'Tracker updated: {tracker.url}. Alive: {is_alive}. Failures: {failures}.')
+        self._logger.info("Tracker updated: %s. Alive: %s. Failures: %d.", tracker.url, str(is_alive), failures)
 
     @db_session
-    def get_next_tracker(self):
+    def get_next_tracker(self) -> str | None:
         """
         Gets the next tracker.
+
         :return: The next tracker for torrent-checking.
         """
         tracker = self.TrackerState.select(

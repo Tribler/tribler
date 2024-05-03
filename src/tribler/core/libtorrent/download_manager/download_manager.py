@@ -16,7 +16,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, List
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -423,7 +423,7 @@ class DownloadManager(TaskManager):
         libtorrent_rate = self.get_session(hops=hops).download_rate_limit()
         return self.reverse_convert_rate(rate=libtorrent_rate)
 
-    def process_alert(self, alert, hops: int = 0) -> None:  # noqa: C901, PLR0912
+    def process_alert(self, alert: lt.alert, hops: int = 0) -> None:  # noqa: C901, PLR0912
         """
         Process a libtorrent alert.
         """
@@ -909,7 +909,8 @@ class DownloadManager(TaskManager):
                 download.set_def(new_def)
                 download.checkpoint()
 
-    def set_download_states_callback(self, user_callback, interval: float = 1.0) -> None:
+    def set_download_states_callback(self, user_callback: Callable[[list[DownloadState]], Awaitable[None] | None],
+                                     interval: float = 1.0) -> None:
         """
         Set the download state callback. Remove any old callback if it's present.
         Calls user_callback with a list of
@@ -925,7 +926,7 @@ class DownloadManager(TaskManager):
         logger.debug("Starting the download state callback with interval %f", interval)
         self.replace_task("download_states_lc", self._invoke_states_cb, user_callback, interval=interval)
 
-    async def _invoke_states_cb(self, callback) -> None:
+    async def _invoke_states_cb(self, callback: Callable[[list[DownloadState]], Awaitable[None] | None]) -> None:
         """
         Invoke the download states callback with a list of the download states.
         """
@@ -980,7 +981,7 @@ class DownloadManager(TaskManager):
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
-    async def load_checkpoint(self, filename: str) -> bool:
+    async def load_checkpoint(self, filename: Path | str) -> bool:
         """
         Load a checkpoint from a given file name.
         """
