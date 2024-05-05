@@ -512,7 +512,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse(lt.bencode(torrent), headers={'content-type': 'application/x-bittorrent',
                                                           'Content-Disposition': 'attachment; filename=%s.torrent'
-                                                                                 % hexlify(infohash).encode('utf-8')})
+                                                                                 % hexlify(infohash)})
 
     @docs(
         tags=["Libtorrent"],
