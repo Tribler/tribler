@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import os
 from asyncio import get_running_loop
 from contextlib import suppress
 from functools import cached_property
@@ -401,6 +402,8 @@ class TorrentDef:
         list of filenames.
         @return A unicode filename generator.
         """
+
+        # Since this code can get executed many times per second, we don't use Pathlib in this function.
         if self.metainfo and b"files" in self.metainfo[b"info"]:
             # Multi-file torrent
             files = self.metainfo[b"info"][b"files"]
@@ -411,7 +414,7 @@ class TorrentDef:
                     # We assume that it is correctly encoded and use
                     # it normally
                     try:
-                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"])),
+                        yield (os.path.join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path.utf-8"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -423,7 +426,7 @@ class TorrentDef:
                     if b"encoding" in self.metainfo:
                         encoding = ensure_unicode(self.metainfo[b"encoding"], "utf8")
                         try:
-                            yield (Path(*(ensure_unicode(element, encoding) for element in file_dict[b"path"])),
+                            yield (os.path.join(*[ensure_unicode(element, encoding) for element in file_dict[b"path"]]),
                                    file_dict[b"length"])
                             continue
                         except UnicodeError:
@@ -438,7 +441,7 @@ class TorrentDef:
                     # Try to convert the names in path to unicode,
                     # assuming that it was encoded as utf-8
                     try:
-                        yield (Path(*(ensure_unicode(element, "UTF-8") for element in file_dict[b"path"])),
+                        yield (os.path.join(*[ensure_unicode(element, "UTF-8") for element in file_dict[b"path"]]),
                                file_dict[b"length"])
                         continue
                     except UnicodeError:
@@ -448,7 +451,8 @@ class TorrentDef:
                     # replacing out all characters that may -even
                     # remotely- cause problems with the '?' character
                     try:
-                        yield (Path(*map(self._filter_characters, file_dict[b"path"])), file_dict[b"length"])
+                        yield (os.path.join(*map(self._filter_characters, file_dict[b"path"])),
+                               file_dict[b"length"])
                         continue
                     except UnicodeError:
                         pass
@@ -465,7 +469,7 @@ class TorrentDef:
         """
         videofiles = []
         for filename, length in self._get_all_files_as_unicode_with_length():
-            ext = path_util.Path(filename).suffix
+            _, ext = os.path.splitext(filename)
             if ext != "" and ext[0] == ".":
                 ext = ext[1:]
             if exts is None or ext.lower() in exts:

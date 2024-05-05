@@ -107,7 +107,8 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         files_json = []
         files_completion = {name: progress for name, progress in download.get_state().get_files_completion()}
-        selected_files = download.config.get_selected_files()
+        # We use a dict for performance reasons
+        selected_files = {fi: True for fi in (download.config.get_selected_files() or range(len(files_completion)))}
         file_index = 0
         for fn, size in download.get_def().get_files_with_length():
             files_json.append({
@@ -115,7 +116,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
                 "name": str(PurePosixPath(fn)),
                 "size": size,
-                "included": (file_index in selected_files or not selected_files),
+                "included": selected_files.get(file_index, False),
                 "progress": files_completion.get(fn, 0.0)
             })
             file_index += 1
