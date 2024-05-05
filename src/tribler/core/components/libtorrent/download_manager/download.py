@@ -474,7 +474,7 @@ class Download(TaskManager):
                 self.stop()
 
     @check_handle()
-    def set_selected_files(self, selected_files=None, prio: int = 4, force: bool = False):
+    def set_selected_files(self, selected_files=None, prio: int = 4, force: bool = False, no_tree=False):
         if not force and self.stream is not None:
             return
         if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
@@ -483,8 +483,15 @@ class Download(TaskManager):
             else:
                 self.config.set_selected_files(selected_files)
 
-            tree = self.tdef.torrent_file_tree
             total_files = self.tdef.torrent_info.num_files()
+            if no_tree:
+                file_priorities = [0] * total_files if not selected_files else [1] * total_files
+                for index in selected_files:
+                    file_priorities[index] = prio
+                self.set_file_priorities(file_priorities)
+                return
+
+            tree = self.tdef.torrent_file_tree
 
             if not selected_files:
                 selected_files = range(total_files)
