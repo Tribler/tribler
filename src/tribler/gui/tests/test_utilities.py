@@ -93,25 +93,53 @@ def test_quote_plus_unicode_compound():
 def test_compose_magnetlink():
     infohash = "DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
     name = "Some torrent name"
-    trackers = ['http://tracker1.example.com:8080/announce', 'http://tracker1.example.com:8080/announce']
+    trackers = [
+        {'url': 'http://tracker1.example.com:8080/announce'},
+        {'url': 'http://tracker1.example.com:8080/announce'},
+    ]
 
-    expected_link0 = ""
     expected_link1 = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A"
-    expected_link2 = "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A&dn=Some+torrent+name"
     expected_link3 = (
         "magnet:?xt=urn:btih:DC4B96CF85A85CEEDB8ADC4B96CF85A85CEEDB8A&dn=Some+torrent+name"
         "&tr=http://tracker1.example.com:8080/announce&tr=http://tracker1.example.com:8080/announce"
     )
 
-    composed_link0 = compose_magnetlink(None)
     composed_link1 = compose_magnetlink(infohash)
-    composed_link2 = compose_magnetlink(infohash, name=name)
     composed_link3 = compose_magnetlink(infohash, name=name, trackers=trackers)
 
-    assert composed_link0 == expected_link0
     assert composed_link1 == expected_link1
-    assert composed_link2 == expected_link2
     assert composed_link3 == expected_link3
+
+
+def test_create_magnet_no_input():
+    # Test that the create_magnet method returns an empty string when no input is provided
+    magnet = compose_magnetlink(None, None, [])
+    assert magnet == ''
+
+
+def test_create_magnet_no_trackers():
+    # Test that the create_magnet method returns a magnet link without trackers when no trackers are provided
+    magnet = compose_magnetlink('infohash', 'name', [])
+    assert magnet == 'magnet:?xt=urn:btih:infohash&dn=name'
+
+
+def test_create_magnet_no_urls():
+    # Test that the create_magnet method returns a magnet link without trackers when no urls are provided
+    magnet = compose_magnetlink('infohash', 'name', [{}, {'url': 'tracker'}])
+    assert magnet == 'magnet:?xt=urn:btih:infohash&dn=name&tr=tracker'
+
+
+def test_create_magnet_invalid_urls():
+    # Test that the create_magnet method returns a magnet link only for trackers when valid urls
+    trackers = [{'url': '[PeX]'}, {'url': '[DHT]'}, {'url': 'tracker'}]
+    magnet = compose_magnetlink('infohash', 'name', trackers)
+    assert magnet == 'magnet:?xt=urn:btih:infohash&dn=name&tr=tracker'
+
+
+def test_create_magnet_multiple_trackers():
+    # Test that the create_magnet method returns a magnet link with multiple trackers
+    magnet = compose_magnetlink('infohash', 'name', [{'url': 'tracker1'}, {'url': 'tracker2'}])
+    assert magnet == 'magnet:?xt=urn:btih:infohash&dn=name&tr=tracker1&tr=tracker2'
 
 
 def test_is_dict_has():
