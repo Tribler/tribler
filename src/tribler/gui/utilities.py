@@ -4,7 +4,6 @@ import json
 import logging
 import math
 import os
-import sys
 import time
 import traceback
 import types
@@ -30,6 +29,8 @@ from tribler.core.components.database.db.layers.knowledge_data_access_layer impo
 from tribler.core.utilities.install_dir import get_base_path
 from tribler.core.utilities.utilities import is_frozen
 from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+
+INVALID_URLS = {'[DHT]', '[PeX]'}
 
 # fmt: off
 
@@ -352,7 +353,8 @@ def get_health(seeders, leechers, last_tracker_check):
         return HEALTH_DEAD
 
 
-def compose_magnetlink(infohash, name=None, trackers=None):
+def compose_magnetlink(infohash: Optional[str] = None, name: Optional[str] = None,
+                       trackers: Optional[List[Dict]] = None):
     """
     Composes magnet link from infohash, display name and trackers. The format is:
         magnet:?xt=urn:btih:<infohash>&dn=<name>[&tr=<tracker>]
@@ -367,9 +369,15 @@ def compose_magnetlink(infohash, name=None, trackers=None):
     magnet = f"magnet:?xt=urn:btih:{infohash}"
     if name:
         magnet = f"{magnet}&dn={quote_plus_unicode(name)}"
-    if trackers and isinstance(trackers, list):
-        for tracker in trackers:
-            magnet = f"{magnet}&tr={tracker}"
+
+    if not trackers:
+        return magnet
+
+    urls = (t.get('url') for t in trackers)
+    valid_urls = [u for u in urls if u and u not in INVALID_URLS]
+
+    for url in valid_urls:
+        magnet = f"{magnet}&tr={url}"
     return magnet
 
 
