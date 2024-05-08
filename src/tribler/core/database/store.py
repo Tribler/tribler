@@ -33,7 +33,6 @@ from tribler.core.database.serialization import (
 from tribler.core.torrent_checker.dataclasses import HealthInfo
 
 if TYPE_CHECKING:
-    from os import PathLike
     from sqlite3 import Connection
 
     from ipv8.types import PrivateKey
@@ -133,7 +132,7 @@ class MetadataStore:
 
     def __init__(  # noqa: PLR0913
             self,
-            db_filename: PathLike,
+            db_filename: str,
             private_key: PrivateKey,
             disable_sync: bool = False,
             notifier: Notifier | None = None,
@@ -241,9 +240,8 @@ class MetadataStore:
         connection = self.db.get_connection()
         schema = self.db.schema
         provider = schema.provider
-        created_tables = set()
         return [db_object for table in schema.order_tables_to_create()
-                for db_object in table.get_objects_to_create(created_tables)
+                for db_object in table.get_objects_to_create(set())
                 if not db_object.exists(provider, connection)]
 
     def get_db_file_size(self) -> int:
@@ -481,7 +479,7 @@ class MetadataStore:
         """
         return orm.count(self.TorrentMetadata.select(lambda g: g.metadata_type == REGULAR_TORRENT))
 
-    def search_keyword(self, query: str, origin_id: int | None = None) -> list[TorrentMetadata]:
+    def search_keyword(self, query: str, origin_id: int | None = None) -> Query:
         """
         Search for an FTS query, potentially restricted to a given origin id.
 
@@ -585,10 +583,7 @@ class MetadataStore:
             pony_query = pony_query.where(lambda g: g.rowid <= max_rowid)
 
         if metadata_type is not None:
-            try:
-                pony_query = pony_query.where(lambda g: g.metadata_type in metadata_type)
-            except TypeError:
-                pony_query = pony_query.where(lambda g: g.metadata_type == metadata_type)
+            pony_query = pony_query.where(lambda g: g.metadata_type == metadata_type)
 
         pony_query = (
             pony_query.where(public_key=(b"" if channel_pk == NULL_KEY_SUBST else channel_pk))

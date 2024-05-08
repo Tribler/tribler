@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, List
 from tribler.core.socks5.connection import Socks5Connection
 
 if TYPE_CHECKING:
+    from asyncio.base_events import Server
+
     from ipv8_rust_tunnels.endpoint import RustEndpoint
 
     from tribler.core.tunnel.dispatcher import TunnelDispatcher
@@ -26,7 +28,7 @@ class Socks5Server:
         self.hops = hops
         self.port = port
         self.output_stream = output_stream
-        self.server = None
+        self.server: Server | None = None
         self.sessions: List[Socks5Connection] = []
         self.rust_endpoint = rust_endpoint
 
@@ -40,7 +42,8 @@ class Socks5Server:
             self.sessions.append(socks5connection)
             return socks5connection
 
-        self.server = await get_event_loop().create_server(build_protocol, "127.0.0.1", self.port)
+        self.server = await get_event_loop().create_server(build_protocol, "127.0.0.1",
+                                                           self.port)  # type: ignore[arg-type]
         server_socket = self.server.sockets[0]
         _, self.port = server_socket.getsockname()[:2]
         self._logger.info("Started SOCKS5 server on port %i", self.port)

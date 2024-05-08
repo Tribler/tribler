@@ -60,7 +60,7 @@ class EventsEndpoint(RESTEndpoint):
         self.undelivered_error: Exception | None = None
         self.public_key = public_key
         self.notifier = notifier
-        self.queue = Queue()
+        self.queue: Queue[MessageDict] = Queue()
         self.register_task("Process queue", self.process_queue)
 
         notifier.add(Notification.circuit_removed, self.on_circuit_removed)
@@ -103,7 +103,7 @@ class EventsEndpoint(RESTEndpoint):
         """
         return {
             "topic": Notification.events_start.value.name,
-            "kwargs": {"public_key": self.public_key, "version": "Tribler Experimental"}
+            "kwargs": {"public_key": self.public_key or "", "version": "Tribler Experimental"}
         }
 
     def error_message(self, reported_error: Exception) -> MessageDict:
@@ -120,12 +120,11 @@ class EventsEndpoint(RESTEndpoint):
         Use JSON to dump the given message to bytes.
         """
         try:
-            message = json.dumps(message)
+            return b"data: " + json.dumps(message).encode() + b"\n\n"
         except (UnicodeDecodeError, TypeError) as e:
             # The message contains invalid characters; fix them
             self._logger.exception("Event contains non-unicode characters, dropping %s", repr(message))
             return self.encode_message(self.error_message(e))
-        return b"data: " + message.encode() + b"\n\n"
 
     def has_connection_to_gui(self) -> bool:
         """

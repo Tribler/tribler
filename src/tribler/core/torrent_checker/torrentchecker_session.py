@@ -4,11 +4,10 @@ import logging
 import random
 import socket
 import struct
-import sys
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import BaseTransport, DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
-from typing import TYPE_CHECKING, List
+from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
+from typing import TYPE_CHECKING, List, cast
 
 import async_timeout
 import libtorrent as lt
@@ -56,8 +55,8 @@ class TrackerSession(TaskManager):
         # if this is a nonempty string it starts with '/'.
         self.announce_page = announce_page
         self.timeout = timeout
-        self.infohash_list = []
-        self.last_contact = None
+        self.infohash_list: list[bytes] = []
+        self.last_contact = 0
 
         # some flags
         self.is_initiated = False  # you cannot add requests to a session if it has been initiated
@@ -75,7 +74,7 @@ class TrackerSession(TaskManager):
         Shutdown and invalidate.
         """
         await self.shutdown_task_manager()
-        self.infohash_list = None
+        self.infohash_list = []
 
     def has_infohash(self, infohash: bytes) -> bool:
         """
@@ -217,11 +216,11 @@ class UdpSocketManager(DatagramProtocol):
         Create a new UDP socket protocol for trackers.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.tracker_sessions = {}
-        self.transport = None
-        self.proxy_transports = {}
+        self.tracker_sessions: dict[int, Future[bytes]] = {}
+        self.transport: Socks5Client | None = None
+        self.proxy_transports: dict[tuple, Socks5Client] = {}
 
-    def connection_made(self, transport: BaseTransport) -> None:
+    def connection_made(self, transport: Socks5Client) -> None:
         """
         Callback for when a connection is established.
         """
@@ -231,7 +230,7 @@ class UdpSocketManager(DatagramProtocol):
         """
         Send a request and wait for the answer.
         """
-        transport = self.transport
+        transport: Socks5Client | None = self.transport
         proxy = tracker_session.proxy
 
         if proxy:
@@ -240,6 +239,9 @@ class UdpSocketManager(DatagramProtocol):
                 await transport.associate_udp()
             if proxy not in self.proxy_transports:
                 self.proxy_transports[proxy] = transport
+
+        if transport is None:
+            return RuntimeError("Unable to write without transport")
 
         host = tracker_session.ip_address or tracker_session.tracker_address[0]
         try:
@@ -277,7 +279,7 @@ class UdpTrackerSession(TrackerSession):
     """
 
     # A list of transaction IDs that have been used in order to avoid conflict.
-    _active_session_dict = {}
+    _active_session_dict: dict[UdpTrackerSession, int] = {}
 
     def __init__(self, tracker_url: str, tracker_address: tuple[str, int], announce_page: str,  # noqa: PLR0913
                  timeout: float, proxy: tuple, socket_mgr: UdpSocketManager) -> None:
@@ -306,7 +308,7 @@ class UdpTrackerSession(TrackerSession):
         while True:
             # make sure there is no duplicated transaction IDs
             transaction_id = random.randint(0, 2147483647)
-            if transaction_id not in UdpTrackerSession._active_session_dict.items():
+            if transaction_id not in UdpTrackerSession._active_session_dict.values():
                 UdpTrackerSession._active_session_dict[self] = transaction_id
                 self.transaction_id = transaction_id
                 break
@@ -373,7 +375,11 @@ class UdpTrackerSession(TrackerSession):
 
         # Initiate the connection
         message = struct.pack("!qii", self._connection_id, self.action, self.transaction_id)
-        response = await self.socket_mgr.send_request(message, self)
+        raw_response = await self.socket_mgr.send_request(message, self)
+
+        if isinstance(raw_response, Exception):
+            self.failed(msg=str(raw_response))
+        response = cast(bytes, raw_response)
 
         # check message size
         if len(response) < 16:
@@ -401,17 +407,14 @@ class UdpTrackerSession(TrackerSession):
         """
         Parse the response of a tracker.
         """
-        # pack and send the message
-        if sys.version_info.major > 2:
-            infohash_list = self.infohash_list
-        else:
-            infohash_list = [str(infohash) for infohash in self.infohash_list]
-
         fmt = "!qii" + ("20s" * len(self.infohash_list))
-        message = struct.pack(fmt, self._connection_id, self.action, self.transaction_id, *infohash_list)
+        message = struct.pack(fmt, self._connection_id, self.action, self.transaction_id, *self.infohash_list)
 
         # Send the scrape message
-        response = await self.socket_mgr.send_request(message, self)
+        raw_response = await self.socket_mgr.send_request(message, self)
+        if isinstance(raw_response, Exception):
+            self.failed(msg=str(raw_response))
+        response = cast(bytes, raw_response)
 
         # check message size
         if len(response) < 8:
@@ -498,7 +501,7 @@ class FakeBep33DHTSession(FakeDHTSession):
         """
         coros = [self.download_manager.dht_health_manager.get_health(infohash, timeout=self.timeout)
                  for infohash in self.infohash_list]
-        results = []
+        results: list[HealthInfo] = []
         for coroutine in coros:
             local_results = [result for result in (await coroutine) if not isinstance(result, Exception)]
             results = [*results, *local_results]

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from asyncio import DatagramProtocol, get_event_loop
-from typing import TYPE_CHECKING
+from asyncio import DatagramProtocol, DatagramTransport, get_event_loop
+from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.serialization import PackError
 
@@ -26,7 +26,7 @@ class SocksUDPConnection(DatagramProtocol):
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksconnection = socksconnection
-        self.transport = None
+        self.transport: DatagramTransport | None = None
         self.remote_udp_address = remote_udp_address if remote_udp_address != ("0.0.0.0", 0) else None
 
     async def open(self) -> None:
@@ -39,7 +39,10 @@ class SocksUDPConnection(DatagramProtocol):
         """
         Retrieve the listen port for this protocol.
         """
-        _, port = self.transport.get_extra_info("sockname")
+        if self.transport:
+            _, port = self.transport.get_extra_info("sockname")
+        else:
+            port = 0
         return port
 
     def send_datagram(self, data: bytes) -> bool:
@@ -47,14 +50,20 @@ class SocksUDPConnection(DatagramProtocol):
         Send a datagram to the known remote address. Returns False if there is no remote yet.
         """
         if self.remote_udp_address:
-            self.transport.sendto(data, self.remote_udp_address)
+            cast(DatagramTransport, self.transport).sendto(data, self.remote_udp_address)
             return True
         self._logger.error("cannot send data, no clue where to send it to")
         return False
 
-    def datagram_received(self, data: bytes, source: tuple) -> bool:
+    def datagram_received(self, data: bytes, source: tuple) -> None:
         """
         The callback for when data is handed to our protocol.
+        """
+        self.cb_datagram_received(data, source)
+
+    def cb_datagram_received(self, data: bytes, source: tuple) -> bool:
+        """
+        The callback for when data is handed to our protocol and whether the handling succeeded.
         """
         # If remote_address was not set before, use first one
         if self.remote_udp_address is None:
@@ -98,7 +107,7 @@ class RustUDPConnection:
         """
         self.rust_endpoint = rust_endpoint
         self.hops = hops
-        self.port = None
+        self.port: int | None = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @property
@@ -129,7 +138,7 @@ class RustUDPConnection:
         """
         Get the claimed port for this connection.
         """
-        return self.port
+        return self.port or 0
 
     def close(self) -> None:
         """

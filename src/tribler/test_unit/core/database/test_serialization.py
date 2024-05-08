@@ -130,7 +130,7 @@ class TestSerialization(TestBase):
                                          id_=7, origin_id=1337, timestamp=10, infohash=b"\x01" * 20, size=42,
                                          torrent_date=int2time(0), title="test", tags="tags", tracker_info="")
 
-        self.assertEqual("magnet:?xt=urn:btih:0101010101010101010101010101010101010101&dn=b'test'",
+        self.assertEqual("magnet:?xt=urn:btih:0101010101010101010101010101010101010101&dn=test",
                          payload.get_magnet())
 
     def test_auto_convert_torrent_date(self) -> None:

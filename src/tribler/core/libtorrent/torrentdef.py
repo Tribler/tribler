@@ -10,7 +10,7 @@ from contextlib import suppress
 from functools import cached_property
 from hashlib import sha1
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Iterator, List
+from typing import TYPE_CHECKING, Any, Generator, Iterable, Literal, cast, overload
 
 import aiohttp
 import libtorrent as lt
@@ -21,6 +21,122 @@ from tribler.core.libtorrent.trackers import is_valid_url
 
 if TYPE_CHECKING:
     from os import PathLike
+
+
+    class FileDict(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"length"]) -> int: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"path"]) -> list[bytes]: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"path.utf-8"]) -> list[bytes] | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
+    class InfoDict(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"files"]) -> list[FileDict]: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"length"]) -> int: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name"]) -> bytes: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name.utf-8"]) -> bytes: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"piece length"]) -> int: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"pieces"]) -> bytes: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
+    class MetainfoDict(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"info"]) -> InfoDict: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
+    class TorrentParameters(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name.utf-8"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+else:
+    FileDict = dict
+    InfoDict = dict
+    MetainfoDict = dict
+    TorrentParameters = dict
 
 
 def escape_as_utf8(string: bytes, encoding: str = "utf8") -> str:
@@ -50,7 +166,7 @@ def pathlist2filename(pathlist: Iterable[bytes]) -> Path:
     return Path(*(x.decode() for x in pathlist))
 
 
-def get_length_from_metainfo(metainfo: dict, selectedfiles: set[Path]) -> int:
+def get_length_from_metainfo(metainfo: MetainfoDict, selectedfiles: set[Path]) -> int:
     """
     Loop through all files in a torrent and calculate the total size.
     """
@@ -75,7 +191,8 @@ class TorrentDef:
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo: dict | None = None, torrent_parameters: dict[bytes, Any] | None  = None,
+    def __init__(self, metainfo: MetainfoDict | None = None,
+                 torrent_parameters: TorrentParameters | None = None,
                  ignore_validation: bool = True) -> None:
         """
         Create a new TorrentDef object, possibly based on existing data.
@@ -85,17 +202,17 @@ class TorrentDef:
         :param ignore_validation: Whether we ignore the libtorrent validation.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.torrent_parameters = {}
-        self.metainfo = metainfo
-        self.files_list = []
-        self.infohash = None
-        self._torrent_info = None
+        self.torrent_parameters: TorrentParameters = cast(TorrentParameters, {})
+        self.metainfo: MetainfoDict | None = metainfo
+        self.files_list: list[Path] = []
+        self.infohash: bytes | None = None
+        self._torrent_info: lt.torrent_info | None = None
 
-        if metainfo is not None:
+        if self.metainfo is not None:
             # First, make sure the passed metainfo is valid
             if not ignore_validation:
                 try:
-                    self._torrent_info = lt.torrent_info(metainfo)
+                    self._torrent_info = lt.torrent_info(self.metainfo)
                     self.infohash = self._torrent_info.info_hash()
                 except RuntimeError as exc:
                     raise ValueError from exc
@@ -109,30 +226,34 @@ class TorrentDef:
                     raise ValueError from exc
             self.copy_metainfo_to_torrent_parameters()
 
-        elif torrent_parameters:
+        elif torrent_parameters is not None:
             self.torrent_parameters.update(torrent_parameters)
 
-    def copy_metainfo_to_torrent_parameters(self) -> None:
+    def copy_metainfo_to_torrent_parameters(self) -> None:  # noqa: C901
         """
         Populate the torrent_parameters dictionary with information from the metainfo.
         """
-        for key in [
-            b"comment",
-            b"created by",
-            b"creation date",
-            b"announce",
-            b"announce-list",
-            b"nodes",
-            b"httpseeds",
-            b"urllist",
-        ]:
-            if self.metainfo and key in self.metainfo:
-                self.torrent_parameters[key] = self.metainfo[key]
-
-        infokeys = [b"name", b"piece length"]
-        for key in infokeys:
-            if self.metainfo and key in self.metainfo[b"info"]:
-                self.torrent_parameters[key] = self.metainfo[b"info"][key]
+        if self.metainfo is not None:
+            if b"comment" in self.metainfo:
+                self.torrent_parameters[b"comment"] = self.metainfo[b"comment"]
+            if b"created by" in self.metainfo:
+                self.torrent_parameters[b"created by"] = self.metainfo[b"created by"]
+            if b"creation date" in self.metainfo:
+                self.torrent_parameters[b"creation date"] = self.metainfo[b"creation date"]
+            if b"announce" in self.metainfo:
+                self.torrent_parameters[b"announce"] = self.metainfo[b"announce"]
+            if b"announce-list" in self.metainfo:
+                self.torrent_parameters[b"announce-list"] = self.metainfo[b"announce-list"]
+            if b"nodes" in self.metainfo:
+                self.torrent_parameters[b"nodes"] = self.metainfo[b"nodes"]
+            if b"httpseeds" in self.metainfo:
+                self.torrent_parameters[b"httpseeds"] = self.metainfo[b"httpseeds"]
+            if b"urllist" in self.metainfo:
+                self.torrent_parameters[b"urllist"] = self.metainfo[b"urllist"]
+            if b"name" in self.metainfo[b"info"]:
+                self.torrent_parameters[b"name"] = self.metainfo[b"info"][b"name"]
+            if b"piece length" in self.metainfo[b"info"]:
+                self.torrent_parameters[b"piece length"] = self.metainfo[b"info"][b"piece length"]
 
     @property
     def torrent_info(self) -> lt.torrent_info | None:
@@ -166,7 +287,7 @@ class TorrentDef:
         """
         Construct a file tree from this torrent definition.
         """
-        return TorrentFileTree.from_lt_file_storage(self.torrent_info.files())
+        return TorrentFileTree.from_lt_file_storage(self.torrent_info.files())  # type: ignore[union-attr]
 
     @staticmethod
     def _threaded_load_job(filepath: str | bytes | PathLike) -> TorrentDef:
@@ -204,7 +325,7 @@ class TorrentDef:
         return TorrentDef.load_from_dict(metainfo)
 
     @staticmethod
-    def load_from_dict(metainfo: Dict) -> TorrentDef:
+    def load_from_dict(metainfo: MetainfoDict) -> TorrentDef:
         """
         Load a metainfo dictionary into a TorrentDef object.
 
@@ -279,19 +400,19 @@ class TorrentDef:
             url = url[:-1]
         self.torrent_parameters[b"announce"] = url
 
-    def get_tracker(self) -> str | None:
+    def get_tracker(self) -> bytes | None:
         """
         Returns the torrent announce URL.
         """
         return self.torrent_parameters.get(b"announce", None)
 
-    def get_tracker_hierarchy(self) -> list[list[str]]:
+    def get_tracker_hierarchy(self) -> list[list[bytes]]:
         """
         Returns the hierarchy of trackers.
         """
         return self.torrent_parameters.get(b"announce-list", [])
 
-    def get_trackers(self) -> set[str]:
+    def get_trackers(self) -> set[bytes]:
         """
         Returns a flat set of all known trackers.
 
@@ -333,27 +454,19 @@ class TorrentDef:
             return 0
         return len(self.metainfo[b"info"][b"pieces"]) // 20
 
-    def get_pieces(self) -> List:
-        """
-        Returns the pieces.
-        """
-        if not self.metainfo:
-            return []
-        return self.metainfo[b"info"][b"pieces"][:]
-
     def get_infohash(self) -> bytes | None:
         """
         Returns the infohash of the torrent, if metainfo is provided. Might be None if no metainfo is provided.
         """
         return self.infohash
 
-    def get_metainfo(self) -> dict:
+    def get_metainfo(self) -> MetainfoDict | None:
         """
         Returns the metainfo of the torrent. Might be None if no metainfo is provided.
         """
         return self.metainfo
 
-    def get_name(self) -> bytes:
+    def get_name(self) -> bytes | None:
         """
         Returns the name as raw string of bytes.
         """
@@ -363,7 +476,7 @@ class TorrentDef:
         """
         Not all names are utf-8, attempt to construct it as utf-8 anyway.
         """
-        return escape_as_utf8(self.get_name(), self.get_encoding())
+        return escape_as_utf8(self.get_name() or b"", self.get_encoding())
 
     def set_name(self, name: bytes) -> None:
         """
@@ -376,45 +489,30 @@ class TorrentDef:
     def get_name_as_unicode(self) -> str:
         """
         Returns the info['name'] field as Unicode string.
+
+        If there is an utf-8 encoded name, we assume that it is correctly encoded and use it normally.
+        Otherwise, if there is an encoding[1], we attempt to decode the (bytes) name.
+        Otherwise, we attempt to decode the (bytes) name as UTF-8.
+        Otherwise, we attempt to replace non-UTF-8 characters from the (bytes) name with "?".
+        If all of the above fails, this returns an empty string.
+
+        [1] Some encodings are not supported by python. For instance, the MBCS codec which is used by Windows is not
+        supported (Jan 2010).
         """
-        if self.metainfo and b"name.utf-8" in self.metainfo[b"info"]:
-            # There is an utf-8 encoded name.  We assume that it is
-            # correctly encoded and use it normally
-            try:
-                return self.metainfo[b"info"][b"name.utf-8"].decode()
-            except UnicodeError:
-                pass
+        if self.metainfo is not None:
+            if b"name.utf-8" in self.metainfo[b"info"]:
+                with suppress(UnicodeError):
+                    return self.metainfo[b"info"][b"name.utf-8"].decode()
 
-        if self.metainfo and b"name" in self.metainfo[b"info"]:
-            # Try to use the 'encoding' field.  If it exists, it
-            # should contain something like 'utf-8'
-            if "encoding" in self.metainfo:
-                try:
-                    return self.metainfo[b"info"][b"name"].decode(self.metainfo[b"encoding"])
-                except UnicodeError:
-                    pass
-                except LookupError:
-                    # Some encodings are not supported by python.  For
-                    # instance, the MBCS codec which is used by
-                    # Windows is not supported (Jan 2010)
-                    pass
+            if (name := self.metainfo[b"info"].get(b"name")) is not None:
+                if (encoding := self.metainfo.get(b"encoding")) is not None:
+                    with suppress(UnicodeError), suppress(LookupError):
+                        return name.decode(encoding.decode())
+                with suppress(UnicodeError):
+                    return name.decode()
+                with suppress(UnicodeError):
+                    return self._filter_characters(name)
 
-            # Try to convert the names in path to unicode, assuming
-            # that it was encoded as utf-8
-            try:
-                return self.metainfo[b"info"][b"name"].decode()
-            except UnicodeError:
-                pass
-
-            # Convert the names in path to unicode by replacing out
-            # all characters that may -even remotely- cause problems
-            # with the '?' character
-            try:
-                return self._filter_characters(self.metainfo[b"info"][b"name"])
-            except UnicodeError:
-                pass
-
-        # We failed.  Returning an empty string
         return ""
 
     def save(self, torrent_filepath: str | None = None) -> None:
@@ -431,7 +529,7 @@ class TorrentDef:
         self.copy_metainfo_to_torrent_parameters()
         self.infohash = torrent_dict['infohash']
 
-    def _get_all_files_as_unicode_with_length(self) -> Iterator[Path, int]:  # noqa: C901, PLR0912
+    def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901, PLR0912
         """
         Get a generator for files in the torrent def. No filtering is possible and all tricks are allowed to obtain
         a unicode list of filenames.
@@ -440,7 +538,7 @@ class TorrentDef:
         """
         if self.metainfo and b"files" in self.metainfo[b"info"]:
             # Multi-file torrent
-            files = self.metainfo[b"info"][b"files"]
+            files = cast(FileDict, self.metainfo[b"info"][b"files"])
 
             for file_dict in files:
                 if b"path.utf-8" in file_dict:
@@ -455,10 +553,9 @@ class TorrentDef:
 
                 if b"path" in file_dict:
                     # Try to use the 'encoding' field. If it exists, it should contain something like 'utf-8'.
-                    if b"encoding" in self.metainfo:
-                        encoding = self.metainfo[b"encoding"].decode()
+                    if (encoding := self.metainfo.get(b"encoding")) is not None:
                         try:
-                            yield (Path(*(element.decode(encoding) for element in file_dict[b"path"])),
+                            yield (Path(*(element.decode(encoding.decode()) for element in file_dict[b"path"])),
                                    file_dict[b"length"])
                             continue
                         except UnicodeError:
@@ -486,9 +583,9 @@ class TorrentDef:
 
         elif self.metainfo:
             # Single-file torrent
-            yield self.get_name_as_unicode(), self.metainfo[b"info"][b"length"]
+            yield Path(self.get_name_as_unicode()), self.metainfo[b"info"][b"length"]
 
-    def get_files_with_length(self, exts: str | None = None) -> list[tuple[Path, int]]:
+    def get_files_with_length(self, exts: set[str] | None = None) -> list[tuple[Path, int]]:
         """
         The list of files in the torrent def.
 
@@ -518,7 +615,7 @@ class TorrentDef:
 
         :return: A length (long)
         """
-        if self.metainfo:
+        if self.metainfo and selectedfiles is not None:
             return get_length_from_metainfo(self.metainfo, selectedfiles)
         return 0
 
@@ -562,8 +659,7 @@ class TorrentDef:
             for i in range(len(info[b"files"])):
                 file_dict = info[b"files"][i]
 
-                intorrentpath = (pathlist2filename(file_dict[b"path.utf-8"]) if b"path.utf-8" in file_dict
-                                 else pathlist2filename(file_dict[b"path"]))
+                intorrentpath = pathlist2filename(file_dict.get(b"path.utf-8", file_dict[b"path"]))
 
                 if intorrentpath == Path(file):
                     return i
@@ -586,11 +682,9 @@ class TorrentDefNoMetainfo(TorrentDef):
         """
         Create a new valid torrent def without metainfo.
         """
-        torrent_parameters = {
-            b"name": name
-        }
+        torrent_parameters: TorrentParameters = cast(TorrentParameters, {b"name": name})
         if url is not None:
-            torrent_parameters[b"urllist"] = [url]
+            torrent_parameters[b"urllist"] = [url if isinstance(url, bytes) else url.encode()]
         super().__init__(torrent_parameters=torrent_parameters)
         self.infohash = infohash
 

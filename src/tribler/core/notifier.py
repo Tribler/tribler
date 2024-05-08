@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from enum import Enum
-from typing import Callable, Optional
+from typing import Callable
 
 from ipv8.messaging.anonymization.tunnel import Circuit
 
@@ -15,7 +15,7 @@ class Desc(typing.NamedTuple):
 
     name: str
     fields: list[str]
-    types: list[type]
+    types: list[tuple[type, ...] | type]
 
 
 class Notification(Enum):
@@ -45,7 +45,7 @@ class Notification(Enum):
                                        [bytes, bytes, int])
     torrent_metadata_added = Desc("torrent_metadata_added", ["metadata"], [dict])
     new_torrent_metadata_created = Desc("new_torrent_metadata_created", ["infohash", "title"],
-                                        [Optional[bytes], Optional[str]])
+                                        [(bytes, type(None)), (str, type(None))])
 
 
 class Notifier:
@@ -57,10 +57,10 @@ class Notifier:
         """
         Create a new notifier.
         """
-        self.observers = defaultdict(list)
-        self.delegates = set()
+        self.observers: dict[Notification, list[Callable[..., None]]] = defaultdict(list)
+        self.delegates: set[Callable[..., None]] = set()
 
-    def add(self, topic: Notification, observer: Callable) -> None:
+    def add(self, topic: Notification, observer: Callable[..., None]) -> None:
         """
         Add an observer for the given Notification type.
         """
@@ -70,13 +70,12 @@ class Notifier:
         """
         Notify all observers that have subscribed to the given topic.
         """
-        if isinstance(topic, str):
-            topic = getattr(Notification, topic)
-        topic_name, args, types = topic.value
+        notification = getattr(Notification, topic) if isinstance(topic, str) else topic
+        topic_name, args, types = notification.value
         if set(args) ^ set(kwargs.keys()):
             message = f"{topic_name} expecting arguments {args} (of types {types}) but received {kwargs}"
             raise ValueError(message)
-        for observer in self.observers[topic]:
+        for observer in self.observers[notification]:
             observer(**kwargs)
         for delegate in self.delegates:
-            delegate(topic, **kwargs)
+            delegate(notification, **kwargs)

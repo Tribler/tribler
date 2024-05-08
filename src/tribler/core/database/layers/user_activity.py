@@ -201,7 +201,7 @@ class UserActivityLayer:
             # Option 2: aggregate
             results = self.Query.select(lambda q: q.query == random_selection.query)[:]
             num_results_div = 1/len(results)
-            preferences = {}
+            preferences: dict[bytes, float] = {}
             for query in results:
                 for infohash_preference in query.infohashes:
                     preferences[infohash_preference.infohash] = (preferences.get(infohash_preference.infohash, 0.0)

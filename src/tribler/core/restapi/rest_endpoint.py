@@ -65,7 +65,7 @@ class RESTResponse(web.Response):
     JSON-compatible response bodies are automatically converted to JSON type.
     """
 
-    def __init__(self, body: dict | list | bytes | None = None, headers: dict | None = None,
+    def __init__(self, body: dict | list | bytes | str | None = None, headers: dict | None = None,
                  content_type: str | None = None, status: int = 200, **kwargs) -> None:
         """
         Create a new rest response.

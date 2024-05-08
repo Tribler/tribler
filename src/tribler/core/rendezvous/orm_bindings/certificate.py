@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterator
 
 from pony.orm import Database, Required
 from typing_extensions import Self
 
 if TYPE_CHECKING:
     import dataclasses
-    from collections.abc import Iterable
+
+
+    class IterRendezvousCertificate(type):  # noqa: D101
+
+        def __iter__(cls) -> Iterator[RendezvousCertificate]: ...  # noqa: D105
 
 
     @dataclasses.dataclass
-    class RendezvousCertificate(metaclass=Iterable):
+    class RendezvousCertificate(metaclass=IterRendezvousCertificate):
         """
         The database type for rendezvous certificates.
         """

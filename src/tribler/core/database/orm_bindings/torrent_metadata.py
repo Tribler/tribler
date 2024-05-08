@@ -266,7 +266,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
 
         @classmethod
         @db_session
-        def add_ffa_from_dict(cls: type[Self], metadata: dict) -> Self:
+        def add_ffa_from_dict(cls: type[Self], metadata: dict) -> Self | None:
             # To produce a relatively unique id_ we take some bytes of the infohash and convert these to a number.
             # abs is necessary as the conversion can produce a negative value, and we do not support that.
             id_ = infohash_to_id(metadata["infohash"])

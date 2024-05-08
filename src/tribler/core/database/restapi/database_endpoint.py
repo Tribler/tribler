@@ -9,7 +9,6 @@ from dataclasses import asdict
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
-from ipv8.REST.base_endpoint import HTTP_BAD_REQUEST
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
@@ -19,7 +18,13 @@ from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
 from tribler.core.database.serialization import REGULAR_TORRENT, SNIPPET
 from tribler.core.notifier import Notification
-from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
+from tribler.core.restapi.rest_endpoint import (
+    HTTP_BAD_REQUEST,
+    HTTP_NOT_FOUND,
+    MAX_REQUEST_SIZE,
+    RESTEndpoint,
+    RESTResponse,
+)
 
 if typing.TYPE_CHECKING:
     from aiohttp.abc import Request
@@ -97,14 +102,15 @@ class DatabaseEndpoint(RESTEndpoint):
 
     @classmethod
     def sanitize_parameters(cls: type[Self],
-                            parameters: MultiDictProxy | MultiMapping[str]) -> dict[str, str | float | set | None]:
+                            parameters: MultiDictProxy | MultiMapping[str]
+                            ) -> dict[str, str | float | list[str] | set[bytes] | bytes | None]:
         """
         Sanitize the parameters for a request that fetches channels.
         """
-        sanitized = {
+        sanitized: dict[str, str | float | list[str] | set[bytes] | bytes | None] = {
             "first": int(parameters.get("first", 1)),
             "last": int(parameters.get("last", 50)),
-            "sort_by": json2pony_columns.get(parameters.get("sort_by")),
+            "sort_by": json2pony_columns.get(parameters.get("sort_by", "")),
             "sort_desc": parse_bool(parameters.get("sort_desc", "true")),
             "txt_filter": parameters.get("txt_filter"),
             "hide_xxx": parse_bool(parameters.get("hide_xxx", "false")),
@@ -233,7 +239,7 @@ class DatabaseEndpoint(RESTEndpoint):
 
         return RESTResponse(response_dict)
 
-    def build_snippets(self, search_results: list[dict]) -> list[dict]:
+    def build_snippets(self, tribler_db: TriblerDatabase, search_results: list[dict]) -> list[dict]:
         """
         Build a list of snippets that bundle torrents describing the same content item.
         For each search result we determine the content item it is associated to and bundle it inside a snippet.
@@ -241,12 +247,12 @@ class DatabaseEndpoint(RESTEndpoint):
         Within each snippet, we sort on torrent popularity, putting the torrent with the most seeders on top.
         Torrents bundled in a snippet are filtered out from the search results.
         """
-        content_to_torrents: typing.Dict[str, list] = defaultdict(list)
+        content_to_torrents: dict[str, list] = defaultdict(list)
         for search_result in search_results:
             if "infohash" not in search_result:
                 continue
             with db_session:
-                content_items: typing.List[str] = self.tribler_db.knowledge.get_objects(
+                content_items = tribler_db.knowledge.get_objects(
                     subject_type=ResourceType.TORRENT,
                     subject=search_result["infohash"],
                     predicate=ResourceType.CONTENT_ITEM)
@@ -262,7 +268,7 @@ class DatabaseEndpoint(RESTEndpoint):
         sorted_content_info = list(content_to_torrents.items())
         sorted_content_info.sort(key=lambda x: x[1][0]["num_seeders"], reverse=True)
 
-        snippets: typing.List[typing.Dict] = []
+        snippets: list[dict] = []
         for content_info in sorted_content_info:
             content_id = content_info[0]
             torrents_in_snippet = content_to_torrents[content_id][:MAX_TORRENTS_IN_SNIPPETS]
@@ -310,7 +316,7 @@ class DatabaseEndpoint(RESTEndpoint):
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def local_search(self, request: Request) -> RESTResponse:
+    async def local_search(self, request: Request) -> RESTResponse:  # noqa: C901
         """
         Perform a search for a given query.
         """
@@ -319,6 +325,9 @@ class DatabaseEndpoint(RESTEndpoint):
             tags = sanitized.pop("tags", None)
         except (ValueError, KeyError):
             return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
+
+        if self.tribler_db is None:
+            return RESTResponse({"error": "Tribler DB not initialized"}, status=HTTP_NOT_FOUND)
 
         include_total = request.query.get("include_total", "")
 
@@ -345,7 +354,7 @@ class DatabaseEndpoint(RESTEndpoint):
                 if tags:
                     infohash_set = self.tribler_db.knowledge.get_subjects_intersection(
                         subjects_type=ResourceType.TORRENT,
-                        objects=set(tags),
+                        objects=set(typing.cast(list[str], tags)),
                         predicate=ResourceType.TAG,
                         case_sensitive=False)
                     if infohash_set:
@@ -359,7 +368,7 @@ class DatabaseEndpoint(RESTEndpoint):
         self.add_statements_to_metadata_list(search_results)
 
         if sanitized["first"] == 1:  # Only show a snippet on top
-            search_results = self.build_snippets(search_results)
+            search_results = self.build_snippets(self.tribler_db, search_results)
 
         response_dict = {
             "results": search_results,

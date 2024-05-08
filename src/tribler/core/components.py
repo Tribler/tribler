@@ -63,7 +63,7 @@ class Component(Community):
         Overlay.__init__(self, settings)
         self.cancel_pending_task("discover_lan_addresses")
         self.endpoint.remove_listener(self)
-        self.bootstrappers = []
+        self.bootstrappers: list[Bootstrapper] = []
         self.max_peers = 0
         self._prefix = settings.community_id
         self.settings = settings
@@ -124,13 +124,13 @@ class DatabaseComponent(ComponentLauncher):
         from tribler.core.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
         from tribler.core.notifier import Notification
 
-        db_path = Path(session.config.get("state_dir")) / "sqlite" / "tribler.db"
-        mds_path = Path(session.config.get("state_dir")) / "sqlite" / "metadata.db"
+        db_path = str(Path(session.config.get("state_dir")) / "sqlite" / "tribler.db")
+        mds_path = str(Path(session.config.get("state_dir")) / "sqlite" / "metadata.db")
         if session.config.get("memory_db"):
             db_path = ":memory:"
             mds_path = ":memory:"
 
-        session.db = TriblerDatabase(str(db_path))
+        session.db = TriblerDatabase(db_path)
         session.mds = MetadataStore(
             mds_path,
             session.ipv8.keys["anonymous id"].key,

@@ -30,7 +30,7 @@ class TestTorrents(TestBase):
         """
         Test if the default value is returned for missing handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
 
         self.assertEqual("default", (check_handle("default")(Download.get_def)(download)))
@@ -39,7 +39,7 @@ class TestTorrents(TestBase):
         """
         Test if the default value is returned for invalid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
@@ -49,7 +49,7 @@ class TestTorrents(TestBase):
         """
         Test if the given method is called for valid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -59,7 +59,7 @@ class TestTorrents(TestBase):
         """
         Test if None is returned for invalid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
@@ -71,7 +71,7 @@ class TestTorrents(TestBase):
         """
         Test if the result of the given method is given for valid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -89,7 +89,7 @@ class TestTorrents(TestBase):
             """
             raise RuntimeError
 
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -108,7 +108,7 @@ class TestTorrents(TestBase):
             """
             raise ValueError
 
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -120,7 +120,7 @@ class TestTorrents(TestBase):
         """
         Test if the default value is returned for disabled vod mode.
         """
-        stream = Stream(Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        stream = Stream(Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                                  config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))))
         stream.close()
 
@@ -132,7 +132,7 @@ class TestTorrents(TestBase):
         """
         Test if the function result is returned for enabled vod mode.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT),
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_priorities=Mock(return_value=[0]),
                                torrent_file=Mock(return_value=Mock(map_file=Mock(return_value=Mock(piece=0)))))

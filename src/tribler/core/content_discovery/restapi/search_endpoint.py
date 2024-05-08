@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from binascii import hexlify, unhexlify
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
@@ -48,15 +48,15 @@ class SearchEndpoint(RESTEndpoint):
         self.app.add_routes([web.put("/remote", self.remote_search)])
 
     @classmethod
-    def sanitize_parameters(cls: type[Self], parameters: MultiMapping[str]) -> dict:
+    def sanitize_parameters(cls: type[Self], parameters: MultiMapping[int | str]) -> dict:
         """
         Correct the human-readable parameters to be their respective correct type.
         """
-        sanitized = dict(parameters)
+        sanitized: dict = dict(parameters)
         if "max_rowid" in parameters:
             sanitized["max_rowid"] = int(parameters["max_rowid"])
         if "channel_pk" in parameters:
-            sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
+            sanitized["channel_pk"] = unhexlify(cast(str, parameters["channel_pk"]))
         if "origin_id" in parameters:
             sanitized["origin_id"] = int(parameters["origin_id"])
         return sanitized

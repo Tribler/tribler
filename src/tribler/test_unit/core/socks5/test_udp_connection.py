@@ -74,7 +74,7 @@ class TestSocksUDPConnection(TestBase):
         connection = MockSocksUDPConnection(socks_connection, None)
         await connection.open()
 
-        value = connection.datagram_received(b"\x00\x00\x00\x03\tlocalhost\x0590x000", ("localhost", 1337))
+        value = connection.cb_datagram_received(b"\x00\x00\x00\x03\tlocalhost\x0590x000", ("localhost", 1337))
         udp_payload = socks_connection.socksserver.output_stream.on_socks5_udp_data.call_args.args[1]
 
         self.assertTrue(value)
@@ -92,7 +92,7 @@ class TestSocksUDPConnection(TestBase):
         connection = MockSocksUDPConnection(socks_connection, ("localhost", 1337))
         await connection.open()
 
-        value = connection.datagram_received(b"\x00\x00\x00\x03\tlocalhost\x0590x000", ("notlocalhost", 1337))
+        value = connection.cb_datagram_received(b"\x00\x00\x00\x03\tlocalhost\x0590x000", ("notlocalhost", 1337))
 
         self.assertFalse(value)
 
@@ -104,7 +104,7 @@ class TestSocksUDPConnection(TestBase):
         connection = MockSocksUDPConnection(socks_connection, ("localhost", 1337))
         await connection.open()
 
-        value = connection.datagram_received(b"\x00", ("localhost", 1337))
+        value = connection.cb_datagram_received(b"\x00", ("localhost", 1337))
 
         self.assertFalse(value)
 
@@ -116,7 +116,7 @@ class TestSocksUDPConnection(TestBase):
         connection = MockSocksUDPConnection(socks_connection, ("localhost", 1337))
         await connection.open()
 
-        value = connection.datagram_received(b"\x00\x00\x01\x03\tlocalhost\x0590x000", ("localhost", 1337))
+        value = connection.cb_datagram_received(b"\x00\x00\x01\x03\tlocalhost\x0590x000", ("localhost", 1337))
 
         self.assertFalse(value)
 

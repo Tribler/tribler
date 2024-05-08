@@ -103,7 +103,7 @@ class TestEventsEndpoint(TestBase):
         self.assertEqual(200, response.status)
         self.assertEqual((b'data: {'
                           b'"topic": "events_start", '
-                          b'"kwargs": {"public_key": null, "version": "Tribler Experimental"}'
+                          b'"kwargs": {"public_key": "", "version": "Tribler Experimental"}'
                           b'}\n\n'), request.payload_writer.captured[0])
 
     async def test_establish_connection_with_error(self) -> None:

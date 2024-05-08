@@ -143,8 +143,7 @@ class Socks5Address(Packer[Union[DomainAddress, tuple], Any]):
             offset += 1
             host = ""
             try:
-                host = data[offset:offset + domain_length]
-                host = host.decode()
+                host = data[offset:offset + domain_length].decode()
             except UnicodeDecodeError as e:
                 msg = f"Could not decode host {host}"
                 raise InvalidAddressException(msg) from e

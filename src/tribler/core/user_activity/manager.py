@@ -30,12 +30,9 @@ class UserActivityManager:
         self.infohash_to_queries: dict[InfoHash, list[str]] = defaultdict(list)
         self.queries: OrderedDict[str, typing.Set[InfoHash]] = OrderedDict()
         self.max_query_history = max_query_history
-        self.database_manager = None
-        self.torrent_checker = None
-        self.task_manager = task_manager
-
         self.database_manager: UserActivityLayer = session.db.user_activity
         self.torrent_checker: TorrentChecker = session.torrent_checker
+        self.task_manager = task_manager
 
         # Hook events
         session.notifier.add(Notification.torrent_finished, self.on_torrent_finished)

@@ -13,6 +13,7 @@ from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeyS
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow,
                              QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget)
 
+from tribler.core.knowledge.rules.rules import extract_tags
 from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
@@ -747,7 +748,7 @@ class TriblerWindow(QMainWindow):
         if not query_text:
             return
 
-        query = Query(original_query=query_text)
+        query = Query(query_text, *extract_tags(query_text))
         if self.search_results_page.search(query):
             self._logger.info(f'Do search for query: {query}')
             self.deselect_all_menu_buttons()

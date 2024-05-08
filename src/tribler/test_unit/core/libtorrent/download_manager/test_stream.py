@@ -199,7 +199,8 @@ class TestStream(TestBase):
         conf.validate(Validator())
         config = DownloadConfig(conf)
         config.set_dest_dir(Path(""))
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), config, checkpoint_disabled=True)
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None, config,
+                            checkpoint_disabled=True)
         download.handle = Mock(is_valid=Mock(return_value=True), file_priorities=Mock(return_value=[0] * 6),
                                torrent_file=Mock(return_value=download.tdef.torrent_info))
         download.lt_status = Mock(state=3, paused=False, pieces=[])

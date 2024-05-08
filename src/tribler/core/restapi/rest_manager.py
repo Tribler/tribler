@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import ssl
 import traceback
+from asyncio.base_events import Server
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeVar
+from typing import TYPE_CHECKING, Awaitable, Callable, TypeVar, cast
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
@@ -174,23 +175,23 @@ class RESTManager:
 
         if self.config.get("api/http_enabled"):
             self._logger.info("Http enabled")
-            await self.start_http_site()
+            await self.start_http_site(self.runner)
 
         if self.config.get("api/https_enabled"):
             self._logger.info("Https enabled")
-            await self.start_https_site()
+            await self.start_https_site(self.runner)
 
         self._logger.info("Swagger docs: http://%s:%d/docs", self.http_host, self.config.get("api/http_port"))
         self._logger.info("Swagger JSON: http://%s:%d/docs/swagger.json", self.http_host,
                           self.config.get("api/http_port"))
 
-    async def start_http_site(self) -> None:
+    async def start_http_site(self, runner: web.AppRunner) -> None:
         """
         Start serving HTTP requests.
         """
         api_port = max(self.config.get("api/http_port"), 0)  # if the value in config is <0 we convert it to 0
 
-        self.site = web.TCPSite(self.runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
+        self.site = web.TCPSite(runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
         self._logger.info("Starting HTTP REST API server on port %d...", api_port)
 
         try:
@@ -201,12 +202,12 @@ class RESTManager:
             raise
 
         if not api_port:
-            api_port = self.site._server.sockets[0].getsockname()[1]  # noqa: SLF001
+            api_port = cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
 
         self.set_api_port(api_port)
         self._logger.info("HTTP REST API server started on port %d", api_port)
 
-    async def start_https_site(self) -> None:
+    async def start_https_site(self, runner: web.AppRunner) -> None:
         """
         Start serving HTTPS requests.
         """
@@ -214,7 +215,7 @@ class RESTManager:
         ssl_context.load_cert_chain(Path(self.config.get("state_dir")) / "https_certfile")
 
         port = self.config.get("api/https_port")
-        self.site_https = web.TCPSite(self.runner, self.https_host, port, ssl_context=ssl_context)
+        self.site_https = web.TCPSite(runner, self.https_host, port, ssl_context=ssl_context)
 
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)

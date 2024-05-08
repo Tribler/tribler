@@ -8,6 +8,8 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 if TYPE_CHECKING:
+    from ipv8.types import Peer
+
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 
@@ -32,7 +34,7 @@ class GoldenRatioStrategy(DiscoveryStrategy):
         super().__init__(overlay)
         self.golden_ratio = golden_ratio
         self.target_peers = target_peers
-        self.intro_sent = {}
+        self.intro_sent: dict[Peer, float] = {}
 
         assert target_peers > 0
         assert 0.0 <= golden_ratio <= 1.0

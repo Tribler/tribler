@@ -9,7 +9,7 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.9'
           cache: 'pip'
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests
@@ -24,7 +24,7 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.9'
           cache: 'pip'
       - uses: actions/cache/restore@v4
         id: restore_cache
@@ -50,7 +50,7 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.9'
           cache: 'pip'
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests

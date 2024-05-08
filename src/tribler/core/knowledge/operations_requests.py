@@ -1,6 +1,10 @@
-from collections import defaultdict
+from __future__ import annotations
 
-from ipv8.types import Peer
+from collections import defaultdict
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ipv8.types import Peer
 
 
 class PeerValidationError(ValueError):
@@ -23,7 +27,7 @@ class OperationsRequests:
         """
         Create a new dictionary to keep track of responses.
         """
-        self.requests = defaultdict(int)
+        self.requests: dict[Peer, int] = defaultdict(int)
 
     def register_peer(self, peer: Peer, number_of_responses: int) -> None:
         """

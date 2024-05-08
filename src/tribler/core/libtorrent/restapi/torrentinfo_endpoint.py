@@ -69,7 +69,7 @@ async def query_uri(uri: str, connector: BaseConnector | None = None, headers: L
     """
     Retrieve the response for the given aiohttp context.
     """
-    kwargs = {"headers": headers}
+    kwargs: dict = {"headers": headers}
     if timeout:
         # ClientSession uses a sentinel object for the default timeout. Therefore, it should only be specified if an
         # actual value has been passed to this function.
@@ -121,18 +121,19 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         params = request.query
         hops = params.get("hops")
-        uri = params.get("uri")
-        self._logger.info("URI: %s", uri)
+        i_hops = 0
+        p_uri = params.get("uri")
+        self._logger.info("URI: %s", p_uri)
         if hops:
             try:
-                hops = int(hops)
+                i_hops = int(hops)
             except ValueError:
                 return RESTResponse({"error": f"wrong value of 'hops' parameter: {hops}"}, status=HTTP_BAD_REQUEST)
 
-        if not uri:
+        if not p_uri:
             return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
-        uri = await unshorten(uri)
+        uri = await unshorten(p_uri)
         scheme = URL(uri).scheme
 
         if scheme == "file":
@@ -151,6 +152,11 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 self._logger.warning("Error while querying http uri: %s", str(e))
                 return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 
+            if not isinstance(response, bytes):
+                self._logger.warning("Error while reading response from http uri: %s", repr(response))
+                return RESTResponse({"error": "Error while reading response from http uri"},
+                                    status=HTTP_INTERNAL_SERVER_ERROR)
+
             if response.startswith(b'magnet'):
                 try:
                     try:
@@ -165,7 +171,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=hops,
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops,
                                                                     url=response.decode())
             else:
                 metainfo = lt.bdecode(response)
@@ -184,7 +190,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                     status=HTTP_BAD_REQUEST
                 )
-            metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=hops, url=uri)
+            metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -209,6 +215,6 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         ready_for_unicode = recursive_unicode(encoded_metainfo, ignore_errors=True)
         json_dump = json.dumps(ready_for_unicode, ensure_ascii=False)
-        encoded_metainfo = hexlify(json_dump.encode()).decode()
-        return RESTResponse({"metainfo": encoded_metainfo,
+
+        return RESTResponse({"metainfo": hexlify(json_dump.encode()).decode(),
                              "download_exists": download and not download_is_metainfo_request})

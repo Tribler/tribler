@@ -88,10 +88,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         self.logger.info("Using %s with flags %s", self.endpoint.__class__.__name__, self.settings.peer_flags)
 
-        self.bittorrent_peers = {}
+        self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
         self.dispatcher = TunnelDispatcher(self)
-        self.download_states = {}
-        self.last_forced_announce = {}
+        self.download_states: dict[bytes, DownloadStatus] = {}
+        self.last_forced_announce: dict[bytes, float] = {}
 
         if settings.socks_servers:
             self.dispatcher.set_socks_servers(settings.socks_servers)
@@ -253,7 +253,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # Re-add BitTorrent peers, if needed.
             self.readd_bittorrent_peers()
 
-    def on_raw_data(self, circuit: Circuit, origin: int, data: bytes) -> None:
+    def on_raw_data(self, circuit: Circuit, origin: tuple[str, int], data: bytes) -> None:
         """
         Let our dispatcher know that we have incoming data.
         """
@@ -357,9 +357,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Set the IP filter setting for the given infohash.
         """
         download = self.get_download(info_hash)
-        lt_session = self.settings.download_manager.get_session(download.config.get_hops())
-        ip_addresses = [self.circuit_id_to_ip(c.circuit_id) for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)]
-        self.settings.download_manager.update_ip_filter(lt_session, ip_addresses)
+        if download is not None:
+            lt_session = self.settings.download_manager.get_session(download.config.get_hops())
+            ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
+                            for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)]
+            self.settings.download_manager.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash: bytes) -> Download | None:
         """

@@ -44,8 +44,10 @@ class Socks5Connector(TCPConnector):
         super().__init__(**kwargs)
         self.proxy_addr = proxy_addr
 
-    async def _wrap_create_connection(self, protocol_factory: Callable[[], Socks5ClientUDPConnection], host: str,
-                                      port: int, **kwargs) -> tuple[BaseTransport, Socks5ClientUDPConnection]:
+    async def _wrap_create_connection(self,  # type: ignore[override]
+                                      protocol_factory: Callable[[], Socks5ClientUDPConnection],
+                                      host: str, port: int,
+                                      **kwargs) -> tuple[BaseTransport, Socks5ClientUDPConnection]:
         """
         Create a transport and its associated connection.
         """
