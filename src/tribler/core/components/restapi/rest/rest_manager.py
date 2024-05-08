@@ -18,7 +18,7 @@ from tribler.core.components.restapi.rest.rest_endpoint import (
     RESTResponse,
 )
 from tribler.core.components.restapi.rest.root_endpoint import RootEndpoint
-from tribler.core.components.restapi.rest.settings import APISettings
+from tribler.core.config.tribler_config import TriblerConfig
 from tribler.core.utilities.network_utils import default_network_utils
 from tribler.core.utilities.process_manager import get_global_process_manager
 from tribler.core.version import version_id
@@ -83,7 +83,7 @@ class RESTManager:
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
     """
 
-    def __init__(self, config: APISettings, root_endpoint: RootEndpoint, state_dir=None, shutdown_timeout: int = 10):
+    def __init__(self, config: TriblerConfig, root_endpoint: RootEndpoint, shutdown_timeout: int = 10):
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.root_endpoint = root_endpoint
@@ -91,8 +91,6 @@ class RESTManager:
         self.site: Optional[web.TCPSite] = None
         self.site_https: Optional[web.TCPSite] = None
         self.config = config
-        self.state_dir = state_dir
-
         self.shutdown_timeout = shutdown_timeout
 
     def get_endpoint(self, name):
@@ -101,8 +99,9 @@ class RESTManager:
     def set_api_port(self, api_port: int):
         default_network_utils.remember(api_port)
 
-        if self.config.http_port != api_port:
-            self.config.http_port = api_port
+        if self.config.api.http_port != api_port:
+            self.config.api.http_port = api_port
+            self.config.write()
 
         process_manager = get_global_process_manager()
         if process_manager:
@@ -122,7 +121,7 @@ class RESTManager:
             version=version_id,
             swagger_path='/docs'
         )
-        if self.config.key:
+        if self.config.api.key:
             self._logger.info('Set security scheme and apply to all endpoints')
 
             aiohttp_apispec.spec.options['security'] = [{'apiKey': []}]
@@ -136,21 +135,21 @@ class RESTManager:
         self.runner = web.AppRunner(self.root_endpoint.app, access_log=None)
         await self.runner.setup()
 
-        if self.config.http_enabled:
+        if self.config.api.http_enabled:
             self._logger.info('Http enabled')
             await self.start_http_site()
 
-        if self.config.https_enabled:
+        if self.config.api.https_enabled:
             self._logger.info('Https enabled')
             await self.start_https_site()
 
-        self._logger.info(f'Swagger docs: http://{self.config.http_host}:{self.config.http_port}/docs')
-        self._logger.info(f'Swagger JSON: http://{self.config.http_host}:{self.config.http_port}/docs/swagger.json')
+        self._logger.info(f'Swagger docs: http://{self.config.api.http_host}:{self.config.api.http_port}/docs')
+        self._logger.info(f'Swagger JSON: http://{self.config.api.http_host}:{self.config.api.http_port}/docs/swagger.json')
 
     async def start_http_site(self):
-        api_port = max(self.config.http_port, 0)  # if the value in config is -1 we convert it to 0
+        api_port = max(self.config.api.http_port, 0)  # if the value in config is -1 we convert it to 0
 
-        self.site = web.TCPSite(self.runner, self.config.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
+        self.site = web.TCPSite(self.runner, self.config.api.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
         self._logger.info(f"Starting HTTP REST API server on port {api_port}...")
 
         try:
@@ -168,11 +167,11 @@ class RESTManager:
     async def start_https_site(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
-        cert = self.config.get_path_as_absolute('https_certfile', self.state_dir)
+        cert = self.config.api.get_path_as_absolute('https_certfile', self.config.state_dir)
         ssl_context.load_cert_chain(cert)
 
-        port = self.config.https_port
-        self.site_https = web.TCPSite(self.runner, self.config.https_host, port, ssl_context=ssl_context)
+        port = self.config.api.https_port
+        self.site_https = web.TCPSite(self.runner, self.config.api.https_host, port, ssl_context=ssl_context)
 
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
