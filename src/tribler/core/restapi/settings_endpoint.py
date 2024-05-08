@@ -10,16 +10,20 @@ from tribler.tribler_config import TriblerConfigManager
 
 class SettingsEndpoint(RESTEndpoint):
     """
-    This endpoint is reponsible for handing all requests regarding settings and configuration.
+    This endpoint is responsible for handing all requests regarding settings and configuration.
     """
-    path = '/settings'
+
+    path = "/settings"
 
     def __init__(self, tribler_config: TriblerConfigManager, download_manager: DownloadManager = None) -> None:
+        """
+        Create a new settings endpoint.
+        """
         super().__init__()
         self.config = tribler_config
         self.download_manager = download_manager
-        self.app.add_routes([web.get('', self.get_settings),
-                             web.post('', self.update_settings)])
+        self.app.add_routes([web.get("", self.get_settings),
+                             web.post("", self.update_settings)])
 
     @docs(
         tags=["General"],
@@ -33,7 +37,10 @@ class SettingsEndpoint(RESTEndpoint):
                     "the runtime-determined ports"
     )
     async def get_settings(self, request: web.Request) -> RESTResponse:
-        self._logger.info(f'Get settings. Request: {request}')
+        """
+        Return all the session settings that can be found in Tribler.
+        """
+        self._logger.info("Get settings. Request: %s", str(request))
         return RESTResponse({
             "settings": self.config.configuration,
         })
@@ -43,14 +50,17 @@ class SettingsEndpoint(RESTEndpoint):
         summary="Update Tribler settings.",
         responses={
             200: {
-                "schema": schema(UpdateTriblerSettingsResponse={'modified': Boolean})
+                "schema": schema(UpdateTriblerSettingsResponse={"modified": Boolean})
             }
         }
     )
     @json_schema(schema(UpdateTriblerSettingsRequest={}))
     async def update_settings(self, request: web.Request) -> RESTResponse:
+        """
+        Update Tribler settings.
+        """
         settings = await request.json()
-        self._logger.info(f'Received settings: {settings}')
+        self._logger.info("Received settings: %s", settings)
         self._recursive_merge_settings(self.config.configuration, settings)
         self.config.write()
 

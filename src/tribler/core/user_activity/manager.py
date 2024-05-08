@@ -9,10 +9,11 @@ from tribler.core.notifier import Notification
 from tribler.core.user_activity.types import InfoHash
 
 if typing.TYPE_CHECKING:
-    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
-    from tribler.core.session import Session
-    from tribler.core.database.layers.user_activity import UserActivityLayer
     from ipv8.taskmanager import TaskManager
+
+    from tribler.core.database.layers.user_activity import UserActivityLayer
+    from tribler.core.session import Session
+    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
 
 class UserActivityManager:

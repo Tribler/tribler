@@ -1,3 +1,5 @@
+from typing import Callable
+
 from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
@@ -10,12 +12,16 @@ class ShutdownEndpoint(RESTEndpoint):
     """
     With this endpoint you can shut down Tribler.
     """
-    path = '/shutdown'
 
-    def __init__(self, shutdown_callback):
+    path = "/shutdown"
+
+    def __init__(self, shutdown_callback: Callable[[], None]) -> None:
+        """
+        Create a new shutdown endpoint.
+        """
         super().__init__()
         self.shutdown_callback = shutdown_callback
-        self.app.add_routes([web.put('', self.shutdown_request)])
+        self.app.add_routes([web.put("", self.shutdown_request)])
 
     @docs(
         tags=["General"],
@@ -23,12 +29,15 @@ class ShutdownEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(TriblerShutdownResponse={
-                    'shutdown': Boolean
+                    "shutdown": Boolean
                 })
             }
         }
     )
     def shutdown_request(self, _: web.Request) -> RESTResponse:
-        self._logger.info('Received a shutdown request from GUI')
+        """
+        Shutdown Tribler.
+        """
+        self._logger.info("Received a shutdown request from GUI")
         self.shutdown_callback()
         return RESTResponse({"shutdown": True})

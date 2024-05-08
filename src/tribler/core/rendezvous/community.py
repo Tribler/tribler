@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING
 from ipv8.community import Community, CommunitySettings
 from ipv8.lazy_community import lazy_wrapper
 
-from tribler.core.rendezvous.database import RendezvousDatabase
 from tribler.core.rendezvous.payload import PullRecordPayload, RecordPayload
 
 if TYPE_CHECKING:
     from ipv8.types import Peer
+
+    from tribler.core.rendezvous.database import RendezvousDatabase
 
 
 class RendezvousSettings(CommunitySettings):
@@ -25,6 +26,7 @@ class RendezvousCommunity(Community):
     """
     A community that shares preferred infohashes.
     """
+
     community_id = b"RendezvousCommunity\x00"
     settings_class = RendezvousSettings
 
