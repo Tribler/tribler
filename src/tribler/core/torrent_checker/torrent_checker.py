@@ -7,7 +7,7 @@ import time
 from asyncio import CancelledError, DatagramTransport
 from binascii import hexlify
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
@@ -78,9 +78,9 @@ class TorrentChecker(TaskManager):
         self.socks_listen_ports = socks_listen_ports
 
         self._should_stop = False
-        self.sessions = defaultdict(list)
+        self.sessions: dict[str, list[TrackerSession]] = defaultdict(list)
         self.socket_mgr = UdpSocketManager()
-        self.udp_transport = None
+        self.udp_transport: DatagramTransport | None = None
 
         # We keep track of the results of popular torrents checked by you.
         # The content_discovery community gossips this information around.
@@ -368,7 +368,8 @@ class TorrentChecker(TaskManager):
             self._logger.warning("Dropping the request. Required amount of hops not reached. "
                                  "Required hops: %d. Actual hops: %d", required_hops, actual_hops)
             return None
-        proxy = ('127.0.0.1', self.socks_listen_ports[required_hops - 1]) if required_hops > 0 else None
+        listen_ports = cast(List[int], self.socks_listen_ports)  # Guaranteed by check above
+        proxy = ('127.0.0.1', listen_ports[required_hops - 1]) if required_hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
         self._logger.info("Tracker session has been created: %s", str(session))
         self.sessions[tracker_url].append(session)

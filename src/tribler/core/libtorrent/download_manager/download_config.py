@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Any, Dict, Literal, TypedDict, cast, overload
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -11,6 +11,56 @@ from validate import Validator
 
 if TYPE_CHECKING:
     from tribler.tribler_config import TriblerConfigManager
+
+
+    class DownloadConfigDefaultsSection(TypedDict):
+        """
+        The default config settings for a download.
+        """
+
+        hops: int
+        selected_files: list[str]
+        selected_file_indexes: list[int]
+        safe_seeding: bool
+        user_stopped: bool
+        share_mode: bool
+        upload_mode: bool
+        time_added: int
+        bootstrap_download: bool
+        channel_download: bool
+        add_download_to_channel: bool
+        saveas: str | None
+
+
+    class StateConfigSection(TypedDict):
+        """
+        The runtime state info of a download.
+        """
+
+        metainfo: str
+        engineresumedata: str
+
+
+    class DownloadConfigDict(dict):
+        """
+        All config settings in the config file.
+        """
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal["filename"]) -> str: ...
+
+        @overload
+        def __getitem__(self, key: Literal["download_defaults"]) -> DownloadConfigDefaultsSection: ...
+
+        @overload
+        def __getitem__(self, key: Literal["state"]) -> StateConfigSection: ...
+
+        def __getitem__(self, key: str) -> Any: ...  # noqa: D105
+
+        def write(self) -> None: ...  # noqa: D102
+else:
+    DownloadConfigDict = ConfigObj
+
 
 SPEC_FILENAME = 'download_config.spec'
 SPEC_CONTENT = """[download_defaults]
@@ -51,11 +101,11 @@ class DownloadConfig:
     A configuration belonging to a specific download.
     """
 
-    def __init__(self, config: ConfigObj | None = None) -> None:
+    def __init__(self, config: ConfigObj) -> None:
         """
         Create a download config from the given ConfigObj.
         """
-        self.config = config
+        self.config: DownloadConfigDict = cast(DownloadConfigDict, config)
 
     @staticmethod
     def get_spec_file_name(settings: TriblerConfigManager) -> str:
@@ -94,7 +144,7 @@ class DownloadConfig:
         """
         Write the contents of this config to a file.
         """
-        self.config.filename = Path(filename)
+        self.config["filename"] = str(filename)
         self.config.write()
 
     def set_dest_dir(self, path: Path | str) -> None:
@@ -109,7 +159,7 @@ class DownloadConfig:
         """
         Gets the directory where to save this Download.
         """
-        dest_dir = self.config["download_defaults"]["saveas"]
+        dest_dir = self.config["download_defaults"]["saveas"] or ""
         return Path(dest_dir)
 
     def set_hops(self, hops: int) -> None:

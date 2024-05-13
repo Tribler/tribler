@@ -332,7 +332,7 @@ class TestTorrentDef(TestBase):
         self.assertEqual(b"12345678901234567890", tdef.get_infohash())
         self.assertEqual(0, tdef.get_length())
         self.assertIsNone(tdef.get_metainfo())
-        self.assertEqual("http://google.com", tdef.get_url())
+        self.assertEqual(b"http://google.com", tdef.get_url())
         self.assertFalse(tdef.is_multifile_torrent())
         self.assertEqual("ubuntu.torrent", tdef.get_name_as_unicode())
         self.assertEqual([], tdef.get_files())

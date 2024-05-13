@@ -5,11 +5,9 @@ import re
 from bisect import bisect
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generator, ItemsView, Sequence, cast
+from typing import TYPE_CHECKING, Dict, Generator, ItemsView, cast
 
 if TYPE_CHECKING:
-    from collections import defaultdict
-
     import libtorrent
 
 
@@ -24,7 +22,7 @@ class TorrentFileTree:
         A directory that contains other directories and files.
         """
 
-        directories: defaultdict[str, TorrentFileTree.Directory] = field(default_factory=dict)
+        directories: dict[str, TorrentFileTree.Directory] = field(default_factory=dict)
         files: list[TorrentFileTree.File] = field(default_factory=list)
         collapsed: bool = True
         size: int = 0
@@ -84,7 +82,7 @@ class TorrentFileTree:
             """
             return "\t" * depth + f"File({self.index}, {self.name}, {self.size} bytes)"
 
-        def sort_key(self) -> Sequence[int | str]:
+        def sort_key(self) -> tuple[int | str, ...]:
             """
             Sort File instances using natural sort based on their names, which SHOULD be unique.
             """
@@ -114,17 +112,21 @@ class TorrentFileTree:
             """
             return self.sort_key() >= other.sort_key()
 
-        def __eq__(self, other: TorrentFileTree.File) -> bool:
+        def __eq__(self, other: object) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
-            return self.sort_key() == other.sort_key()
+            if isinstance(other, TorrentFileTree.File):
+                return self.sort_key() == other.sort_key()
+            return False
 
-        def __ne__(self, other: TorrentFileTree.File) -> bool:
+        def __ne__(self, other: object) -> bool:
             """
             Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
             """
-            return self.sort_key() != other.sort_key()
+            if isinstance(other, TorrentFileTree.File):
+                return self.sort_key() != other.sort_key()
+            return True
 
     def __init__(self, file_storage: libtorrent.file_storage) -> None:
         """
@@ -263,7 +265,7 @@ class TorrentFileTree:
         from_parts = from_path.parts
         for i in range(1, len(from_parts) + 1):
             parent_path = Path(os.sep.join(from_parts[:-i]))
-            parent = self.find(parent_path)
+            parent = cast(TorrentFileTree.Directory, self.find(parent_path))
             dir_in_parent = from_parts[-i]
             dir_indices = list(parent.directories.keys())  # Python 3 "quirk": dict keys() order is stable
             index_in_parent = dir_indices.index(dir_in_parent)
@@ -298,7 +300,7 @@ class TorrentFileTree:
         Run up the tree to the next available directory (if it exists) and continue building a view.
         """
         next_dir_desc = self.find_next_directory(fetch_path)
-        view = []
+        view: list[str] = []
         if next_dir_desc is None:
             return view
 
@@ -352,7 +354,7 @@ class TorrentFileTree:
         if fetch_directory.collapsed:
             return self._view_up_after_files(number, fetch_path)
 
-        view = []
+        view: list[str] = []
         if self.path_is_dir(element_path):
             # This is a directory: loop through its directories, then process its files.
             view, number = self._view_process_directories(number, fetch_directory.directories.items(), fetch_path)

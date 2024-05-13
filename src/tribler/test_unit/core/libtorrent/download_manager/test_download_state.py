@@ -27,7 +27,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download without a status.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download_state = DownloadState(download, None, None)
 
@@ -48,7 +48,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download with a status.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download_state = DownloadState(download, libtorrent.torrent_status(), None)
 
@@ -67,7 +67,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download with a mocked status.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.config.set_selected_files(["test"])
         download_state = DownloadState(download, Mock(num_pieces=6, pieces=[1, 1, 1, 0, 0, 0], progress=0.75,
@@ -124,7 +124,7 @@ class TestDownloadState(TestBase):
 
         Each file is 6 bytes, so a file progress of 3 bytes is 0.5 completion.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT),
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[3] * 6))
         download_state = DownloadState(download, Mock(), None)
@@ -138,7 +138,7 @@ class TestDownloadState(TestBase):
         """
         Testing if file progress is not given if no file progress is available.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT),
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]))
         download_state = DownloadState(download, Mock(), None)
@@ -149,7 +149,7 @@ class TestDownloadState(TestBase):
         """
         Testing if file progress is 100% for a file of 0 bytes.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT),
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         for file_spec in download.tdef.metainfo[b"info"][b"files"]:
             file_spec[b"length"] = 0
@@ -163,7 +163,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if another peer has no pieces.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
@@ -176,7 +176,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if another peer has all pieces.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
@@ -189,7 +189,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if one peer is complete and the other is not.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
@@ -206,7 +206,7 @@ class TestDownloadState(TestBase):
 
         This case mirrors https://github.com/Tribler/tribler/issues/6454
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT),
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True),
                                file_progress=Mock(side_effect=RuntimeError("invalid torrent handle used")))

@@ -20,8 +20,11 @@ from __future__ import annotations
 
 import logging
 from asyncio import sleep
-from typing import TYPE_CHECKING, Generator
+from io import BufferedReader
+from pathlib import Path
+from typing import TYPE_CHECKING, Generator, cast
 
+import libtorrent
 from typing_extensions import Self
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
@@ -81,27 +84,27 @@ class Stream:
         Create a stream for the given download.
         """
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.infohash = None
-        self.filename = None
-        self.filesize = None
-        self.enabledfiles = None
-        self.firstpiece = None
-        self.lastpiece = None
-        self.prebuffsize = None
-        self.destdir = None
-        self.piecelen = None
-        self.files = None
-        self.mapfile = None
-        self.prebuffpieces = []
-        self.headerpieces = []
-        self.footerpieces = []
+        self.infohash: bytes | None = None
+        self.filename: Path | None = None
+        self.filesize: int | None = None
+        self.enabledfiles: list[int] | None = None
+        self.firstpiece: int | None = None
+        self.lastpiece: int | None = None
+        self.prebuffsize: int | None = None
+        self.destdir: Path | None = None
+        self.piecelen: int | None = None
+        self.files: list[tuple[Path, int]] | None = None
+        self.mapfile: libtorrent.peer_request | None = None
+        self.prebuffpieces: list[int] = []
+        self.headerpieces: list[int] = []
+        self.footerpieces: list[int] = []
         # cursorpiecemap represents the pieces maintained by all available chunks.
         # Each chunk is identified by its startbyte
         # structure for cursorpieces is
         #                                 <-------------------- dynamic buffer pieces -------------------->
-        # {int:startbyte: [bool:ispaused, list:piecestobuffer 'according to the cursor of the related chunk']
-        self.cursorpiecemap = {}
-        self.fileindex = None
+        # {int:startbyte: (bool:ispaused, list:piecestobuffer 'according to the cursor of the related chunk')
+        self.cursorpiecemap: dict[int, tuple[bool, list[int]]] = {}
+        self.fileindex: int | None = None
         # when first initiate this instance does not have related callback ready,
         # this coro will be awaited when the stream is enabled. If never enabled,
         # this coro will be closed.
@@ -143,6 +146,12 @@ class Stream:
         # if not prepared, prepare the callbacks
         if not self.infohash:
             await self.__prepare_coro
+
+        self.destdir = cast(Path, self.destdir)
+        self.piecelen = cast(int, self.piecelen)
+        self.files = cast(list[tuple[Path, int]], self.files)
+        self.infohash = cast(bytes, self.infohash)
+        self.mapfile = cast(libtorrent.peer_request, self.mapfile)
 
         # if fileindex not available for torrent raise exception
         if fileindex >= len(self.files):
@@ -266,6 +275,8 @@ class Stream:
         """
         Returns the pieces that represents the given byte range.
         """
+        self.filesize = cast(int, self.filesize)  # Ensured by ``check_vod``
+
         bytes_begin = min(self.filesize, bytes_begin) if bytes_begin >= 0 else self.filesize + bytes_begin
         bytes_end = min(self.filesize, bytes_end) if bytes_end > 0 else self.filesize + bytes_end
 
@@ -280,6 +291,8 @@ class Stream:
         """
         Finds the piece position that begin_bytes is mapped to.
         """
+        self.mapfile = cast(libtorrent.peer_request, self.mapfile)  # Ensured by ``check_vod``
+
         return self.mapfile(self.fileindex, byte_begin, 0).piece
 
     @check_vod(0)
@@ -308,6 +321,9 @@ class Stream:
         :param consec: True: sequentially, False: all pieces
         :param startfrom: int: start form index, None: start from first piece
         """
+        self.firstpiece = cast(int, self.firstpiece)  # Ensured by ``check_vod``
+        self.lastpiece = cast(int, self.lastpiece)  # Ensured by ``check_vod``
+
         if have is not None:
             pieces_have = self.pieceshave
         for piece in range(self.firstpiece, self.lastpiece + 1):
@@ -341,7 +357,7 @@ class Stream:
                     self.__resetdeadline(piece)
                     diffmap[piece] = f"{piece}:-:{curr_prio}->{prio}"
 
-        def _find_deadline(piece: int) -> tuple[int, int]:
+        def _find_deadline(piece: int) -> tuple[int, int] | tuple[None, None]:
             """
             Find the cursor which has this piece closest to its start.
             Returns the deadline for the piece and the cursor startbyte.
@@ -356,7 +372,9 @@ class Stream:
                         (deadline is None or cursorpieces.index(piece) < deadline):
                     deadline = cursorpieces.index(piece)
                     cursor = startbyte
-            return deadline, cursor
+            if cursor is not None and deadline is not None:
+                return deadline, cursor
+            return None, None
 
         # current priorities
         piecepriorities = self.__getpieceprios()
@@ -364,7 +382,7 @@ class Stream:
             # this case might happen when hop count is changing.
             return
         # a map holds the changes, used only for logging purposes
-        diffmap = {}
+        diffmap: dict[int, str] = {}
         # flag that holds if we are in static buffering phase of dynamic buffering
         staticbuff = False
         for piece in self.iterpieces(have=False):
@@ -384,7 +402,7 @@ class Stream:
             else:
                 # dynamic buffering
                 deadline, cursor = _find_deadline(piece)
-                if cursor is not None:
+                if cursor is not None and deadline is not None:
                     if deadline < len(DEADLINE_PRIO_MAP):
                         # get prio according to deadline
                         _updateprio(piece, DEADLINE_PRIO_MAP[deadline], deadline)
@@ -438,7 +456,7 @@ class StreamChunk:
         if not stream.enabled:
             raise NotStreamingError
         self.stream = stream
-        self.file = None
+        self.file: BufferedReader | None = None
         self.startpos = startpos
         self.__seekpos = self.startpos
 
@@ -468,9 +486,11 @@ class StreamChunk:
         """
         Opens the file in the filesystem until its ready and seeks to the seekpos position.
         """
-        while not self.stream.filename.exists():
+        filename = cast(Path, self.stream.filename)  # Ensured by ``NotStreamingError`` (in ``__init__``)
+
+        while not filename.exists():
             await sleep(1)
-        self.file = open(self.stream.filename, 'rb')  # noqa: ASYNC101, SIM115
+        self.file = open(filename, "rb")  # noqa: ASYNC101, SIM115
         self.file.seek(self.seekpos)
 
     @property
@@ -515,7 +535,7 @@ class StreamChunk:
         Sets the chunk pieces to pause, if not forced, chunk is only paused if other chunks are not paused.
         """
         if not self.ispaused and (self.shouldpause or force):
-            self.stream.cursorpiecemap[self.startpos][0] = True
+            self.stream.cursorpiecemap[self.startpos] = True, self.stream.cursorpiecemap[self.startpos][1]
             return True
         return False
 
@@ -524,7 +544,7 @@ class StreamChunk:
         Sets the chunk pieces to resume, if not forced, chunk is only resume if other chunks are paused.
         """
         if self.ispaused and (not self.shouldpause or force):
-            self.stream.cursorpiecemap[self.startpos][0] = False
+            self.stream.cursorpiecemap[self.startpos] = False, self.stream.cursorpiecemap[self.startpos][1]
             return True
         return False
 
@@ -533,6 +553,9 @@ class StreamChunk:
         Seeks the stream to the related picece that represents the position byte.
         Also updates the dynamic buffer accordingly.
         """
+        self.stream.prebuffsize = cast(int, self.stream.prebuffsize)  # Ensured by ``NotStreamingError``
+        self.stream.piecelen = cast(int, self.stream.piecelen)  # Ensured by ``NotStreamingError``
+
         buffersize = 0
         pospiece = self.stream.bytetopiece(positionbyte)
         pieces = []
@@ -544,7 +567,7 @@ class StreamChunk:
             else:
                 break
         # update cursor piece that represents this chunk
-        self.stream.cursorpiecemap[self.startpos] = [self.ispaused, pieces]
+        self.stream.cursorpiecemap[self.startpos] = (self.ispaused, pieces)
         # update the torrent prios
         await self.stream.updateprios()
         # update the file cursor also
@@ -580,6 +603,8 @@ class StreamChunk:
             self.close()
             self._logger.debug('Chunk %s: Got no bytes, file is closed', self.startpos)
             return b''
+
+        self.file = cast(BufferedReader, self.file)  # Ensured by ``self.isclosed``
 
         # wait until we download what we want, then read the localfile
         # experiment a garbage write mechanism here if the torrent read is too slow

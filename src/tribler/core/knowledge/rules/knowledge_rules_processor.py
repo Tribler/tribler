@@ -67,7 +67,7 @@ class KnowledgeRulesProcessor(TaskManager):
         self.queue_batch_size = queue_batch_size
         self.queue_max_size = queue_max_size
 
-        self._last_warning_time = 0
+        self._last_warning_time: float = 0
         self._start_rowid_in_current_session = 0
         self._start_time_in_current_session = 0
 

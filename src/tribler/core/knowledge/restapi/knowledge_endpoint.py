@@ -51,7 +51,7 @@ class KnowledgeEndpoint(RESTEndpoint):
         )
 
     @staticmethod
-    def validate_infohash(infohash: bytes) -> tuple[bool, RESTResponse | None]:
+    def validate_infohash(infohash: str) -> tuple[bool, RESTResponse | None]:
         """
         Check if the given bytes are a string of 40 HEX-character bytes.
         """

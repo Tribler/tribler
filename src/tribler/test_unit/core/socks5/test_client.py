@@ -46,24 +46,24 @@ class TestSocks5Client(TestBase):
         """
         Test if data is fed to the registered callback when a connection is open.
         """
-        callback = []
-        client = MockSocks5Client(None, callback.append)
+        callback = Mock()
+        client = MockSocks5Client(None, callback)
         client.connected_to = ("localhost", 80)
 
         client.data_received(b"test")
 
-        self.assertEqual(b"test", callback[0])
+        self.assertEqual(call(b"test", ("localhost", 80)), callback.call_args)
 
     async def test_data_received_queue_unconnected(self) -> None:
         """
         Test if data is put in a single-item queue when no connection is open.
         """
-        callback = []
-        client = MockSocks5Client(None, callback.append)
+        callback = Mock()
+        client = MockSocks5Client(None, callback)
 
         client.data_received(b"test")
 
-        self.assertEqual([], callback)
+        self.assertEqual(None, callback.call_args)
         self.assertTrue(client.queue.full())
         self.assertEqual(b"test", await client.queue.get())
 

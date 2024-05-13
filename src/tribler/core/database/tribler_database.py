@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pony import orm
 from pony.orm import Database, db_session
@@ -117,7 +117,7 @@ class TriblerDatabase:
         """
         Get the database version.
         """
-        return int(self.get_misc(key=self._SCHEME_VERSION_KEY, default="0"))
+        return int(cast(str, self.get_misc(key=self._SCHEME_VERSION_KEY, default="0")))
 
     @version.setter
     def version(self, value: int) -> None:

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from asyncio import BaseTransport, Protocol, ensure_future
-from typing import TYPE_CHECKING
+from asyncio import BaseTransport, Protocol, WriteTransport, ensure_future
+from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.serialization import PackError
 
@@ -52,20 +52,18 @@ class Socks5Connection(Protocol):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._logger.setLevel(logging.WARNING)
         self.socksserver = socksserver
-        self.transport = None
+        self.transport: WriteTransport | None = None
         self.connect_to = None
 
-        self.udp_connection = None
+        self.udp_connection: RustUDPConnection | SocksUDPConnection | None = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
         self.buffer = b""
-
-        self.destinations = {}
 
     def connection_made(self, transport: BaseTransport) -> None:
         """
         Callback for when a connection is made.
         """
-        self.transport = transport
+        self.transport = cast(WriteTransport, transport)
 
     def data_received(self, data: bytes) -> None:
         """
@@ -109,7 +107,7 @@ class Socks5Connection(Protocol):
         # Only accept NO AUTH
         if request.version != SOCKS_VERSION or 0x00 not in request.methods:
             self._logger.error("Client has sent INVALID METHOD REQUEST")
-            self.buffer = ""
+            self.buffer = b""
             self.close()
             return False
 
@@ -118,7 +116,7 @@ class Socks5Connection(Protocol):
         # Respond that we would like to use NO AUTHENTICATION (0x00)
         if self.state is not ConnectionState.CONNECTED:
             response = socks5_serializer.pack_serializable(MethodsResponse(SOCKS_VERSION, 0))
-            self.transport.write(response)
+            cast(WriteTransport, self.transport).write(response)
 
         # We are connected now, the next incoming message will be a REQUEST
         self.state = ConnectionState.CONNECTED
@@ -153,7 +151,7 @@ class Socks5Connection(Protocol):
         elif request.cmd == REQ_CMD_BIND:
             payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
             response = socks5_serializer.pack_serializable(payload)
-            self.transport.write(response)
+            cast(WriteTransport, self.transport).write(response)
             self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
         elif request.cmd == REQ_CMD_CONNECT:
@@ -161,7 +159,7 @@ class Socks5Connection(Protocol):
             self.connect_to = request.destination
             payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
             response = socks5_serializer.pack_serializable(payload)
-            self.transport.write(response)
+            cast(WriteTransport, self.transport).write(response)
 
         else:
             self.deny_request()
@@ -176,7 +174,7 @@ class Socks5Connection(Protocol):
 
         payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
         response = socks5_serializer.pack_serializable(payload)
-        self.transport.write(response)
+        cast(WriteTransport, self.transport).write(response)
         self._logger.error("DENYING SOCKS5 request")
 
     async def on_udp_associate_request(self, request: CommandRequest) -> None:
@@ -191,13 +189,13 @@ class Socks5Connection(Protocol):
         else:
             self.udp_connection = SocksUDPConnection(self, request.destination)
         await self.udp_connection.open()
-        ip, _ = self.transport.get_extra_info('sockname')
+        ip, _ = cast(WriteTransport, self.transport).get_extra_info('sockname')
         port = self.udp_connection.get_listen_port()
 
         self._logger.info("Accepting UDP ASSOCIATE request to %s:%d (BIND addr %s:%d)", ip, port, *request.destination)
         payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, (ip, port))
         response = socks5_serializer.pack_serializable(payload)
-        self.transport.write(response)
+        cast(WriteTransport, self.transport).write(response)
 
     def connection_lost(self, _: Exception | None) -> None:
         """

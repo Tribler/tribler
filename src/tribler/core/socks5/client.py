@@ -3,8 +3,8 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
-from asyncio import BaseTransport, DatagramProtocol, Protocol, Queue, get_event_loop
-from typing import Callable
+from asyncio import BaseTransport, DatagramProtocol, DatagramTransport, Protocol, Queue, WriteTransport, get_event_loop
+from typing import Callable, cast
 
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
@@ -39,7 +39,7 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         Create a new Socks5 udp connection.
         """
         self.callback = callback
-        self.transport = None
+        self.transport: DatagramTransport | None = None
         self.proxy_udp_addr = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -47,7 +47,7 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         """
         Callback for when a transport is available.
         """
-        self.transport = transport
+        self.transport = cast(DatagramTransport, transport)
 
     def datagram_received(self, data: bytes, _: tuple) -> None:
         """
@@ -64,6 +64,8 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         """
         Attempt to send the given data to the given address.
         """
+        if self.transport is None:
+            return
         try:
             ipaddress.IPv4Address(target_addr[0])
         except ipaddress.AddressValueError:
@@ -77,23 +79,23 @@ class Socks5Client(Protocol):
     This object represents a minimal Socks5 client. Both TCP and UDP are supported.
     """
 
-    def __init__(self, proxy_addr: tuple, callback: Callable[[bytes], None]) -> None:
+    def __init__(self, proxy_addr: tuple, callback: Callable[[bytes, DomainAddress | tuple], None]) -> None:
         """
         Create a client for the given proxy address and call the given callback with incoming data.
         """
         self.proxy_addr = proxy_addr
         self.callback = callback
-        self.transport = None
-        self.connection = None
-        self.connected_to = None
-        self.queue = Queue(maxsize=1)
+        self.transport: WriteTransport | None = None
+        self.connection: Socks5ClientUDPConnection | None = None
+        self.connected_to: DomainAddress | tuple | None = None
+        self.queue: Queue[bytes] = Queue(maxsize=1)
 
     def data_received(self, data: bytes) -> None:
         """
         Callback for when data comes in. Call our registered callback or save the incoming save for calling back later.
         """
         if self.connected_to:
-            self.callback(data)
+            self.callback(data, self.connected_to)
         elif self.queue.empty():
             self.queue.put_nowait(data)
 
@@ -103,11 +105,11 @@ class Socks5Client(Protocol):
         """
         self.transport = None
 
-    async def _send(self, data: bytes) -> None:
+    async def _send(self, data: bytes) -> bytes:
         """
         Send data to the remote and wait for an answer.
         """
-        self.transport.write(data)
+        cast(WriteTransport, self.transport).write(data)
         return await self.queue.get()
 
     async def _login(self) -> None:
@@ -192,7 +194,8 @@ class Socks5Client(Protocol):
         Login and associate with the proxy.
         """
         if self.connected:
-            msg = f"Client already used for connecting to {self.connected_to[0]}:{self.connected_to[1]}"
+            connection = cast(tuple, self.connected_to)
+            msg = f"Client already used for connecting to {connection[0]}:{connection[1]}"
             raise Socks5Error(msg)
 
         if not self.associated:
@@ -208,7 +211,7 @@ class Socks5Client(Protocol):
         if not self.associated:
             msg = "Not associated yet. First call associate_udp."
             raise Socks5Error(msg)
-        self.connection.sendto(data, target_addr)
+        cast(Socks5ClientUDPConnection, self.connection).sendto(data, target_addr)
 
     async def connect_tcp(self, target_addr: tuple) -> None:
         """
@@ -231,4 +234,4 @@ class Socks5Client(Protocol):
         if not self.connected:
             msg = "Not connected yet. First call connect_tcp."
             raise Socks5Error(msg)
-        return self.transport.write(data)
+        cast(WriteTransport, self.transport).write(data)

@@ -23,10 +23,10 @@ class DHTHealthManager(TaskManager):
         :param lt_session: The session used to perform health lookups.
         """
         TaskManager.__init__(self)
-        self.lookup_futures = {}  # Map from binary infohash to future
-        self.bf_seeders = {}  # Map from infohash to (final) seeders bloomfilter
-        self.bf_peers = {}  # Map from infohash to (final) peers bloomfilter
-        self.outstanding = {}  # Map from transaction_id to infohash
+        self.lookup_futures: dict[bytes, Future[HealthInfo]] = {}  # Map from binary infohash to future
+        self.bf_seeders: dict[bytes, bytearray] = {}  # Map from infohash to (final) seeders bloomfilter
+        self.bf_peers: dict[bytes, bytearray] = {}  # Map from infohash to (final) peers bloomfilter
+        self.outstanding: dict[str, bytes] = {}  # Map from transaction_id to infohash
         self.lt_session = lt_session
 
     def get_health(self, infohash: bytes, timeout: float = 15) -> Awaitable[HealthInfo]:
@@ -39,7 +39,7 @@ class DHTHealthManager(TaskManager):
         if infohash in self.lookup_futures:
             return self.lookup_futures[infohash]
 
-        lookup_future = Future()
+        lookup_future: Future[HealthInfo] = Future()
         self.lookup_futures[infohash] = lookup_future
         self.bf_seeders[infohash] = bytearray(256)
         self.bf_peers[infohash] = bytearray(256)
@@ -100,8 +100,7 @@ class DHTHealthManager(TaskManager):
 
         def tobits(s: bytes) -> list[int]:
             result = []
-            for c in s:
-                num = ord(c) if isinstance(c, str) else c
+            for num in s:
                 bits = bin(num)[2:]
                 bits = "00000000"[len(bits):] + bits
                 result.extend([int(b) for b in bits])

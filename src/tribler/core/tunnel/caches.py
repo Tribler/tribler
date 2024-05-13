@@ -21,8 +21,8 @@ class HTTPRequestCache(RandomNumberCache):
         """
         super().__init__(community.request_cache, "http-request")
         self.circuit_id = circuit_id
-        self.response = {}
-        self.response_future = Future()
+        self.response: dict[int, bytes] = {}
+        self.response_future: Future[bytes] = Future()
         self.register_future(self.response_future)
 
     def add_response(self, payload: HTTPResponsePayload) -> bool:

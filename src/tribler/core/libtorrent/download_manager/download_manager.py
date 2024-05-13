@@ -6,6 +6,7 @@ Author(s): Egbert Bouman
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 import os
 import time
@@ -28,7 +29,7 @@ from tribler.core.libtorrent import torrents
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef, TorrentDefNoMetainfo
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 
@@ -54,6 +55,16 @@ DEFAULT_LT_EXTENSIONS = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass
+class MetainfoLookup:
+    """
+    A metainfo lookup download and the number of times it has been invoked.
+    """
+
+    download: Download
+    pending: int
 
 
 def encode_atp(atp: dict) -> dict:
@@ -82,8 +93,8 @@ class DownloadManager(TaskManager):
         self.config = config
 
         self.state_dir = Path(config.get("state_dir"))
-        self.ltsettings = {}  # Stores a copy of the settings dict for each libtorrent session
-        self.ltsessions = {}
+        self.ltsettings: dict[lt.session, dict] = {}  # Stores a copy of the settings dict for each libtorrent session
+        self.ltsessions: dict[int, lt.session] = {}
         self.dht_health_manager: DHTHealthManager | None = None
         self.listen_ports: dict[int, dict[str, int]] = defaultdict(dict)
 
@@ -97,15 +108,16 @@ class DownloadManager(TaskManager):
         self.downloads: Dict[bytes, Download] = {}
 
         self.checkpoint_directory = (self.state_dir / "dlcheckpoints")
-        self.checkpoints_count = None
+        self.checkpoints_count = 0
         self.checkpoints_loaded = 0
         self.all_checkpoints_are_loaded = False
 
-        self.metadata_tmpdir = metadata_tmpdir or TemporaryDirectory(suffix="tribler_metainfo_tmpdir")
+        self.metadata_tmpdir: TemporaryDirectory | None = (metadata_tmpdir or
+                                                           TemporaryDirectory(suffix="tribler_metainfo_tmpdir"))
         # Dictionary that maps infohashes to download instances. These include only downloads that have
         # been made specifically for fetching metainfo, and will be removed afterwards.
-        self.metainfo_requests = {}
-        self.metainfo_cache = {}  # Dictionary that maps infohashes to cached metainfo items
+        self.metainfo_requests: dict[bytes, MetainfoLookup] = {}
+        self.metainfo_cache: dict[bytes, MetainfoDict] = {}  # Dictionary that maps infohashes to cached metainfo items
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
@@ -115,10 +127,10 @@ class DownloadManager(TaskManager):
         self.queued_write_bytes = -1
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
-        self.lt_session_shutdown_ready = {}
+        self.lt_session_shutdown_ready: dict[int, bool] = {}
         self.dht_ready_task = None
         self.dht_readiness_timeout = config.get("libtorrent/dht_readiness_timeout")
-        self._last_states_list = []
+        self._last_states_list: list[DownloadState] = []
 
     def is_shutting_down(self) -> bool:
         """
@@ -267,13 +279,13 @@ class DownloadManager(TaskManager):
         # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
         # the settings dictionary
         logger.info("Creating a session")
-        settings = {"outgoing_port": 0,
-                    "num_outgoing_ports": 1,
-                    "allow_multiple_connections_per_ip": 0,
-                    "enable_upnp": int(self.config.get("libtorrent/upnp")),
-                    "enable_dht": int(self.config.get("libtorrent/dht")),
-                    "enable_lsd": int(self.config.get("libtorrent/lsd")),
-                    "enable_natpmp": int(self.config.get("libtorrent/natpmp"))}
+        settings: dict[str, str | float] = {"outgoing_port": 0,
+                                            "num_outgoing_ports": 1,
+                                            "allow_multiple_connections_per_ip": 0,
+                                            "enable_upnp": int(self.config.get("libtorrent/upnp")),
+                                            "enable_dht": int(self.config.get("libtorrent/dht")),
+                                            "enable_lsd": int(self.config.get("libtorrent/lsd")),
+                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp"))}
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
@@ -363,10 +375,8 @@ class DownloadManager(TaskManager):
         """
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
-        settings = {}
-        settings["proxy_type"] = ptype
-        settings["proxy_hostnames"] = True
-        settings["proxy_peer_connections"] = True
+        settings: dict[str, str | float] = {"proxy_type": ptype, "proxy_hostnames": True,
+                                            "proxy_peer_connections": True}
         if server is not None:
             proxy_host = server[0]
             if proxy_host:
@@ -476,7 +486,7 @@ class DownloadManager(TaskManager):
             if self.session_stats_callback:
                 self.session_stats_callback(alert)
 
-        elif alert_type == "dht_pkt_alert":
+        elif alert_type == "dht_pkt_alert" and self.dht_health_manager is not None:
             # Unfortunately, the Python bindings don't have a direction attribute.
             # So, we'll have to resort to using the string representation of the alert instead.
             incoming = str(alert).startswith("<==")
@@ -507,7 +517,7 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,
+    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,  # noqa: C901, PLR0912
                            url: str | None = None, raise_errors: bool = False) -> dict | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
@@ -526,8 +536,8 @@ class DownloadManager(TaskManager):
 
         logger.info("Trying to fetch metainfo for %s", infohash_hex)
         if infohash in self.metainfo_requests:
-            download = self.metainfo_requests[infohash][0]
-            self.metainfo_requests[infohash][1] += 1
+            download = self.metainfo_requests[infohash].download
+            self.metainfo_requests[infohash].pending += 1
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
@@ -535,7 +545,8 @@ class DownloadManager(TaskManager):
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
-            dcfg.set_dest_dir(self.metadata_tmpdir.name)
+            if self.metadata_tmpdir is not None:
+                dcfg.set_dest_dir(self.metadata_tmpdir.name)
             try:
                 download = await self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
             except TypeError as e:
@@ -543,7 +554,7 @@ class DownloadManager(TaskManager):
                 if raise_errors:
                     raise
                 return None
-            self.metainfo_requests[infohash] = [download, 1]
+            self.metainfo_requests[infohash] = MetainfoLookup(download, 1)
 
         try:
             metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
@@ -565,8 +576,8 @@ class DownloadManager(TaskManager):
         })
 
         if infohash in self.metainfo_requests:
-            self.metainfo_requests[infohash][1] -= 1
-            if self.metainfo_requests[infohash][1] <= 0:
+            self.metainfo_requests[infohash].pending -= 1
+            if self.metainfo_requests[infohash].pending <= 0:
                 await self.remove_download(download, remove_content=True)
                 self.metainfo_requests.pop(infohash, None)
 
@@ -695,7 +706,7 @@ class DownloadManager(TaskManager):
         logger.info("ATP: %s", str({k: v for k, v in atp.items() if k not in ["resume_data"]}))
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
-        if infohash not in self.metainfo_requests or self.metainfo_requests[infohash][0] == download:
+        if infohash not in self.metainfo_requests or self.metainfo_requests[infohash].download == download:
             logger.info("Metainfo is not requested or download is the first in the queue.")
             self.downloads[infohash] = download
         logger.info("Starting handle.")
@@ -717,11 +728,11 @@ class DownloadManager(TaskManager):
         ltsession = self.get_session(download.config.get_hops())
         infohash = download.get_def().get_infohash()
 
-        if infohash in self.metainfo_requests and self.metainfo_requests[infohash][0] != download:
+        if infohash in self.metainfo_requests and self.metainfo_requests[infohash].download != download:
             logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))
-            metainfo_dl, _ = self.metainfo_requests.pop(infohash)
             # Leave the checkpoint. Any checkpoint that exists will belong to the download we are currently starting.
-            await self.remove_download(metainfo_dl, remove_content=True, remove_checkpoint=False)
+            await self.remove_download(self.metainfo_requests.pop(infohash).download,
+                                       remove_content=True, remove_checkpoint=False)
             self.downloads[infohash] = download
 
         known = {h.info_hash().to_bytes(): h for h in ltsession.get_torrents()}
@@ -1093,11 +1104,13 @@ class DownloadManager(TaskManager):
         """
         Get the settings for the libtorrent proxy.
         """
-        proxy_server = str(self.config.get("libtorrent/proxy_server"))
-        proxy_server = proxy_server.split(":") if proxy_server else None
+        setting_proxy_server = str(self.config.get("libtorrent/proxy_server")).split(":")
+        proxy_server = ((setting_proxy_server[0], setting_proxy_server[1])
+                        if setting_proxy_server and len(setting_proxy_server) == 2 else None)
 
-        proxy_auth = str(self.config.get("libtorrent/proxy_auth"))
-        proxy_auth = proxy_auth.split(":") if proxy_auth else None
+        setting_proxy_auth = str(self.config.get("libtorrent/proxy_auth")).split(":")
+        proxy_auth = ((setting_proxy_auth[0], setting_proxy_auth[1])
+                      if setting_proxy_auth and len(setting_proxy_auth) == 2  else None)
 
         return self.config.get("libtorrent/proxy_type"), proxy_server, proxy_auth
 

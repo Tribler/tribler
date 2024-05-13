@@ -19,6 +19,8 @@ from tribler.core.socks5.conversion import UdpPacket, socks5_serializer
 if TYPE_CHECKING:
     from asyncio import Future
 
+    from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
+
     from tribler.core.socks5.connection import Socks5Connection
     from tribler.core.socks5.server import Socks5Server
     from tribler.core.socks5.udp_connection import RustUDPConnection, SocksUDPConnection
@@ -37,13 +39,13 @@ class TunnelDispatcher(TaskManager):
         """
         super().__init__()
         self.tunnels = tunnels
-        self.socks_servers = []
+        self.socks_servers: list[Socks5Server] = []
 
         # Map to keep track of the circuits associated with each destination.
-        self.con_to_cir = defaultdict(dict)
+        self.con_to_cir: dict[Socks5Connection, dict[DomainAddress | UDPv4Address, Circuit]] = defaultdict(dict)
 
         # Map to keep track of the circuit id to UDP connection.
-        self.cid_to_con = {}
+        self.cid_to_con: dict[int, Socks5Connection] = {}
 
         self.register_task("check_connections", self.check_connections, interval=30)
 
@@ -53,7 +55,7 @@ class TunnelDispatcher(TaskManager):
         """
         self.socks_servers = socks_servers
 
-    def on_incoming_from_tunnel(self, community: TriblerTunnelCommunity, circuit: Circuit, origin: int,
+    def on_incoming_from_tunnel(self, community: TriblerTunnelCommunity, circuit: Circuit, origin: tuple[str, int],
                                 data: bytes) -> bool:
         """
         We received some data from the tunnel community. Dispatch it to the right UDP SOCKS5 socket.

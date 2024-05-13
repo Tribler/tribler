@@ -108,7 +108,7 @@ class DownloadState:
             return DownloadStatus.STOPPED_ON_ERROR
         return DownloadStatus.STOPPED
 
-    def get_error(self) -> str:
+    def get_error(self) -> str | None:
         """
         Returns the Exception that caused the download to be moved to STOPPED_ON_ERROR status.
 

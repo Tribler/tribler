@@ -5,28 +5,35 @@ from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
 from os.path import getsize
-from typing import TYPE_CHECKING, Any, Dict, Iterable, TypedDict
+from typing import TYPE_CHECKING, Callable, Iterable, TypedDict, TypeVar
 
 import libtorrent as lt
+from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from tribler.core.libtorrent.download_manager.download import Download
+    from tribler.core.libtorrent.download_manager.stream import Stream
+    from tribler.core.libtorrent.torrentdef import InfoDict
+
 logger = logging.getLogger(__name__)
+WrappedParams = ParamSpec("WrappedParams")
+WrappedReturn = TypeVar("WrappedReturn")
+Wrapped = Callable[WrappedParams, WrappedReturn]
 
 
-def check_handle(default=None):
+def check_handle(default: WrappedReturn) -> Wrapped:
     """
     Return the libtorrent handle if it's available, else return the default value.
 
     Author(s): Egbert Bouman
     """
 
-    def wrap(f):
-        def invoke_func(*args, **kwargs):
-            download = args[0]
-            if download.handle and download.handle.is_valid():
-                return f(*args, **kwargs)
+    def wrap(f: Wrapped) -> Wrapped:
+        def invoke_func(self: Download, *args: WrappedParams.args, **kwargs: WrappedParams.kwargs) -> WrappedReturn:
+            if self.handle and self.handle.is_valid():
+                return f(self, *args, **kwargs)
             return default
 
         return invoke_func
@@ -34,27 +41,28 @@ def check_handle(default=None):
     return wrap
 
 
-def require_handle(func):
+def require_handle(func: Wrapped) -> Wrapped:
     """
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
 
     Author(s): Egbert Bouman
     """
 
-    def invoke_func(*args, **kwargs):
-        result_future = Future()
+    def invoke_func(self: Download, *args: WrappedParams.args,
+                    **kwargs: WrappedParams.kwargs) -> Future[WrappedReturn | None]:
+        result_future: Future[WrappedReturn | None] = Future()
 
-        def done_cb(fut):
+        def done_cb(fut: Future[lt.torrent_handle]) -> None:
             with suppress(CancelledError):
                 handle = fut.result()
 
-            if fut.cancelled() or result_future.done() or handle != download.handle or not handle.is_valid():
+            if fut.cancelled() or result_future.done() or handle != self.handle or not handle.is_valid():
                 logger.warning('Can not invoke function, handle is not valid or future is cancelled')
                 result_future.set_result(None)
                 return
 
             try:
-                result = func(*args, **kwargs)
+                result = func(self, *args, **kwargs)
             except RuntimeError as e:
                 # ignore runtime errors, for more info see: https://github.com/Tribler/tribler/pull/7783
                 logger.exception(e)
@@ -65,21 +73,20 @@ def require_handle(func):
             else:
                 result_future.set_result(result)
 
-        download = args[0]
-        handle_future = download.get_handle()
+        handle_future = self.get_handle()
         handle_future.add_done_callback(done_cb)
         return result_future
 
     return invoke_func
 
 
-def check_vod(default=None):
+def check_vod(default: WrappedReturn) -> Wrapped:
     """
     Check if torrent is vod mode, else return default.
     """
 
-    def wrap(f):
-        def invoke_func(self, *args, **kwargs):
+    def wrap(f: Wrapped) -> Wrapped:
+        def invoke_func(self: Stream, *args: WrappedParams.args, **kwargs: WrappedParams.kwargs) -> WrappedReturn:
             if self.enabled:
                 return f(self, *args, **kwargs)
             return default
@@ -121,7 +128,7 @@ class TorrentFileResult(TypedDict):
     infohash: bytes
 
 
-def create_torrent_file(file_path_list: list[Path], params: Dict[bytes, Any],  # noqa: C901
+def create_torrent_file(file_path_list: list[Path], params: InfoDict,  # noqa: C901
                         torrent_filepath: str | None = None) -> TorrentFileResult:
     """
     Create a torrent file from the given paths and parameters.

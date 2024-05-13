@@ -88,9 +88,9 @@ def title_rank(query: str, title: str) -> float:
     :param title: a torrent name
     :return: the similarity of the title string to a query string as a float value in range [0, 1]
     """
-    query = word_re.findall(query.lower())
-    title = word_re.findall(title.lower())
-    return calculate_rank(query, title)
+    pat_query = word_re.findall(query.lower())
+    pat_title = word_re.findall(title.lower())
+    return calculate_rank(pat_query, pat_title)
 
 
 # These coefficients are found empirically. Their exact values are not very important for a relative ranking of results
@@ -125,13 +125,13 @@ def calculate_rank(query: list[str], title: list[str]) -> float:
     if not title:
         return 0.0
 
-    title = deque(title)
-    total_error = 0
+    q_title = deque(title)
+    total_error = 0.0
     for i, word in enumerate(query):
         # The first word is more important than the second word, and so on
         word_weight = POSITION_COEFF / (POSITION_COEFF + i)
 
-        found, skipped = find_word_and_rotate_title(word, title)
+        found, skipped = find_word_and_rotate_title(word, q_title)
         if found:
             # if the query word is found in the title, add penalty for skipped words in title before it
             total_error += skipped * word_weight
@@ -141,7 +141,7 @@ def calculate_rank(query: list[str], title: list[str]) -> float:
 
     # a small penalty for excess words in the title that was not mentioned in the search phrase
     remainder_weight = 1 / (REMAINDER_COEFF + len(query))
-    remained_words_error = len(title) * remainder_weight
+    remained_words_error = len(q_title) * remainder_weight
     total_error += remained_words_error
 
     # a search rank should be between 1 and 0

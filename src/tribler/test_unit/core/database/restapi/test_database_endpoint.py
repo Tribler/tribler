@@ -242,7 +242,7 @@ class TestDatabaseEndpoint(TestBase):
         """
         endpoint = DatabaseEndpoint(None, None, None)
 
-        value = endpoint.build_snippets([])
+        value = endpoint.build_snippets(None, [])
 
         self.assertEqual([], value)
 
@@ -252,7 +252,7 @@ class TestDatabaseEndpoint(TestBase):
         """
         endpoint = DatabaseEndpoint(None, None, None)
 
-        value = endpoint.build_snippets([{}])
+        value = endpoint.build_snippets(None, [{}])
 
         self.assertEqual([{}], value)
 
@@ -264,7 +264,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=[])))
         search_result = {"infohash": "AA"}
 
-        value = endpoint.build_snippets([search_result])
+        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
 
         self.assertEqual([search_result], value)
 
@@ -276,7 +276,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=["AA"])))
         search_result = {"infohash": "AA", "num_seeders": 1}
 
-        value = endpoint.build_snippets([search_result])
+        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
 
         self.assertEqual(SNIPPET, value[0]["type"])
         self.assertEqual("", value[0]["category"])
@@ -294,7 +294,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=["AA", "BB"])))
         search_result = {"infohash": "AA", "num_seeders": 1}
 
-        value = endpoint.build_snippets([search_result])
+        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
 
         for snippet_id in range(2):
             self.assertEqual(SNIPPET, value[snippet_id]["type"])
@@ -315,7 +315,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=mock_results)))
         search_result = {"infohash": "AA", "num_seeders": 1}
 
-        value = endpoint.build_snippets([search_result])
+        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
 
         self.assertEqual(SNIPPETS_TO_SHOW, len(value))
 
@@ -336,6 +336,7 @@ class TestDatabaseEndpoint(TestBase):
         The exception here stems from the ``mds`` being set to ``None``.
         """
         endpoint = DatabaseEndpoint(None, None, None)
+        endpoint.tribler_db = Mock()
 
         response = await endpoint.local_search(SearchLocalRequest({}))
 
@@ -346,8 +347,10 @@ class TestDatabaseEndpoint(TestBase):
         Test if performing a local search without a tribler db set returns mds results.
         """
         endpoint = DatabaseEndpoint(None, None, None)
+        endpoint.tribler_db = Mock()
         endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(), get_max_rowid=Mock(),
-                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test"}))]))
+                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test",
+                                                                                                  "type": -1}))]))
 
         response = await endpoint.local_search(SearchLocalRequest({}))
         response_body_json = await response_to_json(response)
@@ -364,9 +367,11 @@ class TestDatabaseEndpoint(TestBase):
         Test if performing a local search with requested total, includes a total.
         """
         endpoint = DatabaseEndpoint(None, None, None)
+        endpoint.tribler_db = Mock()
         endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(return_value=1),
                             get_max_rowid=Mock(return_value=7),
-                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test"}))]))
+                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test",
+                                                                                                  "type": -1}))]))
 
         response = await endpoint.local_search(SearchLocalRequest({"include_total": "I would like this"}))
         response_body_json = await response_to_json(response)

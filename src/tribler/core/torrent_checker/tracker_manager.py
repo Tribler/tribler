@@ -29,7 +29,7 @@ class TrackerManager:
         self.state_dir = state_dir
         self.TrackerState = metadata_store.TrackerState
 
-        self.blacklist = []
+        self.blacklist: list[str] = []
         self.load_blacklist()
 
     def load_blacklist(self) -> None:
@@ -38,7 +38,7 @@ class TrackerManager:
 
         Entries are newline separated and are supposed to be sanitized.
         """
-        blacklist_file = (Path(self.state_dir) / "tracker_blacklist.txt").absolute()
+        blacklist_file = (Path(self.state_dir or ".") / "tracker_blacklist.txt").absolute()
         if blacklist_file.exists():
             with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()

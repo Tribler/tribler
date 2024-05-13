@@ -119,8 +119,9 @@ class SignedPayload(VariablePayload):
         Create a payload from the given data (an unpacked dict).
         """
         out = cls(**{key: value for key, value in kwargs.items() if key in cls.names})
-        if kwargs.get("signature") is not None:
-            out.signature = kwargs.get("signature")
+        signature = kwargs.get("signature")
+        if signature is not None:
+            out.signature = signature
         return out
 
     def add_signature(self, key: PrivateKey) -> None:
@@ -196,8 +197,8 @@ class TorrentMetadataPayload(ChannelNodePayload):
         """
         Create a magnet link for this payload.
         """
-        return (f"magnet:?xt=urn:btih:{hexlify(self.infohash).decode()}&dn={self.title.encode()}"
-                + (f"&tr={self.tracker_info.encode()}" if self.tracker_info else ""))
+        return (f"magnet:?xt=urn:btih:{hexlify(self.infohash).decode()}&dn={self.title}"
+                + (f"&tr={self.tracker_info}" if self.tracker_info else ""))
 
 
 @vp_compile

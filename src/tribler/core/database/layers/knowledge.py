@@ -70,8 +70,13 @@ if TYPE_CHECKING:
         def get_for_update(subject: Resource, object: Resource) -> Statement | None: ...  # noqa: D102, A002
 
 
+    class IterResource(type):  # noqa: D101
+
+        def __iter__(cls) -> Iterator[Resource]: ...  # noqa: D105
+
+
     @dataclasses.dataclass
-    class Resource(EntityImpl):
+    class Resource(EntityImpl, metaclass=IterResource):
         """
         Database type for a resources.
         """
@@ -275,7 +280,7 @@ class KnowledgeDataAccessLayer(Layer):
 
     def get_statements(self, source_type: ResourceType | None, source_name: str | None,  # noqa: PLR0913
                        statements_getter: Callable[[Entity], Entity],
-                       target_condition: Callable[[], bool], condition: Callable[[], bool],
+                       target_condition: Callable[[Statement], bool], condition: Callable[[Statement], bool],
                        case_sensitive: bool, ) -> Iterator[Statement]:
         """
         Get entities that satisfies the given condition.
@@ -365,7 +370,7 @@ class KnowledgeDataAccessLayer(Layer):
 
     def get_objects(self, subject_type: ResourceType | None = None, subject: str | None = "",
                     predicate: ResourceType | None = None, case_sensitive: bool = True,
-                    condition: Callable[[], bool] | None = None) -> List[str]:
+                    condition: Callable[[Statement], bool] | None = None) -> List[str]:
         """
         Get objects that satisfy the given subject and predicate.
 
@@ -438,14 +443,9 @@ class KnowledgeDataAccessLayer(Layer):
             case_sensitive=case_sensitive,
         )
 
-        statements = (SimpleStatement(
-            subject_type=s.subject.type,
-            subject=s.subject.name,
-            predicate=s.object.type,
-            object=s.object.name
-        ) for s in statements)
-
-        return list(statements)
+        return [SimpleStatement(subject_type=s.subject.type, subject=s.subject.name, predicate=s.object.type,
+                                object=s.object.name)
+                for s in statements]
 
     def get_suggestions(self, subject_type: ResourceType | None = None, subject: str | None = "",
                         predicate: ResourceType | None = None, case_sensitive: bool = True) -> List[str]:
@@ -470,7 +470,7 @@ class KnowledgeDataAccessLayer(Layer):
 
     def get_subjects_intersection(self, objects: Set[str],
                                   predicate: ResourceType | None,
-                                  subjects_type: ResourceType | None = ResourceType.TORRENT,
+                                  subjects_type: ResourceType = ResourceType.TORRENT,
                                   case_sensitive: bool = True) -> Set[str]:
         """
         Get all subjects that have a certain predicate.
@@ -540,7 +540,7 @@ class KnowledgeDataAccessLayer(Layer):
         :param attempts: maximum attempt count for requesting the DB.
         :returns: a set of random operations
         """
-        operations = set()
+        operations: set[Entity] = set()
         for _ in range(attempts):
             if len(operations) == count:
                 return operations

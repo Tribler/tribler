@@ -121,6 +121,10 @@ def _parse_tracker_url(tracker_url: str) -> tuple[str, tuple[str, int], str]:
     scheme = parsed_url.scheme
     port = parsed_url.port
 
+    if host is None:
+        msg = f"Could not resolve hostname from {tracker_url}."
+        raise MalformedTrackerURLException(msg)
+
     if scheme not in SUPPORTED_SCHEMES:
         msg = f"Unsupported tracker type ({scheme})."
         raise MalformedTrackerURLException(msg)
@@ -136,7 +140,7 @@ def _parse_tracker_url(tracker_url: str) -> tuple[str, tuple[str, int], str]:
         if not port:
             port = DEFAULT_PORTS[scheme]
 
-    return scheme, (host, port), path
+    return scheme, (host, port or 0), path
 
 
 def add_url_params(url: str, params: dict) -> str:

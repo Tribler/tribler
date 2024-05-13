@@ -5,7 +5,7 @@ from asyncio import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from contextlib import suppress
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -18,7 +18,7 @@ from tribler.core.libtorrent.download_manager.download import Download, IllegalF
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
-from tribler.core.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, StreamChunk
+from tribler.core.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, Stream, StreamChunk
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -129,14 +129,14 @@ class DownloadsEndpoint(RESTEndpoint):
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
         for file_index, (fn, size) in enumerate(download.get_def().get_files_with_length()):
-            files_json.append({
+            files_json.append(cast(JSONFilesInfo, {
                 "index": file_index,
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
                 "name": str(PurePosixPath(fn)),
                 "size": size,
                 "included": (file_index in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
-            })
+            }))
         return files_json
 
     @staticmethod
@@ -470,6 +470,8 @@ class DownloadsEndpoint(RESTEndpoint):
                                     status=HTTP_BAD_REQUEST)
             if download.stream is None:
                 download.add_stream()
+                download.stream = cast(Stream, download.stream)
+
             if not download.stream.enabled or download.stream.fileindex != file_index:
                 await wait_for(download.stream.enable(file_index, request.http_range.start or 0), 10)
                 await download.stream.updateprios()
@@ -594,7 +596,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return RESTResponse(lt.bencode(torrent), headers={
             "content-type": "application/x-bittorrent",
-            "Content-Disposition": f"attachment; filename={hexlify(infohash)}.torrent"
+            "Content-Disposition": f"attachment; filename={hexlify(infohash).decode()}.torrent"
         })
 
     @docs(
@@ -689,6 +691,9 @@ class DownloadsEndpoint(RESTEndpoint):
 
         params = request.query
         path = params.get("path")
+        if not path:
+            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+
         download.tdef.torrent_file_tree.collapse(Path(path))
 
         return RESTResponse({"path": path})
@@ -727,6 +732,9 @@ class DownloadsEndpoint(RESTEndpoint):
 
         params = request.query
         path = params.get("path")
+        if not path:
+            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+
         download.tdef.torrent_file_tree.expand(Path(path))
 
         return RESTResponse({"path": path})
@@ -763,6 +771,9 @@ class DownloadsEndpoint(RESTEndpoint):
 
         params = request.query
         path = params.get("path")
+        if not path:
+            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+
         download.set_selected_file_or_dir(Path(path), True)
 
         return RESTResponse({})
@@ -799,6 +810,9 @@ class DownloadsEndpoint(RESTEndpoint):
 
         params = request.query
         path = params.get("path")
+        if not path:
+            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+
         download.set_selected_file_or_dir(Path(path), False)
 
         return RESTResponse({})
@@ -818,7 +832,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if download.config.get_hops() == 0:
                 return DownloadStatus.STOPPED
 
-            if self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+            if self.tunnel_community and self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
                 return DownloadStatus.CIRCUITS
 
             return DownloadStatus.EXIT_NODES
@@ -881,6 +895,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if download.stream is None:
             download.add_stream()
+            download.stream = cast(Stream, download.stream)
         await wait_for(download.stream.enable(file_index, None if start > 0 else 0), 10)
 
         stop = download.stream.filesize if http_range.stop is None else min(http_range.stop, download.stream.filesize)
@@ -901,7 +916,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 bytes_todo = stop - start
                 bytes_done = 0
                 self._logger.info("Got range request for %s-%s (%s bytes)", start, stop, bytes_todo)
-                while not request.transport.is_closing():
+                while request.transport is not None and not request.transport.is_closing():
                     if chunk.seekpos >= download.stream.filesize:
                         break
                     data = await chunk.read()
@@ -927,4 +942,4 @@ class DownloadsEndpoint(RESTEndpoint):
                         # there is no need to keep sequenial buffer if there are other chunks waiting for prios
                         if chunk.pause():
                             self._logger.debug("Stream %s-%s is paused, stopping sequential buffer", start, stop)
-                return response
+        return response

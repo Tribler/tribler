@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from re import Pattern
-from typing import AnyStr, Callable, Generator, Sequence
+from typing import Callable, Generator, Sequence
 
 from tribler.core.knowledge.community import is_valid_resource
 
@@ -24,7 +24,7 @@ class Rule:
     A Linux distribution correction rule.
     """
 
-    patterns: Sequence[Pattern[AnyStr]] = field(default_factory=list)
+    patterns: Sequence[Pattern[str]] = field(default_factory=list)
     actions: Sequence[Callable[[str], str]] = field(default_factory=list)
 
 
@@ -92,7 +92,7 @@ def extract_tags(text: str, rules: RulesList | None = None) -> Generator[str, No
             text_set = next_text_set
 
         for action in rule.actions:
-            text_set = map(action, text_set)
+            text_set = {action(e) for e in text_set}
 
         yield from text_set
 

@@ -1,15 +1,21 @@
+from __future__ import annotations
+
 from asyncio import Future
 from binascii import hexlify
+from typing import TYPE_CHECKING
 
-import libtorrent
 from aiohttp import web
-from aiohttp.abc import Request
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 from marshmallow.fields import Integer
 
-from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+
+if TYPE_CHECKING:
+    import libtorrent
+    from aiohttp.abc import Request
+
+    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 
 class LibTorrentEndpoint(RESTEndpoint):
@@ -89,7 +95,7 @@ class LibTorrentEndpoint(RESTEndpoint):
         """
         Return Libtorrent session information.
         """
-        session_stats = Future()
+        session_stats: Future[dict[str, int]] = Future()
 
         def on_session_stats_alert_received(alert: libtorrent.alert) -> None:
             if not session_stats.done():
