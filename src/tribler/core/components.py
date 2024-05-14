@@ -121,7 +121,6 @@ class DatabaseComponent(ComponentLauncher):
         """
         from tribler.core.database.store import MetadataStore
         from tribler.core.database.tribler_database import TriblerDatabase
-        from tribler.core.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
         from tribler.core.notifier import Notification
 
         db_path = str(Path(session.config.get("state_dir")) / "sqlite" / "tribler.db")
@@ -135,8 +134,7 @@ class DatabaseComponent(ComponentLauncher):
             mds_path,
             session.ipv8.keys["anonymous id"].key,
             notifier=session.notifier,
-            disable_sync=False,
-            tag_processor_version=KnowledgeRulesProcessor.version
+            disable_sync=False
         )
         session.notifier.add(Notification.torrent_metadata_added, session.mds.TorrentMetadata.add_ffa_from_dict)
 
@@ -171,15 +169,7 @@ class KnowledgeComponent(CommunityLauncher):
         """
         from tribler.core.knowledge.community import KnowledgeCommunity
         from tribler.core.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
-        from tribler.core.knowledge.rules.knowledge_rules_processor import KnowledgeRulesProcessor
 
-        session.knowledge_processor = KnowledgeRulesProcessor(
-            notifier=session.notifier,
-            db=session.db,
-            mds=session.mds,
-        )
-        session.knowledge_processor.start()
-        session.rest_manager.get_endpoint("/metadata").tag_rules_processor = session.knowledge_processor
         session.rest_manager.add_endpoint(KnowledgeEndpoint(session.db, cast(KnowledgeCommunity, community)))
 
 

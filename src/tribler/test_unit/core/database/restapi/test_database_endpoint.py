@@ -9,8 +9,8 @@ from ipv8.test.base import TestBase
 from multidict import MultiDict, MultiDictProxy
 
 from tribler.core.database.layers.knowledge import ResourceType, SimpleStatement
-from tribler.core.database.restapi.database_endpoint import SNIPPETS_TO_SHOW, DatabaseEndpoint, parse_bool
-from tribler.core.database.serialization import REGULAR_TORRENT, SNIPPET
+from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint, parse_bool
+from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST
 from tribler.test_unit.base_restapi import MockRequest, response_to_json
 
@@ -236,89 +236,6 @@ class TestDatabaseEndpoint(TestBase):
         self.assertEqual(ResourceType.TAG.value, response_results["statements"][0]["predicate"])
         self.assertEqual("tag", response_results["statements"][0]["object"])
 
-    def test_build_snippets_empty(self) -> None:
-        """
-        Test if building snippets without results leads to no snippets.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-
-        value = endpoint.build_snippets(None, [])
-
-        self.assertEqual([], value)
-
-    def test_build_snippets_one_empty(self) -> None:
-        """
-        Test if building snippets with an empty result leads to an empty snippet.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-
-        value = endpoint.build_snippets(None, [{}])
-
-        self.assertEqual([{}], value)
-
-    def test_build_snippets_one_filled_no_knowledge(self) -> None:
-        """
-        Test if building snippets with a result without a knowledge db entry leads to itself.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=[])))
-        search_result = {"infohash": "AA"}
-
-        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
-
-        self.assertEqual([search_result], value)
-
-    def test_build_snippets_one_filled_with_knowledge(self) -> None:
-        """
-        Test if building snippets with a result with a knowledge db entry leads to a properly defined snippet.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=["AA"])))
-        search_result = {"infohash": "AA", "num_seeders": 1}
-
-        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
-
-        self.assertEqual(SNIPPET, value[0]["type"])
-        self.assertEqual("", value[0]["category"])
-        self.assertEqual("AA", value[0]["infohash"])
-        self.assertEqual("AA", value[0]["name"])
-        self.assertEqual("AA", value[0]["torrents_in_snippet"][0]["infohash"])
-        self.assertEqual(1, value[0]["torrents_in_snippet"][0]["num_seeders"])
-        self.assertEqual(1, value[0]["torrents"])
-
-    def test_build_snippets_two_filled_with_knowledge(self) -> None:
-        """
-        Test if building snippets with a result with multiple knowledge db entries leads to properly defined snippets.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=["AA", "BB"])))
-        search_result = {"infohash": "AA", "num_seeders": 1}
-
-        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
-
-        for snippet_id in range(2):
-            self.assertEqual(SNIPPET, value[snippet_id]["type"])
-            self.assertEqual("", value[snippet_id]["category"])
-            self.assertEqual(value[snippet_id]["name"], value[snippet_id]["infohash"])
-            self.assertIn(value[snippet_id]["infohash"], {"AA", "BB"})
-            self.assertIn(value[snippet_id]["name"], {"AA", "BB"})
-            self.assertEqual("AA", value[snippet_id]["torrents_in_snippet"][0]["infohash"])
-            self.assertEqual(1, value[snippet_id]["torrents_in_snippet"][0]["num_seeders"])
-            self.assertEqual(1, value[snippet_id]["torrents"])
-
-    def test_build_snippets_max_filled_with_knowledge(self) -> None:
-        """
-        Test if building snippets with too many results get constrained.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        mock_results = [chr(ord("A") + i) * 2 for i in range(SNIPPETS_TO_SHOW + 1)]
-        endpoint.tribler_db = Mock(knowledge=Mock(get_objects=Mock(return_value=mock_results)))
-        search_result = {"infohash": "AA", "num_seeders": 1}
-
-        value = endpoint.build_snippets(endpoint.tribler_db, [search_result])
-
-        self.assertEqual(SNIPPETS_TO_SHOW, len(value))
-
     async def test_local_search_bad_query(self) -> None:
         """
         Test if a bad value leads to a bad request status.
@@ -384,78 +301,6 @@ class TestDatabaseEndpoint(TestBase):
         self.assertEqual(True, response_body_json["sort_desc"])
         self.assertEqual(1, response_body_json["total"])
         self.assertEqual(7, response_body_json["max_rowid"])
-
-    async def test_local_search_with_knowledge_no_tags(self) -> None:
-        """
-        Test if performing a local search with a tribler db also returns knowledge results.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        endpoint.tribler_db = Mock(knowledge=Mock(get_simple_statements=Mock(return_value=[
-            SimpleStatement(ResourceType.TORRENT, "AA", ResourceType.TAG, "tag")
-        ]), get_objects=Mock(return_value=["AA"])))
-        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(), get_max_rowid=Mock(),
-                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={
-                                "type": REGULAR_TORRENT,
-                                "infohash": "AA",
-                                "num_seeders": 1
-                            }))]))
-
-        response = await endpoint.local_search(SearchLocalRequest({}))
-        response_body_json = await response_to_json(response)
-        result = response_body_json["results"][0]
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(1, response_body_json["first"])
-        self.assertEqual(50, response_body_json["last"])
-        self.assertEqual(None, response_body_json["sort_by"])
-        self.assertEqual(True, response_body_json["sort_desc"])
-        self.assertEqual(SNIPPET, result["type"])
-        self.assertEqual("", result["category"])
-        self.assertEqual("AA", result["infohash"])
-        self.assertEqual("AA", result["name"])
-        self.assertEqual("AA", result["torrents_in_snippet"][0]["infohash"])
-        self.assertEqual(1, result["torrents_in_snippet"][0]["num_seeders"])
-        self.assertEqual(1, result["torrents"])
-
-    async def test_local_search_with_knowledge_with_tags(self) -> None:
-        """
-        Test if performing a local search with a tribler db and a tag filter also returns knowledge results.
-        """
-        endpoint = DatabaseEndpoint(None, None, None)
-        endpoint.tribler_db = Mock(knowledge=Mock(
-            get_simple_statements=Mock(return_value=[SimpleStatement(ResourceType.TORRENT, "AA",
-                                                                     ResourceType.TAG, "tag")]),
-            get_objects=Mock(return_value=["AA"]),
-            get_subjects_intersection=Mock(return_value={"AA"})
-        ))
-        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(), get_max_rowid=Mock(),
-                            get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={
-                                "type": REGULAR_TORRENT,
-                                "infohash": "AA",
-                                "num_seeders": 1
-                            }))]))
-
-        response = await endpoint.local_search(SearchLocalRequest({"tags": "tag"}))
-        response_body_json = await response_to_json(response)
-        result = response_body_json["results"][0]
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(1, response_body_json["first"])
-        self.assertEqual(50, response_body_json["last"])
-        self.assertEqual(None, response_body_json["sort_by"])
-        self.assertEqual(True, response_body_json["sort_desc"])
-        self.assertEqual(SNIPPET, result["type"])
-        self.assertEqual("", result["category"])
-        self.assertEqual("AA", result["infohash"])
-        self.assertEqual("AA", result["name"])
-        self.assertEqual(REGULAR_TORRENT, result["torrents_in_snippet"][0]["type"])
-        self.assertEqual("AA", result["torrents_in_snippet"][0]["infohash"])
-        self.assertEqual(1, result["torrents_in_snippet"][0]["num_seeders"])
-        self.assertEqual(ResourceType.TORRENT.value, result["torrents_in_snippet"][0]["statements"][0]["subject_type"])
-        self.assertEqual("AA", result["torrents_in_snippet"][0]["statements"][0]["subject"])
-        self.assertEqual(ResourceType.TAG.value, result["torrents_in_snippet"][0]["statements"][0]["predicate"])
-        self.assertEqual("tag", result["torrents_in_snippet"][0]["statements"][0]["object"])
-        self.assertEqual(1, result["torrents"])
 
     async def test_completions_bad_query(self) -> None:
         """

@@ -1,5 +1,7 @@
+import itertools
 import logging
 import os
+import re
 import signal
 import time
 from binascii import hexlify
@@ -13,7 +15,6 @@ from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeyS
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow,
                              QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget)
 
-from tribler.core.knowledge.rules.rules import extract_tags
 from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
@@ -52,6 +53,25 @@ CHECKBOX_STYLESHEET = """
     get_image_path('toggle-unchecked-disabled.svg', convert_slashes_to_forward=True),
     get_image_path('toggle-undefined.svg', convert_slashes_to_forward=True),
 )
+
+tags_re = re.compile(r"#[^\s^#]{3,50}(?=[#\s]|$)")
+
+
+def extract_tags(text: str) -> tuple[set[str], str]:
+    if not text:
+        return set(), ""
+
+    tags = set()
+    positions = [0]
+
+    for m in tags_re.finditer(text):
+        tag = m.group(0)[1:]
+        tags.add(tag.lower())
+        positions.extend(itertools.chain.from_iterable(m.regs))
+    positions.append(len(text))
+
+    remaining_text = ''.join(text[positions[i]: positions[i + 1]] for i in range(0, len(positions) - 1, 2))
+    return tags, remaining_text
 
 
 class MagnetHandler(QObject):
