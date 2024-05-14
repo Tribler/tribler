@@ -90,7 +90,6 @@ class Session:
 
         # Optional globals, set by components:
         self.db = None
-        self.knowledge_processor = None
         self.mds = None
         self.torrent_checker = None
 
@@ -152,9 +151,6 @@ class Session:
         if self.torrent_checker:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down torrent checker.")
             await self.torrent_checker.shutdown()
-        if self.knowledge_processor:
-            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down knowledge processor.")
-            await self.knowledge_processor.shutdown_task_manager()
         if self.ipv8:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down IPv8 peer-to-peer overlays.")
             await self.ipv8.stop()

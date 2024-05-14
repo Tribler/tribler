@@ -137,8 +137,7 @@ class MetadataStore:
             disable_sync: bool = False,
             notifier: Notifier | None = None,
             check_tables: bool = True,
-            db_version: int = CURRENT_DB_VERSION,
-            tag_processor_version: int = 0
+            db_version: int = CURRENT_DB_VERSION
     ) -> None:
         """
         Create a new metadata store.
@@ -186,7 +185,7 @@ class MetadataStore:
         self.TorrentMetadata = torrent_metadata.define_binding(
             self.db,
             notifier=notifier,
-            tag_processor_version=tag_processor_version
+            tag_processor_version=0
         )
 
         if db_filename == ":memory:":
