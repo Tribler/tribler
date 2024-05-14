@@ -147,7 +147,9 @@ class TorrentChecker(TaskManager):
         url = tracker.url
         with db_session:
             dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
-            torrents = select(ts for ts in tracker.torrents if ts.last_check + dynamic_interval < int(time.time()))
+            torrents = select(ts for ts in tracker.torrents
+                              if ts.has_data == 1  # The condition had to be written this way for the index to work
+                              and ts.last_check + dynamic_interval < int(time.time()))
             infohashes = [t.infohash for t in torrents[:MAX_TORRENTS_CHECKED_PER_SESSION]]
 
         if len(infohashes) == 0:
@@ -231,8 +233,8 @@ class TorrentChecker(TaskManager):
         now = int(time.time())
         last_fresh_time = now - HEALTH_FRESHNESS_SECONDS
         checked_torrents = list(self.mds.TorrentState
-                                .select(lambda g: g.has_data and g.self_checked
-                                                  and between(g.last_check, last_fresh_time, now))
+                                .select(lambda g: g.has_data == 1  # Had to be written this way for index to work
+                                        and g.self_checked and between(g.last_check, last_fresh_time, now))
                                 .order_by(lambda g: (desc(g.seeders), g.last_check))
                                 .limit(TORRENTS_CHECKED_RETURN_SIZE))
 
@@ -256,11 +258,15 @@ class TorrentChecker(TaskManager):
         By old torrents, we refer to those checked quite farther in the past, sorted by the last_check value.
         """
         last_fresh_time = time.time() - HEALTH_FRESHNESS_SECONDS
-        popular_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                                order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
+        popular_torrents = list(self.mds.TorrentState.select(
+            lambda g: g.has_data == 1  # The condition had to be written this way for the partial index to work
+            and g.last_check < last_fresh_time
+        ).order_by(lambda g: (desc(g.seeders), g.last_check)).limit(TORRENT_SELECTION_POOL_SIZE))
 
-        old_torrents = list(self.mds.TorrentState.select(lambda g: g.last_check < last_fresh_time).
-                            order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
+        old_torrents = list(self.mds.TorrentState.select(
+            lambda g: g.has_data == 1  # The condition had to be written this way for the partial index to work
+            and g.last_check < last_fresh_time
+        ).order_by(lambda g: (g.last_check, desc(g.seeders))).limit(TORRENT_SELECTION_POOL_SIZE))
 
         selected_torrents = popular_torrents + old_torrents
         return random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
