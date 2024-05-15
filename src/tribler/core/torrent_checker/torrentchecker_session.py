@@ -20,6 +20,8 @@ from tribler.core.socks5.client import Socks5Client
 from tribler.core.torrent_checker.dataclasses import HealthInfo, TrackerResponse
 
 if TYPE_CHECKING:
+    from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
+
     from tribler.core.libtorrent.download_manager import DownloadManager
 
 # Although these are the actions for UDP trackers, they can still be used as
@@ -234,7 +236,7 @@ class UdpSocketManager(DatagramProtocol):
         proxy = tracker_session.proxy
 
         if proxy:
-            transport = self.proxy_transports.get(proxy, Socks5Client(proxy, self.transport_received))
+            transport = self.proxy_transports.get(proxy, Socks5Client(proxy, self.datagram_received))
             if not transport.associated:
                 await transport.associate_udp()
             if proxy not in self.proxy_transports:
@@ -264,7 +266,7 @@ class UdpSocketManager(DatagramProtocol):
                 if not session.done():
                     session.set_result(data)
 
-    def datagram_received(self, data: bytes, _: tuple[str, int]) -> None:
+    def datagram_received(self, data: bytes, _: DomainAddress | tuple[str, int]) -> None:
         """
         If the incoming data is valid, find the tracker session and give it the data.
         """
