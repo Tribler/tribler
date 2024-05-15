@@ -16,7 +16,6 @@ import aiohttp
 import libtorrent as lt
 
 from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
-from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.libtorrent.trackers import is_valid_url
 
 if TYPE_CHECKING:
@@ -204,7 +203,6 @@ class TorrentDef:
         self._logger = logging.getLogger(self.__class__.__name__)
         self.torrent_parameters: TorrentParameters = cast(TorrentParameters, {})
         self.metainfo: MetainfoDict | None = metainfo
-        self.files_list: list[Path] = []
         self.infohash: bytes | None = None
         self._torrent_info: lt.torrent_info | None = None
 
@@ -365,14 +363,6 @@ class TorrentDef:
 
         return "".join(map(filter_character, name))
 
-    def add_content(self, file_path: Path | str) -> None:
-        """
-        Add some content to the torrent file.
-
-        :param file_path: The path of the file to add.
-        """
-        self.files_list.append(Path(file_path).absolute())
-
     def set_encoding(self, enc: bytes) -> None:
         """
         Set the character encoding for e.g. the 'name' field.
@@ -514,20 +504,6 @@ class TorrentDef:
                     return self._filter_characters(name)
 
         return ""
-
-    def save(self, torrent_filepath: str | None = None) -> None:
-        """
-        Generate the metainfo and save the torrent file.
-
-        :param torrent_filepath: An optional absolute path to where to save the generated .torrent file.
-        """
-        torrent_dict = create_torrent_file(self.files_list, self.torrent_parameters, torrent_filepath=torrent_filepath)
-        self._torrent_info = None
-        with suppress(AttributeError):
-            del self.torrent_file_tree  # Remove the cache without retrieving it or checking if it exists (Error)
-        self.metainfo = lt.bdecode(torrent_dict['metainfo'])
-        self.copy_metainfo_to_torrent_parameters()
-        self.infohash = torrent_dict['infohash']
 
     def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901, PLR0912
         """

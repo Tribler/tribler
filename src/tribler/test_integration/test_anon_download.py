@@ -4,6 +4,7 @@ from asyncio import sleep
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
+import libtorrent
 from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
@@ -16,6 +17,7 @@ from tribler.core.libtorrent.download_manager.download_config import DownloadCon
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
 from tribler.core.socks5.server import Socks5Server
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
@@ -176,9 +178,8 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC101
             f.write(bytes([0] * 524288))
 
-        tdef = TorrentDef()
-        tdef.add_content(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso")
-        tdef.save()
+        metainfo = create_torrent_file([config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"], {})["metainfo"]
+        tdef = TorrentDef(metainfo=libtorrent.bdecode(metainfo))
 
         download = await self.download_manager_seeder.start_download(tdef=tdef, config=config)
         await download.wait_for_status(DownloadStatus.SEEDING)
@@ -193,9 +194,9 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         download = await self.download_manager_downloader.start_download(tdef=TorrentDefNoMetainfo(infohash, b"test"),
                                                                          config=config)
-        self.overlay(DOWNLOADER).bittorrent_peers[download] = [
+        self.overlay(DOWNLOADER).bittorrent_peers[download] = {
             ("127.0.0.1", self.download_manager_seeder.listen_ports[0]["127.0.0.1"])
-        ]
+        }
 
         return download
 
