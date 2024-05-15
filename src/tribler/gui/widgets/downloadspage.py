@@ -90,6 +90,8 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
         connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
         connect(self.window().downloads_list.header().sectionResized, self.on_header_change)
         connect(self.window().downloads_list.header().sortIndicatorChanged, self.on_header_change)
+        self.window().downloads_list.header().setContextMenuPolicy(Qt.CustomContextMenu)
+        connect(self.window().downloads_list.header().customContextMenuRequested, self.on_header_right_click_item)
         connect(self.window().downloads_list.itemSelectionChanged, self.on_selection_change)
         connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
@@ -548,6 +550,28 @@ class DownloadsPage(AddBreadcrumbOnShowMixin, QWidget):
             self.window().tray_show_message(
                 tr("Torrent file exported"), tr("Torrent file exported to %s") % str(dest_path)
             )
+
+    def show_all_headers(self, _=None):
+        for i in range(self.window().downloads_list.header().count()):
+            self.window().downloads_list.header().showSection(i)
+
+    def on_header_right_click_item(self, pos):
+        index = self.window().downloads_list.header().logicalIndexAt(pos)
+
+        menu = TriblerActionMenu(self)
+        if index > 0: # Do not show hide action on first column
+            hide_action = QAction(tr("Hide Column"), self)
+            connect(
+                hide_action.triggered,
+                lambda _: self.window().downloads_list.header().hideSection(index)
+            )
+            menu.addAction(hide_action)
+
+        restore_action = QAction(tr("Restore All"), self)
+        connect(restore_action.triggered, self.show_all_headers)
+        menu.addAction(restore_action)
+
+        menu.exec_(self.window().downloads_list.mapToGlobal(pos))
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)
