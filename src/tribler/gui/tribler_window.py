@@ -263,6 +263,9 @@ class TriblerWindow(QMainWindow):
 
         self.add_torrent_menu = self.create_add_torrent_menu()
         self.add_torrent_button.setMenu(self.add_torrent_menu)
+        # The line below adds a space between an icon and text.
+        # Unfortunately, I was unable to achieve this through CSS.
+        self.add_torrent_button.setText(" " + self.add_torrent_button.text())
 
         connect(self.debug_panel_button.clicked, self.clicked_debug_panel_button)
 
