@@ -25,7 +25,6 @@ from ipv8.taskmanager import TaskManager
 from validate import Validator
 from yarl import URL
 
-from tribler.core.libtorrent import torrents
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
@@ -35,7 +34,6 @@ from tribler.core.notifier import Notification, Notifier
 
 if TYPE_CHECKING:
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
-    from tribler.core.libtorrent.torrents import TorrentFileResult
     from tribler.tribler_config import TriblerConfigManager
 
 SOCKS5_PROXY_DEF = 2
@@ -1060,17 +1058,6 @@ class DownloadManager(TaskManager):
         Returns the directory in which to checkpoint the Downloads in this Session.
         """
         return self.state_dir / "dlcheckpoints"
-
-    @staticmethod
-    async def create_torrent_file(file_path_list: list[str], params: dict | None = None) -> TorrentFileResult:
-        """
-        Creates a torrent file.
-
-        :param file_path_list: files to add in torrent file
-        :param params: optional parameters for torrent file
-        """
-        return await asyncio.get_event_loop().run_in_executor(None, torrents.create_torrent_file,
-                                                              file_path_list, params or {})
 
     def get_downloads_by_name(self, torrent_name: str) -> list[Download]:
         """

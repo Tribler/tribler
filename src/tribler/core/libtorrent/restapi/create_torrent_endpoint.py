@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 from pathlib import Path
@@ -13,6 +14,7 @@ from tribler.core.knowledge.restapi.knowledge_endpoint import HandledErrorSchema
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     MAX_REQUEST_SIZE,
@@ -91,7 +93,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params = {}
 
         if parameters.get("files"):
-            file_path_list = parameters["files"]
+            file_path_list = [Path(p) for p in parameters["files"]]
         else:
             return RESTResponse({"error": "files parameter missing"}, status=HTTP_BAD_REQUEST)
 
@@ -118,24 +120,23 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params["encoding"] = False
         params["piece length"] = 0  # auto
 
+        save_path = export_dir / (f"{name}.torrent") if export_dir and export_dir.exists() else None
+
         try:
-            result = await self.download_manager.create_torrent_file(file_path_list, recursive_bytes(params))
+            result = await asyncio.get_event_loop().run_in_executor(None, create_torrent_file,
+                                                                    file_path_list, recursive_bytes(params),
+                                                                    save_path)
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(e)
 
         metainfo_dict = lt.bdecode(result["metainfo"])
 
-        if export_dir and export_dir.exists():
-            save_path = export_dir / (f"{name}.torrent")
-            with open(save_path, "wb") as fd:  # noqa: ASYNC101
-                fd.write(result["metainfo"])
-
         # Download this torrent if specified
         if "download" in request.query and request.query["download"] and request.query["download"] == "1":
             download_config = DownloadConfig.from_defaults(self.download_manager.config)
             download_config.set_dest_dir(result["base_dir"])
             download_config.set_hops(self.download_manager.config.get("libtorrent/download_defaults/number_hops"))
-            await self.download_manager.start_download(tdef=TorrentDef(metainfo_dict), config=download_config)
+            await self.download_manager.start_download(save_path, TorrentDef(metainfo_dict), download_config)
 
         return RESTResponse(json.dumps({"torrent": base64.b64encode(result["metainfo"]).decode()}))

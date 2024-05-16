@@ -144,8 +144,9 @@ class DownloadConfig:
         """
         Write the contents of this config to a file.
         """
-        self.config["filename"] = str(filename)
-        self.config.write()
+        config_obj = cast(ConfigObj, self.config)
+        config_obj.filename = str(filename)
+        config_obj.write()
 
     def set_dest_dir(self, path: Path | str) -> None:
         """

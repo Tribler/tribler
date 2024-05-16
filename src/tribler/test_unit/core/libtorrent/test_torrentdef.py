@@ -50,32 +50,6 @@ class TestTorrentDef(TestBase):
         with self.assertRaises(ValueError):
             TorrentDef(metainfo={b"info": {}}, ignore_validation=False)
 
-    def test_add_content_dir(self) -> None:
-        """
-        Test if adding a single content directory with two files is working correctly.
-        """
-        tdef = TorrentDef()
-        torrent_dir = Path(__file__).parent
-        tdef.add_content(torrent_dir / "__init__.py")
-        tdef.add_content(torrent_dir / "mocks.py")
-
-        tdef.save()
-        metainfo = tdef.get_metainfo()
-
-        self.assertEqual(2, len(metainfo[b"info"][b"files"]))
-
-    def test_add_single_file(self) -> None:
-        """
-        Test if adding a single file to a torrent is working correctly.
-        """
-        tdef = TorrentDef()
-        tdef.add_content(Path(__file__))
-
-        tdef.save()
-        metainfo = tdef.get_metainfo()
-
-        self.assertEqual(b"test_torrentdef.py", metainfo[b"info"][b"name"])
-
     def test_get_name_utf8_unknown(self) -> None:
         """
         Test if we can succesfully get the UTF-8 name.
@@ -96,19 +70,6 @@ class TestTorrentDef(TestBase):
         tdef.set_name(b"\xA1\xC0")
 
         self.assertEqual("\xa1\xc0", tdef.get_name_utf8())
-
-    def test_add_content_piece_length(self) -> None:
-        """
-        Test if we can add single file with piece length to a TorrentDef.
-        """
-        tdef = TorrentDef()
-        tdef.add_content(Path(__file__))
-
-        tdef.set_piece_length(2 ** 16)
-        tdef.save()
-        metainfo = tdef.get_metainfo()
-
-        self.assertEqual(2 ** 16, metainfo[b"info"][b"piece length"])
 
     def test_is_private_non_private(self) -> None:
         """
