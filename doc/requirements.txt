@@ -12,5 +12,5 @@ pyipv8==2.12.0
 setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
 certifi>=2023.7.22 # not directly required, pinned by Snyk to avoid a vulnerability
 cryptography>=42.0.2 # not directly required, pinned by Snyk to avoid a vulnerability
-requests>=2.31.0 # not directly required, pinned by Snyk to avoid a vulnerability
+requests>=2.32.0 # not directly required, pinned by Snyk to avoid a vulnerability
 jinja2>=3.1.3 # not directly required, pinned by Snyk to avoid a vulnerability
