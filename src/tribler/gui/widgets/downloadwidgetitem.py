@@ -129,7 +129,7 @@ class DownloadWidgetItem(QTreeWidgetItem):
         elif column == 7:
             return float(self.download_info["speed_up"]) > float(other.download_info["speed_up"])
         elif column == 8:
-            return float(self.download_info["ratio"]) > float(other.download_info["ratio"])
+            return float(self.download_info["all_time_ratio"]) > float(other.download_info["all_time_ratio"])
         elif column == 11:
             # Put finished downloads with an ETA of 0 after all other downloads
             return (float(self.download_info["eta"]) or float('inf')) > (
