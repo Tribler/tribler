@@ -1,5 +1,6 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
+setlocal
 
 if not defined LOG_LEVEL set LOG_LEVEL="DEBUG"
 
@@ -9,14 +10,6 @@ IF NOT EXIST build\win (
   ECHO Please, execute this script from the repository root
   EXIT /b
 )
-
-REM locate Python directory and set up Python environment
-python3 build\win\locate-python.py > tmp_pythonhome.txt
-SET /p PYTHONHOME= < tmp_pythonhome.txt
-DEL /f /q tmp_pythonhome.txt
-REM Arno: Add . to find our core
-SET PYTHONPATH=.;%PYTHONHOME%
-ECHO PYTHONPATH SET TO %PYTHONPATH%
 
 REM ----- Check for NSIS installer
 SET NSIS="C:\Program Files\NSIS\makensis.exe"
@@ -34,11 +27,14 @@ REM ----- Clean up
 call build\win\clean.bat
 
 REM ----- Prepare venv & install dependencies before the build
+if defined VENV (
+  call "%VENV%\Scripts\activate.bat"
+) else (
+  echo VENV environment variable is not set. Skipping.
+)
 
-python3 -m venv build-env
-./build-env/Scripts/activate.bat
-python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade -r requirements-build.txt
+call python3 -m pip install --upgrade pip
+call python3 -m pip install --upgrade -r requirements-build.txt
 
 REM ----- Build
 
@@ -46,12 +42,12 @@ REM Arno: When adding files here, make sure tribler.nsi actually
 REM packs them in the installer .EXE
 
 ECHO Install pip dependencies for correct py-installer's work
-python3 -m pip install --upgrade -r build\win\requirements.txt
+call python3 -m pip install --upgrade -r build\win\requirements.txt
 
 REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
 REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
 ECHO Building Tribler using Cx_Freeze
-python3 setup.py build
+call python3 setup.py build
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
@@ -75,12 +71,11 @@ copy C:\build\openssl\*.dll dist\tribler\lib
 @echo Running NSIS
 cd dist\tribler
 
-REM get password for swarmplayerprivatekey.pfx
-set /p PASSWORD="Enter the PFX password:"
-
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 REM --- Doing this in ugly way for now
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
+    REM Get password for code signing
+    set /p PASSWORD="Enter the PFX password:"
     signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
 )
 :makeinstaller
@@ -92,5 +87,6 @@ if not defined SKIP_SIGNING_TRIBLER_BINARIES (
     signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
 )
 
+endlocal
 REM to neglect error code from the previous command we do exit 0
 exit 0
