@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import itertools
 from asyncio import Future
 from unittest.mock import AsyncMock, MagicMock, Mock
@@ -347,28 +346,15 @@ def test_set_proxy_settings(fake_dlmgr):
     """
     Test setting the proxy settings
     """
-
-    def on_proxy_set(settings):
-        assert settings
-        assert settings.hostname == 'a'
-        assert settings.port == 1234
-        assert settings.username == 'abc'
-        assert settings.password == 'def'
-
-    def on_set_settings(settings):
-        assert settings
-        assert settings['proxy_hostname'] == 'a'
-        assert settings['proxy_port'] == 1234
-        assert settings['proxy_username'] == 'abc'
-        assert settings['proxy_password'] == 'def'
-        assert settings['proxy_peer_connections']
-        assert settings['proxy_hostnames']
-
-    mock_lt_session = MagicMock()
-    mock_lt_session.get_settings = dict
-    mock_lt_session.set_settings = on_set_settings
-    mock_lt_session.set_proxy = on_proxy_set  # Libtorrent < 1.1.0 uses set_proxy to set proxy settings
-    fake_dlmgr.set_proxy_settings(mock_lt_session, 0, ('a', "1234"), ('abc', 'def'))
+    session = Mock()
+    fake_dlmgr.set_proxy_settings(session, 0, ('a', "1234"), ('abc', 'def'))
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_hostname'] == 'a'
+    assert settings['proxy_port'] == 1234
+    assert settings['proxy_username'] == 'abc'
+    assert settings['proxy_password'] == 'def'
+    assert settings['proxy_peer_connections']
+    assert settings['proxy_hostnames']
 
 
 def test_payout_on_disconnect(fake_dlmgr):
@@ -575,3 +561,53 @@ def test_update_trackers_list_append(fake_dlmgr) -> None:
     actual_trackers = set(itertools.chain.from_iterable(tracker_list))
     assert actual_trackers == {fake_tracker1, fake_tracker2}
 
+
+def test_set_proxy_settings_invalid_port(fake_dlmgr):
+    # Test setting the proxy settings for an invalid port number. In this case port and host should not be set.
+    session = Mock()
+    proxy_type = 2
+
+    fake_dlmgr.set_proxy_settings(session, proxy_type, ('host name', 'invalid port'))
+
+    settings, = session.method_calls[-1].args
+    assert 'proxy_port' not in settings
+    assert 'proxy_hostname' not in settings
+    assert settings['proxy_type'] == proxy_type
+
+
+def test_set_proxy_defaults(fake_dlmgr):
+    # Test setting the proxy settings with default values
+    session = Mock()
+    proxy_type = 2
+
+    fake_dlmgr.set_proxy_settings(session, proxy_type)
+    settings, = session.method_calls[-1].args
+    assert 'proxy_port' not in settings
+    assert 'proxy_hostname' not in settings
+    assert settings['proxy_type'] == proxy_type
+
+
+def test_set_proxy_corner_case(fake_dlmgr):
+    # Test setting the proxy settings with None values
+    session = Mock()
+
+    fake_dlmgr.set_proxy_settings(session, 2, (None, None))
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_type'] == 2
+    assert 'proxy_port' not in settings
+
+    fake_dlmgr.set_proxy_settings(session, 3, (None,))
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_type'] == 3
+    assert 'proxy_port' not in settings
+
+    fake_dlmgr.set_proxy_settings(session, 3, (None, 123))
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_type'] == 3
+    assert 'proxy_port' not in settings
+
+    fake_dlmgr.set_proxy_settings(session, 3, (None, 123), ('name', None))
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_type'] == 3
+    assert 'proxy_port' not in settings
+    assert 'proxy_username' not in settings
