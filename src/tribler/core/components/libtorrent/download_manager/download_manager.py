@@ -8,11 +8,11 @@ import logging
 import os
 import time as timemod
 from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
-from binascii import unhexlify
 from copy import deepcopy
 from shutil import rmtree
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
+from binascii import unhexlify
 from ipv8.taskmanager import TaskManager
 
 from tribler.core import notifications
@@ -362,21 +362,35 @@ class DownloadManager(TaskManager):
 
         return self.ltsessions[hops]
 
-    def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
+    def set_proxy_settings(self, session, ptype, server: Optional[Tuple[str, str]] = None,
+                           auth: Optional[Tuple[str, str]] = None):
         """
         Apply the proxy settings to a libtorrent session. This mechanism changed significantly in libtorrent 1.1.0.
         """
-        settings = {}
-        settings["proxy_type"] = ptype
-        settings["proxy_hostnames"] = True
-        settings["proxy_peer_connections"] = True
-        if server and server[0] and server[1]:
-            settings["proxy_hostname"] = server[0]
-            settings["proxy_port"] = int(server[1])
-        if auth:
-            settings["proxy_username"] = auth[0]
-            settings["proxy_password"] = auth[1]
-        self.set_session_settings(ltsession, settings)
+        settings = {"proxy_type": ptype, "proxy_hostnames": True, "proxy_peer_connections": True}
+
+        try:
+            if not all(v is not None for v in server):
+                raise ValueError('Host and port should not be None')
+
+            host, port = server
+            port = int(port)
+            settings["proxy_hostname"] = host
+            settings["proxy_port"] = port
+        except (ValueError, TypeError) as e:
+            self._logger.exception(e)
+
+        try:
+            if not all(v is not None for v in auth):
+                raise ValueError('Username and password should not be None')
+
+            username, proxy_password = auth
+            settings["proxy_username"] = username
+            settings["proxy_password"] = proxy_password
+        except (ValueError, TypeError) as e:
+            self._logger.exception(e)
+
+        self.set_session_settings(session, settings)
 
     def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
