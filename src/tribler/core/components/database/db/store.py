@@ -136,7 +136,7 @@ class MetadataStore:
         @self.db.on_connect
         def on_connect(_, connection):
             cursor = connection.cursor()
-            cursor.execute("PRAGMA journal_mode = WAL")
+            cursor.execute("PRAGMA journal_mode = DELETE")
             cursor.execute("PRAGMA synchronous = NORMAL")
             cursor.execute("PRAGMA temp_store = MEMORY")
             cursor.execute("PRAGMA foreign_keys = ON")
