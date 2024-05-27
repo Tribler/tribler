@@ -15,6 +15,7 @@ from PyQt5.QtGui import QDesktopServices, QFontDatabase, QIcon, QKeyEvent, QKeyS
 from PyQt5.QtWidgets import (QAction, QApplication, QCompleter, QFileDialog, QLineEdit, QListWidget, QMainWindow,
                              QShortcut, QStyledItemDelegate, QSystemTrayIcon, QTreeWidget)
 
+from tribler.core.libtorrent.uris import url_to_path
 from tribler.gui.app_manager import AppManager
 from tribler.gui.core_manager import CoreManager
 from tribler.gui.debug_window import DebugWindow
@@ -33,7 +34,7 @@ from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import (connect, create_api_key, format_api_key, get_font_path, get_gui_setting,
                                    get_image_path, get_ui_file_path, is_dir_writable, set_api_key)
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
-from tribler.gui.widgets.tablecontentmodel import PopularTorrentsModel
+from tribler.gui.widgets.popular.popular_torrents_model import PopularTorrentsModel
 from tribler.gui.widgets.triblertablecontrollers import PopularContentTableViewController
 
 
@@ -780,9 +781,8 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_popular(self):
         self.deselect_all_menu_buttons()
         self.left_menu_button_popular.setChecked(True)
-        if self.stackedWidget.currentIndex() == PAGE_POPULAR:
-            self.popular_page.go_back_to_level(0)
-            self.popular_page.reset_view()
+        self.popular_page.go_back_to_level(0)
+        self.popular_page.reset_view()
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 
@@ -860,7 +860,7 @@ class TriblerWindow(QMainWindow):
 
     def dragEnterEvent(self, e):
         file_urls = self.get_urls_from_dragndrop_list(e)
-        if any(url_is_valid_file(fu) for fu in file_urls):
+        if any(Path(url_to_path(fu)).is_valid() for fu in file_urls):
             e.accept()
         else:
             e.ignore()

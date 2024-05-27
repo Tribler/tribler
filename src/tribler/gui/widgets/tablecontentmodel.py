@@ -11,7 +11,7 @@ from typing import Callable, Dict, List
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, QRectF, QSize, QTimerEvent, Qt, pyqtSignal
 
 from tribler.core.database.ranks import item_rank
-from tribler.core.database.serialization import COLLECTION_NODE, REGULAR_TORRENT, SNIPPET
+from tribler.core.database.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, HEALTH_CHECKING
 from tribler.gui.network.request_manager import request_manager
 from tribler.gui.queries import to_fts_query
@@ -113,7 +113,6 @@ class RemoteTableModel(QAbstractTableModel):
         self.saved_scroll_state = None
         self.qt_object_destroyed = False
 
-        self.group_by_name = False
         self.sort_by_rank = False
         self.text_filter = ''
 
@@ -201,7 +200,6 @@ class RemoteTableModel(QAbstractTableModel):
         # Only add unique items to the table model and reverse mapping from unique ids to rows is built.
         insert_index = 0 if on_top else len(self.data_items)
         unique_new_items = []
-        name_mapping = {item['name']: item for item in self.data_items} if self.group_by_name else {}
         now = time.time()
         for item in items:
             if remote:
@@ -215,21 +213,12 @@ class RemoteTableModel(QAbstractTableModel):
             item_uid = get_item_uid(item)
             if item_uid not in self.item_uid_map:
 
-                prev_item = name_mapping.get(item['name'])
-                if self.group_by_name and prev_item is not None and not on_top and prev_item['type'] == REGULAR_TORRENT:
-                    group = prev_item.setdefault('group', {})
-                    if item_uid not in group:
-                        group[item_uid] = item
-                else:
-                    self.item_uid_map[item_uid] = insert_index
-                    if 'infohash' in item:
-                        self.item_uid_map[item['infohash']] = insert_index
-                    unique_new_items.append(item)
+                self.item_uid_map[item_uid] = insert_index
+                if 'infohash' in item:
+                    self.item_uid_map[item['infohash']] = insert_index
+                unique_new_items.append(item)
 
-                    if self.group_by_name and item['type'] == REGULAR_TORRENT and prev_item is None:
-                        name_mapping[item['name']] = item
-
-                    insert_index += 1
+                insert_index += 1
         return unique_new_items, insert_index
 
     def add_items(self, new_items, on_top=False, remote=False):
@@ -635,11 +624,3 @@ class ChannelContentModel(RemoteTableModel):
 
     def on_new_entry_received(self, response):
         self.on_query_results(response, remote=True)
-
-
-class PopularTorrentsModel(ChannelContentModel):
-    columns_shown = (Column.CATEGORY, Column.NAME, Column.SIZE, Column.CREATED)
-
-    def __init__(self, *args, **kwargs):
-        kwargs["endpoint_url"] = 'metadata/torrents/popular'
-        super().__init__(*args, **kwargs)
