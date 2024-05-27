@@ -3,7 +3,8 @@ simplify work with several data structures.
 """
 import re
 from dataclasses import dataclass
-from typing import Optional
+from datetime import datetime
+from typing import Dict, List, Optional
 
 from faker import Faker
 
@@ -121,3 +122,18 @@ def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
     faker = Faker(locale='en_US')
     faker.seed_instance(s)
     return faker.word(part_of_speech=part_of_speech)
+
+
+def order_by_utc_time(breadcrumbs: Optional[List[Dict]]):
+    """ Order breadcrumbs by timestamp in ascending order.
+
+    Args:
+        breadcrumbs: List of breadcrumbs
+
+    Returns:
+        Ordered list of breadcrumbs
+    """
+    if not breadcrumbs:
+        return breadcrumbs
+
+    return list(sorted(breadcrumbs, key=lambda breadcrumb: breadcrumb["timestamp"]))
