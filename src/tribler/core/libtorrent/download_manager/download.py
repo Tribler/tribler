@@ -312,13 +312,16 @@ class Download(TaskManager):
         """
         return self.config.get_hops() > 0
 
-    @check_handle(b'')
+    @check_handle(b"")
     def get_pieces_base64(self) -> bytes:
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
         binary_gen = (int(boolean) for boolean in cast(lt.torrent_handle, self.handle).status().pieces)
-        bits = bitarray(binary_gen)
+        try:
+            bits = bitarray(binary_gen)
+        except ValueError:
+            return b""
         return base64.b64encode(bits.tobytes())
 
     def post_alert(self, alert_type: str, alert_dict: dict | None = None) -> None:
@@ -454,7 +457,7 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = (peers, status)
 
     @check_handle(None)
-    def on_metadata_received_alert(self, alert: lt.metadata_received_alert) -> None:  # noqa: C901, PLR0912
+    def on_metadata_received_alert(self, alert: lt.metadata_received_alert) -> None:  # noqa: C901
         """
         Handle a metadata received alert.
         """

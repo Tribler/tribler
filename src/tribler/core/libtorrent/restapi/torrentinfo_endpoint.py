@@ -137,12 +137,12 @@ class TorrentInfoEndpoint(RESTEndpoint):
         scheme = URL(uri).scheme
 
         if scheme == "file":
-            file = url_to_path(uri)
+            file_path = url_to_path(uri)
             try:
-                tdef = await TorrentDef.load(file)
+                tdef = await TorrentDef.load(file_path)
                 metainfo = tdef.metainfo
-            except (FileNotFoundError, TypeError, ValueError, RuntimeError):
-                return RESTResponse({"error": f"error while decoding torrent file: {file}"},
+            except (OSError, TypeError, ValueError, RuntimeError):
+                return RESTResponse({"error": f"error while decoding torrent file: {file_path}"},
                                     status=HTTP_INTERNAL_SERVER_ERROR)
         elif scheme in ("http", "https"):
             try:
