@@ -591,22 +591,40 @@ def test_set_proxy_corner_case(fake_dlmgr):
     # Test setting the proxy settings with None values
     session = Mock()
 
+    fake_dlmgr._logger = Mock()
+    fake_dlmgr.set_proxy_settings(session, 2)
+    fake_dlmgr._logger.exception.assert_not_called()
+    settings, = session.method_calls[-1].args
+    assert settings['proxy_type'] == 2
+    assert 'proxy_hostname' not in settings
+    assert 'proxy_port' not in settings
+    assert 'proxy_username' not in settings
+    assert 'proxy_password' not in settings
+
+    fake_dlmgr._logger.exception.reset_mock()
     fake_dlmgr.set_proxy_settings(session, 2, (None, None))
+    fake_dlmgr._logger.exception.assert_called()
     settings, = session.method_calls[-1].args
     assert settings['proxy_type'] == 2
     assert 'proxy_port' not in settings
 
+    fake_dlmgr._logger.exception.reset_mock()
     fake_dlmgr.set_proxy_settings(session, 3, (None,))
+    fake_dlmgr._logger.exception.assert_called()
     settings, = session.method_calls[-1].args
     assert settings['proxy_type'] == 3
     assert 'proxy_port' not in settings
 
+    fake_dlmgr._logger.exception.reset_mock()
     fake_dlmgr.set_proxy_settings(session, 3, (None, 123))
+    fake_dlmgr._logger.exception.assert_called()
     settings, = session.method_calls[-1].args
     assert settings['proxy_type'] == 3
     assert 'proxy_port' not in settings
 
+    fake_dlmgr._logger.exception.reset_mock()
     fake_dlmgr.set_proxy_settings(session, 3, (None, 123), ('name', None))
+    fake_dlmgr._logger.exception.assert_called()
     settings, = session.method_calls[-1].args
     assert settings['proxy_type'] == 3
     assert 'proxy_port' not in settings

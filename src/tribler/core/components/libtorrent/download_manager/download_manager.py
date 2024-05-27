@@ -369,26 +369,28 @@ class DownloadManager(TaskManager):
         """
         settings = {"proxy_type": ptype, "proxy_hostnames": True, "proxy_peer_connections": True}
 
-        try:
-            if not all(v is not None for v in server):
-                raise ValueError('Host and port should not be None')
+        if server:
+            try:
+                if not all(v is not None for v in server):
+                    raise ValueError('Host and port should not be None')
 
-            host, port = server
-            port = int(port)
-            settings["proxy_hostname"] = host
-            settings["proxy_port"] = port
-        except (ValueError, TypeError) as e:
-            self._logger.exception(e)
+                host, port = server
+                port = int(port)
+                settings["proxy_hostname"] = host
+                settings["proxy_port"] = port
+            except (ValueError, TypeError) as e:
+                self._logger.exception(e)
 
-        try:
-            if not all(v is not None for v in auth):
-                raise ValueError('Username and password should not be None')
+        if auth:
+            try:
+                if not all(v is not None for v in auth):
+                    raise ValueError('Username and password should not be None')
 
-            username, proxy_password = auth
-            settings["proxy_username"] = username
-            settings["proxy_password"] = proxy_password
-        except (ValueError, TypeError) as e:
-            self._logger.exception(e)
+                username, proxy_password = auth
+                settings["proxy_username"] = username
+                settings["proxy_password"] = proxy_password
+            except (ValueError, TypeError) as e:
+                self._logger.exception(e)
 
         self.set_session_settings(session, settings)
 
