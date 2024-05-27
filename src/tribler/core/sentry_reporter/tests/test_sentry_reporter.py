@@ -1,4 +1,3 @@
-from collections import defaultdict
 from copy import deepcopy
 from unittest.mock import MagicMock, Mock, patch
 
@@ -30,7 +29,10 @@ def sentry_reporter():
     return SentryReporter()
 
 
-@patch('tribler.core.sentry_reporter.sentry_reporter.sentry_sdk.init')
+TARGET = 'tribler.core.sentry_reporter.sentry_reporter'
+
+
+@patch(f'{TARGET}.sentry_sdk.init')
 def test_init(mocked_init: Mock, sentry_reporter: SentryReporter):
     # test that `init` method set all necessary variables and calls `sentry_sdk.init()`
     sentry_reporter.init(sentry_url='url', release_version='release', scrubber=SentryScrubber(),
@@ -40,14 +42,14 @@ def test_init(mocked_init: Mock, sentry_reporter: SentryReporter):
     mocked_init.assert_called_once()
 
 
-@patch('tribler.core.sentry_reporter.sentry_reporter.ignore_logger')
+@patch(f'{TARGET}.ignore_logger')
 def test_ignore_logger(mocked_ignore_logger: Mock, sentry_reporter: SentryReporter):
     # test that `ignore_logger` calls `ignore_logger` from sentry_sdk
     sentry_reporter.ignore_logger('logger name')
     mocked_ignore_logger.assert_called_with('logger name')
 
 
-@patch('tribler.core.sentry_reporter.sentry_reporter.sentry_sdk.add_breadcrumb')
+@patch(f'{TARGET}.sentry_sdk.add_breadcrumb')
 def test_add_breadcrumb(mocked_add_breadcrumb: Mock, sentry_reporter: SentryReporter):
     # test that `add_breadcrumb` passes all necessary arguments to `sentry_sdk`
     assert sentry_reporter.add_breadcrumb('message', 'category', 'level', named_arg='some')
@@ -71,7 +73,7 @@ def test_get_confirmation_no_qt(sentry_reporter: SentryReporter):
     assert not sentry_reporter.get_confirmation(Exception('test'))
 
 
-@patch('tribler.core.sentry_reporter.sentry_reporter.sentry_sdk.capture_exception')
+@patch(f'{TARGET}.sentry_sdk.capture_exception')
 def test_capture_exception(mocked_capture_exception: Mock, sentry_reporter: SentryReporter):
     # test that `capture_exception` passes an exception to `sentry_sdk`
     exception = Exception('test')
@@ -79,7 +81,7 @@ def test_capture_exception(mocked_capture_exception: Mock, sentry_reporter: Sent
     mocked_capture_exception.assert_called_with(exception)
 
 
-@patch('tribler.core.sentry_reporter.sentry_reporter.sentry_sdk.capture_exception')
+@patch(f'{TARGET}.sentry_sdk.capture_exception')
 def test_event_from_exception(mocked_capture_exception: Mock, sentry_reporter: SentryReporter):
     # test that `event_from_exception` returns '{}' in case of an empty exception
     assert sentry_reporter.event_from_exception(None) == {}
@@ -202,6 +204,14 @@ def test_before_send_scrubber_doesnt_exists(sentry_reporter: SentryReporter):
     sentry_reporter.scrubber = None
     sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
     assert sentry_reporter._before_send({'some': 'event'}, None)
+
+
+@patch(f'{TARGET}.order_by_utc_time', Mock(side_effect=ValueError))
+def test_before_send_exception_in_order_by_utc_time(sentry_reporter: SentryReporter):
+    # test that in case of an exception in `order_by_utc_time`, the event will be sent
+    sentry_reporter.global_strategy = SentryStrategy.SEND_ALLOWED
+    event = {'some': 'event'}
+    assert sentry_reporter._before_send(event, None) == event
 
 
 def test_send_defaults(sentry_reporter):

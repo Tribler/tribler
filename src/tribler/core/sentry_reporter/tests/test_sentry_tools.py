@@ -9,7 +9,7 @@ from tribler.core.sentry_reporter.sentry_tools import (
     get_last_item,
     get_value,
     modify_value,
-    obfuscate_string, )
+    obfuscate_string, order_by_utc_time, )
 
 
 def test_first():
@@ -111,3 +111,29 @@ OBFUSCATED_STRINGS = [
 @pytest.mark.parametrize('given, expected', OBFUSCATED_STRINGS)
 def test_obfuscate_string(given, expected):
     assert obfuscate_string(given) == expected
+
+
+def test_order_by_utc_time():
+    # Test order by timestamp
+    breadcrumbs = [
+        {
+            "timestamp": "2016-04-20T20:55:53.887Z",
+            "message": "3",
+        },
+        {
+            "timestamp": "2016-04-20T20:55:53.845Z",
+            "message": "1",
+        },
+        {
+            "timestamp": "2016-04-20T20:55:53.847Z",
+            "message": "2",
+        },
+    ]
+    ordered_breadcrumbs = order_by_utc_time(breadcrumbs)
+    messages = [d['message'] for d in ordered_breadcrumbs]
+    assert messages == ['1', '2', '3']
+
+
+def test_order_by_utc_time_empty_breadcrumbs():
+    # Test empty breadcrumbsw
+    assert not order_by_utc_time(None)

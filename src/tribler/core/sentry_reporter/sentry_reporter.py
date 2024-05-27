@@ -17,7 +17,7 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
     get_first_item,
-    get_value
+    get_value, order_by_utc_time
 )
 
 
@@ -386,6 +386,12 @@ class SentryReporter:
         if self.scrubber:
             event = self.scrubber.scrub_event(event)
 
+        # order breadcrumbs by timestamp in ascending order
+        if breadcrumbs := event.get(BREADCRUMBS):
+            try:
+                event[BREADCRUMBS][VALUES] = order_by_utc_time(breadcrumbs[VALUES])
+            except Exception as e:
+                self._logger.exception(e)
         return event
 
     # pylint: disable=unused-argument
