@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import socket
+from typing import TYPE_CHECKING
 
-from ipv8.community import CommunitySettings
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import MockEndpointListener
-from ipv8.test.mocking.ipv8 import MockIPv8
 
 from tribler.core.rendezvous.community import RendezvousCommunity, RendezvousSettings
 from tribler.core.rendezvous.database import RendezvousDatabase
-from tribler.core.rendezvous.payload import RecordPayload, PullRecordPayload
+from tribler.core.rendezvous.payload import PullRecordPayload, RecordPayload
+
+if TYPE_CHECKING:
+    from ipv8.community import CommunitySettings
+    from ipv8.test.mocking.ipv8 import MockIPv8
 
 
 class TestUserActivityCommunity(TestBase[RendezvousCommunity]):

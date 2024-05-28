@@ -202,12 +202,17 @@ class DownloadsDetailsTabWidget(QTabWidget):
                 item = QTreeWidgetItem(self.window().download_peers_list)
                 DownloadsDetailsTabWidget.update_peer_row(item, peer)
 
-    def on_copy_magnet_clicked(self, checked):
-        trackers = [
-            tk['url'] for tk in self.current_download['trackers'] if 'url' in tk and tk['url'] not in ['[DHT]', '[PeX]']
-        ]
-        magnet_link = compose_magnetlink(
-            self.current_download['infohash'], name=self.current_download.get('name', None), trackers=trackers
+    def on_copy_magnet_clicked(self, _):
+        """
+        Copy the magnet link of the current download to the clipboard.
+        """
+        if not self.current_download:
+            return
+
+        magnet = compose_magnetlink(
+            infohash=self.current_download.get("infohash"),
+            name=self.current_download.get("name"),
+            trackers=self.current_download.get("trackers", [])
         )
-        copy_to_clipboard(magnet_link)
-        self.window().tray_show_message(tr("Copying magnet link"), magnet_link)
+        copy_to_clipboard(magnet)
+        self.window().tray_show_message("Copying magnet link", magnet)

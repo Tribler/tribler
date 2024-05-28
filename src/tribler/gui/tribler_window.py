@@ -29,10 +29,10 @@ from tribler.gui.error_handler import ErrorHandler
 from tribler.gui.event_request_manager import EventRequestManager
 from tribler.gui.exceptions import TriblerGuiTestException
 from tribler.gui.network.request_manager import RequestManager, request_manager
-from tribler.gui.queries import Query
+from tribler.core.database.queries import Query
 from tribler.gui.tribler_action_menu import TriblerActionMenu
 from tribler.gui.utilities import (connect, create_api_key, format_api_key, get_font_path, get_gui_setting,
-                                   get_image_path, get_ui_file_path, is_dir_writable, set_api_key)
+                                   get_image_path, get_ui_file_path, is_dir_writable, set_api_key, get_clipboard_text)
 from tribler.gui.widgets.instanttooltipstyle import InstantTooltipStyle
 from tribler.gui.widgets.popular.popular_torrents_model import PopularTorrentsModel
 from tribler.gui.widgets.triblertablecontrollers import PopularContentTableViewController
@@ -144,6 +144,9 @@ class TriblerWindow(QMainWindow):
 
         self.magnet_handler = MagnetHandler(self.window)
         QDesktopServices.setUrlHandler("magnet", self.magnet_handler, "on_open_magnet_link")
+
+        self.paste = QShortcut(QKeySequence("Ctrl+v"), self)
+        connect(self.paste.activated, self.on_paste_event)
 
         self.debug_pane_shortcut = QShortcut(QKeySequence("Ctrl+d"), self)
         connect(self.debug_pane_shortcut.activated, self.clicked_debug_panel_button)
@@ -366,6 +369,12 @@ class TriblerWindow(QMainWindow):
     def on_torrent_finished(self, torrent_info):
         if "hidden" not in torrent_info or not torrent_info["hidden"]:
             self.tray_show_message("Download finished", "Download of %s has finished." % {torrent_info['name']})
+
+    def on_paste_event(self):
+        txt = get_clipboard_text()
+        self._logger.info("Paste event: %s", txt)
+        if txt.startswith("magnet:?xt=urn:btih:"):
+            self.start_download_from_uri(txt)
 
     def show_loading_screen(self):
         self.top_menu_button.setHidden(True)
@@ -786,8 +795,8 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(PAGE_POPULAR)
         self.popular_page.content_table.setFocus()
 
-        params = {'popular': True, 'metadata_type': 300}
-        request_manager.put('search/remote', lambda x: None, data=params)
+        params = {'popular': True, 'metadata_type': [300], 'fts_text': '', 'original_query': ''}
+        request_manager.put('search/remote', lambda x: None, url_params=params)
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)

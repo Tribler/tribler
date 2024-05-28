@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from binascii import hexlify, unhexlify
-from typing import TYPE_CHECKING, cast
+from binascii import hexlify
+from typing import TYPE_CHECKING
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, List, String
-from typing_extensions import Self
 
+from tribler.core.database.queries import to_fts_query
+from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
 from tribler.core.database.restapi.schema import MetadataParameters
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
     from aiohttp.abc import Request
-    from multidict import MultiMapping
 
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
 
@@ -47,20 +47,6 @@ class SearchEndpoint(RESTEndpoint):
         self.content_discovery_community = content_discovery_community
         self.app.add_routes([web.put("/remote", self.remote_search)])
 
-    @classmethod
-    def sanitize_parameters(cls: type[Self], parameters: MultiMapping[int | str]) -> dict:
-        """
-        Correct the human-readable parameters to be their respective correct type.
-        """
-        sanitized: dict = dict(parameters)
-        if "max_rowid" in parameters:
-            sanitized["max_rowid"] = int(parameters["max_rowid"])
-        if "channel_pk" in parameters:
-            sanitized["channel_pk"] = unhexlify(cast(str, parameters["channel_pk"]))
-        if "origin_id" in parameters:
-            sanitized["origin_id"] = int(parameters["origin_id"])
-        return sanitized
-
     @docs(
         tags=["Metadata"],
         summary="Perform a search for a given query.",
@@ -85,10 +71,19 @@ class SearchEndpoint(RESTEndpoint):
         self._logger.info("Create remote search request")
         # Results are returned over the Events endpoint.
         try:
-            sanitized = self.sanitize_parameters(request.query)
+            sanitized = DatabaseEndpoint.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
             return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+        query = request.query.get("fts_text")
+        if query is None:
+            return RESTResponse({"error": f"Got search with no fts_text: {dict(request.query)}"},
+                                status=HTTP_BAD_REQUEST)
+        if t_filter := request.query.get("filter"):
+            query += f" {t_filter}"
+        fts = to_fts_query(query)
+        sanitized["txt_filter"] = fts
         self._logger.info("Parameters: %s", str(sanitized))
+        self._logger.info("FTS: %s", fts)
 
         request_uuid, peers_list = self.content_discovery_community.send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid).decode() for p in peers_list]

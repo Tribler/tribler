@@ -69,7 +69,7 @@ def read_payload_with_offset(data: bytes, offset: int = 0) -> tuple[TorrentMetad
     metadata_type = struct.unpack_from('>H', data, offset=offset)[0]
 
     if metadata_type != REGULAR_TORRENT:
-        raise UnknownBlobTypeException
+        raise UnknownBlobTypeException(metadata_type)
 
     payload, offset = default_serializer.unpack_serializable(TorrentMetadataPayload, data, offset=offset)
     payload.signature = data[offset: offset + 64]

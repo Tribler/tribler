@@ -14,7 +14,7 @@ from tribler.core.database.ranks import item_rank
 from tribler.core.database.serialization import COLLECTION_NODE, REGULAR_TORRENT
 from tribler.gui.defs import BITTORRENT_BIRTHDAY, HEALTH_CHECKING
 from tribler.gui.network.request_manager import request_manager
-from tribler.gui.queries import to_fts_query
+from tribler.core.database.queries import to_fts_query
 from tribler.gui.utilities import connect, format_size, format_votes, get_votes_rating_description, pretty_date, tr
 
 EXPANDING = 0
@@ -335,16 +335,8 @@ class RemoteTableModel(QAbstractTableModel):
 
         if self.sort_by is not None:
             kwargs.update({"sort_by": self.sort_by, "sort_desc": self.sort_desc})
-
-        txt_filter = to_fts_query(self.text_filter)
-        if txt_filter:
-            kwargs.update({"txt_filter": txt_filter})
-            # Global full-text search queries should not request the total number of rows for several reasons:
-            # * The total number of rows is useful for paginated queries, and FTS queries in Tribler are not paginated.
-            # * Our goal is to display the most relevant results for the user at the top of the search result list.
-            #   The user doesn't need to see that the database has exactly 300001 results for the "MP3" search.
-            #   In other words, we should search like Google, not Altavista.
-            # * The result list also integrates the results from remote peers that are not from the local database.
+        if self.text_filter:
+            kwargs['filter'] = self.text_filter
             if 'origin_id' not in kwargs:
                 kwargs.pop("include_total", None)
 
@@ -410,8 +402,10 @@ class ChannelContentModel(RemoteTableModel):
             text_filter='',
             tags=None,
             type_filter=None,
+            original_query='',
+            fts_text='',
     ):
-        RemoteTableModel.__init__(self, parent=None)
+        super().__init__(None)
 
         self.column_position = {name: i for i, name in enumerate(self.columns_shown)}
         self.name_column_width = 0
@@ -432,7 +426,8 @@ class ChannelContentModel(RemoteTableModel):
         self.channel_info = channel_info
 
         self.endpoint_url = endpoint_url
-
+        self.original_query = original_query
+        self.fts_text = fts_text
         # Load the initial batch of entries
         self.perform_initial_query()
 
@@ -567,7 +562,8 @@ class ChannelContentModel(RemoteTableModel):
         """
         Fetch search results.
         """
-
+        kwargs['original_query'] = self.original_query
+        kwargs['fts_text'] = self.fts_text
         if self.type_filter is not None:
             kwargs.update({"metadata_type": self.type_filter})
         else:

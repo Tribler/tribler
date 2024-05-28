@@ -56,7 +56,9 @@ class SearchLocalRequest(MockRequest):
         """
         Create a new SearchLocalRequest.
         """
-        super().__init__(query, "GET", "/metadata/search/local")
+        default_query = {"fts_text": ""}
+        default_query.update(query)
+        super().__init__(default_query, "GET", "/metadata/search/local")
 
 
 class SearchCompletionsRequest(MockRequest):
@@ -88,8 +90,8 @@ class TestDatabaseEndpoint(TestBase):
         Test if parameters are properly sanitized.
         """
         soiled = MultiDictProxy(MultiDict([("first", "7"), ("last", "42"), ("sort_by", "name"), ("sort_desc", "0"),
-                                           ("txt_filter", "test"), ("hide_xxx", "0"), ("category", "TEST"),
-                                           ("origin_id", "13"), ("tags", "tag1"), ("tags", "tag2"), ("tags", "tag3"),
+                                           ("hide_xxx", "0"), ("category", "TEST"), ("origin_id", "13"),
+                                           ("tags", "tag1"), ("tags", "tag2"), ("tags", "tag3"),
                                            ("max_rowid", "1337"), ("channel_pk", "AA")]))
 
         sanitized = DatabaseEndpoint.sanitize_parameters(soiled)
@@ -98,7 +100,6 @@ class TestDatabaseEndpoint(TestBase):
         self.assertEqual(42, sanitized["last"])
         self.assertEqual("title", sanitized["sort_by"])
         self.assertFalse(sanitized["sort_desc"])
-        self.assertEqual("test", sanitized["txt_filter"])
         self.assertFalse(sanitized["hide_xxx"])
         self.assertEqual("TEST", sanitized["category"])
         self.assertEqual(13, sanitized["origin_id"])

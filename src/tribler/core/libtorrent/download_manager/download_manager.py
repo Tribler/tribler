@@ -270,7 +270,7 @@ class DownloadManager(TaskManager):
         """
         return all(self.lt_session_shutdown_ready.values())
 
-    def create_session(self, hops: int = 0) -> lt.session:  # noqa: PLR0912, PLR0915
+    def create_session(self, hops: int = 0) -> lt.session:  # noqa: PLR0915
         """
         Construct a libtorrent session for the given number of anonymization hops.
         """
@@ -515,7 +515,7 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,  # noqa: C901, PLR0912
+    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,  # noqa: C901
                            url: str | None = None, raise_errors: bool = False) -> dict | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting

@@ -131,6 +131,10 @@ class SettingsPage(QWidget):
             get_gui_setting(gui_settings, "disable_tags", True, is_bool=True)
         )
 
+        # The header state of the downloads table
+        if gui_settings.value("downloads_header_state", None) is not None:
+            self.window().downloads_header_state_checkbox.setChecked(True)
+
         # Connection settings
         self.window().lt_proxy_type_combobox.setCurrentIndex(settings['libtorrent']['proxy_type'])
         if settings['libtorrent']['proxy_server']:
@@ -323,6 +327,10 @@ class SettingsPage(QWidget):
         gui_settings.setValue("ask_download_settings", self.window().always_ask_location_checkbox.isChecked())
         gui_settings.setValue("use_monochrome_icon", self.window().use_monochrome_icon_checkbox.isChecked())
         gui_settings.setValue("minimize_to_tray", self.window().minimize_to_tray_checkbox.isChecked())
+        if self.window().downloads_header_state_checkbox.isChecked():
+            gui_settings.setValue("downloads_header_state", self.window().downloads_list.header().saveState())
+        else:
+            gui_settings.remove("downloads_header_state")
         self.window().tray_show_message("Tribler settings", "Settings saved")
 
         def on_receive_settings(response):
