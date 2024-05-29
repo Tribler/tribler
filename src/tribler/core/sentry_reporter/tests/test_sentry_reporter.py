@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from tribler.core.sentry_reporter.sentry_reporter import (
-    BROWSER, CONTEXTS, NAME, OS_ENVIRON,
+    BREADCRUMBS, BROWSER, CONTEXTS, NAME, OS_ENVIRON,
     REPORTER, STACKTRACE, SentryReporter,
     SentryStrategy,
-    TAGS, TRIBLER, VERSION, this_sentry_strategy,
+    TAGS, TRIBLER, VALUES, VERSION, this_sentry_strategy,
 )
 from tribler.core.sentry_reporter.sentry_scrubber import SentryScrubber
 from tribler.core.utilities.patch_import import patch_import
@@ -281,3 +281,56 @@ def test_sentry_strategy(sentry_reporter):
 
     assert sentry_reporter.thread_strategy.get() is None
     assert sentry_reporter.global_strategy == SentryStrategy.SEND_ALLOWED_WITH_CONFIRMATION
+
+
+def test_format_breadcrumbs(sentry_reporter):
+    # Test that breadcrumbs are sorted by timestamp and duplicates are removed
+    event = {
+        BREADCRUMBS: {
+            VALUES: [
+                {'message': 'message 2', 'timestamp': 'timestamp 3'},
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},  # wrong order
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},  # duplicate
+                {'message': 'message 3', 'timestamp': 'timestamp 4'},  # wrong order
+            ]
+        }
+    }
+    expected = {
+        BREADCRUMBS: {
+            VALUES: [
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},
+                {'message': 'message 2', 'timestamp': 'timestamp 3'},
+                {'message': 'message 3', 'timestamp': 'timestamp 4'},
+            ]
+        }
+    }
+
+    sentry_reporter._format_breadcrumbs(event)
+
+    assert event == expected
+
+
+def test_format_breadcrumbs_wrong_fields(sentry_reporter):
+    # Test that in the case of wrong event format the breadcrumbs formatting will be skipped
+    event = {
+        BREADCRUMBS: {
+            VALUES: [
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},
+                {'message': 'message 2'},  # an exception will be raised, therefore format will be skipped
+            ]
+        }
+    }
+    expected = {
+        BREADCRUMBS: {
+            VALUES: [
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},
+                {'message': 'message 1', 'timestamp': 'timestamp 1'},
+                {'message': 'message 2'},
+            ]
+        }
+    }
+
+    sentry_reporter._format_breadcrumbs(event)
+
+    assert event == expected

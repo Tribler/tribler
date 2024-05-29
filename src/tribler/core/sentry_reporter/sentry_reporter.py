@@ -16,7 +16,7 @@ from sentry_sdk.integrations.threading import ThreadingIntegration
 
 from tribler.core import version
 from tribler.core.sentry_reporter.sentry_tools import (
-    get_first_item,
+    distinct_by, get_first_item,
     get_value, order_by_utc_time
 )
 
@@ -340,6 +340,21 @@ class SentryReporter:
     def is_in_test_mode():
         return bool(SentryReporter.get_test_sentry_url())
 
+    def _format_breadcrumbs(self, event: Optional[Dict]):
+        """ Format breadcrumbs in the event:
+            - Remove duplicates
+            - Order by timestamp
+        """
+        try:
+            if breadcrumbs := event.get(BREADCRUMBS):
+                breadcrumbs_values = breadcrumbs[VALUES]
+                breadcrumbs_values = distinct_by(breadcrumbs_values, getter=lambda b: (b["timestamp"], b["message"]))
+                breadcrumbs_values = order_by_utc_time(breadcrumbs_values)
+
+                event[BREADCRUMBS][VALUES] = breadcrumbs_values
+        except Exception as e:
+            self._logger.exception(e)
+
     def _before_send(self, event: Optional[Dict], hint: Optional[Dict]) -> Optional[Dict]:
         """The method that is called before each send. Both allowed and
         disallowed.
@@ -386,12 +401,8 @@ class SentryReporter:
         if self.scrubber:
             event = self.scrubber.scrub_event(event)
 
-        # order breadcrumbs by timestamp in ascending order
-        if breadcrumbs := event.get(BREADCRUMBS):
-            try:
-                event[BREADCRUMBS][VALUES] = order_by_utc_time(breadcrumbs[VALUES])
-            except Exception as e:
-                self._logger.exception(e)
+        self._format_breadcrumbs(event)
+
         return event
 
     # pylint: disable=unused-argument
