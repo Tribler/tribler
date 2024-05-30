@@ -7,7 +7,6 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import AutoMockEndpoint
-from multidict import MultiDict, MultiDictProxy
 
 from tribler.core.content_discovery.community import ContentDiscoveryCommunity
 from tribler.core.content_discovery.restapi.search_endpoint import SearchEndpoint
@@ -51,18 +50,6 @@ class TestSearchEndpoint(TestBase):
     Tests for the SearchEndpoint REST endpoint.
     """
 
-    def test_sanitize(self) -> None:
-        """
-        Test if parameters are properly sanitized.
-        """
-        soiled = MultiDictProxy(MultiDict({"max_rowid": "42", "channel_pk": "AAAA", "origin_id": "1337"}))
-
-        sanitized = SearchEndpoint.sanitize_parameters(soiled)
-
-        self.assertEqual(42, sanitized["max_rowid"])
-        self.assertEqual(b"\xaa\xaa", sanitized["channel_pk"])
-        self.assertEqual(1337, sanitized["origin_id"])
-
     async def test_remote_search_bad_request(self) -> None:
         """
         Test if a bad request returns the bad request status.
@@ -79,7 +66,7 @@ class TestSearchEndpoint(TestBase):
         """
         endpoint = SearchEndpoint(MockContentDiscoveryCommunity())
 
-        response = await endpoint.remote_search(SearchRequest({"channel_pk": "AA"}))
+        response = await endpoint.remote_search(SearchRequest({"channel_pk": "AA", "fts_text": ""}))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)

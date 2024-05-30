@@ -82,13 +82,14 @@ class DownloadsPage(QWidget):
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
         connect(self.window().downloads_tab.clicked_tab_button, self.on_downloads_tab_button_clicked)
-
         connect(self.window().start_download_button.clicked, self.on_start_download_clicked)
         connect(self.window().stop_download_button.clicked, self.on_stop_download_clicked)
         connect(self.window().remove_download_button.clicked, self.on_remove_download_clicked)
-
+        connect(self.window().downloads_list.header().sectionResized, self.on_header_change)
+        connect(self.window().downloads_list.header().sortIndicatorChanged, self.on_header_change)
+        self.window().downloads_list.header().setContextMenuPolicy(Qt.CustomContextMenu)
+        connect(self.window().downloads_list.header().customContextMenuRequested, self.on_header_right_click_item)
         connect(self.window().downloads_list.itemSelectionChanged, self.on_selection_change)
-
         connect(self.window().downloads_list.customContextMenuRequested, self.on_right_click_item)
 
         self.window().download_details_widget.initialize_details_widget()
@@ -96,11 +97,23 @@ class DownloadsPage(QWidget):
 
         connect(self.window().downloads_filter_input.textChanged, self.on_filter_text_changed)
 
-        self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
-        self.window().downloads_list.header().resizeSection(12, 146)
+        state = self.window().gui_settings.value("downloads_header_state", None)
+        if state is None:
+            self.window().downloads_list.header().resizeSection(12, 146)
+            self.window().downloads_list.header().setSortIndicator(12, Qt.AscendingOrder)
+        else:
+            self.window().downloads_list.header().restoreState(state)
 
         self.background_refresh_downloads_timer.setSingleShot(True)
         connect(self.background_refresh_downloads_timer.timeout, self.on_background_refresh_downloads_timer)
+
+    def on_header_change(self, *args, **kwargs):
+        gui_settings = self.window().gui_settings
+        if gui_settings.value("downloads_header_state", None) is not None:
+            gui_settings.setValue(
+                "downloads_header_state",
+                self.window().downloads_list.header().saveState()
+            )
 
     def on_filter_text_changed(self, text):
         self.window().downloads_list.clearSelection()
@@ -536,6 +549,28 @@ class DownloadsPage(QWidget):
             self.window().tray_show_message(
                 tr("Torrent file exported"), tr("Torrent file exported to %s") % str(dest_path)
             )
+
+    def show_all_headers(self, _=None):
+        for i in range(self.window().downloads_list.header().count()):
+            self.window().downloads_list.header().showSection(i)
+
+    def on_header_right_click_item(self, pos):
+        index = self.window().downloads_list.header().logicalIndexAt(pos)
+
+        menu = TriblerActionMenu(self)
+        if index > 0:  # Do not show hide action on first column
+            hide_action = QAction("Hide Column", self)
+            connect(
+                hide_action.triggered,
+                lambda _: self.window().downloads_list.header().hideSection(index)
+            )
+            menu.addAction(hide_action)
+
+        restore_action = QAction("Restore All", self)
+        connect(restore_action.triggered, self.show_all_headers)
+        menu.addAction(restore_action)
+
+        menu.exec_(self.window().downloads_list.mapToGlobal(pos))
 
     def on_right_click_item(self, pos):
         item_clicked = self.window().downloads_list.itemAt(pos)

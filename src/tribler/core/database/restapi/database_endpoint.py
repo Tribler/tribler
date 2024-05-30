@@ -13,6 +13,7 @@ from pony.orm import db_session
 from typing_extensions import Self
 
 from tribler.core.database.layers.knowledge import ResourceType
+from tribler.core.database.queries import to_fts_query
 from tribler.core.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.notifier import Notification
@@ -108,10 +109,10 @@ class DatabaseEndpoint(RESTEndpoint):
             "last": int(parameters.get("last", 50)),
             "sort_by": json2pony_columns.get(parameters.get("sort_by", "")),
             "sort_desc": parse_bool(parameters.get("sort_desc", "true")),
-            "txt_filter": parameters.get("txt_filter"),
             "hide_xxx": parse_bool(parameters.get("hide_xxx", "false")),
             "category": parameters.get("category"),
         }
+
         if "tags" in parameters:
             sanitized["tags"] = parameters.getall("tags")
         if "max_rowid" in parameters:
@@ -221,6 +222,8 @@ class DatabaseEndpoint(RESTEndpoint):
         sanitized = self.sanitize_parameters(request.query)
         sanitized["metadata_type"] = REGULAR_TORRENT
         sanitized["popular"] = True
+        if t_filter := request.query.get("filter"):
+            sanitized["txt_filter"] = t_filter
 
         with db_session:
             contents_list = [entry.to_simple_dict() for entry in self.mds.get_entries(**sanitized)]
@@ -254,7 +257,7 @@ class DatabaseEndpoint(RESTEndpoint):
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def local_search(self, request: Request) -> RESTResponse:
+    async def local_search(self, request: Request) -> RESTResponse:  # noqa: C901
         """
         Perform a search for a given query.
         """
@@ -268,6 +271,15 @@ class DatabaseEndpoint(RESTEndpoint):
             return RESTResponse({"error": "Tribler DB not initialized"}, status=HTTP_NOT_FOUND)
 
         include_total = request.query.get("include_total", "")
+        query = request.query.get("fts_text")
+        if query is None:
+            return RESTResponse({"error": f"Got search with no fts_text: {dict(request.query)}"},
+                                status=HTTP_BAD_REQUEST)
+        if t_filter := request.query.get("filter"):
+            query += f" {t_filter}"
+        fts = to_fts_query(query)
+        sanitized["txt_filter"] = fts
+        self._logger.info("FTS: %s", fts)
 
         mds: MetadataStore = self.mds
 

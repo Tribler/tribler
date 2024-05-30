@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import inspect
 import json
@@ -29,6 +31,8 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 import tribler.gui
 from tribler.core.database.layers.knowledge import ResourceType
 from tribler.gui.defs import CORRUPTED_DB_WAS_FIXED_MESSAGE, HEALTH_DEAD, HEALTH_GOOD, HEALTH_MOOT, HEALTH_UNCHECKED
+
+INVALID_URLS = {"[DHT]", "[PeX]"}
 
 # fmt: off
 
@@ -354,24 +358,31 @@ def get_health(seeders, leechers, last_tracker_check):
         return HEALTH_DEAD
 
 
-def compose_magnetlink(infohash, name=None, trackers=None):
+def compose_magnetlink(infohash: str | None, name: str | None = None, trackers: list[dict] | None = None) -> str:
     """
     Composes magnet link from infohash, display name and trackers. The format is:
         magnet:?xt=urn:btih:<infohash>&dn=<name>[&tr=<tracker>]
     There could be multiple trackers so 'tr' field could be repeated.
+
     :param infohash: Infohash
     :param name: Display name
     :param trackers: Trackers
     :return: Magnet link
     """
     if not infohash:
-        return ''
+        return ""
     magnet = f"magnet:?xt=urn:btih:{infohash}"
     if name:
         magnet = f"{magnet}&dn={quote_plus_unicode(name)}"
-    if trackers and isinstance(trackers, list):
-        for tracker in trackers:
-            magnet = f"{magnet}&tr={tracker}"
+
+    if not trackers:
+        return magnet
+
+    urls = (t.get("url") for t in trackers)
+    valid_urls = [u for u in urls if u and u not in INVALID_URLS]
+
+    for url in valid_urls:
+        magnet = f"{magnet}&tr={url}"
     return magnet
 
 
@@ -379,6 +390,11 @@ def copy_to_clipboard(message):
     cb = QApplication.clipboard()
     cb.clear(mode=cb.Clipboard)
     cb.setText(message, mode=cb.Clipboard)
+
+
+def get_clipboard_text():
+    cb = QApplication.clipboard()
+    return cb.text(mode=cb.Clipboard)
 
 
 def html_label(text, background="#e4e4e4", color="#222222", bold=True):

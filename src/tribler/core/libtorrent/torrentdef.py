@@ -505,7 +505,7 @@ class TorrentDef:
 
         return ""
 
-    def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901, PLR0912
+    def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901
         """
         Get a generator for files in the torrent def. No filtering is possible and all tricks are allowed to obtain
         a unicode list of filenames.
