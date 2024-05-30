@@ -3,8 +3,7 @@ simplify work with several data structures.
 """
 import re
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 from faker import Faker
 
@@ -57,39 +56,32 @@ def modify_value(d, key, function):
     return d
 
 
-def distinct_by(list_of_dict, key):
+T = TypeVar('T')
+
+
+def distinct_by(items: Optional[List[T]], getter: Callable[[T], Any]) -> Optional[List[T]]:
     """This function removes all duplicates from a list of dictionaries. A duplicate
     here is a dictionary that have the same value of the given key.
 
-    If no key field is presented in the item, then the item will not be considered
-    as a duplicate.
+    If no key field is presented in the dictionary, then the exception will be raised.
 
     Args:
-        list_of_dict: list of dictionaries
-        key: a field key that will be used for items comparison
+        items: list of dictionaries
+        getter: function that returns a key for the comparison
 
     Returns:
         Array of distinct items
     """
 
-    if not list_of_dict or not key:
-        return list_of_dict
+    if not items:
+        return items
 
-    values_viewed = set()
-    result = []
-
-    for item in list_of_dict:
-        value = get_value(item, key, None)
-        if value is None:
-            result.append(item)
-            continue
-
-        if value not in values_viewed:
-            result.append(item)
-
-        values_viewed.add(value)
-
-    return result
+    distinct = {}
+    for item in items:
+        key = getter(item)
+        if key not in distinct:
+            distinct[key] = item
+    return list(distinct.values())
 
 
 def format_version(version: Optional[str]) -> Optional[str]:
@@ -124,11 +116,12 @@ def obfuscate_string(s: str, part_of_speech: str = 'noun') -> str:
     return faker.word(part_of_speech=part_of_speech)
 
 
-def order_by_utc_time(breadcrumbs: Optional[List[Dict]]):
+def order_by_utc_time(breadcrumbs: Optional[List[Dict]], key: str = 'timestamp'):
     """ Order breadcrumbs by timestamp in ascending order.
 
     Args:
         breadcrumbs: List of breadcrumbs
+        key: Field name that will be used for sorting
 
     Returns:
         Ordered list of breadcrumbs
@@ -136,4 +129,4 @@ def order_by_utc_time(breadcrumbs: Optional[List[Dict]]):
     if not breadcrumbs:
         return breadcrumbs
 
-    return list(sorted(breadcrumbs, key=lambda breadcrumb: breadcrumb["timestamp"]))
+    return list(sorted(breadcrumbs, key=lambda breadcrumb: breadcrumb[key]))

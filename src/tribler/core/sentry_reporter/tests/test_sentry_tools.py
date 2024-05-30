@@ -64,17 +64,41 @@ def test_safe_get():
     assert get_value({'key': 'value'}, 'key1', {}) == {}
 
 
+def test_distinct_none():
+    # Test distinct_by with None
+    assert distinct_by(None, lambda b: (b["timestamp"], b["message"])) is None
+
+
 def test_distinct():
-    assert distinct_by(None, None) is None
-    assert distinct_by([], None) == []
-    assert distinct_by([{'key': 'b'}, {'key': 'b'}, {'key': 'c'}, {'': ''}], 'key') == [
-        {'key': 'b'},
-        {'key': 'c'},
-        {'': ''},
+    # Test distinct_by with default getter
+    values = [
+        {'message': 'message 1', 'timestamp': 'timestamp 1', 'id': '1'},
+        {'message': 'message 1', 'timestamp': 'timestamp 1', 'id': '2'},
+        {'message': 'message 2', 'timestamp': 'timestamp 2', 'id': '3'}
     ]
 
-    # test nested
-    assert distinct_by([{'a': {}}], 'b') == [{'a': {}}]
+    expected = [
+        {'message': 'message 1', 'timestamp': 'timestamp 1', 'id': '1'},
+        {'message': 'message 2', 'timestamp': 'timestamp 2', 'id': '3'}
+    ]
+    assert distinct_by(values, lambda b: (b["timestamp"], b["message"])) == expected
+
+
+def test_distinct_key_error():
+    # Test distinct_by with missing key in getter
+    values = [
+        {'message': 'message 1', },
+    ]
+    with pytest.raises(KeyError):
+        distinct_by(values, lambda b: (b["timestamp"], b["message"]))
+
+
+
+def test_distinct_none_in_list():
+    # Test distinct_by with None in list
+    values = [None]
+    with pytest.raises(TypeError):
+        distinct_by(values, lambda b: (b["timestamp"], b["message"]))
 
 
 FORMATTED_VERSIONS = [
