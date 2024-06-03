@@ -240,7 +240,6 @@ class TriblerWindow(QMainWindow):
         self.tribler_core_test_exception_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+C"), self)
         connect(self.tribler_core_test_exception_shortcut.activated, self.on_test_tribler_core_exception)
 
-        connect(self.top_search_bar.clicked, self.clicked_search_bar)
         connect(self.top_search_bar.returnPressed, self.on_top_search_bar_return_pressed)
 
         # Remove the focus rect on OS X
@@ -851,12 +850,6 @@ class TriblerWindow(QMainWindow):
                 continue
             button.setEnabled(True)
             button.setChecked(False)
-
-    def clicked_search_bar(self, checked=False):
-        query = self.top_search_bar.text()
-        if query and self.search_results_page.has_results:
-            self.deselect_all_menu_buttons()
-            self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
 
     def on_top_search_bar_return_pressed(self):
         query_text = self.top_search_bar.text()
