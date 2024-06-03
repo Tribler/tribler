@@ -1,0 +1,33 @@
+name: Main Branch Unit Test Status
+on:
+  push:
+    branches:
+      - highlander
+  schedule:
+    - cron: "30 6 * * 1,3,5"   # Mon, Wed, Fri @ 6:30 UTC
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - uses: actions/cache/restore@v4
+        id: restore_cache
+        with:
+          path: libsodium.dll
+          key: cache_libsodium_dll
+      - run: python -m pip install -r requirements.txt
+      - name: Run unit tests
+        run: |
+          cd src
+          python run_unit_tests.py -a
+      - uses: actions/cache/save@v4
+        if: always()  # Even if the tests fail or the job is cancelled, the cache should be refreshed
+        with:
+          path: libsodium.dll
+          key: cache_libsodium_dll
