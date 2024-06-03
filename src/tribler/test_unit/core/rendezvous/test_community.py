@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import socket
 from typing import TYPE_CHECKING
 
@@ -55,7 +56,8 @@ class TestUserActivityCommunity(TestBase[RendezvousCommunity]):
         payload, = received
 
         self.assertEqual(self.key_bin(0), payload.public_key)
-        self.assertEqual(socket.inet_pton(socket.AF_INET, self.address(0)[0]), payload.ip)
+        self.assertEqual(socket.inet_pton(socket.AF_INET6 if int(os.environ.get("TEST_IPV8_WITH_IPV6", "0"))
+                                          else socket.AF_INET, self.address(0)[0]), payload.ip)
         self.assertEqual(self.address(0)[1], payload.port)
         self.assertEqual(0.0, payload.start)
         self.assertEqual(10.0, payload.stop)

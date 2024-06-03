@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import os
 import sys
 from binascii import hexlify
 from typing import TYPE_CHECKING, cast
+from unittest import skipIf
 from unittest.mock import AsyncMock, Mock
 
-from ipv8.messaging.payload import IntroductionRequestPayload
+from ipv8.messaging.payload import IntroductionRequestPayload, NewIntroductionRequestPayload
 from ipv8.test.base import TestBase
+from ipv8.test.mocking.endpoint import MockEndpointListener
 
 from tribler.core.content_discovery.community import ContentDiscoveryCommunity, ContentDiscoverySettings
 from tribler.core.content_discovery.payload import (
@@ -306,13 +309,35 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
 
         self.assertEqual(0, len(results))
 
+    @skipIf(int(os.environ.get("TEST_IPV8_WITH_IPV6", "0")), "IPv4-only test")
     async def test_ping(self) -> None:
         """
         Test if the keep-alive message works.
+
+        Note: assertReceivedBy is illegal here because a ping is a GlobalTimeDistribution + IntroductionRequest!
         """
-        with self.assertReceivedBy(1, [IntroductionRequestPayload]):
-            self.overlay(0).send_ping(self.peer(1))
-            await self.deliver_messages()
+        ep_listener = MockEndpointListener(self.endpoint(1))
+
+        self.overlay(0).send_ping(self.peer(1))
+        await self.deliver_messages()
+
+        self.assertEqual(1, len(ep_listener.received_packets))
+        self.assertEqual(IntroductionRequestPayload.msg_id, ep_listener.received_packets[0][1][22])
+
+    @skipIf(not int(os.environ.get("TEST_IPV8_WITH_IPV6", "0")), "IPv6-only test")
+    async def test_ping_ipv6(self) -> None:
+        """
+        Test if the keep-alive message works when dealing with IPv6 addresses.
+
+        Note: assertReceivedBy is illegal here because a ping is a GlobalTimeDistribution + NewIntroductionRequest!
+        """
+        ep_listener = MockEndpointListener(self.endpoint(1))
+
+        self.overlay(0).send_ping(self.peer(1))
+        await self.deliver_messages()
+
+        self.assertEqual(1, len(ep_listener.received_packets))
+        self.assertEqual(NewIntroductionRequestPayload.msg_id, ep_listener.received_packets[0][1][22])
 
     async def test_deprecated_popular_torrents_request_no_live(self) -> None:
         """
