@@ -36,11 +36,6 @@ jobs:
         run: |
           cd src
           python run_unit_tests.py -a
-      - uses: actions/cache/save@v4
-        if: steps.restore_cache.outputs.cache-hit != 'true'
-        with:
-          path: libsodium.dll
-          key: cache_libsodium_dll
   macos:
     runs-on: macos-12
     timeout-minutes: 2
