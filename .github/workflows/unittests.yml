@@ -29,7 +29,7 @@ jobs:
       - uses: actions/cache/restore@v4
         id: restore_cache
         with:
-          path: libsodium.dll
+          path: src/libsodium.dll
           key: cache_libsodium_dll
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests
