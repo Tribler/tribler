@@ -27,7 +27,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         id: restore_cache
         with:
-          path: libsodium.dll
+          path: src/libsodium.dll
           key: cache_libsodium_dll
       - run: python -m pip install -r requirements.txt
       - run: |
@@ -40,12 +40,6 @@ jobs:
           python run_unit_tests.py -a
         env:
           TEST_IPV8_WITH_IPV6: 1
-      - uses: actions/cache/save@v4
-        if: matrix.os == 'windows-latest'
-        id: save_cache
-        with:
-          path: libsodium.dll
-          key: cache_libsodium_dll
 
   set_pending_status:
     if: ${{github.event.issue.pull_request && startsWith(github.event.comment.body, 'validate') }}
