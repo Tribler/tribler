@@ -110,5 +110,5 @@ class XXXFilter:
         return s[s.rfind('.') + 1:] in self.audio_extensions
 
 
-# XXX filter should be stateless
+# filter should be stateless
 default_xxx_filter = XXXFilter()

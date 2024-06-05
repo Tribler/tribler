@@ -6,11 +6,9 @@ from typing import List, Tuple
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
-from ipv8.messaging.serialization import VarLenUtf8, default_serializer
+from ipv8.messaging.serialization import default_serializer
 
 from tribler.core.utilities.unicode import hexlify
-
-default_serializer.add_packer('varlenIutf8', VarLenUtf8('>I'))  # TODO: move to IPv8
 
 EPOCH = datetime(1970, 1, 1)
 

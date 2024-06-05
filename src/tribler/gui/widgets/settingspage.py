@@ -482,10 +482,6 @@ class SettingsPage(AddBreadcrumbOnShowMixin, QWidget):
         # network statistics
         settings_data['ipv8']['statistics'] = self.window().checkbox_enable_network_statistics.isChecked()
 
-        # TODO: do it in RESTful style, on the REST return JSON instead
-        # In case the default save dir has changed, add it to the top of the list of last download locations.
-        # Otherwise, the user could absentmindedly click through the download dialog and start downloading into
-        # the last used download dir, and not into the newly designated default download dir.
         if self.settings['download_defaults']['saveas'] != settings_data['download_defaults']['saveas']:
             self.window().update_recent_download_locations(settings_data['download_defaults']['saveas'])
         self.settings = settings_data

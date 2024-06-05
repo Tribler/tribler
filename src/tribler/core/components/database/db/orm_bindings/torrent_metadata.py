@@ -46,7 +46,6 @@ def tdef_to_metadata_dict(tdef, category_filter: Category = None) -> Dict:
     """
     Helper function to create a TorrentMetadata-compatible dict from TorrentDef
     """
-    # We only want to determine the type of the data. XXX filtering is done by the receiving side
     category_filter = category_filter or default_category_filter
     try:
         tags = category_filter.calculateCategory(tdef.metainfo, tdef.get_name_as_unicode())

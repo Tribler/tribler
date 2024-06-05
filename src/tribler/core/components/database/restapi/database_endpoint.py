@@ -322,6 +322,5 @@ class DatabaseEndpoint(RESTEndpoint):
             return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
 
         keywords = args['q'].strip().lower()
-        # TODO: add XXX filtering for completion terms
         results = self.mds.get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})
