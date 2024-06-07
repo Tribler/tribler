@@ -1,4 +1,4 @@
-from unittest.mock import Mock, call
+from unittest.mock import AsyncMock, Mock, call
 
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import MockEndpointListener
@@ -31,8 +31,8 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         """
         Test if valid aggregates are gossiped to a random connected peer.
         """
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
         self.database_manager(0).get_random_query_aggregate = Mock(return_value=(
             "test", [b"\x00" * 20, b"\x01" * 20], [1.0, 2.0]
         ))
@@ -54,8 +54,8 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         """
         Test if missing aggregates are not gossiped.
         """
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
         self.database_manager(0).get_random_query_aggregate = Mock(return_value=None)
 
         with self.assertReceivedBy(1, []):
@@ -67,9 +67,9 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         Test if gossip can be sent to a target peer.
         """
         self.add_node_to_experiment(self.create_node())
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
-        self.overlay(2).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
+        self.overlay(2).composition.manager = AsyncMock()
         self.database_manager(0).get_random_query_aggregate = Mock(return_value=(
             "test", [b"\x00" * 20, b"\x01" * 20], [1.0, 2.0]
         ))
@@ -91,8 +91,8 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         """
         Test if a known crawler is allowed to crawl.
         """
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
         self.overlay(1).composition.crawler_mid = self.mid(0)
         self.database_manager(1).get_random_query_aggregate = Mock(return_value=(
             "test", [b"\x00" * 20, b"\x01" * 20], [1.0, 2.0]
@@ -112,8 +112,8 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         """
         Test if an unknown crawler does not receive any information.
         """
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
         self.overlay(1).composition.crawler_mid = bytes(b ^ 255 for b in self.mid(0))
         self.database_manager(1).get_random_query_aggregate = Mock(return_value=(
             "test", [b"\x00" * 20, b"\x01" * 20], [1.0, 2.0]
@@ -128,9 +128,9 @@ class TestUserActivityCommunity(TestBase[UserActivityCommunity]):
         Test if an unknown crawler does not receive any information.
         """
         self.add_node_to_experiment(self.create_node())
-        self.overlay(0).composition.manager = Mock()
-        self.overlay(1).composition.manager = Mock()
-        self.overlay(2).composition.manager = Mock()
+        self.overlay(0).composition.manager = AsyncMock()
+        self.overlay(1).composition.manager = AsyncMock()
+        self.overlay(2).composition.manager = AsyncMock()
         self.overlay(1).composition.crawler_mid = self.mid(0)
         self.overlay(2).composition.crawler_mid = self.mid(0)
         self.database_manager(1).get_random_query_aggregate = Mock(return_value=(
