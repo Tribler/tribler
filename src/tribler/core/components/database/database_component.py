@@ -10,7 +10,7 @@ class DatabaseComponent(Component):
     tribler_should_stop_on_component_error = True
 
     db: TriblerDatabase = None
-    mds: MetadataStore = None  # TODO: legacy, should be merged into ``db``
+    mds: MetadataStore = None
 
     async def run(self):
         await super().run()
@@ -21,8 +21,6 @@ class DatabaseComponent(Component):
             db_path = ":memory:"
 
         self.db = TriblerDatabase(str(db_path))
-
-        # TODO: merge the code below into the TriblerDatabase
 
         channels_dir = config.chant.get_path_as_absolute('channels_dir', config.state_dir)
         chant_testnet = config.general.testnet or config.chant.testnet

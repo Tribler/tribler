@@ -140,7 +140,6 @@ class TriblerButtonsDelegate(QStyledItemDelegate):
         self.hovering_over_tag_edit_button: bool = False
         self.hovering_over_download_popular_torrent_button: int = -1
 
-        # TODO: restore this behavior, so there is really some tolerance zone!
         # We have to control if mouse is in the buttons box to add some tolerance for vertical mouse
         # misplacement around the buttons. The button box effectively overlaps upper and lower rows.
         #   row 0
@@ -566,7 +565,6 @@ class TriblerContentDelegate(
     SnippetCreatedColumnMixin,
 ):
     def __init__(self, table_view, parent=None):
-        # TODO: refactor this not to rely on inheritance order, but instead use interface method pattern
         TriblerButtonsDelegate.__init__(self, parent)
 
         self.download_button = DownloadIconButton()

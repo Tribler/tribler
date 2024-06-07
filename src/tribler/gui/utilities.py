@@ -401,8 +401,6 @@ def html_label(text, background="#e4e4e4", color="#222222", bold=True):
 
 def votes_count(votes=0.0):
     votes = float(votes)
-    # FIXME: this is a temp fix to cap the normalized value to 1.
-    #  The votes should already be normalized before formatting it.
     votes = max(0.0, min(votes, 1.0))
     # We add sqrt to flatten the votes curve a bit
     votes = math.sqrt(votes)

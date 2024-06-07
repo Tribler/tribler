@@ -92,7 +92,6 @@ class DownloadManager(TaskManager):
 
         self.socks_listen_ports = socks_listen_ports
 
-        # TODO: Remove the dependency on notifier and refactor it to instead use callbacks injection
         self.notifier = notifier
         self.peer_mid = peer_mid
         self.config = config or LibtorrentSettings()
@@ -864,7 +863,6 @@ class DownloadManager(TaskManager):
         """
         This method is periodically (every second) called with a list of the download states of the active downloads.
         """
-        # TODO: refactor this method. It is too long and tightly coupled with higher-level modules.
         self.state_cb_count += 1
 
         for ds in states_list:
