@@ -40,6 +40,8 @@ if __name__ == "__main__":
                         help="Don't animate the terminal output.")
     parser.add_argument("-d", "--nodownload", action="store_true", required=False,
                         help="Don't attempt to download missing dependencies.")
+    parser.add_argument("-k", "--pattern", type=str, default="tribler/test_unit", required=False,
+                        help="The unit test directory.")
     args = parser.parse_args()
 
     if platform.system() == "Windows" and windows_missing_libsodium() and not args.nodownload:
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         os.add_dll_directory(str(pathlib.Path("libsodium.dll").absolute().parent))
 
     process_count = args.processes
-    test_class_names = find_all_test_class_names(pathlib.Path("tribler/test_unit"))
+    test_class_names = find_all_test_class_names(pathlib.Path(args.pattern))
 
     total_start_time = time.time()
     total_end_time = time.time()

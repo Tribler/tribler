@@ -113,7 +113,7 @@ class RESTManager:
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.root_endpoint = RootEndpoint()
+        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), error_middleware))
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
         self.site_https: web.TCPSite | None = None
