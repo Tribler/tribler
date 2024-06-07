@@ -97,34 +97,36 @@ class Session:
         """
         Register all IPv8 launchers that allow communities to be loaded.
         """
-        self.loader.set_launcher(ContentDiscoveryComponent())
-        self.loader.set_launcher(DatabaseComponent())
-        self.loader.set_launcher(DHTDiscoveryComponent())
-        self.loader.set_launcher(KnowledgeComponent())
-        self.loader.set_launcher(RendezvousComponent())
-        self.loader.set_launcher(TorrentCheckerComponent())
-        self.loader.set_launcher(TunnelComponent())
+        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
+                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent]:
+            instance = launcher_class()
+            for rest_ep in instance.get_endpoints():
+                self.rest_manager.add_endpoint(rest_ep)
+            self.loader.set_launcher(instance)
 
     def register_rest_endpoints(self) -> None:
         """
-        Register all REST endpoints without initializing them.
+        Register all core REST endpoints without initializing them.
         """
         self.rest_manager.add_endpoint(CreateTorrentEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(DownloadsEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(EventsEndpoint(self.notifier))
-        self.rest_manager.add_endpoint(IPv8RootEndpoint()).initialize(self.ipv8)
+        self.rest_manager.add_endpoint(IPv8RootEndpoint())
         self.rest_manager.add_endpoint(LibTorrentEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(SettingsEndpoint(self.config))
         self.rest_manager.add_endpoint(ShutdownEndpoint(self.shutdown_event.set))
-        self.rest_manager.add_endpoint(StatisticsEndpoint(self.ipv8))
+        self.rest_manager.add_endpoint(StatisticsEndpoint())
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))
 
     async def start(self) -> None:
         """
         Initialize and launch all components and REST endpoints.
         """
-        # REST (1/2)
         self.register_rest_endpoints()
+        self.register_launchers()
+
+        # REST (1/2)
+        await self.rest_manager.start()
 
         # Libtorrent
         for server in self.socks_servers:
@@ -134,14 +136,14 @@ class Session:
         self.download_manager.start()
 
         # IPv8
-        self.register_launchers()
         self.loader.load(self.ipv8, self)
         await self.ipv8.start()
 
         # REST (2/2)
+        self.rest_manager.get_endpoint("/ipv8").initialize(self.ipv8)
+        self.rest_manager.get_endpoint("/statistics").ipv8 = self.ipv8
         if self.config.get("statistics"):
             self.rest_manager.get_endpoint("/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
-        await self.rest_manager.start()
 
     async def shutdown(self) -> None:
         """

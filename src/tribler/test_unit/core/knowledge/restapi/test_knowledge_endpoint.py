@@ -8,6 +8,7 @@ from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import AutoMockEndpoint
 
 from tribler.core.database.layers.knowledge import ResourceType
+from tribler.core.database.tribler_database import TriblerDatabase
 from tribler.core.knowledge.community import KnowledgeCommunity, KnowledgeCommunitySettings
 from tribler.core.knowledge.payload import StatementOperation
 from tribler.core.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
@@ -40,12 +41,13 @@ class UpdateKnowledgeEntriesRequest(MockRequest):
     A MockRequest that mimics UpdateKnowledgeEntriesRequests.
     """
 
-    def __init__(self, query: dict, infohash: str) -> None:
+    def __init__(self, query: dict, infohash: str, db: TriblerDatabase) -> None:
         """
         Create a new UpdateKnowledgeEntriesRequest.
         """
         super().__init__(query, "PATCH", f"/knowledge/{infohash}")
         self._infohash = infohash
+        self.context = [db]
 
     async def json(self) -> dict:
         """
@@ -66,12 +68,13 @@ class GetTagSuggestionsRequest(MockRequest):
     A MockRequest that mimics GetTagSuggestionsRequests.
     """
 
-    def __init__(self, infohash: str) -> None:
+    def __init__(self, infohash: str, db: TriblerDatabase) -> None:
         """
         Create a new GetTagSuggestionsRequest.
         """
         super().__init__({}, "GET", f"/knowledge/{infohash}/tag_suggestions")
         self._infohash = infohash
+        self.context = [db]
 
     @property
     def match_info(self) -> UrlMappingMatchInfo:
@@ -99,7 +102,9 @@ class TestKnowledgeEndpoint(TestBase):
             key=key,
             db=Mock()
         )
-        self.endpoint = KnowledgeEndpoint(settings.db, MockCommunity(settings))
+        self.endpoint = KnowledgeEndpoint()
+        self.endpoint.db = settings.db
+        self.endpoint.community = MockCommunity(settings)
 
     def tag_to_statement(self, tag: str) -> dict:
         """
@@ -113,7 +118,8 @@ class TestKnowledgeEndpoint(TestBase):
         """
         post_data = {"knowledge": [self.tag_to_statement("abc"), self.tag_to_statement("def")]}
 
-        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "3f3"))
+        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "3f3",
+                                                                                              self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
@@ -125,7 +131,8 @@ class TestKnowledgeEndpoint(TestBase):
         """
         post_data = {"statements": [self.tag_to_statement("a")]}
 
-        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40))
+        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40,
+                                                                                              self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
@@ -137,7 +144,8 @@ class TestKnowledgeEndpoint(TestBase):
         """
         post_data = {"statements": [self.tag_to_statement("a" * 60)]}
 
-        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40))
+        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40,
+                                                                                              self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
@@ -151,7 +159,8 @@ class TestKnowledgeEndpoint(TestBase):
         self.endpoint.db.knowledge.get_statements = Mock(return_value=[])
         self.endpoint.db.knowledge.get_clock = Mock(return_value=0)
 
-        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40))
+        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40,
+                                                                                              self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -166,7 +175,8 @@ class TestKnowledgeEndpoint(TestBase):
         self.endpoint.db.knowledge.get_statements = Mock(return_value=[])
         self.endpoint.db.knowledge.get_clock = Mock(return_value=0)
 
-        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40))
+        response = await self.endpoint.update_knowledge_entries(UpdateKnowledgeEntriesRequest(post_data, "a" * 40,
+                                                                                              self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -176,7 +186,7 @@ class TestKnowledgeEndpoint(TestBase):
         """
         Test if an error is returned if we fetch suggestions from content with an invalid infohash.
         """
-        response = await self.endpoint.get_tag_suggestions(GetTagSuggestionsRequest("3f3"))
+        response = await self.endpoint.get_tag_suggestions(GetTagSuggestionsRequest("3f3", self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
@@ -188,7 +198,7 @@ class TestKnowledgeEndpoint(TestBase):
         """
         self.endpoint.db.knowledge.get_suggestions = Mock(return_value=["test"])
 
-        response = await self.endpoint.get_tag_suggestions(GetTagSuggestionsRequest("a" * 40))
+        response = await self.endpoint.get_tag_suggestions(GetTagSuggestionsRequest("a" * 40, self.endpoint.db))
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)

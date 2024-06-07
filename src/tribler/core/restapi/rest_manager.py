@@ -5,7 +5,7 @@ import ssl
 import traceback
 from asyncio.base_events import Server
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Callable, TypeVar, cast
+from typing import TYPE_CHECKING, Awaitable, Callable, Generic, TypeVar, cast
 
 from aiohttp import web
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
@@ -26,6 +26,15 @@ if TYPE_CHECKING:
     from aiohttp.abc import Request
 
     from tribler.tribler_config import TriblerConfigManager
+
+    ComponentsType = TypeVar("ComponentsType", bound=tuple[type])
+
+    class TriblerRequest(Request, Generic[ComponentsType]):
+        """
+        A request that guarantees that the given components are not None in its ``context`` attribute.
+        """
+
+        context: ComponentsType
 
 logger = logging.getLogger(__name__)
 RESTEndpointType = TypeVar("RESTEndpointType", bound=RESTEndpoint)
@@ -102,6 +111,26 @@ async def error_middleware(request: Request, handler: Callable[[Request], Awaita
     return response
 
 
+@web.middleware
+async def required_components_middleware(request: Request,
+                                         handler: Callable[[Request], Awaitable[RESTResponse]]) -> RESTResponse:
+    """
+    Read a handler's required components and return HTTP_NOT_FOUND if they have not been set (yet).
+    """
+    source_handler = handler
+    while hasattr(source_handler, "__wrapped__"):
+        source_handler = source_handler.__wrapped__
+    if hasattr(source_handler, "__self__") and hasattr(source_handler.__self__, "required_components"):
+        comps = [getattr(source_handler.__self__, name) for name in source_handler.__self__.required_components]
+        if any(comp is None for comp in comps):
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": f"Required components not initialized to serve {request.path}"
+            }}, status=HTTP_NOT_FOUND)
+        request.context = comps
+    return await handler(request)
+
+
 class RESTManager:
     """
     This class is responsible for managing the startup and closing of the Tribler HTTP API.
@@ -113,7 +142,8 @@ class RESTManager:
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), error_middleware))
+        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), error_middleware,
+                                                       required_components_middleware))
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
         self.site_https: web.TCPSite | None = None

@@ -43,6 +43,7 @@ class SearchRequest(MockRequest):
         Create a new SearchRequest.
         """
         super().__init__(query, "PUT", "/search/remote")
+        self.context = [MockContentDiscoveryCommunity()]
 
 
 class TestSearchEndpoint(TestBase):
@@ -54,7 +55,7 @@ class TestSearchEndpoint(TestBase):
         """
         Test if a bad request returns the bad request status.
         """
-        endpoint = SearchEndpoint(MockContentDiscoveryCommunity())
+        endpoint = SearchEndpoint()
 
         response = await endpoint.remote_search(SearchRequest({"channel_pk": "GG"}))
 
@@ -64,7 +65,7 @@ class TestSearchEndpoint(TestBase):
         """
         Test if a good search request returns a dict with the UUID and serving peers.
         """
-        endpoint = SearchEndpoint(MockContentDiscoveryCommunity())
+        endpoint = SearchEndpoint()
 
         response = await endpoint.remote_search(SearchRequest({"channel_pk": "AA", "fts_text": ""}))
         response_body_json = await response_to_json(response)

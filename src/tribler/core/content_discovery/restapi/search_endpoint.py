@@ -7,6 +7,7 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, List, String
+from typing_extensions import TypeAlias
 
 from tribler.core.database.queries import to_fts_query
 from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
@@ -14,9 +15,10 @@ from tribler.core.database.restapi.schema import MetadataParameters
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from aiohttp.abc import Request
-
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
+    from tribler.core.restapi.rest_manager import TriblerRequest
+
+    RequestType: TypeAlias = TriblerRequest[tuple[ContentDiscoveryCommunity]]
 
 
 class RemoteQueryParameters(MetadataParameters):
@@ -36,15 +38,15 @@ class SearchEndpoint(RESTEndpoint):
 
     path = "/search"
 
-    def __init__(self,
-                 content_discovery_community: ContentDiscoveryCommunity,
-                 middlewares: tuple = (),
-                 client_max_size: int = MAX_REQUEST_SIZE) -> None:
+    def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """
         Create a new search endpoint.
         """
         super().__init__(middlewares, client_max_size)
-        self.content_discovery_community = content_discovery_community
+
+        self.content_discovery_community = None
+        self.required_components = ("content_discovery_community", )
+
         self.app.add_routes([web.put("/remote", self.remote_search)])
 
     @docs(
@@ -64,7 +66,7 @@ class SearchEndpoint(RESTEndpoint):
         },
     )
     @querystring_schema(RemoteQueryParameters)
-    async def remote_search(self, request: Request) -> RESTResponse:
+    async def remote_search(self, request: RequestType) -> RESTResponse:
         """
         Perform a search for a given query.
         """
@@ -85,7 +87,7 @@ class SearchEndpoint(RESTEndpoint):
         self._logger.info("Parameters: %s", str(sanitized))
         self._logger.info("FTS: %s", fts)
 
-        request_uuid, peers_list = self.content_discovery_community.send_search_request(**sanitized)
+        request_uuid, peers_list = request.context[0].send_search_request(**sanitized)
         peers_mid_list = [hexlify(p.mid).decode() for p in peers_list]
 
         return RESTResponse({"request_uuid": str(request_uuid), "peers": peers_mid_list})
