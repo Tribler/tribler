@@ -40,11 +40,9 @@ jobs:
           python run_unit_tests.py -a
         env:
           TEST_IPV8_WITH_IPV6: 1
-      - shell: pwsh  # force inferior operating systems to use the glorious Windows PowerShell
-        run: |
+      - run: |
           cd src
-          $env:PYTHONPATH = "../pyipv8"
-          python -m unittest -k tribler.test_integration
+          python run_unit_tests.py -a -k tribler/test_integration -p 2
 
   set_pending_status:
     if: ${{github.event.issue.pull_request && startsWith(github.event.comment.body, 'validate') }}
