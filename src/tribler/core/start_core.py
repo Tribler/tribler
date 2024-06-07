@@ -40,7 +40,7 @@ def run_core(api_port: int, api_key: str | None, state_dir: Path) -> None:
         config.set("api/http_port", 0)
         config.set("api/https_port", 0)
 
-    if api_key is None:
+    if api_key != config.get("api/key"):
         config.set("api/key", api_key)
         config.write()
 
