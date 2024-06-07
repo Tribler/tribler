@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
-from ipv8.types import IPv8
 from marshmallow.fields import Integer, String
 
-from tribler.core.database.store import MetadataStore
-from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
+from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
+
+if TYPE_CHECKING:
+    from ipv8.types import IPv8
+
+    from tribler.core.database.store import MetadataStore
 
 
 class StatisticsEndpoint(RESTEndpoint):
@@ -15,13 +22,15 @@ class StatisticsEndpoint(RESTEndpoint):
 
     path = "/statistics"
 
-    def __init__(self, ipv8: IPv8 = None, metadata_store: MetadataStore = None) -> None:
+    def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """
         Create a new statistics endpoint.
         """
-        super().__init__()
-        self.mds = metadata_store
-        self.ipv8 = ipv8
+        super().__init__(middlewares, client_max_size)
+
+        self.mds: MetadataStore | None = None
+        self.ipv8: IPv8 | None = None
+
         self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
                              web.get("/ipv8", self.get_ipv8_stats)])
 

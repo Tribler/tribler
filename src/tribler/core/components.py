@@ -15,10 +15,23 @@ if TYPE_CHECKING:
     from ipv8.peer import Peer
     from ipv8.types import IPv8
 
+    from tribler.core.restapi.rest_endpoint import RESTEndpoint
     from tribler.core.session import Session
 
 
-class BaseLauncher(CommunityLauncher):
+class CommunityLauncherWEndpoints(CommunityLauncher):
+    """
+    A CommunityLauncher that can supply endpoints.
+    """
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Get a list of endpoints that should be loaded.
+        """
+        return []
+
+
+class BaseLauncher(CommunityLauncherWEndpoints):
     """
     The base class for all Tribler Community launchers.
     """
@@ -69,7 +82,7 @@ class Component(Community):
         self.settings = settings
 
 
-class ComponentLauncher(CommunityLauncher):
+class ComponentLauncher(CommunityLauncherWEndpoints):
     """
     A launcher for components that simply need a TaskManager, not a full Community.
     """
@@ -103,10 +116,15 @@ class ContentDiscoveryComponent(BaseLauncher):
         """
         When we are done launching, register our REST API.
         """
-        from tribler.core.content_discovery.community import ContentDiscoveryCommunity
+        session.rest_manager.get_endpoint("/search").content_discovery_community = community
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the search endpoint.
+        """
         from tribler.core.content_discovery.restapi.search_endpoint import SearchEndpoint
 
-        session.rest_manager.add_endpoint(SearchEndpoint(cast(ContentDiscoveryCommunity, community)))
+        return [*super().get_endpoints(), SearchEndpoint()]
 
 
 @precondition('session.config.get("database/enabled")')
@@ -142,14 +160,21 @@ class DatabaseComponent(ComponentLauncher):
         """
         When we are done launching, register our REST API.
         """
-        from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
-
         session.rest_manager.get_endpoint("/downloads").mds = session.mds
         session.rest_manager.get_endpoint("/statistics").mds = session.mds
-        session.rest_manager.add_endpoint(DatabaseEndpoint(session.download_manager,
-                                                           torrent_checker=None,
-                                                           metadata_store=session.mds,
-                                                           tribler_db=session.db))
+
+        db_endpoint = session.rest_manager.get_endpoint("/metadata")
+        db_endpoint.download_manager = session.download_manager
+        db_endpoint.mds = session.mds
+        db_endpoint.tribler_db = session.db
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the database endpoint.
+        """
+        from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
+
+        return [*super().get_endpoints(), DatabaseEndpoint()]
 
 
 @set_in_session("knowledge_community")
@@ -158,7 +183,7 @@ class DatabaseComponent(ComponentLauncher):
 @precondition('session.config.get("knowledge_community/enabled")')
 @overlay("tribler.core.knowledge.community", "KnowledgeCommunity")
 @kwargs(db="session.db", key='session.ipv8.keys["secondary"].key')
-class KnowledgeComponent(CommunityLauncher):
+class KnowledgeComponent(CommunityLauncherWEndpoints):
     """
     Launch instructions for the knowledge community.
     """
@@ -167,10 +192,17 @@ class KnowledgeComponent(CommunityLauncher):
         """
         When we are done launching, register our REST API.
         """
-        from tribler.core.knowledge.community import KnowledgeCommunity
+        endpoint = session.rest_manager.get_endpoint("/knowledge")
+        endpoint.db = session.db
+        endpoint.community = community
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the knowledge endpoint.
+        """
         from tribler.core.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
 
-        session.rest_manager.add_endpoint(KnowledgeEndpoint(session.db, cast(KnowledgeCommunity, community)))
+        return [*super().get_endpoints(), KnowledgeEndpoint()]
 
 
 @after("DatabaseComponent")

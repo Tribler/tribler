@@ -10,7 +10,7 @@ from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
-from typing_extensions import Self
+from typing_extensions import Self, TypeAlias
 
 from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.queries import to_fts_query
@@ -26,13 +26,15 @@ from tribler.core.restapi.rest_endpoint import (
 )
 
 if typing.TYPE_CHECKING:
-    from aiohttp.abc import Request
     from multidict import MultiDictProxy, MultiMapping
 
     from tribler.core.database.store import MetadataStore
     from tribler.core.database.tribler_database import TriblerDatabase
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.restapi.rest_manager import TriblerRequest
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
+
+    RequestType: TypeAlias = TriblerRequest[tuple[MetadataStore]]
 
 TORRENT_CHECK_TIMEOUT = 20
 
@@ -73,21 +75,19 @@ class DatabaseEndpoint(RESTEndpoint):
 
     path = "/metadata"
 
-    def __init__(self,  # noqa: PLR0913
-                 download_manager: DownloadManager,
-                 torrent_checker: TorrentChecker | None,
-                 metadata_store: MetadataStore,
-                 tribler_db: TriblerDatabase | None = None,
-                 middlewares: tuple = (),
-                 client_max_size: int = MAX_REQUEST_SIZE) -> None:
+    def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """
         Create a new database endpoint.
         """
         super().__init__(middlewares, client_max_size)
-        self.download_manager = download_manager
-        self.torrent_checker = torrent_checker
-        self.mds = metadata_store
-        self.tribler_db: TriblerDatabase | None = tribler_db
+
+        self.mds: MetadataStore | None = None
+        self.required_components = ("mds", )
+
+        self.download_manager: DownloadManager | None = None
+        self.torrent_checker: TorrentChecker | None = None
+        self.tribler_db: TriblerDatabase | None = None
+
         self.app.add_routes(
             [
                 web.get("/torrents/{infohash}/health", self.get_torrent_health),
@@ -173,7 +173,7 @@ class DatabaseEndpoint(RESTEndpoint):
             }
         },
     )
-    async def get_torrent_health(self, request: Request) -> RESTResponse:
+    async def get_torrent_health(self, request: RequestType) -> RESTResponse:
         """
         Fetch the swarm health of a specific torrent.
         """
@@ -194,11 +194,12 @@ class DatabaseEndpoint(RESTEndpoint):
         """
         Retrieve the download status from libtorrent and attach it to the torrent descriptions in the content list.
         """
-        for torrent in contents_list:
-            if torrent["type"] == REGULAR_TORRENT:
-                dl = self.download_manager.get_download(unhexlify(torrent["infohash"]))
-                if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
-                    torrent["progress"] = dl.get_state().get_progress()
+        if self.download_manager is not None:
+            for torrent in contents_list:
+                if torrent["type"] == REGULAR_TORRENT:
+                    dl = self.download_manager.get_download(unhexlify(torrent["infohash"]))
+                    if dl is not None and dl.tdef.infohash not in self.download_manager.metainfo_requests:
+                        torrent["progress"] = dl.get_state().get_progress()
 
     @docs(
         tags=["Metadata"],
@@ -215,7 +216,7 @@ class DatabaseEndpoint(RESTEndpoint):
             }
         },
     )
-    async def get_popular_torrents(self, request: Request) -> RESTResponse:
+    async def get_popular_torrents(self, request: RequestType) -> RESTResponse:
         """
         Get the list of most popular torrents.
         """
@@ -226,7 +227,7 @@ class DatabaseEndpoint(RESTEndpoint):
             sanitized["txt_filter"] = t_filter
 
         with db_session:
-            contents_list = [entry.to_simple_dict() for entry in self.mds.get_entries(**sanitized)]
+            contents_list = [entry.to_simple_dict() for entry in request.context[0].get_entries(**sanitized)]
 
         self.add_download_progress_to_metadata_list(contents_list)
         self.add_statements_to_metadata_list(contents_list)
@@ -257,7 +258,7 @@ class DatabaseEndpoint(RESTEndpoint):
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def local_search(self, request: Request) -> RESTResponse:  # noqa: C901
+    async def local_search(self, request: RequestType) -> RESTResponse:  # noqa: C901
         """
         Perform a search for a given query.
         """
@@ -281,7 +282,7 @@ class DatabaseEndpoint(RESTEndpoint):
         sanitized["txt_filter"] = fts
         self._logger.info("FTS: %s", fts)
 
-        mds: MetadataStore = self.mds
+        mds: MetadataStore = request.context[0]
 
         def search_db() -> tuple[list[dict], int, int]:
             with db_session:
@@ -344,7 +345,7 @@ class DatabaseEndpoint(RESTEndpoint):
             }
         },
     )
-    async def completions(self, request: Request) -> RESTResponse:
+    async def completions(self, request: RequestType) -> RESTResponse:
         """
         Return auto-completion suggestions for a given query.
         """
@@ -353,5 +354,5 @@ class DatabaseEndpoint(RESTEndpoint):
             return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
 
         keywords = args["q"].strip().lower()
-        results = self.mds.get_auto_complete_terms(keywords, max_terms=5)
+        results = request.context[0].get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})
