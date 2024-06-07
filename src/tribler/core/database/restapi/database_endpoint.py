@@ -295,7 +295,7 @@ class DatabaseEndpoint(RESTEndpoint):
                     total = max_rowid = None
             if self.download_manager is not None:
                 self.download_manager.notifier.notify(Notification.local_query_results, data={
-                    "query": request.query.get("txt_filter"),
+                    "query": request.query.get("fts_text"),
                     "results": list(pony_query)
                 })
             return search_results, total, max_rowid

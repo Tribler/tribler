@@ -43,6 +43,13 @@ class UserActivityCommunity(Community):
 
         self.register_task("Gossip random preference", self.gossip, interval=5.0)
 
+    async def unload(self) -> None:
+        """
+        Unload our activity manager.
+        """
+        await self.composition.manager.task_manager.shutdown_task_manager()
+        await super().unload()
+
     def gossip(self, receivers: list[Peer] | None = None) -> None:
         """
         Select a random database entry and send it to a random peer.

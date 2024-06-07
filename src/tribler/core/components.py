@@ -9,6 +9,7 @@ from ipv8.configuration import DISPERSY_BOOTSTRAPPER
 from ipv8.loader import CommunityLauncher, after, kwargs, overlay, precondition, set_in_session, walk_strategy
 from ipv8.overlay import Overlay, SettingsClass
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy, RandomWalk
+from ipv8.taskmanager import TaskManager
 
 if TYPE_CHECKING:
     from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
@@ -319,17 +320,19 @@ class TunnelComponent(BaseLauncher):
 
 @after("ContentDiscoveryComponent", "TorrentCheckerComponent")
 @precondition('session.config.get("user_activity/enabled")')
-class UserActivityComponent(ComponentLauncher):
+@overlay("tribler.core.user_activity.community", "UserActivityCommunity")
+class UserActivityComponent(BaseLauncher):
     """
     Launch instructions for the user activity community.
     """
 
-    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
+    def get_kwargs(self, session: Session) -> dict:
         """
-        When we are done launching, start listening for GUI events.
+        Create and forward the rendezvous database for the Community.
         """
         from tribler.core.user_activity.manager import UserActivityManager
 
-        component = cast(Component, community)
+        out = super().get_kwargs(session)
         max_query_history = session.config.get("user_activity/max_query_history")
-        component.settings.manager = UserActivityManager(component, session, max_query_history)
+        out["manager"] = UserActivityManager(TaskManager(), session, max_query_history)
+        return out
