@@ -48,7 +48,7 @@ class EventsEndpoint(RESTEndpoint):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    path = "/events"
+    path = "/api/events"
 
     def __init__(self, notifier: Notifier, public_key: str | None = None) -> None:
         """

@@ -20,7 +20,7 @@ class StatisticsEndpoint(RESTEndpoint):
     This endpoint is responsible for handing requests regarding statistics in Tribler.
     """
 
-    path = "/statistics"
+    path = "/api/statistics"
 
     def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """

@@ -19,7 +19,7 @@ class GetEventsRequest(MockRequest):
         Create a new GetEventsRequest.
         """
         self.payload_writer = MockStreamWriter(endpoint, count=count)
-        super().__init__({}, "GET", "/events", payload_writer=self.payload_writer)
+        super().__init__({}, "GET", "/api/events", payload_writer=self.payload_writer)
 
 
 class MockStreamWriter(AbstractStreamWriter):

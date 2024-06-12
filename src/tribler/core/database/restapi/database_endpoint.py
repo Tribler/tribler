@@ -74,7 +74,7 @@ class DatabaseEndpoint(RESTEndpoint):
               /<public_key>
     """
 
-    path = "/metadata"
+    path = "/api/metadata"
 
     def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """

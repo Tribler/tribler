@@ -72,7 +72,7 @@ class EventRequestManager(QNetworkAccessManager):
             logger.warning("Can't create a request: api_port is not set (%d).", self.api_port)
             return
 
-        url = QUrl(f"http://127.0.0.1:{self.api_port}/events")
+        url = QUrl(f"http://127.0.0.1:{self.api_port}/api/events")
         request = QNetworkRequest(url)
         request.setRawHeader(b'X-Api-Key', self.api_key.encode('ascii'))
         return request

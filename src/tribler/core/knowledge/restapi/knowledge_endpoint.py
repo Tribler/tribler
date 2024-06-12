@@ -36,7 +36,7 @@ class KnowledgeEndpoint(RESTEndpoint):
     Top-level endpoint for knowledge management.
     """
 
-    path = "/knowledge"
+    path = "/api/knowledge"
 
     def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """

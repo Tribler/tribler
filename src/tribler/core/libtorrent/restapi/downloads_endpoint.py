@@ -57,7 +57,7 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    path = "/downloads"
+    path = "/api/downloads"
 
     def __init__(self, download_manager: DownloadManager, metadata_store: MetadataStore | None = None,
                  tunnel_community: TriblerTunnelCommunity | None = None) -> None:

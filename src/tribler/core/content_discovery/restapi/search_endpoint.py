@@ -36,7 +36,7 @@ class SearchEndpoint(RESTEndpoint):
     This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
     """
 
-    path = "/search"
+    path = "/api/search"
 
     def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """

@@ -141,10 +141,10 @@ class Session:
         await self.ipv8.start()
 
         # REST (2/2)
-        self.rest_manager.get_endpoint("/ipv8").initialize(self.ipv8)
-        self.rest_manager.get_endpoint("/statistics").ipv8 = self.ipv8
+        self.rest_manager.get_endpoint("/api/ipv8").initialize(self.ipv8)
+        self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
         if self.config.get("statistics"):
-            self.rest_manager.get_endpoint("/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
+            self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
 
     async def shutdown(self) -> None:
         """

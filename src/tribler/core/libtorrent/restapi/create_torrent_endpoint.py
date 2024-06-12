@@ -47,7 +47,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
     See: http://www.bittorrent.org/beps/bep_0012.html
     """
 
-    path = "/createtorrent"
+    path = "/api/createtorrent"
 
     def __init__(self, download_manager: DownloadManager, client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """

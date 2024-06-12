@@ -61,7 +61,7 @@ class Request(QObject):
         super().__init__()
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.endpoint = endpoint
+        self.endpoint = 'api/' + endpoint
         self.url_params = url_params
 
         self.priority = priority
