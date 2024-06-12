@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ipv8.messaging.anonymization.tunnel import Circuit
 
 topics_to_send_to_gui = [
+    Notification.torrent_status_changed,
     Notification.tunnel_removed,
     Notification.watch_folder_corrupt_file,
     Notification.tribler_new_version,

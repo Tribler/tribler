@@ -24,6 +24,7 @@ class Notification(Enum):
     """
 
     torrent_finished = Desc("torrent_finished", ["infohash", "name", "hidden"], [str, str, bool])
+    torrent_status_changed = Desc("torrent_status_changed", ["infohash", "status"], [str, str])
     tribler_shutdown_state = Desc("tribler_shutdown_state", ["state"], [str])
     tribler_new_version = Desc("tribler_new_version", ["version"], [str])
     channel_discovered = Desc("channel_discovered", ["data"], [dict])
