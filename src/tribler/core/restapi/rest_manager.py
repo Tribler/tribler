@@ -70,7 +70,7 @@ class ApiKeyMiddleware:
         """
         Is the given request authenticated using an API key.
         """
-        if any(request.path.startswith(path) for path in ["/docs", "/static", "/debug-ui"]):
+        if any(request.path.startswith(path) for path in ["/docs", "/static", "/ui"]):
             return True
         # The api key can either be in the headers or as part of the url query
         api_key = request.headers.get("X-Api-Key") or request.query.get("apikey") or request.cookies.get("api_key")
@@ -112,6 +112,13 @@ async def error_middleware(request: Request, handler: Callable[[Request], Awaita
 
 
 @web.middleware
+async def ui_middleware(request: Request, handler: Callable[[Request], Awaitable[RESTResponse]]) -> RESTResponse:
+    if not any(request.path.startswith(path) for path in ["/docs", "/static", "/ui", "/api"]):
+        raise web.HTTPFound('/ui' + request.rel_url.path)
+    return await handler(request)
+
+
+@web.middleware
 async def required_components_middleware(request: Request,
                                          handler: Callable[[Request], Awaitable[RESTResponse]]) -> RESTResponse:
     """
@@ -142,8 +149,8 @@ class RESTManager:
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), error_middleware,
-                                                       required_components_middleware))
+        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), ui_middleware,
+                                                       error_middleware, required_components_middleware))
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
         self.site_https: web.TCPSite | None = None

@@ -6,6 +6,7 @@ ipv8-rust-tunnels
 libtorrent==1.2.19
 lz4
 pony
+pywin32;sys_platform=="win32"
 
 PyQt5
 numpy
