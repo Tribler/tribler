@@ -264,4 +264,6 @@ class RESTManager:
         self._logger.info("Stopping...")
         if self.runner:
             await self.runner.cleanup()
+        for endpoint in self.root_endpoint.endpoints.values():
+            await endpoint.shutdown_task_manager()
         self._logger.info("Stopped")

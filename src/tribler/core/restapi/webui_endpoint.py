@@ -40,3 +40,11 @@ class WebUIEndpoint(RESTEndpoint):
             response = web.FileResponse(resource)
             response.content_type = 'application/javascript' if path.endswith('.tsx') else mimetypes.guess_type(path)[0]
             return response
+
+    async def shutdown_task_manager(self) -> None:
+        """
+        Shutdown the taskmanager.
+        """
+        await super().shutdown_task_manager()
+        if self.session:
+            await self.session.close()

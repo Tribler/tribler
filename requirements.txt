@@ -5,7 +5,9 @@ configobj
 ipv8-rust-tunnels
 libtorrent==1.2.19
 lz4
+pillow
 pony
+pystray
 pywin32;sys_platform=="win32"
 
 PyQt5
