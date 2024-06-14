@@ -50,7 +50,7 @@ class UserActivityManager:
         if query is None:
             return
 
-        results = {tmd.infohash for tmd in data["results"]}
+        results = {tmd["infohash"] for tmd in data["results"]}
         for infohash in results:
             self.infohash_to_queries[infohash].append(query)
         self.queries[query] = results | self.queries.get(query, set())

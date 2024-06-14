@@ -1,6 +1,5 @@
 from asyncio import sleep
 from binascii import hexlify
-from dataclasses import dataclass
 from unittest.mock import Mock, call
 
 from ipv8.taskmanager import TaskManager
@@ -9,15 +8,6 @@ from ipv8.test.base import TestBase
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.user_activity.manager import UserActivityManager
 from tribler.core.user_activity.types import InfoHash
-
-
-@dataclass(unsafe_hash=True)
-class TorrentMetadata:
-    """
-    A mocked torrent metadata class.
-    """
-
-    infohash: InfoHash
 
 
 class TestUserActivityManager(TestBase):
@@ -51,7 +41,7 @@ class TestUserActivityManager(TestBase):
         Test that local query notifications without a query get ignored.
         """
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query = None
 
         self.session.notifier.notify(Notification.local_query_results,
@@ -69,7 +59,7 @@ class TestUserActivityManager(TestBase):
         Test that remote query notifications without a query get ignored.
         """
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query = None
 
         self.session.notifier.notify(Notification.remote_query_results,
@@ -87,7 +77,7 @@ class TestUserActivityManager(TestBase):
         Test that local query notifications get processed correctly.
         """
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query = "test query"
 
         self.session.notifier.notify(Notification.local_query_results,
@@ -105,7 +95,7 @@ class TestUserActivityManager(TestBase):
         Test that remote query notifications get processed correctly.
         """
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query = "test query"
 
         self.session.notifier.notify(Notification.remote_query_results,
@@ -126,7 +116,7 @@ class TestUserActivityManager(TestBase):
         self.manager.max_query_history = 1
 
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query_1 = "test query 1"
         fake_query_2 = "test query 2"
 
@@ -154,7 +144,7 @@ class TestUserActivityManager(TestBase):
         self.manager.max_query_history = 1
 
         fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [TorrentMetadata(fake_infohashes[i]) for i in range(2)]
+        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
         fake_query_1 = "test query 1"
         fake_query_2 = "test query 2"
 
