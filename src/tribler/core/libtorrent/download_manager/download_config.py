@@ -89,11 +89,16 @@ def _from_dict(value: Dict) -> str:
     return base64_bytes.decode()
 
 
-def _to_dict(value: str) -> dict | None:
+def _to_dict(value: str) -> dict[bytes, Any]:
+    """
+    Convert a string value to a libtorrent dict.
+
+    :raises RuntimeError: if the value could not be converted.
+    """
     binary = value.encode()
     # b'==' is added to avoid incorrect padding
     base64_bytes = base64.b64decode(binary + b"==")
-    return lt.bdecode(base64_bytes)
+    return cast(dict[bytes, Any], lt.bdecode(base64_bytes))
 
 
 class DownloadConfig:

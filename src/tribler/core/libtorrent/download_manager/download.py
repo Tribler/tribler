@@ -26,7 +26,7 @@ from tribler.core.libtorrent.download_manager.download_config import DownloadCon
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef, TorrentDefNoMetainfo
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import TriblerConfigManager
@@ -83,7 +83,7 @@ class PeerDictHave(PeerDict):
     Extended peer info that includes the "have" field.
     """
 
-    have: Any  # Bitfield object for this peer if not completed
+    have: list[bool]  # Bitfield object for this peer if not completed
 
 
 class Download(TaskManager):
@@ -177,7 +177,7 @@ class Download(TaskManager):
         assert self.stream is None
         self.stream = Stream(self)
 
-    def get_torrent_data(self) -> bytes | None:
+    def get_torrent_data(self) -> dict[bytes, Any] | None:
         """
         Return torrent data, if the handle is valid and metadata is available.
         """
@@ -243,9 +243,9 @@ class Download(TaskManager):
                         | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
         if self.config.get_share_mode():
-            atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_share_mode
+            atp["flags"] = cast(int, atp["flags"]) | lt.add_torrent_params_flags_t.flag_share_mode
         if self.config.get_upload_mode():
-            atp["flags"] = atp["flags"] | lt.add_torrent_params_flags_t.flag_upload_mode
+            atp["flags"] = cast(int, atp["flags"]) | lt.add_torrent_params_flags_t.flag_upload_mode
 
         resume_data = self.config.get_engineresumedata()
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -387,7 +387,9 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
-        resume_data = alert.resume_data
+        resume_data = (cast(dict[bytes, Any], lt.bdecode(alert.resume_data))
+                       if isinstance(alert.resume_data, bytes)  # Libtorrent 2.X
+                       else alert.resume_data)  # Libtorrent 1.X
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir and b"save_path" in resume_data:
             save_path = Path(resume_data[b"save_path"].decode()).absolute()
@@ -469,7 +471,7 @@ class Download(TaskManager):
             return
 
         try:
-            metadata = {b"info": lt.bdecode(torrent_info.metadata()), b"leechers": 0, b"seeders": 0}
+            metadata = cast(MetainfoDict, {b"info": lt.bdecode(torrent_info.metadata()), b"leechers": 0, b"seeders": 0})
         except (RuntimeError, ValueError) as e:
             self._logger.warning(e)
             return
@@ -678,7 +680,7 @@ class Download(TaskManager):
             try:
                 extended_version = peer_info.client
             except UnicodeDecodeError:
-                extended_version = "unknown"
+                extended_version = b"unknown"
             peer_dict: PeerDict | PeerDictHave = cast(PeerDict, {
                 "id": hexlify(peer_info.pid.to_bytes()).decode(),
                 "extended_version": extended_version,
@@ -700,7 +702,7 @@ class Download(TaskManager):
                 "dtotal": peer_info.total_download,
                 "completed": peer_info.progress,
                 "speed": peer_info.remote_dl_rate,
-                "connection_type": peer_info.connection_type,
+                "connection_type": peer_info.connection_type,  # type: ignore[attr-defined] # shortcoming of stubs
                 "seed": bool(peer_info.flags & peer_info.seed),
                 "upload_only": bool(peer_info.flags & peer_info.upload_only)
             })
@@ -726,7 +728,7 @@ class Download(TaskManager):
 
         return num_seeds, num_peers
 
-    def get_torrent(self) -> bytes | None:
+    def get_torrent(self) -> dict[bytes, Any] | None:
         """
         Create the raw torrent data from this download.
         """
@@ -874,7 +876,7 @@ class Download(TaskManager):
         """
         Generate a magnet link for our download.
         """
-        return lt.make_magnet_uri(self.handle)
+        return lt.make_magnet_uri(cast(lt.torrent_handle, self.handle))  # Ensured by ``check_handle``
 
     @require_handle
     def add_peer(self, addr: tuple[str, int]) -> None:

@@ -124,7 +124,7 @@ class TorrentFileResult(TypedDict):
     success: bool
     base_dir: Path
     torrent_file_path: str | None
-    metainfo: dict
+    metainfo: bytes
     infohash: bytes
 
 
@@ -185,17 +185,17 @@ def create_torrent_file(file_path_list: list[Path], params: InfoDict,  # noqa: C
     lt.set_piece_hashes(torrent, str(base_dir))
 
     t1 = torrent.generate()
-    torrent = lt.bencode(t1)
+    torrent_bytes = lt.bencode(t1)
 
     if torrent_filepath:
         with open(torrent_filepath, "wb") as f:
-            f.write(torrent)
+            f.write(torrent_bytes)
 
     return {
         "success": True,
         "base_dir": base_dir,
         "torrent_file_path": torrent_filepath,
-        "metainfo": torrent,
+        "metainfo": torrent_bytes,
         "infohash": sha1(lt.bencode(t1[b"info"])).digest()
     }
 

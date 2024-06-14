@@ -97,7 +97,7 @@ class LibTorrentEndpoint(RESTEndpoint):
         """
         session_stats: Future[dict[str, int]] = Future()
 
-        def on_session_stats_alert_received(alert: libtorrent.alert) -> None:
+        def on_session_stats_alert_received(alert: libtorrent.session_stats_alert) -> None:
             if not session_stats.done():
                 session_stats.set_result(alert.values)
 

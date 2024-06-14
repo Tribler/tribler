@@ -10,14 +10,13 @@ import dataclasses
 import logging
 import os
 import time
-import time as timemod
 from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
 from binascii import hexlify, unhexlify
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, List
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, List, cast
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -291,8 +290,7 @@ class DownloadManager(TaskManager):
         logger.info("Hops: %d.", hops)
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
-        fingerprint = ["TL", 0, 0, 0, 0]
-        ltsession = lt.session(lt.fingerprint(*fingerprint), flags=0) if hops == 0 else lt.session(flags=0)
+        ltsession = lt.session(lt.fingerprint("TL", 0, 0, 0, 0), flags=0) if hops == 0 else lt.session(flags=0)
 
         libtorrent_port = self.config.get("libtorrent/port")
         logger.info("Libtorrent port: %d", libtorrent_port)
@@ -440,7 +438,7 @@ class DownloadManager(TaskManager):
         # Periodically, libtorrent will send us a state_update_alert, which contains the torrent status of
         # all torrents changed since the last time we received this alert.
         if alert_type == "state_update_alert":
-            for status in alert.status:
+            for status in cast(lt.state_update_alert, alert).status:
                 infohash = status.info_hash.to_bytes()
                 if infohash not in self.downloads:
                     logger.debug("Got state_update for unknown torrent %s", hexlify(infohash))
@@ -448,11 +446,12 @@ class DownloadManager(TaskManager):
                 self.downloads[infohash].update_lt_status(status)
 
         if alert_type == "state_changed_alert":
-            infohash = alert.handle.info_hash().to_bytes()
+            handle = cast(lt.state_changed_alert, alert).handle
+            infohash = handle.info_hash().to_bytes()
             if infohash not in self.downloads:
                 logger.debug("Got state_change for unknown torrent %s", hexlify(infohash))
             else:
-                self.downloads[infohash].update_lt_status(alert.handle.status())
+                self.downloads[infohash].update_lt_status(handle.status())
 
         infohash = (alert.handle.info_hash().to_bytes() if hasattr(alert, "handle") and alert.handle.is_valid()
                     else getattr(alert, "info_hash", b""))
@@ -462,33 +461,36 @@ class DownloadManager(TaskManager):
                                or (not download.handle and alert_type == "add_torrent_alert") \
                                or (download.handle and alert_type == "torrent_removed_alert")
             if is_process_alert:
-                download.process_alert(alert, alert_type)
+                download.process_alert(cast(lt.torrent_alert, alert), alert_type)
             else:
                 logger.debug("Got alert for download without handle %s: %s", infohash, alert)
         elif infohash:
             logger.debug("Got alert for unknown download %s: %s", infohash, alert)
 
         if alert_type == "listen_succeeded_alert":
-            self.listen_ports[hops][alert.address] = alert.port
+            ls_alert = cast(lt.listen_succeeded_alert, alert)
+            self.listen_ports[hops][ls_alert.address] = ls_alert.port
 
         elif alert_type == "peer_disconnected_alert":
-            self.notifier.notify(Notification.peer_disconnected, peer_id=alert.pid.to_bytes())
+            self.notifier.notify(Notification.peer_disconnected,
+                                 peer_id=cast(lt.peer_disconnected_alert, alert).pid.to_bytes())
 
         elif alert_type == "session_stats_alert":
-            queued_disk_jobs = alert.values["disk.queued_disk_jobs"]
-            self.queued_write_bytes = alert.values["disk.queued_write_bytes"]
-            num_write_jobs = alert.values["disk.num_write_jobs"]
+            ss_alert = cast(lt.session_stats_alert, alert)
+            queued_disk_jobs = ss_alert.values["disk.queued_disk_jobs"]
+            self.queued_write_bytes = ss_alert.values["disk.queued_write_bytes"]
+            num_write_jobs = ss_alert.values["disk.num_write_jobs"]
             if queued_disk_jobs == self.queued_write_bytes == num_write_jobs == 0:
                 self.lt_session_shutdown_ready[hops] = True
 
             if self.session_stats_callback:
-                self.session_stats_callback(alert)
+                self.session_stats_callback(ss_alert)
 
         elif alert_type == "dht_pkt_alert" and self.dht_health_manager is not None:
             # Unfortunately, the Python bindings don't have a direction attribute.
             # So, we'll have to resort to using the string representation of the alert instead.
             incoming = str(alert).startswith("<==")
-            decoded = lt.bdecode(alert.pkt_buf)
+            decoded = cast(dict[bytes, Any], lt.bdecode(cast(lt.dht_pkt_alert, alert).pkt_buf))
             if not decoded:
                 return
 
@@ -564,7 +566,7 @@ class DownloadManager(TaskManager):
             return None
 
         logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-        self.metainfo_cache[infohash] = {"time": timemod.time(), "meta_info": metainfo}
+        self.metainfo_cache[infohash] = {"time": time.time(), "meta_info": metainfo}
         self.notifier.notify(Notification.torrent_metadata_added, metadata={
             "infohash": infohash,
             "size": download.tdef.get_length(),
@@ -582,7 +584,7 @@ class DownloadManager(TaskManager):
         return metainfo
 
     def _task_cleanup_metainfo_cache(self) -> None:
-        oldest_time = timemod.time() - METAINFO_CACHE_PERIOD
+        oldest_time = time.time() - METAINFO_CACHE_PERIOD
 
         for info_hash, cache_entry in list(self.metainfo_cache.items()):
             last_time = cache_entry["time"]
@@ -625,7 +627,7 @@ class DownloadManager(TaskManager):
             params = lt.parse_magnet_uri(uri)
             try:
                 # libtorrent 1.2.19
-                name, infohash = params["name"].encode(), params["info_hash"]
+                name, infohash = params["name"].encode(), params["info_hash"]  # type: ignore[index] # (checker is 2.X)
             except TypeError:
                 # libtorrent 2.0.9
                 name = params.name.encode()
@@ -689,7 +691,7 @@ class DownloadManager(TaskManager):
             logger.exception("Unable to create the download destination directory.")
 
         if config.get_time_added() == 0:
-            config.set_time_added(int(timemod.time()))
+            config.set_time_added(int(time.time()))
 
         # Create the download
         download = Download(tdef=tdef,
@@ -786,7 +788,7 @@ class DownloadManager(TaskManager):
             if hasattr(lt_session, "apply_settings"):
                 lt_session.apply_settings(new_settings)
             else:
-                lt_session.set_settings(new_settings)
+                lt_session.set_settings(new_settings)  # type: ignore[attr-defined] # (checker uses 2.X)
         except OverflowError as e:
             msg = f"Overflow error when setting libtorrent sessions with settings: {new_settings}"
             raise OverflowError(msg) from e
