@@ -8,6 +8,7 @@ from aiohttp import ClientConnectorError, ClientResponseError, ServerConnectionE
 from ipv8.test.base import TestBase
 
 import tribler
+from tribler.core.libtorrent.download_manager.download_manager import MetainfoLookup
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint, recursive_unicode
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
@@ -479,7 +480,8 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a valid metainfo request has its info returned correctly.
         """
         tdef = TorrentDef().load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        self.download_manager.metainfo_requests = {tdef.infohash: [self.download_manager.downloads.get(tdef.infohash)]}
+        download = self.download_manager.downloads.get(tdef.infohash)
+        self.download_manager.metainfo_requests = {tdef.infohash: MetainfoLookup(download, 1)}
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(GetTorrentInfoRequest({"hops": 0, "uri": "file://"}))
         response_body_json = await response_to_json(response)

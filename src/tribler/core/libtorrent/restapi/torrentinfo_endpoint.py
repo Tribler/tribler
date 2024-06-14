@@ -207,8 +207,9 @@ class TorrentInfoEndpoint(RESTEndpoint):
         self.download_manager.notifier.notify(Notification.torrent_metadata_added, metadata=metadata_dict)
 
         download = self.download_manager.downloads.get(metadata_dict["infohash"])
-        metainfo_request = self.download_manager.metainfo_requests.get(metadata_dict["infohash"], [None])[0]
-        download_is_metainfo_request = download == metainfo_request
+        metainfo_lookup = self.download_manager.metainfo_requests.get(metadata_dict["infohash"])
+        metainfo_download = metainfo_lookup.download if metainfo_lookup else None
+        download_is_metainfo_request = download == metainfo_download
 
         # Check if the torrent is already in the downloads
         encoded_metainfo = deepcopy(metainfo)
