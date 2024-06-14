@@ -172,7 +172,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops,
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
                                                                     url=response.decode())
             else:
                 metainfo = lt.bdecode(response)
@@ -191,7 +191,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                     status=HTTP_BAD_REQUEST
                 )
-            metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops, url=uri)
+            metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
