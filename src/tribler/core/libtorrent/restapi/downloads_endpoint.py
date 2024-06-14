@@ -106,7 +106,7 @@ class DownloadsEndpoint(RESTEndpoint):
         if anon_hops > 0 and not safe_seeding:
             return None, "Cannot set anonymous download without safe seeding enabled"
 
-        if anon_hops > 0:
+        if anon_hops >= 0:
             download_config.set_hops(anon_hops)
 
         if safe_seeding:
