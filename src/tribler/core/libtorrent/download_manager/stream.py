@@ -22,7 +22,7 @@ import logging
 from asyncio import sleep
 from io import BufferedReader
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, cast
+from typing import TYPE_CHECKING, Callable, Generator, cast
 
 import libtorrent
 from typing_extensions import Self
@@ -94,7 +94,7 @@ class Stream:
         self.destdir: Path | None = None
         self.piecelen: int | None = None
         self.files: list[tuple[Path, int]] | None = None
-        self.mapfile: libtorrent.peer_request | None = None
+        self.mapfile: Callable[[int, int, int], libtorrent.peer_request] | None = None
         self.prebuffpieces: list[int] = []
         self.headerpieces: list[int] = []
         self.footerpieces: list[int] = []
@@ -151,7 +151,7 @@ class Stream:
         self.piecelen = cast(int, self.piecelen)
         self.files = cast(list[tuple[Path, int]], self.files)
         self.infohash = cast(bytes, self.infohash)
-        self.mapfile = cast(libtorrent.peer_request, self.mapfile)
+        self.mapfile = cast(Callable[[int, int, int], libtorrent.peer_request], self.mapfile)
 
         # if fileindex not available for torrent raise exception
         if fileindex >= len(self.files):
@@ -290,10 +290,12 @@ class Stream:
     def bytetopiece(self, byte_begin: int) -> int:
         """
         Finds the piece position that begin_bytes is mapped to.
-        """
-        self.mapfile = cast(libtorrent.peer_request, self.mapfile)  # Ensured by ``check_vod``
 
-        return self.mapfile(self.fileindex, byte_begin, 0).piece
+        ``check_vod`` ensures the types of ``self.mapfile`` and ``self.fileindex``.
+        """
+        self.mapfile = cast(Callable[[int, int, int], libtorrent.peer_request], self.mapfile)
+
+        return self.mapfile(cast(int, self.fileindex), byte_begin, 0).piece
 
     @check_vod(0)
     def calculateprogress(self, pieces: list[int], consec: bool) -> float:

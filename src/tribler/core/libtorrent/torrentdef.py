@@ -134,7 +134,7 @@ if TYPE_CHECKING:
 else:
     FileDict = dict
     InfoDict = dict
-    MetainfoDict = dict
+    MetainfoDict = dict[bytes, Any]
     TorrentParameters = dict
 
 
@@ -211,7 +211,8 @@ class TorrentDef:
             if not ignore_validation:
                 try:
                     self._torrent_info = lt.torrent_info(self.metainfo)
-                    self.infohash = self._torrent_info.info_hash()
+                    raw_infohash = self._torrent_info.info_hash()  # LT1.X: bytes, LT2.X: sha1_hash
+                    self.infohash = raw_infohash if isinstance(raw_infohash, bytes) else raw_infohash.to_bytes()
                 except RuntimeError as exc:
                     raise ValueError from exc
             else:
@@ -272,7 +273,7 @@ class TorrentDef:
         Load the torrent info into memory from our metainfo if it does not exist.
         """
         if self._torrent_info is None:
-            self._torrent_info = lt.torrent_info(self.metainfo)
+            self._torrent_info = lt.torrent_info(cast(dict[bytes, Any], self.metainfo))
 
     def torrent_info_loaded(self) -> bool:
         """
@@ -320,7 +321,7 @@ class TorrentDef:
         if metainfo is None:
             msg = "Data is not a bencoded string"
             raise ValueError(msg)
-        return TorrentDef.load_from_dict(metainfo)
+        return TorrentDef.load_from_dict(cast(MetainfoDict, metainfo))
 
     @staticmethod
     def load_from_dict(metainfo: MetainfoDict) -> TorrentDef:

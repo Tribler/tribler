@@ -161,7 +161,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 try:
                     try:
                         # libtorrent 1.2.19
-                        infohash = lt.parse_magnet_uri(uri)["info_hash"]
+                        infohash = lt.parse_magnet_uri(uri)["info_hash"]  # type: ignore[index] # (checker uses 2.X)
                     except TypeError:
                         # libtorrent 2.0.9
                         infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
@@ -181,7 +181,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 try:
                     # libtorrent 1.2.19
-                    infohash = lt.parse_magnet_uri(uri)["info_hash"]
+                    infohash = lt.parse_magnet_uri(uri)["info_hash"]  # type: ignore[index] # (checker uses 2.X)
                 except TypeError:
                     # libtorrent 2.0.9
                     infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))

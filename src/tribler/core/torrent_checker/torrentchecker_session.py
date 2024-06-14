@@ -7,7 +7,7 @@ import struct
 import time
 from abc import ABCMeta, abstractmethod
 from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
-from typing import TYPE_CHECKING, List, cast
+from typing import TYPE_CHECKING, Any, List, NoReturn, cast
 
 import async_timeout
 import libtorrent as lt
@@ -95,20 +95,20 @@ class TrackerSession(TaskManager):
         if len(self.infohash_list) < MAX_INFOHASHES_IN_SCRAPE:
             self.infohash_list.append(infohash)
 
-    def failed(self, msg: str | None = None) -> None:
+    def failed(self, msg: str | None = None) -> NoReturn:
         """
         This method handles everything that needs to be done when one step
         in the session has failed and thus no data can be obtained.
 
-        :raises ValueError: if not already failed before.
+        :raises ValueError: always.
         """
         if not self.is_failed:
-            self.is_failed = True
             self.register_anonymous_task("Cleanup", self.cleanup)
-            result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
-            if msg:
-                result_msg += f" (error: {msg})"
-            raise ValueError(result_msg)
+        self.is_failed = True
+        result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
+        if msg:
+            result_msg += f" (error: {msg})"
+        raise ValueError(result_msg)
 
     @abstractmethod
     async def connect_to_tracker(self) -> TrackerResponse:
@@ -168,7 +168,7 @@ class HttpTrackerSession(TrackerSession):
         if body is None:
             self.failed(msg="no response body")
 
-        response_dict = lt.bdecode(body)
+        response_dict = cast(dict[bytes, Any], lt.bdecode(body))
         if not response_dict:
             self.failed(msg="no valid response")
 
