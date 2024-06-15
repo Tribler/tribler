@@ -121,7 +121,9 @@ class EventsEndpoint(RESTEndpoint):
         Use JSON to dump the given message to bytes.
         """
         try:
-            return b"data: " + json.dumps(message).encode() + b"\n\n"
+            event = message.get("topic", "message").encode()
+            data = json.dumps(message.get("kwargs", {})).encode()
+            return b"event: " + event + b"\ndata: " + data + b"\n\n"
         except (UnicodeDecodeError, TypeError) as e:
             # The message contains invalid characters; fix them
             self._logger.exception("Event contains non-unicode characters, dropping %s", repr(message))
