@@ -23,7 +23,6 @@ topics_to_send_to_gui = [
     Notification.tunnel_removed,
     Notification.watch_folder_corrupt_file,
     Notification.tribler_new_version,
-    Notification.channel_discovered,
     Notification.torrent_finished,
     Notification.torrent_health_updated,
     Notification.tribler_shutdown_state,

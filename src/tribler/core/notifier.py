@@ -27,9 +27,8 @@ class Notification(Enum):
     torrent_status_changed = Desc("torrent_status_changed", ["infohash", "status"], [str, str])
     tribler_shutdown_state = Desc("tribler_shutdown_state", ["state"], [str])
     tribler_new_version = Desc("tribler_new_version", ["version"], [str])
-    channel_discovered = Desc("channel_discovered", ["data"], [dict])
-    remote_query_results = Desc("remote_query_results", ["data"], [dict])
-    local_query_results = Desc("local_query_results", ["data"], [dict])
+    remote_query_results = Desc("remote_query_results", ["query", "results", "uuid", "peer"], [str, list, str, str])
+    local_query_results = Desc("local_query_results", ["query", "results"], [str, list])
     circuit_removed = Desc("circuit_removed", ["circuit", "additional_info"], [str, Circuit])
     tunnel_removed = Desc("tunnel_removed", ["circuit_id", "bytes_up", "bytes_down", "uptime", "additional_info"],
                           [int, int, int, float, str])

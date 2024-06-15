@@ -36,42 +36,6 @@ class TestUserActivityManager(TestBase):
         await self.task_manager.shutdown_task_manager()
         await super().tearDown()
 
-    async def test_notify_local_query_empty(self) -> None:
-        """
-        Test that local query notifications without a query get ignored.
-        """
-        fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
-        fake_query = None
-
-        self.session.notifier.notify(Notification.local_query_results,
-                                     data={"query": fake_query, "results": fake_torrent_metadata})
-        await sleep(0)
-
-        self.assertNotIn(fake_query, self.manager.queries)
-        self.assertNotIn(fake_infohashes[0], self.manager.infohash_to_queries)
-        self.assertNotIn(fake_infohashes[1], self.manager.infohash_to_queries)
-        self.assertNotIn(fake_query, self.manager.infohash_to_queries[fake_infohashes[0]])
-        self.assertNotIn(fake_query, self.manager.infohash_to_queries[fake_infohashes[1]])
-
-    async def test_notify_remote_query_empty(self) -> None:
-        """
-        Test that remote query notifications without a query get ignored.
-        """
-        fake_infohashes = [InfoHash(bytes([i]) * 20) for i in range(2)]
-        fake_torrent_metadata = [{"infohash": fake_infohashes[i]} for i in range(2)]
-        fake_query = None
-
-        self.session.notifier.notify(Notification.remote_query_results,
-                                     data={"query": fake_query, "results": fake_torrent_metadata})
-        await sleep(0)
-
-        self.assertNotIn(fake_query, self.manager.queries)
-        self.assertNotIn(fake_infohashes[0], self.manager.infohash_to_queries)
-        self.assertNotIn(fake_infohashes[1], self.manager.infohash_to_queries)
-        self.assertNotIn(fake_query, self.manager.infohash_to_queries[fake_infohashes[0]])
-        self.assertNotIn(fake_query, self.manager.infohash_to_queries[fake_infohashes[1]])
-
     async def test_notify_local_query_results(self) -> None:
         """
         Test that local query notifications get processed correctly.
@@ -81,7 +45,7 @@ class TestUserActivityManager(TestBase):
         fake_query = "test query"
 
         self.session.notifier.notify(Notification.local_query_results,
-                                     data={"query": fake_query, "results": fake_torrent_metadata})
+                                     query=fake_query, results=fake_torrent_metadata)
         await sleep(0)
 
         self.assertIn(fake_query, self.manager.queries)
@@ -99,7 +63,7 @@ class TestUserActivityManager(TestBase):
         fake_query = "test query"
 
         self.session.notifier.notify(Notification.remote_query_results,
-                                     data={"query": fake_query, "results": fake_torrent_metadata})
+                                     query=fake_query, results=fake_torrent_metadata, uuid='123', peer=[])
         await sleep(0)
 
         self.assertIn(fake_query, self.manager.queries)
@@ -121,10 +85,10 @@ class TestUserActivityManager(TestBase):
         fake_query_2 = "test query 2"
 
         self.session.notifier.notify(Notification.local_query_results,
-                                     data={"query": fake_query_1, "results": fake_torrent_metadata})
+                                     query=fake_query_1, results=fake_torrent_metadata)
         await sleep(0)
         self.session.notifier.notify(Notification.local_query_results,
-                                     data={"query": fake_query_2, "results": fake_torrent_metadata[:1]})
+                                     query=fake_query_2, results=fake_torrent_metadata[:1])
         await sleep(0)
 
         self.assertNotIn(fake_query_1, self.manager.queries)
@@ -149,10 +113,10 @@ class TestUserActivityManager(TestBase):
         fake_query_2 = "test query 2"
 
         self.session.notifier.notify(Notification.remote_query_results,
-                                     data={"query": fake_query_1, "results": fake_torrent_metadata})
+                                     query=fake_query_1, results=fake_torrent_metadata, uuid='123', peer=[])
         await sleep(0)
         self.session.notifier.notify(Notification.remote_query_results,
-                                     data={"query": fake_query_2, "results": fake_torrent_metadata[:1]})
+                                     query=fake_query_2, results=fake_torrent_metadata[:1], uuid='123', peer=[])
         await sleep(0)
 
         self.assertNotIn(fake_query_1, self.manager.queries)
