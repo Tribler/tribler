@@ -34,7 +34,9 @@ class Notification(Enum):
     tunnel_removed = Desc("tunnel_removed", ["circuit_id", "bytes_up", "bytes_down", "uptime", "additional_info"],
                           [int, int, int, float, str])
     watch_folder_corrupt_file = Desc("watch_folder_corrupt_file", ["file_name"], [str])
-    channel_entity_updated = Desc("channel_entity_updated", ["channel_update_dict"], [dict])
+    torrent_health_updated = Desc("torrent_health_updated",
+                                  ["infohash", "num_seeders", "num_leechers", "last_tracker_check", "health"],
+                                  [str, int, int, int, str])
     low_space = Desc("low_space", ["disk_usage_data"], [dict])
     events_start = Desc("events_start", ["public_key", "version"], [str, str])
     tribler_exception = Desc("tribler_exception", ["error"], [dict])

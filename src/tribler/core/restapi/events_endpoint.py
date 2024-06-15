@@ -25,7 +25,7 @@ topics_to_send_to_gui = [
     Notification.tribler_new_version,
     Notification.channel_discovered,
     Notification.torrent_finished,
-    Notification.channel_entity_updated,
+    Notification.torrent_health_updated,
     Notification.tribler_shutdown_state,
     Notification.remote_query_results,
     Notification.low_space,

@@ -439,10 +439,9 @@ class TorrentChecker(TaskManager):
         """
         Send a health update to the GUI.
         """
-        self.notifier.notify(Notification.channel_entity_updated, channel_update_dict={
-            'infohash': hexlify(health.infohash).decode(),
-            'num_seeders': health.seeders,
-            'num_leechers': health.leechers,
-            'last_tracker_check': health.last_check,
-            'health': 'updated'
-        })
+        self.notifier.notify(Notification.torrent_health_updated,
+                             infohash=hexlify(health.infohash).decode(),
+                             num_seeders=health.seeders,
+                             num_leechers=health.leechers,
+                             last_tracker_check=health.last_check,
+                             health='updated')

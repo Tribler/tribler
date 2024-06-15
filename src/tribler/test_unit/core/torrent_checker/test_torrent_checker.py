@@ -328,7 +328,7 @@ class TestTorrentChecker(TestBase):
         now = int(time.time())
         mocked_handler = Mock()
         self.torrent_checker.notifier = Notifier()
-        self.torrent_checker.notifier.add(Notification.channel_entity_updated, mocked_handler)
+        self.torrent_checker.notifier.add(Notification.torrent_health_updated, mocked_handler)
         self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=unhexlify('abcd0123'), seeders=2,
                                                                             leechers=1, last_check=now,
                                                                             self_checked=True)]
@@ -338,7 +338,7 @@ class TestTorrentChecker(TestBase):
 
         self.assertFalse(self.torrent_checker.update_torrent_health(health))
 
-        notified = mocked_handler.call_args.kwargs["channel_update_dict"]
+        notified = mocked_handler.call_args.kwargs
         self.assertEqual(prev_health.infohash, unhexlify(notified["infohash"]))
         self.assertEqual(prev_health.seeders, notified["num_seeders"])
         self.assertEqual(prev_health.leechers, notified["num_leechers"])
