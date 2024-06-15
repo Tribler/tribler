@@ -74,12 +74,16 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
+        download.get_state = Mock(return_value=Mock(get_num_seeds_peers=Mock(return_value=(42, 7))))
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)), \
                  patch.object(self.manager, "remove_download", AsyncMock()), \
                  patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
-            self.assertEqual(download.tdef.metainfo, await self.manager.get_metainfo(download.tdef.infohash))
+            metainfo = await self.manager.get_metainfo(download.tdef.infohash)
+            self.assertEqual(7, metainfo[b"leechers"])
+            self.assertEqual(42, metainfo[b"seeders"])
+            self.assertEqual(download.tdef.metainfo, metainfo)
 
     async def test_get_metainfo_add_fail(self) -> None:
         """

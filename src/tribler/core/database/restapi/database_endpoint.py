@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import typing
 from binascii import unhexlify
@@ -187,7 +188,8 @@ class DatabaseEndpoint(RESTEndpoint):
             return RESTResponse({"checking": False})
 
         infohash = unhexlify(request.match_info["infohash"])
-        await self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
+        health_check_coro = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
+        _ = self.register_anonymous_task("health_check", asyncio.ensure_future(health_check_coro))
         return RESTResponse({"checking": True})
 
     def add_download_progress_to_metadata_list(self, contents_list: list[dict]) -> None:
