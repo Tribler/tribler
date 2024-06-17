@@ -165,7 +165,7 @@ def pathlist2filename(pathlist: Iterable[bytes]) -> Path:
     return Path(*(x.decode() for x in pathlist))
 
 
-def get_length_from_metainfo(metainfo: MetainfoDict, selectedfiles: set[Path]) -> int:
+def get_length_from_metainfo(metainfo: MetainfoDict, selectedfiles: set[Path] | None) -> int:
     """
     Loop through all files in a torrent and calculate the total size.
     """
@@ -592,7 +592,7 @@ class TorrentDef:
 
         :return: A length (long)
         """
-        if self.metainfo and selectedfiles is not None:
+        if self.metainfo:
             return get_length_from_metainfo(self.metainfo, selectedfiles)
         return 0
 
