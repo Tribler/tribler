@@ -459,7 +459,7 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = (peers, status)
 
     @check_handle(None)
-    def on_metadata_received_alert(self, alert: lt.metadata_received_alert) -> None:  # noqa: C901
+    def on_metadata_received_alert(self, alert: lt.metadata_received_alert) -> None:
         """
         Handle a metadata received alert.
         """
@@ -471,7 +471,7 @@ class Download(TaskManager):
             return
 
         try:
-            metadata = cast(MetainfoDict, {b"info": lt.bdecode(torrent_info.metadata()), b"leechers": 0, b"seeders": 0})
+            metadata = cast(MetainfoDict, {b"info": lt.bdecode(torrent_info.metadata())})
         except (RuntimeError, ValueError) as e:
             self._logger.warning(e)
             return
@@ -493,12 +493,6 @@ class Download(TaskManager):
             metadata[b"announce-list"] = [[tracker] for tracker in tracker_urls]
         elif tracker_urls:
             metadata[b"announce"] = tracker_urls[0]
-
-        for peer in self.handle.get_peer_info():
-            if peer.progress == 1:
-                metadata[b"seeders"] += 1
-            else:
-                metadata[b"leechers"] += 1
 
         try:
             self.tdef = TorrentDef.load_from_dict(metadata)

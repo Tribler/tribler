@@ -431,16 +431,13 @@ class TestDownload(TestBase):
         tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download = Download(tdef, None, checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(torrent_file=Mock(return_value=download.tdef.torrent_info),
-                               trackers=Mock(return_value=[{"url": "http://google.com"}]),
-                               get_peer_info=Mock(return_value=[Mock(progress=1)] * 42 + [Mock(progress=0)] * 7))
+                               trackers=Mock(return_value=[{"url": "http://google.com"}]))
         download.tdef = None
 
         download.on_metadata_received_alert(Mock())
 
         self.assertEqual(tdef.infohash, download.tdef.infohash)
         self.assertDictEqual(tdef.metainfo[b"info"], download.tdef.metainfo[b"info"])
-        self.assertEqual(7, download.tdef.metainfo[b"leechers"])
-        self.assertEqual(42, download.tdef.metainfo[b"seeders"])
         self.assertEqual(b"http://google.com", download.tdef.metainfo[b"announce"])
 
     def test_on_metadata_received_alert_unicode_error_encode(self) -> None:

@@ -575,6 +575,10 @@ class DownloadManager(TaskManager):
             "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
         })
 
+        seeders, leechers = download.get_state().get_num_seeds_peers()
+        metainfo[b"seeders"] = seeders
+        metainfo[b"leechers"] = leechers
+
         if infohash in self.metainfo_requests:
             self.metainfo_requests[infohash].pending -= 1
             if self.metainfo_requests[infohash].pending <= 0:

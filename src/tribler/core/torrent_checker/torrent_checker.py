@@ -338,28 +338,29 @@ class TorrentChecker(TaskManager):
                 tracker_set = self.get_valid_trackers_of_torrent(torrent_state.infohash)
                 self._logger.info("Trackers for %s: %s", infohash_hex, str(tracker_set))
 
-        responses = []
+        coroutines = []
         for tracker_url in tracker_set:
             if session := self.create_session_for_request(tracker_url, timeout=timeout):
                 session.add_infohash(infohash)
-                try:
-                    responses.append(await self.get_tracker_response(session))
-                except Exception as e:
-                    responses.append(e)
+                coroutines.append(self.get_tracker_response(session))
 
         session = FakeDHTSession(self.download_manager, timeout)
         session.add_infohash(infohash)
         self._logger.info("DHT session has been created for %s: %s", infohash_hex, str(session))
         self.sessions["DHT"].append(session)
-        self.register_anonymous_task("FakeDHT resolve", session.connect_to_tracker)
+        coroutines.append(self.get_tracker_response(session))
 
+        responses = await asyncio.gather(*coroutines, return_exceptions=True)
         self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
-        health = aggregate_responses_for_infohash(infohash, successful_responses)
+        health = aggregate_responses_for_infohash(infohash, cast(List[TrackerResponse], successful_responses))
         if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
             health.last_check = int(time.time())
             health.self_checked = True
             self.update_torrent_health(health)
+        else:
+            # We don't need to store this in the db, but we still need to notify the GUI
+            self.notify(health)
         return health
 
     def create_session_for_request(self, tracker_url: str, timeout: float = 20) -> TrackerSession | None:
