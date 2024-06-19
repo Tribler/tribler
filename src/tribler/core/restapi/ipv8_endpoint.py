@@ -8,4 +8,12 @@ class IPv8RootEndpoint(RootEndpoint, RESTEndpoint):
     Make the IPv8 REST endpoint Tribler-compatible.
     """
 
-    path = "/ipv8"
+    path = "/api/ipv8"
+
+    def __init__(self) -> None:
+        """
+        Create a new IPv8 endpoint.
+        """
+        RESTEndpoint.__init__(self)
+        RootEndpoint.__init__(self)
+

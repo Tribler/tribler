@@ -19,6 +19,7 @@ from tribler.core.libtorrent.download_manager.download_config import DownloadCon
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import STREAM_PAUSE_TIME, Stream, StreamChunk
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -57,7 +58,7 @@ class DownloadsEndpoint(RESTEndpoint):
     starting, pausing and stopping downloads.
     """
 
-    path = "/downloads"
+    path = "/api/downloads"
 
     def __init__(self, download_manager: DownloadManager, metadata_store: MetadataStore | None = None,
                  tunnel_community: TriblerTunnelCommunity | None = None) -> None:
@@ -400,17 +401,29 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         Start a download from a provided URI.
         """
-        params = await request.json()
-        uri = params.get("uri")
-        if not uri:
-            return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
+        tdef = uri = None
+        if request.content_type == 'applications/x-bittorrent':
+            params = dict(request.query.items())
+            if 'anon_hops' in params:
+                params['anon_hops'] = int(params['anon_hops'])
+            if 'safe_seeding' in params:
+                params['safe_seeding'] = params['safe_seeding'] != 'false'
+            tdef = TorrentDef.load_from_memory(await request.read())
+        else:
+            params = await request.json()
+            uri = params.get("uri")
+            if not uri:
+                return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
 
         download_config, error = self.create_dconfig_from_params(params)
         if error:
             return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
 
         try:
-            download = await self.download_manager.start_download_from_uri(uri, config=download_config)
+            if tdef:
+                download = await self.download_manager.start_download(tdef=tdef, config=download_config)
+            elif uri:
+                download = await self.download_manager.start_download_from_uri(uri, config=download_config)
         except Exception as e:
             return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
 

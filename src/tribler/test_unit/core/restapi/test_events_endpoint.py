@@ -19,7 +19,7 @@ class GetEventsRequest(MockRequest):
         Create a new GetEventsRequest.
         """
         self.payload_writer = MockStreamWriter(endpoint, count=count)
-        super().__init__({}, "GET", "/events", payload_writer=self.payload_writer)
+        super().__init__({}, "GET", "/api/events", payload_writer=self.payload_writer)
 
 
 class MockStreamWriter(AbstractStreamWriter):
@@ -101,10 +101,9 @@ class TestEventsEndpoint(TestBase):
         response = await self.endpoint.get_events(request)
 
         self.assertEqual(200, response.status)
-        self.assertEqual((b'data: {'
-                          b'"topic": "events_start", '
-                          b'"kwargs": {"public_key": "", "version": "Tribler Experimental"}'
-                          b'}\n\n'), request.payload_writer.captured[0])
+        self.assertEqual((b'event: events_start\n'
+                          b'data: {"public_key": "", "version": "Tribler Experimental"}'
+                          b'\n\n'), request.payload_writer.captured[0])
 
     async def test_establish_connection_with_error(self) -> None:
         """
@@ -116,10 +115,9 @@ class TestEventsEndpoint(TestBase):
         response = await self.endpoint.get_events(request)
 
         self.assertEqual(200, response.status)
-        self.assertEqual((b'data: {'
-                          b'"topic": "tribler_exception", '
-                          b'"kwargs": {"error": "test message"}'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: tribler_exception\n'
+                          b'data: {"error": "test message"}'
+                          b'\n\n'), request.payload_writer.captured[1])
 
     async def test_forward_error(self) -> None:
         """
@@ -134,10 +132,9 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'data: {'
-                          b'"topic": "tribler_exception", '
-                          b'"kwargs": {"error": "test message"}'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: tribler_exception\n'
+                          b'data: {"error": "test message"}'
+                          b'\n\n'), request.payload_writer.captured[1])
 
     async def test_error_before_connection(self) -> None:
         """
@@ -156,14 +153,14 @@ class TestEventsEndpoint(TestBase):
 
         response_future = ensure_future(self.endpoint.get_events(request))
         await sleep(0)
-        self.endpoint.send_event({"key": "value"})
+        self.endpoint.send_event({"topic": "message", "kwargs": {"key": "value"}})
         response = await response_future
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'data: {'
-                          b'"key": "value"'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: message\n'
+                          b'data: {"key": "value"}'
+                          b'\n\n'), request.payload_writer.captured[1])
 
     async def test_send_event_illegal_chars(self) -> None:
         """
@@ -173,15 +170,14 @@ class TestEventsEndpoint(TestBase):
 
         response_future = ensure_future(self.endpoint.get_events(request))
         await sleep(0)
-        self.endpoint.send_event({"something": b"\x80"})
+        self.endpoint.send_event({"topic": "message", "kwargs": {"something": b"\x80"}})
         response = await response_future
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'data: {'
-                          b'"topic": "tribler_exception", '
-                          b'"kwargs": {"error": "Object of type bytes is not JSON serializable"}'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: tribler_exception\n'
+                          b'data: {"error": "Object of type bytes is not JSON serializable"}'
+                          b'\n\n'), request.payload_writer.captured[1])
 
     async def test_forward_notification(self) -> None:
         """
@@ -196,10 +192,9 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'data: {'
-                          b'"topic": "tribler_new_version", '
-                          b'"kwargs": {"version": "super cool version"}'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: tribler_new_version\n'
+                          b'data: {"version": "super cool version"}'
+                          b'\n\n'), request.payload_writer.captured[1])
 
     async def test_no_forward_illegal_notification(self) -> None:
         """
@@ -215,7 +210,6 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'data: {'
-                          b'"topic": "tribler_new_version", '
-                          b'"kwargs": {"version": "super cool version"}'
-                          b'}\n\n'), request.payload_writer.captured[1])
+        self.assertEqual((b'event: tribler_new_version\n'
+                          b'data: {"version": "super cool version"}'
+                          b'\n\n'), request.payload_writer.captured[1])

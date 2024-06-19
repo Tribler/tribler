@@ -117,7 +117,7 @@ class ContentDiscoveryComponent(BaseLauncher):
         """
         When we are done launching, register our REST API.
         """
-        session.rest_manager.get_endpoint("/search").content_discovery_community = community
+        session.rest_manager.get_endpoint("/api/search").content_discovery_community = community
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """
@@ -161,10 +161,10 @@ class DatabaseComponent(ComponentLauncher):
         """
         When we are done launching, register our REST API.
         """
-        session.rest_manager.get_endpoint("/downloads").mds = session.mds
-        session.rest_manager.get_endpoint("/statistics").mds = session.mds
+        session.rest_manager.get_endpoint("/api/downloads").mds = session.mds
+        session.rest_manager.get_endpoint("/api/statistics").mds = session.mds
 
-        db_endpoint = session.rest_manager.get_endpoint("/metadata")
+        db_endpoint = session.rest_manager.get_endpoint("/api/metadata")
         db_endpoint.download_manager = session.download_manager
         db_endpoint.mds = session.mds
         db_endpoint.tribler_db = session.db
@@ -193,7 +193,7 @@ class KnowledgeComponent(CommunityLauncherWEndpoints):
         """
         When we are done launching, register our REST API.
         """
-        endpoint = session.rest_manager.get_endpoint("/knowledge")
+        endpoint = session.rest_manager.get_endpoint("/api/knowledge")
         endpoint.db = session.db
         endpoint.community = community
 
@@ -263,7 +263,7 @@ class TorrentCheckerComponent(ComponentLauncher):
         When we are done launching, register our REST API.
         """
         community.register_task("Start torrent checker", session.torrent_checker.initialize)
-        session.rest_manager.get_endpoint("/metadata").torrent_checker = session.torrent_checker
+        session.rest_manager.get_endpoint("/api/metadata").torrent_checker = session.torrent_checker
 
 
 @set_in_session("dht_discovery_community")
@@ -278,7 +278,7 @@ class DHTDiscoveryComponent(BaseLauncher):
         """
         When we are done launching, register our REST API.
         """
-        session.rest_manager.get_endpoint("/ipv8").endpoints["/dht"].dht = community
+        session.rest_manager.get_endpoint("/api/ipv8").endpoints["/dht"].dht = community
 
 
 @set_in_session("tunnel_community")
@@ -314,8 +314,8 @@ class TunnelComponent(BaseLauncher):
         """
         When we are done launching, register our REST API.
         """
-        session.rest_manager.get_endpoint("/downloads").tunnel_community = community
-        session.rest_manager.get_endpoint("/ipv8").endpoints["/tunnel"].tunnels = community
+        session.rest_manager.get_endpoint("/api/downloads").tunnel_community = community
+        session.rest_manager.get_endpoint("/api/ipv8").endpoints["/tunnel"].tunnels = community
 
 
 @after("ContentDiscoveryComponent", "TorrentCheckerComponent")

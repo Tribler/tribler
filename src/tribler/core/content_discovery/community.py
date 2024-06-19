@@ -237,12 +237,10 @@ class ContentDiscoveryCommunity(Community):
             ]
             if self.composition.notifier:
                 self.composition.notifier.notify(Notification.remote_query_results,
-                                                 data={
-                                                     "query": kwargs.get("txt_filter"),
-                                                     "results": results,
-                                                     "uuid": str(request_uuid),
-                                                     "peer": hexlify(request.peer.mid).decode()
-                                                 })
+                                                 query=kwargs.get("txt_filter"),
+                                                 results=results,
+                                                 uuid=str(request_uuid),
+                                                 peer=hexlify(request.peer.mid).decode())
 
         peers_to_query = self.get_random_peers(self.composition.max_query_peers)
 

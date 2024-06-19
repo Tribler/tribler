@@ -74,7 +74,7 @@ class DatabaseEndpoint(RESTEndpoint):
               /<public_key>
     """
 
-    path = "/metadata"
+    path = "/api/metadata"
 
     def __init__(self, middlewares: tuple = (), client_max_size: int = MAX_REQUEST_SIZE) -> None:
         """
@@ -296,10 +296,9 @@ class DatabaseEndpoint(RESTEndpoint):
                 else:
                     total = max_rowid = None
             if self.download_manager is not None:
-                self.download_manager.notifier.notify(Notification.local_query_results, data={
-                    "query": request.query.get("fts_text"),
-                    "results": list(search_results)
-                })
+                self.download_manager.notifier.notify(Notification.local_query_results,
+                                                      query=request.query.get("fts_text"),
+                                                      results=list(search_results))
             return search_results, total, max_rowid
 
         try:

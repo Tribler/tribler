@@ -70,10 +70,10 @@ class ApiKeyMiddleware:
         """
         Is the given request authenticated using an API key.
         """
-        if any(request.path.startswith(path) for path in ["/docs", "/static", "/debug-ui"]):
+        if any(request.path.startswith(path) for path in ["/docs", "/static", "/ui"]):
             return True
         # The api key can either be in the headers or as part of the url query
-        api_key = request.headers.get("X-Api-Key") or request.query.get("apikey") or request.cookies.get("api_key")
+        api_key = request.headers.get("X-Api-Key") or request.query.get("key") or request.cookies.get("api_key")
         expected_api_key = self.api_key
         return not expected_api_key or expected_api_key == api_key
 
@@ -112,6 +112,17 @@ async def error_middleware(request: Request, handler: Callable[[Request], Awaita
 
 
 @web.middleware
+async def ui_middleware(request: Request, handler: Callable[[Request], Awaitable[RESTResponse]]) -> RESTResponse:
+    """
+    Forward request to a unknown pathname to /ui.
+    This enables the GUI to request e.g. /index.html instead of using /ui/index.html.
+    """
+    if not any(request.path.startswith(path) for path in ["/docs", "/static", "/ui", "/api"]):
+        raise web.HTTPFound('/ui' + request.rel_url.path)
+    return await handler(request)
+
+
+@web.middleware
 async def required_components_middleware(request: Request,
                                          handler: Callable[[Request], Awaitable[RESTResponse]]) -> RESTResponse:
     """
@@ -142,8 +153,8 @@ class RESTManager:
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.root_endpoint = RootEndpoint(middlewares=(ApiKeyMiddleware(config.get("api/key")), error_middleware,
-                                                       required_components_middleware))
+        self.root_endpoint = RootEndpoint(middlewares=(ui_middleware, ApiKeyMiddleware(config.get("api/key")),
+                                                       error_middleware, required_components_middleware))
         self.runner: web.AppRunner | None = None
         self.site: web.TCPSite | None = None
         self.site_https: web.TCPSite | None = None
@@ -167,13 +178,13 @@ class RESTManager:
         """
         return self.root_endpoint.endpoints.get(name)
 
-    def set_api_port(self, api_port: int) -> None:
+    def get_api_port(self) -> int | None:
         """
-        Set the API port and write the config to disk.
+        Get the API port of the currently running server.
         """
-        if self.config.get("api/http_port") != api_port:
-            self.config.set("api/http_port", api_port)
-            self.config.write()
+        if self.site:
+            return cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
+        return None
 
     async def start(self) -> None:
         """
@@ -211,15 +222,15 @@ class RESTManager:
             self._logger.info("Https enabled")
             await self.start_https_site(self.runner)
 
-        self._logger.info("Swagger docs: http://%s:%d/docs", self.http_host, self.config.get("api/http_port"))
-        self._logger.info("Swagger JSON: http://%s:%d/docs/swagger.json", self.http_host,
-                          self.config.get("api/http_port"))
+        api_port = self.get_api_port()
+        self._logger.info("Swagger docs: http://%s:%d/docs", self.http_host, api_port)
+        self._logger.info("Swagger JSON: http://%s:%d/docs/swagger.json", self.http_host, api_port)
 
     async def start_http_site(self, runner: web.AppRunner) -> None:
         """
         Start serving HTTP requests.
         """
-        api_port = max(self.config.get("api/http_port"), 0)  # if the value in config is <0 we convert it to 0
+        api_port = self.config.get("api/http_port") or 0
 
         self.site = web.TCPSite(runner, self.http_host, api_port, shutdown_timeout=self.shutdown_timeout)
         self._logger.info("Starting HTTP REST API server on port %d...", api_port)
@@ -231,11 +242,7 @@ class RESTManager:
                                    str(e))
             raise
 
-        if not api_port:
-            api_port = cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
-
-        self.set_api_port(api_port)
-        self._logger.info("HTTP REST API server started on port %d", api_port)
+        self._logger.info("HTTP REST API server started on port %d", self.get_api_port())
 
     async def start_https_site(self, runner: web.AppRunner) -> None:
         """
@@ -257,4 +264,6 @@ class RESTManager:
         self._logger.info("Stopping...")
         if self.runner:
             await self.runner.cleanup()
+        for endpoint in self.root_endpoint.endpoints.values():
+            await endpoint.shutdown_task_manager()
         self._logger.info("Stopped")

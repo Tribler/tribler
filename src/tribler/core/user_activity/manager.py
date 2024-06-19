@@ -41,15 +41,11 @@ class UserActivityManager:
         self.task_manager.register_task("Check preferable", self.check_preferable,
                                         interval=session.config.get("user_activity/health_check_interval"))
 
-    def on_query_results(self, data: dict) -> None:
+    def on_query_results(self, query: str, **data: dict) -> None:
         """
         Start tracking a query and its results.
         If any of the results get downloaded, we store the query (see ``on_torrent_finished``).
         """
-        query = data.get("query")
-        if query is None:
-            return
-
         results = {tmd["infohash"] for tmd in data["results"]}
         for infohash in results:
             self.infohash_to_queries[infohash].append(query)

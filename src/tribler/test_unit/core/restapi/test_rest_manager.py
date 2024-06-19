@@ -91,7 +91,7 @@ class TestRESTManager(TestBase):
         """
         middleware = ApiKeyMiddleware("123")
 
-        response = await middleware(GenericRequest(query={"apikey": "123"}), GenericRequest.generic_handler)
+        response = await middleware(GenericRequest(query={"key": "123"}), GenericRequest.generic_handler)
         response_body_json = await response_to_json(response)
 
         self.assertTrue(response_body_json["passed"])
@@ -186,13 +186,3 @@ class TestRESTManager(TestBase):
         manager.add_endpoint(endpoint)
 
         self.assertEqual(endpoint, manager.get_endpoint("/test"))
-
-    def test_set_api_port(self) -> None:
-        """
-        Test if the api port can be set.
-        """
-        manager = RESTManager(MockTriblerConfigManager())
-
-        manager.set_api_port(123)
-
-        self.assertEqual(123, manager.config.get("api/http_port"))

@@ -1,0 +1,68 @@
+import SimpleTable from "@/components/ui/simple-table";
+import { useState } from "react";
+import { ipv8Service } from "@/services/ipv8.service";
+import { Circuit } from "@/models/circuit.model";
+import { ColumnDef } from "@tanstack/react-table";
+import { formatBytes, formatFlags, formatTimeDiff } from "@/lib/utils";
+import { useInterval } from '@/hooks/useInterval';
+
+
+const circuitColumns: ColumnDef<Circuit>[] = [
+    {
+        accessorKey: "circuit_id",
+        header: "Circuit ID",
+    },
+    {
+        accessorKey: "actual_hops",
+        header: "Hops",
+        cell: ({ row }) => {
+            return <span>{row.original.actual_hops} / {row.original.goal_hops}</span>
+        },
+    },
+    {
+        accessorKey: "type",
+        header: "Type",
+    },
+    {
+        accessorKey: "state",
+        header: "State",
+    },
+    {
+        accessorKey: "bytes_up",
+        header: "Up",
+        cell: ({ row }) => {
+            return <span>{formatBytes(row.original.bytes_up)}</span>
+        },
+    },
+    {
+        accessorKey: "bytes_down",
+        header: "Down",
+        cell: ({ row }) => {
+            return <span>{formatBytes(row.original.bytes_down)}</span>
+        },
+    },
+    {
+        accessorKey: "uptime",
+        header: "Uptime",
+        cell: ({ row }) => {
+            return <span>{formatTimeDiff(row.original.creation_time)}</span>
+        },
+    },
+    {
+        accessorKey: "exit_flags",
+        header: "Exit flags",
+        cell: ({ row }) => {
+            return <span>{formatFlags(row.original.exit_flags)}</span>
+        },
+    },
+]
+
+export default function Circuits() {
+    const [circuits, setCircuits] = useState<Circuit[]>([])
+
+    useInterval(async () => {
+        setCircuits((await ipv8Service.getCircuits()));
+    }, 5000, true);
+
+    return <SimpleTable data={circuits} columns={circuitColumns} />
+}

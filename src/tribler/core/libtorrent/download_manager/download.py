@@ -573,9 +573,17 @@ class Download(TaskManager):
         """
         Update libtorrent stats and check if the download should be stopped.
         """
-        self.lt_status = lt_status
+        old_status = self.get_state().get_status()
 
+        self.lt_status = lt_status
         state = self.get_state()
+
+        # Notify the GUI if the status has changed
+        if self.notifier and not self.hidden and state.get_status() != old_status:
+            self.notifier.notify(Notification.torrent_status_changed,
+                                 infohash=hexlify(self.tdef.get_infohash()).decode(),
+                                 status=state.get_status().name)
+
         if state.get_status() == DownloadStatus.SEEDING:
             mode = self.download_manager.config.get("libtorrent/download_defaults/seeding_mode")
             seeding_ratio = self.download_manager.config.get("libtorrent/download_defaults/seeding_ratio")

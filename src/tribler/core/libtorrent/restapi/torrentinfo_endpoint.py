@@ -87,7 +87,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
     This endpoint is responsible for handing all requests regarding torrent info in Tribler.
     """
 
-    path = "/torrentinfo"
+    path = "/api/torrentinfo"
 
     def __init__(self, download_manager: DownloadManager) -> None:
         """
@@ -95,7 +95,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         super().__init__()
         self.download_manager = download_manager
-        self.app.add_routes([web.get("", self.get_torrent_info)])
+        self.app.add_routes([web.get("", self.get_torrent_info),
+                             web.put("", self.get_torrent_info_from_file)])
 
     @docs(
         tags=["Libtorrent"],
@@ -171,7 +172,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops,
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
                                                                     url=response.decode())
             else:
                 metainfo = lt.bdecode(response)
@@ -190,7 +191,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
                     status=HTTP_BAD_REQUEST
                 )
-            metainfo = await self.download_manager.get_metainfo(infohash, timeout=10.0, hops=i_hops, url=uri)
+            metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
         else:
             return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
 
@@ -219,3 +220,32 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         return RESTResponse({"metainfo": hexlify(json_dump.encode()).decode(),
                              "download_exists": download and not download_is_metainfo_request})
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Return metainfo from a torrent found at a provided .torrent file.",
+        responses={
+            200: {
+                "description": "Return a hex-encoded json-encoded string with torrent metainfo",
+                "schema": schema(GetMetainfoResponse={"metainfo": String})
+            }
+        }
+    )
+    async def get_torrent_info_from_file(self, request: web.Request) -> RESTResponse:
+        """
+        Return metainfo from a torrent found at a provided .torrent file.
+        """
+        tdef = TorrentDef.load_from_memory(await request.read())
+        infohash = tdef.get_infohash()
+
+        # Check if the torrent is already in the downloads
+        download = self.download_manager.downloads.get(infohash)
+        metainfo_lookup = self.download_manager.metainfo_requests.get(infohash)
+        metainfo_download = metainfo_lookup.download if metainfo_lookup else None
+        requesting_metainfo = download == metainfo_download
+
+        metainfo_unicode = recursive_unicode(deepcopy(tdef.get_metainfo()), ignore_errors=True)
+        metainfo_json = json.dumps(metainfo_unicode, ensure_ascii=False)
+        return RESTResponse({"infohash": hexlify(infohash).decode(),
+                             "metainfo": hexlify(metainfo_json.encode('utf-8')).decode(),
+                             "download_exists": download and not requesting_metainfo})

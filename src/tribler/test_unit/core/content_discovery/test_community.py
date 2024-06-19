@@ -159,9 +159,9 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         uuid, peers = self.overlay(0).send_search_request(txt_filter="ubuntu*")
         await self.deliver_messages()
 
-        self.assertEqual(str(uuid), notifications["data"]["uuid"])
-        self.assertEqual([], notifications["data"]["results"])
-        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["data"]["peer"])
+        self.assertEqual(str(uuid), notifications["uuid"])
+        self.assertEqual([], notifications["results"])
+        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["peer"])
 
     async def test_popularity_search_deprecated(self) -> None:
         """
@@ -175,9 +175,9 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
                                                           metadata_type=REGULAR_TORRENT, exclude_deleted="1")
         await self.deliver_messages()
 
-        self.assertEqual(str(uuid), notifications["data"]["uuid"])
-        self.assertEqual([], notifications["data"]["results"])
-        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["data"]["peer"])
+        self.assertEqual(str(uuid), notifications["uuid"])
+        self.assertEqual([], notifications["results"])
+        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["peer"])
 
     async def test_popularity_search_unparsed_metadata_type(self) -> None:
         """
@@ -191,9 +191,9 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
                                                           metadata_type=str(REGULAR_TORRENT), exclude_deleted="1")
         await self.deliver_messages()
 
-        self.assertEqual(str(uuid), notifications["data"]["uuid"])
-        self.assertEqual([], notifications["data"]["results"])
-        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["data"]["peer"])
+        self.assertEqual(str(uuid), notifications["uuid"])
+        self.assertEqual([], notifications["results"])
+        self.assertEqual(hexlify(peers[0].mid).decode(), notifications["peer"])
 
     async def test_request_for_version(self) -> None:
         """

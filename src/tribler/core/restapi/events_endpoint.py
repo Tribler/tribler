@@ -19,12 +19,12 @@ if TYPE_CHECKING:
     from ipv8.messaging.anonymization.tunnel import Circuit
 
 topics_to_send_to_gui = [
+    Notification.torrent_status_changed,
     Notification.tunnel_removed,
     Notification.watch_folder_corrupt_file,
     Notification.tribler_new_version,
-    Notification.channel_discovered,
     Notification.torrent_finished,
-    Notification.channel_entity_updated,
+    Notification.torrent_health_updated,
     Notification.tribler_shutdown_state,
     Notification.remote_query_results,
     Notification.low_space,
@@ -48,7 +48,7 @@ class EventsEndpoint(RESTEndpoint):
     indicates the type of the event. Individual events are separated by a newline character.
     """
 
-    path = "/events"
+    path = "/api/events"
 
     def __init__(self, notifier: Notifier, public_key: str | None = None) -> None:
         """
@@ -120,7 +120,9 @@ class EventsEndpoint(RESTEndpoint):
         Use JSON to dump the given message to bytes.
         """
         try:
-            return b"data: " + json.dumps(message).encode() + b"\n\n"
+            event = message.get("topic", "message").encode()
+            data = json.dumps(message.get("kwargs", {})).encode()
+            return b"event: " + event + b"\ndata: " + data + b"\n\n"
         except (UnicodeDecodeError, TypeError) as e:
             # The message contains invalid characters; fix them
             self._logger.exception("Event contains non-unicode characters, dropping %s", repr(message))

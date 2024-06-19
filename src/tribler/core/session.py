@@ -25,11 +25,13 @@ from tribler.core.libtorrent.restapi.libtorrent_endpoint import LibTorrentEndpoi
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.events_endpoint import EventsEndpoint
+from tribler.core.restapi.file_endpoint import FileEndpoint
 from tribler.core.restapi.ipv8_endpoint import IPv8RootEndpoint
 from tribler.core.restapi.rest_manager import RESTManager
 from tribler.core.restapi.settings_endpoint import SettingsEndpoint
 from tribler.core.restapi.shutdown_endpoint import ShutdownEndpoint
 from tribler.core.restapi.statistics_endpoint import StatisticsEndpoint
+from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 from tribler.core.socks5.server import Socks5Server
 
 if TYPE_CHECKING:
@@ -109,6 +111,8 @@ class Session:
         """
         Register all core REST endpoints without initializing them.
         """
+        self.rest_manager.add_endpoint(WebUIEndpoint())
+        self.rest_manager.add_endpoint(FileEndpoint())
         self.rest_manager.add_endpoint(CreateTorrentEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(DownloadsEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(EventsEndpoint(self.notifier))
@@ -141,10 +145,10 @@ class Session:
         await self.ipv8.start()
 
         # REST (2/2)
-        self.rest_manager.get_endpoint("/ipv8").initialize(self.ipv8)
-        self.rest_manager.get_endpoint("/statistics").ipv8 = self.ipv8
+        self.rest_manager.get_endpoint("/api/ipv8").initialize(self.ipv8)
+        self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
         if self.config.get("statistics"):
-            self.rest_manager.get_endpoint("/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
+            self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
 
     async def shutdown(self) -> None:
         """
