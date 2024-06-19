@@ -5,18 +5,10 @@ set -e # exit when any command fails
 # Script to build Tribler 64-bit on Mac
 # Initial author(s): Riccardo Petrocco, Arno Bakker
 
-APPNAME=Tribler
-LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
-BUILD_ENV=${BUILD_ENV:-"venv"}
-
-if [ -e .TriblerVersion ]; then
-    DMGNAME="Tribler-$(cat .TriblerVersion)"
-fi
-
-export RESOURCES=build/mac/resources
+source ./build/mac/env.sh
 
 # ----- Clean up
-/bin/rm -rf dist
+/bin/rm -rf $DIST_DIR
 
 # ----- Prepare venv & install dependencies before the build
 
@@ -29,39 +21,35 @@ python3 -m pip install --upgrade -r requirements-build.txt
 
 pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
-mkdir -p dist/installdir
-mv dist/$APPNAME.app dist/installdir
+mkdir -p $INSTALL_DIR
+mv $DIST_DIR/$APPNAME.app $INSTALL_DIR
 
 # From original Makefile
 # Background
-mkdir -p dist/installdir/.background
-cp $RESOURCES/background.png dist/installdir/.background
+mkdir -p $INSTALL_DIR/.background
+cp $RESOURCES_DIR/background.png $INSTALL_DIR/.background
 
 # Volume Icon
-cp $RESOURCES/VolumeIcon.icns dist/installdir/.VolumeIcon.icns
+cp $RESOURCES_DIR/VolumeIcon.icns $INSTALL_DIR/.VolumeIcon.icns
 
 # Shortcut to /Applications
-ln -s /Applications dist/installdir/Applications
+ln -s /Applications $INSTALL_DIR/Applications
 
-touch dist/installdir
+touch $INSTALL_DIR
 
-mkdir -p dist/temp
+mkdir -p $TEMP_DIR
 
 # Sign the app if environment variables are set
-if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
-    echo "Signing $APPNAME.app with ID: $APPLE_DEV_ID"
-    SIGN_MSG="Developer ID Application: $APPLE_DEV_ID"
-    codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime dist/installdir/$APPNAME.app
-fi
+./build/mac/sign_app.sh
 
 # create image
-hdiutil create -fs HFS+ -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
+hdiutil create -fs HFS+ -srcfolder $INSTALL_DIR -format UDRW -scrub -volname ${APPNAME} $DIST_DIR/$APPNAME.dmg
 
 # open it
-hdiutil attach -readwrite -noverify -noautoopen dist/$APPNAME.dmg -mountpoint dist/temp/mnt
+hdiutil attach -readwrite -noverify -noautoopen $DIST_DIR/$APPNAME.dmg -mountpoint $TEMP_DIR/mnt
 
 # make sure root folder is opened when image is
-bless --folder dist/temp/mnt --openfolder dist/temp/mnt
+bless --folder $TEMP_DIR/mnt --openfolder $TEMP_DIR/mnt
 # hack: wait for completion
 sleep 1
 
@@ -100,23 +88,19 @@ osascript -e "tell application \"Finder\"" \
 -e "end tell" || true
 
 # turn on custom volume icon
-SetFile -a C dist/temp/mnt || true
+SetFile -a C $TEMP_DIR/mnt || true
 
 # close
-hdiutil detach dist/temp/mnt || true
+hdiutil detach $TEMP_DIR/mnt || true
 
 # make read-only
-mv dist/$APPNAME.dmg dist/temp/rw.dmg
-hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$APPNAME.dmg
-rm -f dist/temp/rw.dmg
+mv $DIST_DIR/$APPNAME.dmg $TEMP_DIR/rw.dmg
+hdiutil convert $TEMP_DIR/rw.dmg -format UDZO -imagekey zlib-level=9 -o $DIST_DIR/$APPNAME.dmg
+rm -f $TEMP_DIR/rw.dmg
 
 if [ ! -z "$DMGNAME" ]; then
-    mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
+    mv $DIST_DIR/$APPNAME.dmg $DIST_DIR/$DMGNAME.dmg
 fi
 
 # Sign the dmg package and verify it
-if [ -n "$CODE_SIGN_ENABLED" ] && [ -n "$APPLE_DEV_ID" ]; then
-    codesign --force --verify --verbose --sign "$SIGN_MSG" dist/$DMGNAME.dmg
-    codesign --verify --verbose=4 dist/$DMGNAME.dmg
-    spctl --assess --type open --context context:primary-signature -v dist/$DMGNAME.dmg
-fi
+./build/mac/sign_dmg.sh
