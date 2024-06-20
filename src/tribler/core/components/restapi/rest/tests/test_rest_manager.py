@@ -34,6 +34,7 @@ def api_port_fixture(free_port):
 @pytest.fixture(name='rest_manager')
 async def rest_manager_fixture(request, tribler_config, api_port, tmp_path):
     config = tribler_config
+    config.set_state_dir(tmp_path)
     api_key_marker = request.node.get_closest_marker("api_key")
     if api_key_marker is not None:
         tribler_config.api.key = api_key_marker.args[0]
@@ -49,7 +50,7 @@ async def rest_manager_fixture(request, tribler_config, api_port, tmp_path):
         tribler_config.api.http_port = api_port
     root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
     root_endpoint.add_endpoint('/settings', SettingsEndpoint(config))
-    rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=tmp_path)
+    rest_manager = RESTManager(config=config, root_endpoint=root_endpoint)
     await rest_manager.start()
     yield rest_manager
     await rest_manager.stop()
@@ -69,7 +70,7 @@ async def test_api_key_disabled(rest_manager, api_port):
 
 @pytest.mark.api_key('0' * 32)
 async def test_api_key_success(rest_manager, api_port):
-    api_key = rest_manager.config.key
+    api_key = rest_manager.config.api.key
     await do_real_request(api_port, 'settings?apikey=' + api_key)
     await do_real_request(api_port, 'settings', headers={'X-Api-Key': api_key})
 
