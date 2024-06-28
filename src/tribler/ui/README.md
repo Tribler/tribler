@@ -7,7 +7,7 @@ After checking out the Tribler repo, the web UI will not run out-of-the box. You
 Building the web UI works as follows:
 
 ```
-cd tribler/src/webui
+cd src/tribler/ui/
 npm install
 npm run build
 ```
@@ -17,7 +17,7 @@ This will create a `dist` folder which will automatically be served after Trible
 Alternatively, while working on the web UI, it's often more convenient use the development server:
 
 ```
-cd tribler/src/webui
+cd src/tribler/ui/
 rm dist -r
 npm install
 npm run dev
