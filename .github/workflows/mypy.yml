@@ -13,5 +13,5 @@ jobs:
         run: pip install mypy
       - name: Run mypy
         run: |
-          wget -O libtorrent.pyi https://github.com/arvidn/libtorrent/raw/master/bindings/python/install_data/libtorrent/__init__.pyi
+          wget -O libtorrent.pyi https://github.com/arvidn/libtorrent/raw/master/bindings/python/libtorrent/__init__.pyi
           mypy -p src.tribler.core
