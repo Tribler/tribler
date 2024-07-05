@@ -51,9 +51,10 @@ async def fixture_rest_manager(api_port, tmp_path, events_endpoint):
     config = TriblerConfig()
     config.api.http_enabled = True
     config.api.http_port = api_port
+    config.set_state_dir(tmp_path)
     root_endpoint = RootEndpoint(middlewares=[ApiKeyMiddleware(config.api.key), error_middleware])
     root_endpoint.add_endpoint('/events', events_endpoint)
-    rest_manager = RESTManager(config=config.api, root_endpoint=root_endpoint, state_dir=tmp_path)
+    rest_manager = RESTManager(config=config, root_endpoint=root_endpoint)
 
     await rest_manager.start()
     yield rest_manager
@@ -62,7 +63,7 @@ async def fixture_rest_manager(api_port, tmp_path, events_endpoint):
 
 async def open_events_socket(rest_manager_, connected_event, events_up):
     global messages_to_wait_for
-    port = rest_manager_.config.http_port
+    port = rest_manager_.config.api.http_port
     url = f'http://localhost:{port}/events'
     headers = {'User-Agent': 'Tribler ' + version_id}
 
