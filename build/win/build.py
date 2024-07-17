@@ -43,20 +43,20 @@ def get_freeze_build_options():
     included_packages = [
         "aiohttp_apispec",
         "pkg_resources",
-        "pyqtgraph",
         "requests",
         "tribler.core",
-        "tribler.gui",
         "libtorrent",
         "ssl",
     ]
 
     # These files will be included in the build
     included_files = [
-        ("src/tribler/gui/qt_resources", "qt_resources"),
-        ("src/tribler/gui/images", "images"),
+        ("src/tribler/ui/public", "lib/tribler/ui/public"),
+        ("src/tribler/ui/dist", "lib/tribler/ui/dist"),
+
         ("src/tribler/core", "tribler_source/tribler/core"),
-        ("src/tribler/gui", "tribler_source/tribler/gui"),
+        ("src/tribler/ui/public", "tribler_source/tribler/ui/public"),
+        ("src/tribler/ui/dist", "tribler_source/tribler/ui/dist"),
         ("build/win/resources", "tribler_source/resources"),
     ]
 
@@ -70,7 +70,9 @@ def get_freeze_build_options():
         '_tkinter',
         'tkinter',
         'Tkinter',
-        'matplotlib'
+        'matplotlib',
+        'numpy',
+        'tribler.ui'
     ]
 
     _setup_options = {
