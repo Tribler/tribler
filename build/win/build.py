@@ -25,6 +25,7 @@ support building wheels. Therefore, the build options are separated into two fun
 and the appropriate function is called based on the command line arguments.
 """
 import sys
+import platform
 
 
 def get_wheel_build_options():
@@ -48,6 +49,9 @@ def get_freeze_build_options():
         "libtorrent",
         "ssl",
     ]
+
+    if platform.system() != 'Windows':
+        included_packages.append("gi")
 
     # These files will be included in the build
     included_files = [
@@ -84,6 +88,9 @@ def get_freeze_build_options():
             'build_exe': 'dist/tribler'
         }
     }
+    if platform.system() == 'Linux':
+        _setup_options["build_exe"]["bin_includes"] = "libffi.so"
+
 
     app_name = "Tribler" if sys.platform != "linux" else "tribler"
     app_script = "src/tribler/run.py"
