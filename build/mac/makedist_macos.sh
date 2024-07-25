@@ -17,6 +17,15 @@ python3 -m venv "${BUILD_ENV}"
 python3 -m pip install --upgrade pip
 python3 -m pip install --upgrade -r requirements-build.txt
 
+# ----- Build UI
+
+pushd .
+cd src/tribler/ui/
+npm install
+npm run build
+rm -rf node_modules
+popd
+
 # ----- Build
 
 pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
