@@ -244,7 +244,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         variant="outline"
                         type="submit"
                         onClick={() => OnDownloadClicked()}
-                        disabled={!!error || exists || (files.length !== 0 && selectedFiles.length === 0)}>
+                        disabled={exists || (files.length !== 0 && selectedFiles.length === 0)}>
                         {t('Download')}
                     </Button>
                     <DialogClose asChild>
