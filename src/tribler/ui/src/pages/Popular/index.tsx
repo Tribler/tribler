@@ -4,7 +4,7 @@ import { useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { categoryIcon, formatBytes, formatTimeAgo, getMagnetLink, translateHeader } from "@/lib/utils";
+import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink, translateHeader } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useInterval } from '@/hooks/useInterval';
 
@@ -55,7 +55,8 @@ export default function Popular() {
     const [torrentDoubleClicked, setTorrentDoubleClicked] = useState<Torrent | undefined>();
 
     useInterval(async () => {
-        setTorrents((await triblerService.getPopularTorrents(true)));
+        const popular = await triblerService.getPopularTorrents(true);
+        setTorrents(filterDuplicates(popular, 'infohash'));
     }, 5000, true);
 
     const OnDoubleClick = (torrent: Torrent) => {

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { Torrent, category } from "@/models/torrent.model";
+import { category } from "@/models/torrent.model";
 import TimeAgo from 'javascript-time-ago'
 import en from 'javascript-time-ago/locale/en'
 import es from 'javascript-time-ago/locale/es'
@@ -8,7 +8,6 @@ import pt from 'javascript-time-ago/locale/pt'
 import ru from 'javascript-time-ago/locale/ru'
 import zh from 'javascript-time-ago/locale/zh'
 import Cookies from "js-cookie";
-import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 TimeAgo.setDefaultLocale(en.locale)
@@ -142,4 +141,13 @@ export function translateHeader(name: string) {
         const { t } = useTranslation();
         return t(name);
     }
+}
+
+export function filterDuplicates(data: any[], key: string) {
+    const seen = new Set();
+    return data.filter(item => {
+        const duplicate = seen.has(item[key]);
+        seen.add(item[key]);
+        return !duplicate;
+    });
 }
