@@ -30,17 +30,12 @@ show_console = os.environ.get('SHOW_CONSOLE', 'false') == 'true'
 if sys.platform == 'darwin':
     show_console = True
 
-widget_files = []
-for file in os.listdir(os.path.join(src_dir, "tribler", "gui", "widgets")):
-    if file.endswith(".py"):
-        widget_files.append('tribler.gui.widgets.%s' % file[:-3])
-
 data_to_copy = [
-    (os.path.join(src_dir, "tribler", "gui", "qt_resources"), 'qt_resources'),
-    (os.path.join(src_dir, "tribler", "gui", "images"), 'images'),
     (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
-    (os.path.join(src_dir, "tribler", "gui"), 'tribler_source/tribler/gui'),
+    (os.path.join(src_dir, "tribler", "ui", "public"), 'tribler_source/tribler/ui/public'),
+    (os.path.join(src_dir, "tribler", "ui", "dist"), 'tribler_source/tribler/ui/dist'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
+
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
 
@@ -65,10 +60,6 @@ ttf_path = os.path.join("/usr", "share", "fonts", "truetype", "noto", "NotoColor
 if sys.platform.startswith('linux') and os.path.exists(ttf_path):
     data_to_copy += [(ttf_path, 'fonts')]
 
-# fixes ZeroDivisionError in pyqtgraph\graphicsItems\ButtonItem.py
-# https://issueexplorer.com/issue/pyqtgraph/pyqtgraph/1811
-data_to_copy += collect_data_files("pyqtgraph", includes=["**/*.ui", "**/*.png", "**/*.svg"])
-
 excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
 # Pony dependencies; each packages need to be added separatedly; added as hidden import
@@ -85,18 +76,12 @@ hiddenimports = [
     # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'pyaes',
     'pydantic',
-    'pyqtgraph',
-    'pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5',
-    'pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5',
-    'pyqtgraph.imageview.ImageViewTemplate_pyqt5',
-    'PyQt5.QtTest',
     'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
     'tribler.core.logger.logger_streams',
     'typing_extensions',
 ]
-hiddenimports += widget_files
 hiddenimports += pony_deps
 hiddenimports += [x for member in known_components.__dict__.values() for x in getattr(member, "hiddenimports", set())]
 
@@ -108,10 +93,6 @@ if sys.platform.startswith('linux'):
 
 # https://github.com/pyinstaller/pyinstaller/issues/5359
 hiddenimports += collect_submodules('pydantic')
-
-# fixes ZeroDivisionError in pyqtgraph\graphicsItems\ButtonItem.py
-# https://issueexplorer.com/issue/pyqtgraph/pyqtgraph/1811
-hiddenimports += collect_submodules("pyqtgraph", filter=lambda name: "Template" in name)
 
 sys.modules['FixTk'] = None
 a = Analysis(['src/run_tribler.py'],
@@ -164,9 +145,3 @@ app = BUNDLE(coll,
 # Replace the Info.plist file on MacOS
 if sys.platform == 'darwin':
     shutil.copy('build/mac/resources/Info.plist', 'dist/Tribler.app/Contents/Info.plist')
-
-# On Windows 10, we have to make sure that qwindows.dll is in the right path
-if sys.platform == 'win32':
-    shutil.copytree(os.path.join('dist', 'tribler', 'PyQt5', 'Qt', 'plugins', 'platforms'),
-                    os.path.join('dist', 'tribler', 'platforms'))
-

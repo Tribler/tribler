@@ -1,12 +1,14 @@
 import contextlib
 import logging
-import sys
+import platform
 from pathlib import Path
 
-import win32api
 from aiohttp import web
 
 from tribler.core.restapi.rest_endpoint import HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
+
+if platform.system() == 'Windows':
+    import win32api
 
 
 class FileEndpoint(RESTEndpoint):
@@ -33,7 +35,7 @@ class FileEndpoint(RESTEndpoint):
         show_files = request.query.get('files') == "1"
 
         # Deal with getting the drives on Windows
-        if path == "/" and sys.platform == 'win32':
+        if path == "/" and platform.system() == 'Windows':
             paths = []
             for drive in win32api.GetLogicalDriveStrings().split("\000"):
                 if not drive:

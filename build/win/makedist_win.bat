@@ -36,6 +36,13 @@ if defined VENV (
 call python3 -m pip install --upgrade pip
 call python3 -m pip install --upgrade -r requirements-build.txt
 
+REM ----- Build UI
+pushd .
+cd src/tribler/ui/
+call npm install
+call npm run build
+popd
+
 REM ----- Build
 
 REM Arno: When adding files here, make sure tribler.nsi actually

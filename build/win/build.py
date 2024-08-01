@@ -25,6 +25,7 @@ support building wheels. Therefore, the build options are separated into two fun
 and the appropriate function is called based on the command line arguments.
 """
 import sys
+import platform
 
 
 def get_wheel_build_options():
@@ -43,20 +44,23 @@ def get_freeze_build_options():
     included_packages = [
         "aiohttp_apispec",
         "pkg_resources",
-        "pyqtgraph",
         "requests",
         "tribler.core",
-        "tribler.gui",
         "libtorrent",
         "ssl",
     ]
 
+    if platform.system() != 'Windows':
+        included_packages.append("gi")
+
     # These files will be included in the build
     included_files = [
-        ("src/tribler/gui/qt_resources", "qt_resources"),
-        ("src/tribler/gui/images", "images"),
+        ("src/tribler/ui/public", "lib/tribler/ui/public"),
+        ("src/tribler/ui/dist", "lib/tribler/ui/dist"),
+
         ("src/tribler/core", "tribler_source/tribler/core"),
-        ("src/tribler/gui", "tribler_source/tribler/gui"),
+        ("src/tribler/ui/public", "tribler_source/tribler/ui/public"),
+        ("src/tribler/ui/dist", "tribler_source/tribler/ui/dist"),
         ("build/win/resources", "tribler_source/resources"),
     ]
 
@@ -70,7 +74,9 @@ def get_freeze_build_options():
         '_tkinter',
         'tkinter',
         'Tkinter',
-        'matplotlib'
+        'matplotlib',
+        'numpy',
+        'tribler.ui'
     ]
 
     _setup_options = {
@@ -82,6 +88,9 @@ def get_freeze_build_options():
             'build_exe': 'dist/tribler'
         }
     }
+    if platform.system() == 'Linux':
+        _setup_options["build_exe"]["bin_includes"] = "libffi.so"
+
 
     app_name = "Tribler" if sys.platform != "linux" else "tribler"
     app_script = "src/tribler/run.py"

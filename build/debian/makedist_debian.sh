@@ -29,6 +29,13 @@ python3 -m pip install --upgrade -r requirements-build.txt
 python3 ./build/update_version.py -r .
 python3 ./build/debian/update_metainfo.py -r .
 
+# ----- Build UI
+pushd .
+cd src/tribler/ui/
+npm install
+npm run build
+popd
+
 # ----- Build binaries
 echo Building Tribler using Cx_Freeze
 python3 setup.py build

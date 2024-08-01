@@ -46,12 +46,12 @@ class Socks5Connector(TCPConnector):
 
     async def _wrap_create_connection(self,  # type: ignore[override]
                                       protocol_factory: Callable[[], Socks5ClientUDPConnection],
-                                      host: str, port: int,
                                       **kwargs) -> tuple[BaseTransport, Socks5ClientUDPConnection]:
         """
         Create a transport and its associated connection.
         """
         client = Socks5Client(self.proxy_addr, lambda *_: None)
+        host, port = kwargs.pop("addr_infos")[0][-1]
 
         if "timeout" in kwargs and hasattr(kwargs["timeout"], "sock_connect"):
             await wait_for(client.connect_tcp((host, port)), timeout=kwargs["timeout"].sock_connect)
