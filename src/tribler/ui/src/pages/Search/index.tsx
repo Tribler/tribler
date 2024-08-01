@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { categoryIcon, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
+import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
 import SaveAs from "@/dialogs/SaveAs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSearchParams } from "react-router-dom";
@@ -69,7 +69,8 @@ export default function Search() {
     useEffect(() => {
         const searchTorrents = async () => {
             if (!query) return;
-            setTorrents((await triblerService.searchTorrentsLocal(query, true)));
+            const localResults = await triblerService.searchTorrentsLocal(query, true);
+            setTorrents(filterDuplicates(localResults, 'infohash'));
             const remoteQuery = await triblerService.searchTorrentsRemote(query, true);
             setRequest(remoteQuery.request_uuid);
         }
