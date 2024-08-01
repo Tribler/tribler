@@ -129,6 +129,7 @@ function SimpleTable<T extends object>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    className={`${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
                                     onClick={(event) => {
                                         if (!allowSelect && !allowMultiSelect)
                                             return
