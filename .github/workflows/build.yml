@@ -1,0 +1,92 @@
+name: Build
+on: workflow_dispatch
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-12, ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out SimpleFC repository (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/checkout@v4
+        with:
+          repository: mazinsw/SimpleFC
+      - name: Build SimpleFC NSIS Plugin (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          copy "bin\x86-unicode\SimpleFC.dll" "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\SimpleFC.dll"
+      - name: Check out nsProcess repository (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/checkout@v4
+        with:
+          repository: simdsoft/nsProcess
+          submodules: 'true'
+      - name: Add msbuild to PATH (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v2
+      - name: Build nsProcess NSIS Plugin (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd nsProcess
+          msbuild nsProcess.vcxproj /p:PlatformToolset=v143 /p:Configuration="Release UNICODE"
+          copy "Release UNICODE\nsProcess.dll" "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\nsProcess.dll"
+          cd ../Include
+          copy nsProcess.nsh "C:\Program Files (x86)\NSIS\Include\nsProcess.nsh"
+      - name: Check-out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+          fetch-tags: 'true'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+          cache-dependency-path: |
+            **/requirements-build.txt
+      - name: Install Dependencies
+        run: |
+          pip install --upgrade -r requirements-build.txt
+      - name: Setup npm
+        uses: actions/setup-node@v4
+      - name: Build npm
+        run: |
+          cd src/tribler/ui/
+          npm install
+          npm run build
+      - name: Determine tag
+        shell: bash
+        run: |
+          git fetch --tags
+          git for-each-ref --count=1 --sort=-creatordate --format '%(refname)' refs/tags > raw_tag.txt
+          echo "GITHUB_TAG=$(git name-rev --tags --name-only $(cat raw_tag.txt))" >> $GITHUB_ENV
+      - name: Build Executables (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 rpm
+          ./build/debian/makedist_debian.sh
+      - name: Build Executables (MacOS-12)
+        if: matrix.os == 'macos-12'
+        run: |
+          ./build/mac/makedist_macos.sh
+      - uses: actions/cache/restore@v4
+        if: matrix.os == 'windows-latest'
+        id: restore_cache
+        with:
+          path: src/libsodium.dll
+          key: cache_libsodium_dll
+      - name: Build Executables (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          ./build/win/makedist_win.bat
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }} Build
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            build/debian/*.deb

@@ -22,34 +22,7 @@ IF NOT EXIST %NSIS% (
   EXIT /b
 )
 
-REM ----- Clean up
-
-call build\win\clean.bat
-
-REM ----- Prepare venv & install dependencies before the build
-if defined VENV (
-  call "%VENV%\Scripts\activate.bat"
-) else (
-  echo VENV environment variable is not set. Skipping.
-)
-
-call python3 -m pip install --upgrade pip
-call python3 -m pip install --upgrade -r requirements-build.txt
-
-REM ----- Build UI
-pushd .
-cd src/tribler/ui/
-call npm install
-call npm run build
-popd
-
 REM ----- Build
-
-REM Arno: When adding files here, make sure tribler.nsi actually
-REM packs them in the installer .EXE
-
-ECHO Install pip dependencies for correct py-installer's work
-call python3 -m pip install --upgrade -r build\win\requirements.txt
 
 REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
 REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
@@ -64,15 +37,10 @@ REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
 mkdir dist\tribler\tools
 copy build\win\tools\reset*.bat dist\tribler\tools
 
-REM Laurens, 2016-04-20: Copy the redistributables of 2008, 2012 and 2015 to the install dir
-REM Sandip, 2019-10-24: redistributables 2008, 2012 are not necessary anymore
-REM copy C:\build\vc_redist_110.exe dist\tribler
-copy C:\build\vc_redist_140.exe dist\tribler
-
 REM Copy various libraries required on runtime (libsodium and openssl)
-copy C:\build\libsodium.dll dist\tribler\lib
+move src\libsodium.dll dist\tribler\lib
 REM Sandip, 2024-03-26: Some openssl dlls are missing so need to be copied manually.
-copy C:\build\openssl\*.dll dist\tribler\lib
+copy C:\Program Files\OpenSSL\bin\*.dll dist\tribler\lib
 
 
 @echo Running NSIS
@@ -86,7 +54,7 @@ if not defined SKIP_SIGNING_TRIBLER_BINARIES (
     signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
 )
 :makeinstaller
-%NSIS% tribler.nsi || exit /b
+%NSIS% /DVERSION=%GITHUB_TAG% tribler.nsi || exit /b
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
