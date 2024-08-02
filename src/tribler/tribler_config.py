@@ -212,6 +212,11 @@ DEFAULT_CONFIG = {
 }
 
 # Changes to IPv8 default config
+DEFAULT_CONFIG["ipv8"]["interfaces"].append({
+    "interface": "UDPIPv6",
+    "ip": "::",
+    "port": 8091
+})
 DEFAULT_CONFIG["ipv8"]["keys"].append({
     'alias': "secondary",
     'generation': "curve25519",
