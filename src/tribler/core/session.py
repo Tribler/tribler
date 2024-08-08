@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from asyncio import Event
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator
 
 from ipv8.loader import IPv8CommunityLoader
@@ -45,24 +45,33 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
     """
     Attempt to import the IPv8 Rust anonymization backend.
     """
-    try:
-        from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES
-        from ipv8_rust_tunnels.endpoint import RustEndpoint
-        INTERFACES["UDPIPv4"] = RustEndpoint
-        for ifc in session.config.configuration["ipv8"]["interfaces"]:
-            if ifc["interface"] == "UDPIPv4":
-                ifc["worker_threads"] = session.config.get("tunnel_community/max_circuits")
+    use_fallback = session.config.get("statistics")
+    if_specs = [ifc for ifc in session.config.configuration["ipv8"]["interfaces"] if ifc["interface"] == "UDPIPv4"]
+
+    if not use_fallback:
+        try:
+            from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES
+            from ipv8_rust_tunnels.endpoint import RustEndpoint
+            INTERFACES["UDPIPv4"] = RustEndpoint
+            for ifc in if_specs:
+                ifc["worker_threads"] = ifc.get("worker_threads", session.config.get("tunnel_community/max_circuits"))
+            yield
+            if if_specs:
+                for server in session.socks_servers:
+                    ipv4_endpoint = session.ipv8.endpoint.interfaces["UDPIPv4"]
+                    server.rust_endpoint = ipv4_endpoint if isinstance(ipv4_endpoint, RustEndpoint) else None
+        except ImportError:
+            logger.info("Rust endpoint not found (pip install ipv8-rust-tunnels).")
+            use_fallback = True
+
+    if use_fallback:
+        # Make sure there are no ``worker_threads`` settings fed into non-Rust endpoints.
+        previous_values = [("worker_threads" in ifc, ifc.pop("worker_threads")) for ifc in if_specs]
         yield
-        if any(nif["interface"] == "UDPIPv4" for nif in session.config.get("ipv8/interfaces")):
-            for server in session.socks_servers:
-                ipv4_endpoint = session.ipv8.endpoint.interfaces["UDPIPv4"]
-                server.rust_endpoint = ipv4_endpoint if isinstance(ipv4_endpoint, RustEndpoint) else None
-    except ImportError:
-        logger.info("Rust endpoint not found (pip install ipv8-rust-tunnels).")
-        for ifc in session.config.configuration["ipv8"]["interfaces"]:
-            if ifc["interface"] == "UDPIPv4":
-                ifc.pop("worker_threads")
-        yield
+        # Restore ``worker_threads`` settings, if they were there.
+        for i, (has_previous_value, previous_value) in enumerate(previous_values):
+            if has_previous_value:
+                if_specs[i]["worker_threads"] = previous_value
 
 
 class Session:
@@ -84,7 +93,7 @@ class Session:
         self.socks_servers = [Socks5Server(port) for port in self.config.get("libtorrent/socks_listen_ports")]
 
         # IPv8
-        with nullcontext() if self.config.get("statistics") else rust_enhancements(self):
+        with rust_enhancements(self):
             self.ipv8 = IPv8(self.config.get("ipv8"), enable_statistics=self.config.get("statistics"))
         self.loader = IPv8CommunityLoader()
 
