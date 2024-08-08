@@ -1,20 +1,22 @@
 tribler (7.0.0) unstable; urgency=medium
 
-    * New release
-    * See https://github.com/Tribler/tribler/releases/tag/v7.0.0 for more info.
+  * New release
+  * See https://github.com/Tribler/tribler/releases/tag/v7.0.0 for more info.
+
+ -- Tribler <info@tribler.org>  Thu, 25 Jan 2018 12:31:00 +0100
 
 tribler (6.5.2) unstable; urgency=medium
 
-    * New release
-    * See https://github.com/Tribler/tribler/releases/tag/v6.5.2 for more info.
-    * See https://github.com/Tribler/tribler/releases/tag/v6.5.1 for more info.
+  * New release
+  * See https://github.com/Tribler/tribler/releases/tag/v6.5.2 for more info.
+  * See https://github.com/Tribler/tribler/releases/tag/v6.5.1 for more info.
 
  -- whirm <whirm@whirm.eu>  Fri, 13 May 2016 12:04:44 +0200
 
 tribler (6.5.0) unstable; urgency=medium
 
-    * New release
-    * See https://github.com/Tribler/tribler/releases/tag/v6.5.0 for more info.
+  * New release
+  * See https://github.com/Tribler/tribler/releases/tag/v6.5.0 for more info.
 
  -- whirm <whirm@whirm.eu>  Fri, 12 Feb 2016 11:24:43 +0100
 

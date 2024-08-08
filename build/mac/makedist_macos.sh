@@ -7,27 +7,10 @@ set -e # exit when any command fails
 
 source ./build/mac/env.sh
 
-# ----- Clean up
-/bin/rm -rf $DIST_DIR
-
-# ----- Prepare venv & install dependencies before the build
-
-python3 -m venv "${BUILD_ENV}"
-. "${BUILD_ENV}"/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade -r requirements-build.txt
-
-# ----- Build UI
-
-pushd .
-cd src/tribler/ui/
-npm install
-npm run build
-rm -rf node_modules
-popd
+# ----- Clean UI
+rm -rf src/tribler/ui/node_modules
 
 # ----- Build
-
 pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
 mkdir -p $INSTALL_DIR

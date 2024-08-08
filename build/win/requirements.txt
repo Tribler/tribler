@@ -1,4 +1,0 @@
---no-binary :all:
-
-typing_extensions==4.2.0
-pydantic==1.9.0

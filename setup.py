@@ -5,24 +5,10 @@ import re
 import shutil
 from pathlib import Path
 
+from packaging.version import Version
 from setuptools import find_packages
 
 from build.win.build import setup, setup_executables, setup_options
-
-
-def read_version_from_file(file_path: str) -> str:
-    """
-    Get the version from the file at the given file path.
-    """
-    with open(file_path, encoding="utf-8") as file:
-        file_content = file.read()
-    # Use regular expression to find the version pattern
-    version_match = re.search(r"^version_id = ['\"]([^'\"]*)['\"]", file_content, re.M)
-    if version_match:
-        version_str = version_match.group(1)
-        return version_str.split("-")[0]
-    msg = "Unable to find version string."
-    raise RuntimeError(msg)
 
 
 def read_requirements(file_name: str, directory: str = ".") -> list[str]:
@@ -54,19 +40,14 @@ extras_require = {
 # See: entry_points={"gui_scripts": ["tribler=tribler.run:main"]} in setup() below.
 shutil.copy("src/run_tribler.py", "src/tribler/run.py")
 
-# Read the version from the version file: src/tribler/core/version.py
-# Note that, for version.py to include the correct version, it should be generated first using git commands.
-# For example:
-#    git describe --tags | python -c "import sys; print(next(sys.stdin).lstrip("v"))" > .TriblerVersion
-#    git rev-parse HEAD > .TriblerCommit
-# Then, the version.py file can be generated using the following command:
-#    python build/update_version.py
-version_file = os.path.join("src", "tribler", "core", "version.py")
-version = read_version_from_file(version_file)
+# Turn the tag into a sequence of integer values and normalize into a period-separated string.
+raw_version = os.getenv("GITHUB_TAG")
+version_numbers = [str(value) for value in map(int, re.findall(r"\d+", raw_version))]
+version = Version(".".join(version_numbers))
 
 setup(
     name="tribler",
-    version=version,
+    version=str(version),
     description="Privacy enhanced BitTorrent client with P2P content discovery",
     long_description=Path("README.rst").read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",

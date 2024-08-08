@@ -1,8 +1,10 @@
 # -*- mode: python -*-
+from packaging.version import Version
+
 block_cipher = None
 import imp
 import os
-import pkgutil
+import re
 import shutil
 import sys
 
@@ -20,9 +22,10 @@ sys.path.append(pyipv8_dir)
 # Import components that are not imported by the main script
 import tribler.core.components as known_components
 
-from tribler.core.version import version_id
-
-version_str = version_id.split('-')[0]
+# Turn the tag into a sequence of integer values and normalize into a period-separated string.
+raw_version = os.getenv("GITHUB_TAG")
+version_numbers = [str(value) for value in map(int, re.findall(r"\d+", raw_version))]
+version_str = str(Version(".".join(version_numbers)))
 
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
 # See https://github.com/Tribler/tribler/issues/3817

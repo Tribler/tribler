@@ -57,7 +57,6 @@ def get_freeze_build_options():
     included_files = [
         ("src/tribler/ui/public", "lib/tribler/ui/public"),
         ("src/tribler/ui/dist", "lib/tribler/ui/dist"),
-
         ("src/tribler/core", "tribler_source/tribler/core"),
         ("src/tribler/ui/public", "tribler_source/tribler/ui/public"),
         ("src/tribler/ui/dist", "tribler_source/tribler/ui/dist"),
@@ -90,7 +89,6 @@ def get_freeze_build_options():
     }
     if platform.system() == 'Linux':
         _setup_options["build_exe"]["bin_includes"] = "libffi.so"
-
 
     app_name = "Tribler" if sys.platform != "linux" else "tribler"
     app_script = "src/tribler/run.py"

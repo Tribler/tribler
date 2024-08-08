@@ -1,19 +1,7 @@
-# These are specific versions of the packages that are used for making the build work.
-# These are installed before other dependencies.
-PyQt5==5.15.10
-PyQt5-sip==12.13.0
-pyqtgraph==0.13.3
-
 -r requirements.txt
 
-cx_Freeze==7.0.0; sys_platform != 'darwin'
-PyInstaller==6.6.0; sys_platform == 'darwin'
+cx_Freeze; sys_platform != 'darwin'
+PyInstaller; sys_platform == 'darwin'
 
-setuptools==65.5.1; sys_platform == 'darwin'
-text-unidecode==1.3; sys_platform == 'darwin'
-
-defusedxml==0.7.1; sys_platform == 'linux2' or sys_platform == 'linux'
-markupsafe==2.0.1; sys_platform == 'linux2' or sys_platform == 'linux'
-PyGObject==3.44.1; sys_platform == 'linux2' or sys_platform == 'linux'
-
-requests==2.31.0
+setuptools
+requests
