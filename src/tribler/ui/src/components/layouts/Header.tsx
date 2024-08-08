@@ -12,10 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { Ban  } from "lucide-react";
+import { Ban } from "lucide-react";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
+    const [shutdownLogs, setShutdownLogs] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
 
     useEffect(() => {
@@ -32,13 +33,30 @@ export function Header() {
     }, [searchParams]);
 
     useInterval(() => {
-        if (online !== triblerService.isOnline())
-            setOnline(triblerService.isOnline());
+        const onlineNow = triblerService.isOnline();
+        if (online !== onlineNow) {
+            if (!online)
+                setShutdownLogs([]);
+            setOnline(onlineNow);
+
+        }
     }, 1000);
+
+    useEffect(() => {
+        (async () => { triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent) })();
+        return () => {
+            (async () => { triblerService.removeEventListener("tribler_shutdown_state", OnShutdownEvent) })();
+        }
+    }, []);
+
+    const OnShutdownEvent = (event: MessageEvent) => {
+        const data = JSON.parse(event.data);
+        setShutdownLogs(prevLogs => [...prevLogs, data.state]);
+    }
 
     return (
         <>
-            <Dialog open={!online}>
+            <Dialog open={!online || shutdownLogs.length > 0}>
                 <DialogContent
                     closable={false}
                     onInteractOutside={(e) => {
@@ -46,9 +64,23 @@ export function Header() {
                     }}
                 >
                     <DialogHeader>
-                        <DialogTitle className="flex items-center justify-center"><Ban className="inline mr-3"/>Failed to connect to Tribler</DialogTitle>
-                        <DialogDescription className="text-center text-xs">Tribler may not be running or your browser is missing a cookie.<br />
-                            In latter case please re-open Tribler from the system tray</DialogDescription>
+                        <DialogTitle className="flex items-center justify-center mb-3"><Ban className="inline mr-3" />
+                            {online
+                                ? "Tribler is shutting down"
+                                : (shutdownLogs.length > 0
+                                    ? "Tribler has shutdown"
+                                    : "Failed to connect to Tribler")}
+                        </DialogTitle>
+
+                        {!online && shutdownLogs.length === 0
+                            ? <DialogDescription className="text-center text-xs">
+                                Tribler may not be running or your browser is missing a cookie.
+                                <br />In latter case please re-open Tribler from the system tray
+                            </DialogDescription>
+                            : <DialogDescription className="text-xs font-mono">
+                                {shutdownLogs.map(log => <p>{log}<br /></p>)}
+                            </DialogDescription>
+                        }
                     </DialogHeader>
                 </DialogContent>
             </Dialog>
