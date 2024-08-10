@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from asyncio import Event
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator
 
+import aiohttp
 from ipv8.loader import IPv8CommunityLoader
 from ipv8_service import IPv8
 
@@ -72,6 +74,15 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
         for i, (has_previous_value, previous_value) in enumerate(previous_values):
             if has_previous_value:
                 if_specs[i]["worker_threads"] = previous_value
+
+
+async def _is_url_available(url: str, timeout: int=1) -> bool:
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url, timeout=timeout):
+                return True
+        except asyncio.TimeoutError:
+            return False
 
 
 class Session:
@@ -158,6 +169,22 @@ class Session:
         self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
         if self.config.get("statistics"):
             self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
+
+    async def find_api_server(self) -> str | None:
+        """
+        Find the API server, if available.
+        """
+        if port := self.config.get("api/http_port_running"):
+            http_url = f'http://{self.config.get("api/http_host")}:{port}'
+            if await _is_url_available(http_url):
+                return http_url
+
+        if port := self.config.get("api/https_port_running"):
+            https_url = f'https://{self.config.get("api/https_host")}:{port}'
+            if await _is_url_available(https_url):
+                return https_url
+
+        return None
 
     async def shutdown(self) -> None:
         """
