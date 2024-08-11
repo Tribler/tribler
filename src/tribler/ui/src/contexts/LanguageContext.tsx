@@ -1,4 +1,4 @@
-import Cookies from 'js-cookie';
+import { triblerService } from '@/services/tribler.service';
 import React, { createContext, useContext, useState } from 'react';
 
 interface LanguageContextType {
@@ -9,7 +9,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-    const [language, setLanguage] = useState(Cookies.get('lang') ?? 'en');
+    const [language, setLanguage] = useState(triblerService.getGuiSettings().lang ?? 'en');
 
     return (
         <LanguageContext.Provider value={{ language, setLanguage }}>

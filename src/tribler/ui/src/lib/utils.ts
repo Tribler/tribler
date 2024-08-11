@@ -9,6 +9,7 @@ import ru from 'javascript-time-ago/locale/ru'
 import zh from 'javascript-time-ago/locale/zh'
 import Cookies from "js-cookie";
 import { useTranslation } from "react-i18next";
+import { triblerService } from "@/services/tribler.service";
 
 TimeAgo.setDefaultLocale(en.locale)
 TimeAgo.addLocale(en)
@@ -69,7 +70,7 @@ export function categoryIcon(name: category): string {
 }
 
 export function formatTimeAgo(ts: number) {
-    let locale = Cookies.get('lang') ?? 'en-US';
+    let locale = triblerService.getGuiSettings().lang ?? 'en-US';
     const timeAg = new TimeAgo(locale.slice(0, 2));
     return timeAg.format(ts * 1000);
 }
