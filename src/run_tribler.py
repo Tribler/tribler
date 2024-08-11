@@ -102,6 +102,7 @@ async def main() -> None:
         if torrent_uri:
             logger.info("Starting torrent using existing core")
             await start_download(config, server_url, torrent_uri)
+        webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
         logger.info("Shutting down")
         return
 
@@ -113,10 +114,12 @@ async def main() -> None:
 
     image_path = Path(tribler.__file__).parent / "ui/public/tribler.png"
     image = Image.open(image_path.resolve())
-    url = f"http://localhost:{session.rest_manager.get_api_port()}/ui/#/downloads/all?key={config.get('api/key')}"
+    api_port = session.rest_manager.get_api_port()
+    url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
     menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
             pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
+    webbrowser.open_new_tab(url)
     threading.Thread(target=icon.run).start()
 
     await session.shutdown_event.wait()
