@@ -101,14 +101,14 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         download_config = DownloadConfig.from_defaults(self.download_manager.config)
 
-        anon_hops = parameters.get('anon_hops', 0)
+        anon_hops = parameters.get('anon_hops')
         safe_seeding = bool(parameters.get('safe_seeding', 0))
 
-        if anon_hops > 0 and not safe_seeding:
-            return None, "Cannot set anonymous download without safe seeding enabled"
-
-        if anon_hops >= 0:
-            download_config.set_hops(anon_hops)
+        if anon_hops is not None:
+            if anon_hops > 0 and not safe_seeding:
+                return None, "Cannot set anonymous download without safe seeding enabled"
+            if anon_hops >= 0:
+                download_config.set_hops(anon_hops)
 
         if safe_seeding:
             download_config.set_safe_seeding(True)
