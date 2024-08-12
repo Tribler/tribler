@@ -66,7 +66,7 @@ jobs:
       - name: Build Executables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 rpm
+          sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
       - name: Build Executables (MacOS-12)
         if: matrix.os == 'macos-12'
