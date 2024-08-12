@@ -124,5 +124,6 @@
     "Socks5": "Socks5",
     "Socks5Auth": "Socks5 con autenticación",
     "HTTP": "HTTP",
-    "HTTPAuth": "HTTP con autenticación"
+    "HTTPAuth": "HTTP con autenticación",
+    "WebServerSettings": "Configurações do servidor web"
 }

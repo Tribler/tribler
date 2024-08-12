@@ -6,6 +6,7 @@ import { triblerService } from "@/services/tribler.service";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import SaveButton from "./SaveButton";
+import { Input } from "@/components/ui/input";
 
 
 export default function General() {
@@ -18,6 +19,32 @@ export default function General() {
 
     return (
         <div className="px-6 w-full">
+            <div className="pt-5 py-2 font-semibold">{t('WebServerSettings')}</div>
+            <div className="py-2 flex items-center">
+                <Label htmlFor="http_port" className="whitespace-nowrap pr-5">
+                    {t('Port')}
+                </Label>
+                <Input
+                    id="http_port"
+                    className="w-40"
+                    type="number"
+                    min="0"
+                    max="65535"
+                    value={settings?.api?.http_port}
+                    onChange={(event) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                api: {
+                                    ...settings.api,
+                                    http_port: +event.target.value
+                                }
+                            });
+                        }
+                    }}
+                />
+            </div>
+
             <div className="pt-5 py-2 font-semibold">{t('DefaultDownloadSettings')}</div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="saveas" className="whitespace-nowrap pr-5">
