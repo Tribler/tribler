@@ -57,7 +57,7 @@ async def start_download(config: TriblerConfigManager, server_url: str, torrent_
     """
     async with ClientSession() as client, client.put(server_url + "/api/downloads",
                                                      headers={"X-Api-Key": config.get("api/key")},
-                          json={"uri": torrent_uri}) as response:
+                                                     json={"uri": torrent_uri}) as response:
         if response.status == 200:
             logger.info("Successfully started torrent %s", torrent_uri)
         else:
@@ -93,8 +93,11 @@ async def main() -> None:
     session = Session(config)
 
     torrent_uri = parsed_args.get('torrent')
-    if torrent_uri and os.path.exists(torrent_uri) and torrent_uri.endswith(".torrent"):
-        torrent_uri = Path(torrent_uri).as_uri()
+    if torrent_uri and os.path.exists(torrent_uri):
+        if torrent_uri.endswith(".torrent"):
+            torrent_uri = Path(torrent_uri).as_uri()
+        if torrent_uri.endswith(".magnet"):
+            torrent_uri = Path(torrent_uri).read_text()
     server_url = await session.find_api_server()
 
     if server_url:
