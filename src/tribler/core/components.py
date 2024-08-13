@@ -142,8 +142,8 @@ class DatabaseComponent(ComponentLauncher):
         from tribler.core.database.tribler_database import TriblerDatabase
         from tribler.core.notifier import Notification
 
-        db_path = str(Path(session.config.get("state_dir")) / "sqlite" / "tribler.db")
-        mds_path = str(Path(session.config.get("state_dir")) / "sqlite" / "metadata.db")
+        db_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "tribler.db")
+        mds_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "metadata.db")
         if session.config.get("memory_db"):
             db_path = ":memory:"
             mds_path = ":memory:"
@@ -221,7 +221,8 @@ class RendezvousComponent(BaseLauncher):
         from tribler.core.rendezvous.database import RendezvousDatabase
 
         out = super().get_kwargs(session)
-        out["database"] = RendezvousDatabase(db_path=Path(session.config.get("state_dir")) / "sqlite" / "rendezvous.db")
+        out["database"] = (RendezvousDatabase(db_path=Path(session.config.get_version_state_dir()) / "sqlite"
+                           / "rendezvous.db"))
 
         return out
 
@@ -249,7 +250,8 @@ class TorrentCheckerComponent(ComponentLauncher):
         from tribler.core.torrent_checker.torrent_checker import TorrentChecker
         from tribler.core.torrent_checker.tracker_manager import TrackerManager
 
-        tracker_manager = TrackerManager(state_dir=session.config.get("state_dir"), metadata_store=session.mds)
+        tracker_manager = TrackerManager(state_dir=Path(session.config.get_version_state_dir()),
+                                         metadata_store=session.mds)
         torrent_checker = TorrentChecker(config=session.config,
                                          download_manager=session.download_manager,
                                          notifier=session.notifier,
@@ -298,7 +300,7 @@ class TunnelComponent(BaseLauncher):
         from ipv8.dht.provider import DHTCommunityProvider
 
         out = super().get_kwargs(session)
-        out["exitnode_cache"] =  Path(session.config.get("state_dir")) / "exitnode_cache.dat"
+        out["exitnode_cache"] =  Path(session.config.get_version_state_dir()) / "exitnode_cache.dat"
         out["notifier"] = session.notifier
         out["download_manager"] = session.download_manager
         out["socks_servers"] = session.socks_servers
@@ -336,3 +338,27 @@ class UserActivityComponent(BaseLauncher):
         max_query_history = session.config.get("user_activity/max_query_history")
         out["manager"] = UserActivityManager(TaskManager(), session, max_query_history)
         return out
+
+@precondition('session.config.get("versioning/enabled")')
+class VersioningComponent(ComponentLauncher):
+    """
+    Launch instructions for the versioning of Tribler.
+    """
+
+    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
+        """
+        When we are done launching, register our REST API.
+        """
+        from tribler.core.versioning.manager import VersioningManager
+
+        session.rest_manager.get_endpoint("/api/versioning").versioning_manager = VersioningManager(
+            community, session.config
+        )
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the database endpoint.
+        """
+        from tribler.core.versioning.restapi.versioning_endpoint import VersioningEndpoint
+
+        return [*super().get_endpoints(), VersioningEndpoint()]

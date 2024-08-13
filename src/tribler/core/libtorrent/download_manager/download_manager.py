@@ -89,7 +89,7 @@ class DownloadManager(TaskManager):
         super().__init__()
         self.config = config
 
-        self.state_dir = Path(config.get("state_dir"))
+        self.state_dir = Path(config.get_version_state_dir())
         self.ltsettings: dict[lt.session, dict] = {}  # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions: dict[int, lt.session] = {}
         self.dht_health_manager: DHTHealthManager | None = None
@@ -176,7 +176,7 @@ class DownloadManager(TaskManager):
         Initialize the directory structure, launch the periodic tasks and start libtorrent background processes.
         """
         # Create the checkpoints directory
-        self.checkpoint_directory.mkdir(exist_ok=True)
+        self.checkpoint_directory.mkdir(exist_ok=True, parents=True)
 
         # Start upnp
         if self.config.get("libtorrent/upnp"):
@@ -245,7 +245,7 @@ class DownloadManager(TaskManager):
         if self.has_session():
             logger.info("Saving state...")
             self.notify_shutdown_state("Writing session state to disk.")
-            with open(self.state_dir / LTSTATE_FILENAME, "wb") as ltstate_file:  # noqa: ASYNC101
+            with open(self.state_dir / LTSTATE_FILENAME, "wb") as ltstate_file:  # noqa: ASYNC230
                 ltstate_file.write(lt.bencode(self.get_session().save_state()))
 
         if self.has_session() and self.config.get("libtorrent/upnp"):

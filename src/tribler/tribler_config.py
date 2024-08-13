@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+from importlib.metadata import PackageNotFoundError, version
 from json import JSONDecodeError
 from pathlib import Path
 from typing import TypedDict
 
 from ipv8.configuration import default as ipv8_default_config
+
+from tribler.upgrade_script import TO
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,14 @@ class KnowledgeCommunityConfig(TypedDict):
 class DatabaseConfig(TypedDict):
     """
     Settings for the database component.
+    """
+
+    enabled: bool
+
+
+class VersioningConfig(TypedDict):
+    """
+    Settings for the versioning component.
     """
 
     enabled: bool
@@ -151,6 +162,7 @@ class TriblerConfig(TypedDict):
     torrent_checker: TorrentCheckerConfig
     tunnel_community: TunnelCommunityConfig
     user_activity: UserActivityConfig
+    versioning: VersioningConfig
 
     state_dir: str
     memory_db: bool
@@ -181,8 +193,8 @@ DEFAULT_CONFIG = {
         socks_listen_ports=[0, 0, 0, 0, 0],
         port=0,
         proxy_type=0,
-        proxy_server='',
-        proxy_auth='',
+        proxy_server="",
+        proxy_auth="",
         max_connections_download=-1,
         max_download_rate=0,
         max_upload_rate=0,
@@ -197,7 +209,7 @@ DEFAULT_CONFIG = {
             number_hops=1,
             safeseeding_enabled=True,
             saveas=str(Path("~/Downloads").expanduser()),
-            seeding_mode='forever',
+            seeding_mode="forever",
             seeding_ratio=2.0,
             seeding_time=60,
             channel_download=False,
@@ -207,8 +219,9 @@ DEFAULT_CONFIG = {
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
     "user_activity": UserActivityConfig(enabled=True, max_query_history=500, health_check_interval=5.0),
+    "versioning": VersioningConfig(enabled=True),
 
-    "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".TriblerExperimental").expanduser().absolute()),
+    "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
     "memory_db": False
 }
 
@@ -229,6 +242,12 @@ DEFAULT_CONFIG["ipv8"]["working_directory"] = DEFAULT_CONFIG["state_dir"]
 for key_entry in DEFAULT_CONFIG["ipv8"]["keys"]:
     if "file" in key_entry:
         key_entry["file"] = str(Path(DEFAULT_CONFIG["state_dir"]) / key_entry["file"])
+
+try:
+    version("tribler")
+    VERSION_SUBDIR = TO  # We use the latest known version's directory NOT our own version
+except PackageNotFoundError:
+    VERSION_SUBDIR = "git"
 
 
 class TriblerConfigManager:
@@ -276,6 +295,12 @@ class TriblerConfigManager:
                     out = out.get(df_part)
                 break
         return out
+
+    def get_version_state_dir(self) -> str:
+        """
+        Get the state dir for our current version.
+        """
+        return os.path.join(self.get("state_dir"), VERSION_SUBDIR)
 
     def set(self, option: os.PathLike | str, value: dict | list | str | float | bool | None) -> None:
         """
