@@ -2,7 +2,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useTranslation } from "react-i18next";
-import Cookies from "js-cookie";
+import { triblerService } from "@/services/tribler.service";
 
 
 const LanguageSelect = () => {
@@ -12,7 +12,10 @@ const LanguageSelect = () => {
     const changeLanguage = (lng: string) => {
         setLanguage(lng);
         i18n.changeLanguage(lng);
-        Cookies.set('lang', lng);
+        triblerService.setGuiSettings({
+            ...triblerService.getGuiSettings(),
+            lang: lng
+        });
     };
 
     return (

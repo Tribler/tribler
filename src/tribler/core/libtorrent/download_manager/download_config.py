@@ -133,7 +133,10 @@ class DownloadConfig:
         defaults.validate(Validator())
         config = DownloadConfig(defaults)
 
-        config.set_hops(int(settings.get("libtorrent/download_defaults/number_hops")))
+        if settings.get("libtorrent/download_defaults/anonymity_enabled"):
+            config.set_hops(int(settings.get("libtorrent/download_defaults/number_hops")))
+        else:
+            config.set_hops(0)
         config.set_safe_seeding(settings.get("libtorrent/download_defaults/safeseeding_enabled"))
         config.set_dest_dir(settings.get("libtorrent/download_defaults/saveas"))
 

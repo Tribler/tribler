@@ -23,7 +23,7 @@ export function Header() {
         const key = searchParams.get("key");
         if (key) {
             const oldKey = Cookies.get("api_key");
-            Cookies.set("api_key", key);
+            Cookies.set("api_key", key, { sameSite:'strict' });
             searchParams.delete("key");
             setSearchParams(searchParams);
             if (key !== oldKey) {

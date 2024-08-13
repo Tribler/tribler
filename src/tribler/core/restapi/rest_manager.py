@@ -242,6 +242,10 @@ class RESTManager:
                                    str(e))
             raise
 
+        current_port = api_port or self.site._server.sockets[0].getsockname()[1]  # noqa: SLF001
+        self.config.set("api/http_port_running", current_port)
+        self.config.write()
+
         self._logger.info("HTTP REST API server started on port %d", self.get_api_port())
 
     async def start_https_site(self, runner: web.AppRunner) -> None:
@@ -256,6 +260,10 @@ class RESTManager:
 
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
+
+        current_port = port or self.site_https._server.sockets[0].getsockname()[1]  # noqa: SLF001
+        self.config.set("api/https_port_running", current_port)
+        self.config.write()
 
     async def stop(self) -> None:
         """

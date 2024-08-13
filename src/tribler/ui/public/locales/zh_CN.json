@@ -122,5 +122,6 @@
     "Socks5": "Socks5",
     "Socks5Auth": "带身份验证的 Socks5",
     "HTTP": "HTTP",
-    "HTTPAuth": "带身份验证的 HTTP和"
+    "HTTPAuth": "带身份验证的 HTTP和",
+    "WebServerSettings": "网络服务器设置"
 }

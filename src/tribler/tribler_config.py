@@ -24,7 +24,6 @@ class ApiConfig(TypedDict):
     https_enabled: bool
     https_host: str
     https_port: int
-    refresh_port_on_start: bool
 
 
 class ContentDiscoveryCommunityConfig(TypedDict):
@@ -166,7 +165,9 @@ DEFAULT_CONFIG = {
         "https_host": "127.0.0.1",
         "https_port": 0,
         "https_certfile": "https_certfile",
-        "refresh_port_on_start": True
+        # Ports currently in-use. Used by run_tribler.py to detect duplicate sessions.
+        "http_port_running": 0,
+        "https_port_running": 0,
     },
 
     "ipv8": ipv8_default_config,
