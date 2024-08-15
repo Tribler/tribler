@@ -8,6 +8,7 @@ lint.ignore = [
     "ARG001",
     "ARG002",
     "ARG005",
+    "ASYNC109",
     "BLE001",
     "COM812",
     "COM819",
