@@ -1,0 +1,20 @@
+version: 2
+
+formats: all
+
+build:
+  # Check https://docs.readthedocs.io/en/stable/config-file/v2.html#build-os
+  os: ubuntu-22.04
+  tools:
+    # Check https://docs.readthedocs.io/en/stable/config-file/v2.html#build-tools-python
+    python: "3.10"
+
+python:
+  install:
+    - requirements: doc/requirements.txt
+    - requirements: requirements.txt
+
+sphinx:
+  builder: html
+  configuration: doc/conf.py
+  fail_on_warning: false
