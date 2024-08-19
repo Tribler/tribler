@@ -12,6 +12,7 @@ import Bandwidth from "./pages/Settings/Bandwidth";
 import Seeding from "./pages/Settings/Seeding";
 import Anonymity from "./pages/Settings/Anonymity";
 import Debugging from "./pages/Settings/Debugging";
+import Versions from "./pages/Settings/Versions";
 import GeneralDebug from "./pages/Debug/General";
 import IPv8 from "./pages/Debug/IPv8";
 import Tunnels from "./pages/Debug/Tunnels";
@@ -80,6 +81,10 @@ export const router = createHashRouter([
             {
                 path: "settings/debugging",
                 element: <Debugging />,
+            },
+            {
+                path: "settings/versions",
+                element: <Versions />,
             },
             {
                 path: "debug/general",

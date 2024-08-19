@@ -172,6 +172,36 @@ export class TriblerService {
         return (await this.http.get(`/libtorrent/settings?hop=${hops}`)).data.settings;
     }
 
+    // Versions
+    async getVersion() {
+        return (await this.http.get(`/versioning/versions/current`)).data.version;
+    }
+
+    async getNewVersion() {
+        const version_info_json = (await this.http.get(`/versioning/versions/check`)).data;
+        return (version_info_json.has_version ? version_info_json.new_version : false);
+    }
+
+    async getVersions() {
+        return (await this.http.get(`/versioning/versions`)).data;
+    }
+
+    async canUpgrade() {
+        return (await this.http.get(`/versioning/upgrade/available`)).data.can_upgrade;
+    }
+
+    async isUpgrading() {
+        return (await this.http.get(`/versioning/upgrade/working`)).data.running;
+    }
+
+    async performUpgrade() {
+        return (await this.http.post(`/versioning/upgrade`))
+    }
+
+    async removeVersion(version_str) {
+        return (await this.http.delete(`/versioning/versions/${version_str}`))
+    }
+
     // Misc
 
     async browseFiles(path: string, showFiles: boolean): Promise<{ current: string, paths: Path[] }> {

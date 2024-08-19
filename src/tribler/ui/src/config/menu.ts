@@ -80,6 +80,10 @@ export const sideMenu: NavItemWithChildren[] = [
                 title: 'Debug',
                 to: '/settings/debugging',
             },
+            {
+                title: 'Versions',
+                to: '/settings/versions',
+            },
         ],
     },
     {

@@ -19,6 +19,7 @@ from tribler.core.components import (
     TorrentCheckerComponent,
     TunnelComponent,
     UserActivityComponent,
+    VersioningComponent,
 )
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
@@ -121,7 +122,8 @@ class Session:
         Register all IPv8 launchers that allow communities to be loaded.
         """
         for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
-                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent, UserActivityComponent]:
+                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent, UserActivityComponent,
+                               VersioningComponent]:
             instance = launcher_class()
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
@@ -168,7 +170,8 @@ class Session:
         self.rest_manager.get_endpoint("/api/ipv8").initialize(self.ipv8)
         self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
         if self.config.get("statistics"):
-            self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None, True)
+            self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None,
+                                                                                                         True)
 
     async def find_api_server(self) -> str | None:
         """

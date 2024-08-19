@@ -124,5 +124,11 @@
     "Socks5Auth": "Socks5 with authentication",
     "HTTP": "HTTP",
     "HTTPAuth": "HTTP with authentication",
-    "WebServerSettings": "Web server settings"
+    "WebServerSettings": "Web server settings",
+    "VersionCurrent": "Current version",
+    "VersionOld": "Old version",
+    "VersionAvailable": "NEW VERSION AVAILABLE",
+    "VersionUpgrading": "Upgrading",
+    "VersionImport": "IMPORT",
+    "VersionRemove": "REMOVE"
 }

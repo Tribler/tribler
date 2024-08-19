@@ -12,11 +12,12 @@ import webbrowser
 from pathlib import Path
 
 import pystray
-import tribler
 from aiohttp import ClientSession
 from PIL import Image
+
+import tribler
 from tribler.core.session import Session
-from tribler.tribler_config import TriblerConfigManager
+from tribler.tribler_config import VERSION_SUBDIR, TriblerConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ def get_root_state_directory(requested_path: os.PathLike | None) -> Path:
     Get the default application state directory.
     """
     root_state_dir = (Path(requested_path) if os.path.isabs(requested_path)
-                      else (Path(os.environ.get("APPDATA", "~")) / ".TriblerExperimental").expanduser().absolute())
+                      else (Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute())
     root_state_dir.mkdir(parents=True, exist_ok=True)
     return root_state_dir
 
@@ -73,8 +74,9 @@ async def main() -> None:
     logger.info("Run Tribler: %s", parsed_args)
 
     root_state_dir = get_root_state_directory(os.environ.get('TSTATEDIR', 'state_directory'))
+    (root_state_dir / VERSION_SUBDIR).mkdir(exist_ok=True, parents=True)
     logger.info("Root state dir: %s", root_state_dir)
-    config = TriblerConfigManager(root_state_dir / "configuration.json")
+    config = TriblerConfigManager(root_state_dir / VERSION_SUBDIR / "configuration.json")
     config.set("state_dir", str(root_state_dir))
 
     if "CORE_API_PORT" in os.environ:

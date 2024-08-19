@@ -117,7 +117,7 @@ class DownloadConfig:
         """
         Get the file name of the download spec.
         """
-        return str(Path(settings.get("state_dir")) / SPEC_FILENAME)
+        return str(Path(settings.get_version_state_dir()) / SPEC_FILENAME)
 
     @staticmethod
     def from_defaults(settings: TriblerConfigManager) -> DownloadConfig:
@@ -127,6 +127,7 @@ class DownloadConfig:
         spec_file_name = DownloadConfig.get_spec_file_name(settings)
         defaults = ConfigObj(StringIO(SPEC_CONTENT))
         defaults["filename"] = spec_file_name
+        Path(spec_file_name).parent.mkdir(parents=True, exist_ok=True)  # Required for the next write
         with open(spec_file_name, "wb") as spec_file:
             defaults.write(spec_file)
         defaults = ConfigObj(StringIO(), configspec=spec_file_name)
