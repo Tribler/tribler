@@ -198,7 +198,7 @@ export class TriblerService {
         return (await this.http.post(`/versioning/upgrade`))
     }
 
-    async removeVersion(version_str) {
+    async removeVersion(version_str: string) {
         return (await this.http.delete(`/versioning/versions/${version_str}`))
     }
 
