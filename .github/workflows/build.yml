@@ -62,7 +62,8 @@ jobs:
         run: |
           git fetch --tags
           git for-each-ref --count=1 --sort=-creatordate --format '%(refname)' refs/tags > raw_tag.txt
-          echo "GITHUB_TAG=$(git name-rev --tags --name-only $(cat raw_tag.txt))" >> $GITHUB_ENV
+          GITHUB_TAG=$(git name-rev --tags --name-only $(cat raw_tag.txt))
+          echo "GITHUB_TAG=${GITHUB_TAG#v}" >> $GITHUB_ENV
       - name: Build Executables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
