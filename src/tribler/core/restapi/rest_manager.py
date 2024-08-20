@@ -4,10 +4,11 @@ import logging
 import ssl
 import traceback
 from asyncio.base_events import Server
+from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable, Generic, TypeVar, cast
 
-from aiohttp import web
+from aiohttp import tcp_helpers, web, web_protocol
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
 from aiohttp_apispec import AiohttpApiSpec
 from apispec.core import VALID_METHODS_OPENAPI_V2
@@ -23,6 +24,8 @@ from tribler.core.restapi.rest_endpoint import (
 )
 
 if TYPE_CHECKING:
+    import asyncio
+
     from aiohttp.abc import Request
 
     from tribler.tribler_config import TriblerConfigManager
@@ -39,6 +42,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 RESTEndpointType = TypeVar("RESTEndpointType", bound=RESTEndpoint)
 
+
+@wraps(tcp_helpers.tcp_keepalive)
+def wrap_tcp_keepalive(transport: asyncio.Transport) -> None:
+    """
+    A wrapper around aiohttp's tcp_keepalive that catches OSError 22 instances.
+
+    See https://github.com/Tribler/tribler/issues/6429
+    """
+    try:
+         wrap_tcp_keepalive.__wrapped__(transport)
+    except OSError as e:
+        logger.warning("Setting tcp_keepalive on aiohttp socket failed!")
+        if e.errno != 22:
+            raise
+
+web_protocol.tcp_keepalive = wrap_tcp_keepalive
 
 @web.middleware
 class ApiKeyMiddleware:
