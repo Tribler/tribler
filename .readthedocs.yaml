@@ -2,6 +2,10 @@ version: 2
 
 formats: all
 
+submodules:
+  include: all
+  recursive: true
+
 build:
   # Check https://docs.readthedocs.io/en/stable/config-file/v2.html#build-os
   os: ubuntu-22.04
