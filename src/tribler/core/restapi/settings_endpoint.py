@@ -81,4 +81,5 @@ class SettingsEndpoint(RESTEndpoint):
 
         # Since the core doesn't need to be aware of the GUI settings, we just copy them.
         if top and "ui" in updates:
+            existing["ui"] = existing.get("ui", {})
             existing["ui"].update(updates["ui"])
