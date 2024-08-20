@@ -70,7 +70,7 @@ export function categoryIcon(name: category): string {
 }
 
 export function formatTimeAgo(ts: number) {
-    let locale = triblerService.getGuiSettings().lang ?? 'en-US';
+    let locale = triblerService.guiSettings.lang ?? 'en_US';
     const timeAg = new TimeAgo(locale.slice(0, 2));
     return timeAg.format(ts * 1000);
 }

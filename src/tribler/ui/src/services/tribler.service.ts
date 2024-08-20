@@ -11,6 +11,8 @@ export class TriblerService {
     private http: AxiosInstance;
     private baseURL = "/api";
     private events: EventSource;
+    // Store a cached version of the GuiSettings to prevent from having to call the server every time we need them.
+    public guiSettings: GuiSettings = {};
 
     constructor() {
         this.http = axios.create({
@@ -18,6 +20,8 @@ export class TriblerService {
             withCredentials: true,
         });
         this.events = new EventSource(this.baseURL + '/events', { withCredentials: true })
+        // Gets the GuiSettings
+        this.getSettings();
     }
 
     isOnline() {
@@ -26,11 +30,11 @@ export class TriblerService {
 
     // Events
 
-    addEventListener(topic:string, listener: (event: MessageEvent) => void): void {
+    addEventListener(topic: string, listener: (event: MessageEvent) => void): void {
         this.events.addEventListener(topic, listener);
     }
 
-    removeEventListener(topic:string, listener: (event: MessageEvent) => void): void {
+    removeEventListener(topic: string, listener: (event: MessageEvent) => void): void {
         this.events.removeEventListener(topic, listener);
     }
 
@@ -127,7 +131,7 @@ export class TriblerService {
         return (await this.http.get(`/metadata/torrents/popular?metadata_type=300&metadata_type=220&include_total=1&first=1&last=50&hide_xxx=${+hide_xxx}`)).data.results;
     }
 
-    async getTorrentHealth(infohash: string): Promise<{infohash: string, num_seeders: number, num_leechers: number, last_tracker_check: number}> {
+    async getTorrentHealth(infohash: string): Promise<{ infohash: string, num_seeders: number, num_leechers: number, last_tracker_check: number }> {
         return (await this.http.get(`/metadata/torrents/${infohash}/health`)).data;
     }
 
@@ -146,22 +150,14 @@ export class TriblerService {
     // Settings
 
     async getSettings(): Promise<Settings> {
-        return (await this.http.get('/settings')).data.settings;
-    }
-
-    async setSettings(settings: Settings): Promise<boolean> {
-        return (await this.http.post('/settings', settings)).data.modified;
-    }
-
-    getGuiSettings(): GuiSettings {
-        const settings_json = localStorage.getItem("gui_settings") ?? '{"ask_download_settings": true}';
-        const settings: GuiSettings = JSON.parse(settings_json);
+        const settings = (await this.http.get('/settings')).data.settings;
+        this.guiSettings = {...settings?.ui, ...this.guiSettings};
         return settings
     }
 
-    setGuiSettings(settings: GuiSettings) {
-        const settings_json = JSON.stringify(settings);
-        localStorage.setItem("gui_settings", settings_json);
+    async setSettings(settings: Partial<Settings>): Promise<boolean> {
+        this.guiSettings = {...settings?.ui, ...this.guiSettings};
+        return (await this.http.post('/settings', settings)).data.modified;
     }
 
     async getLibtorrentSession(hops: number) {

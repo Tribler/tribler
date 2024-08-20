@@ -157,7 +157,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         }
     }
 
-    if (props.open && props.onOpenChange && !triblerService.getGuiSettings().ask_download_settings) {
+    if (props.open && props.onOpenChange && triblerService.guiSettings.ask_download_settings === false) {
         OnDownloadClicked();
         return <></>;
     }

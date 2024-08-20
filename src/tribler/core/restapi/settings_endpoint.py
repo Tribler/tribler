@@ -69,9 +69,16 @@ class SettingsEndpoint(RESTEndpoint):
 
         return RESTResponse({"modified": True})
 
-    def _recursive_merge_settings(self, existing: dict, updates: dict) -> None:
+    def _recursive_merge_settings(self, existing: dict, updates: dict, top: bool = True) -> None:
         for key in existing:
+            # Ignore top-level ui entry
+            if top and key == "ui":
+                continue
             value = updates.get(key, existing[key])
             if isinstance(value, dict):
-                self._recursive_merge_settings(existing[key], value)
+                self._recursive_merge_settings(existing[key], value, False)
             existing[key] = value
+
+        # Since the core doesn't need to be aware of the GUI settings, we just copy them.
+        if top and "ui" in updates:
+            existing["ui"].update(updates["ui"])
