@@ -1,0 +1,23 @@
+[ req ]
+prompt              = no
+default_bits        = 4096
+distinguished_name  = req_distinguished_name
+
+string_mask         = utf8only
+default_md          = sha256
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+countryName                     = NL
+stateOrProvinceName             = ZH
+localityName                    = nl_NL
+organizationName                = Delft University of Technology
+organizationalUnitName          = Tribler
+commonName                      = Tribler
+emailAddress                    = info@tribler.org
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature

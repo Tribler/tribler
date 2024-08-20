@@ -43,23 +43,24 @@ REM Sandip, 2024-03-26: Some openssl dlls are missing so need to be copied manua
 copy C:\Program Files\OpenSSL\bin\*.dll dist\tribler\lib
 
 
-@echo Running NSIS
-cd dist\tribler
-
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 REM --- Doing this in ugly way for now
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
-    REM Get password for code signing
-    set /p PASSWORD="Enter the PFX password:"
-    signtool.exe sign /f C:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" tribler.exe
+    openssl req  -nodes -new -x509 -config build\win\keygen_config.txt -keyout key.pem -out pub_key.pem
+    openssl pkcs12 -export -in pub_key.pem -inkey key.pem -out ot_cert.pfx -passout pass:
+    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f ot_cert.pfx /d "Tribler" /t "http://timestamp.digicert.com" dist\tribler\tribler.exe
 )
+
+@echo Running NSIS
+cd dist\tribler
+
 :makeinstaller
 %NSIS% /DVERSION=%GITHUB_TAG% tribler.nsi || exit /b
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
-    signtool.exe sign /f c:\build\certs\certificate.pfx /p "%PASSWORD%" /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
+    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f ..\ot_cert.pfx /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
 )
 
 endlocal
