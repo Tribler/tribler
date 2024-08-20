@@ -89,7 +89,7 @@ export const sideMenu: NavItemWithChildren[] = [
     {
         title: 'Debug',
         icon: ExclamationTriangleIcon,
-        hide: () => triblerService.getGuiSettings().dev_mode !== true,
+        hide: () => triblerService.guiSettings.dev_mode !== true,
         items: [
             {
                 title: 'General',

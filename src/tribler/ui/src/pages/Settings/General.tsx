@@ -1,7 +1,7 @@
 import { PathInput } from "@/components/path-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { GuiSettings, Settings } from "@/models/settings.model";
+import { Settings } from "@/models/settings.model";
 import { triblerService } from "@/services/tribler.service";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,10 +12,11 @@ import { Input } from "@/components/ui/input";
 export default function General() {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<Settings>();
-    const [guiSettings, setGuiSettings] = useState<GuiSettings>();
 
-    if (!settings) (async () => { setSettings(await triblerService.getSettings()) })();
-    if (!guiSettings) setGuiSettings(triblerService.getGuiSettings());
+    if (!settings) {
+        (async () => { setSettings(await triblerService.getSettings()) })();
+        return;
+    }
 
     return (
         <div className="px-6 w-full">
@@ -70,12 +71,15 @@ export default function General() {
             </div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={guiSettings?.ask_download_settings}
+                    checked={settings?.ui?.ask_download_settings}
                     onCheckedChange={(value) => {
                         if (settings) {
-                            setGuiSettings({
+                            setSettings({
                                 ...settings,
-                                ask_download_settings: !!value
+                                ui: {
+                                    ...settings?.ui,
+                                    ask_download_settings: !!value
+                                }
                             });
                         }
                     }}
@@ -141,12 +145,15 @@ export default function General() {
             <div className="pt-5 py-2 font-semibold">{t('FamilyFilter')}</div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={guiSettings?.family_filter}
+                    checked={settings?.ui?.family_filter}
                     onCheckedChange={(value) => {
                         if (settings) {
-                            setGuiSettings({
+                            setSettings({
                                 ...settings,
-                                family_filter: !!value
+                                ui: {
+                                    ...settings?.ui,
+                                    family_filter: !!value
+                                }
                             });
                         }
                     }}
@@ -163,12 +170,15 @@ export default function General() {
             <div className="pt-5 py-2 font-semibold">{t('Tags')}</div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={guiSettings?.disable_tags}
+                    checked={settings?.ui?.disable_tags}
                     onCheckedChange={(value) => {
                         if (settings) {
-                            setGuiSettings({
+                            setSettings({
                                 ...settings,
-                                disable_tags: !!value
+                                ui: {
+                                    ...settings?.ui,
+                                    disable_tags: !!value
+                                }
                             });
                         }
                     }}
@@ -183,8 +193,6 @@ export default function General() {
 
             <SaveButton
                 onClick={async () => {
-                    if (guiSettings)
-                        triblerService.setGuiSettings(guiSettings);
                     if (settings)
                         await triblerService.setSettings(settings);
                 }}

@@ -8,7 +8,7 @@ i18n
     .use(initReactI18next)
     .init({
         supportedLngs: ['en_US', 'es_ES', 'pt_BR', 'ru_RU', 'zh_CN'],
-        lng: triblerService.getGuiSettings().lang,
+        lng: triblerService.guiSettings.lang,
         fallbackLng: 'en_US',
         interpolation: {
             escapeValue: false,

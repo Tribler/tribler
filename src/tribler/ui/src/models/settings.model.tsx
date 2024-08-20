@@ -96,6 +96,7 @@ export interface Settings {
     },
     state_dir: string;
     memory_db: boolean;
+    ui: GuiSettings;
 }
 
 export interface GuiSettings {

@@ -12,7 +12,10 @@ export default function Seeding() {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) (async () => { setSettings(await triblerService.getSettings()) })();
+    if (!settings) {
+        (async () => { setSettings(await triblerService.getSettings()) })();
+        return;
+    }
 
     return (
         <div className="p-6 w-full">

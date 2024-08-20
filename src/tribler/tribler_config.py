@@ -27,6 +27,8 @@ class ApiConfig(TypedDict):
     https_enabled: bool
     https_host: str
     https_port: int
+    http_port_running: int
+    https_port_running: int
 
 
 class ContentDiscoveryCommunityConfig(TypedDict):

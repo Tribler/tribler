@@ -13,7 +13,10 @@ export default function Connection() {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) (async () => { setSettings(await triblerService.getSettings()) })();
+    if (!settings) {
+        (async () => { setSettings(await triblerService.getSettings()) })();
+        return;
+    }
 
     return (
         <div className="px-6 w-full">

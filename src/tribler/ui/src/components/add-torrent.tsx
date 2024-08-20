@@ -124,7 +124,7 @@ export function AddTorrent() {
                     const files = Array.from(event.target.files as ArrayLike<File>);
                     event.target.value = '';
 
-                    if (files.length === 1 && triblerService.getGuiSettings().ask_download_settings !== false) {
+                    if (files.length === 1 && triblerService.guiSettings.ask_download_settings !== false) {
                         setSaveAsDialogOpen(true);
                         setTorrent(files[0]);
                     }

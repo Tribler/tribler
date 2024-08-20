@@ -3,18 +3,24 @@ import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
+import { useEffect } from "react";
 
 
 const LanguageSelect = () => {
     const { language, setLanguage } = useLanguage();
     const { t, i18n } = useTranslation();
 
-    const changeLanguage = (lng: string) => {
+    useEffect(() => {
+        const lng = triblerService.guiSettings.lang ?? 'en_US';
         setLanguage(lng);
         i18n.changeLanguage(lng);
-        triblerService.setGuiSettings({
-            ...triblerService.getGuiSettings(),
-            lang: lng
+    }, []);
+
+    const changeLanguage = async (lng: string) => {
+        setLanguage(lng);
+        i18n.changeLanguage(lng);
+        await triblerService.setSettings({
+            ui: { lang: lng }
         });
     };
 

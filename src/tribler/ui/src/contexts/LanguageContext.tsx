@@ -9,7 +9,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-    const [language, setLanguage] = useState(triblerService.getGuiSettings().lang ?? 'en');
+    const [language, setLanguage] = useState(triblerService.guiSettings.lang ?? 'en_US');
 
     return (
         <LanguageContext.Provider value={{ language, setLanguage }}>
