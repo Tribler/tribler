@@ -2,29 +2,21 @@ Building on Linux
 =================
 
 We assume you've set up your environment to run Tribler.
+Don't forget to build the GUI using NPM!
 Run the following commands in your terminal (assuming you are in the Tribler's repository root folder).
-
-.. code-block:: none
-
-    git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
-    git rev-parse HEAD > .TriblerCommit
 
 First, install additional requirements:
 
-.. code-block:: none
+.. code-block::
 
-    sudo apt-get -y install debhelper devscripts
-    sudo apt-get -y install libxcb-xinerama0-dev libqt5x11extras5 libgirepository1.0-dev
+    sudo apt-get -y install alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
     python -m pip install --upgrade -r requirements-build.txt
 
 Second, create the ``.deb`` file in the ``dist`` directory.
+You can set the ``GITHUB_TAG`` to whatever you want to have your version set as.
 
-.. code-block:: none
+.. code-block::
 
-    export QT_QPA_PLATFORM=offscreen
-    export QT_ACCESSIBILITY=1
-    export QT_IM_MODULE=ibus
-    export "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)"
+    export GITHUB_TAG="1.2.3"
 
     ./build/debian/makedist_debian.sh
-
