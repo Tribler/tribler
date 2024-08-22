@@ -1,0 +1,28 @@
+{
+    "api": {
+        "http_host": "127.0.0.1",
+        "https_host": "127.0.0.1"
+    },
+    "ipv8": {
+        "interfaces": [
+            {
+                "interface": "UDPIPv4",
+                "ip": "0.0.0.0",
+                "port": 7759,
+                "worker_threads": 8
+            },
+            {
+                "interface": "UDPIPv6",
+                "ip": "::",
+                "port": 7760
+            }
+        ]
+    },
+    "libtorrent": {
+        "port": 0,
+        "download_defaults": {
+            "saveas": "/downloads"
+        }
+    },
+    "state_dir": "/state"
+}
