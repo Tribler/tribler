@@ -73,10 +73,10 @@ jobs:
           python-version: '3.10'
           cache: 'pip'
           cache-dependency-path: |
-            **/requirements-build.txt
+            **/build/requirements.txt
       - name: Install Dependencies
         run: |
-          pip install --upgrade -r requirements-build.txt
+          pip install --upgrade -r build/requirements.txt
       - name: Setup npm
         uses: actions/setup-node@v4
       - name: Build npm
@@ -101,6 +101,7 @@ jobs:
       - name: Build Executables (MacOS-12)
         if: matrix.os == 'macos-12'
         run: |
+          mv ./build/tribler.spec ./tribler.spec
           ./build/mac/makedist_macos.sh
       - uses: actions/cache/restore@v4
         if: matrix.os == 'windows-latest'

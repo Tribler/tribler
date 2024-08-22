@@ -9,7 +9,7 @@ First, install additional requirements:
 
 .. code-block::
 
-    python -m pip install -r requirements-build.txt
+    python -m pip install -r build/requirements.txt
 
 
 Second, create the ``.dmg`` file in the ``dist`` directory.

@@ -1,4 +1,4 @@
--r requirements.txt
+-r ../requirements.txt
 
 cx_Freeze; sys_platform != 'darwin'
 PyInstaller; sys_platform == 'darwin'

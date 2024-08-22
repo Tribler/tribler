@@ -13,7 +13,7 @@ python3 -m pip install --upgrade PyGObject
 python3 ./build/debian/update_metainfo.py
 
 # ----- Build binaries
-python3 setup.py build
+python3 build/setup.py build
 
 # ----- Build dpkg
 cp -r ./dist/tribler ./build/debian/tribler/usr/share/tribler

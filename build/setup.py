@@ -8,7 +8,7 @@ from pathlib import Path
 from packaging.version import Version
 from setuptools import find_packages
 
-from build.win.build import setup, setup_executables, setup_options
+from win.build import setup, setup_executables, setup_options
 
 
 def read_requirements(file_name: str, directory: str = ".") -> list[str]:
@@ -31,7 +31,7 @@ def read_requirements(file_name: str, directory: str = ".") -> list[str]:
 
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-install_requires = read_requirements("requirements-build.txt", base_dir)
+install_requires = read_requirements("build/requirements.txt", base_dir)
 extras_require = {
     "dev": read_requirements("requirements-test.txt", base_dir),
 }
