@@ -175,8 +175,8 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         config = await self.add_mock_download_config(self.download_manager_seeder, 0)
         config.set_safe_seeding(False)
 
-        with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC101
-            f.write(bytes([0] * 524288))
+        with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC230
+            f.write(bytes([1] * 524288))
 
         metainfo = create_torrent_file([config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"], {})["metainfo"]
         tdef = TorrentDef(metainfo=libtorrent.bdecode(metainfo))
