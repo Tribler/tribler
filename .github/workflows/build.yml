@@ -40,6 +40,33 @@ jobs:
         with:
           submodules: 'true'
           fetch-tags: 'true'
+      - name: Remove test files
+        shell: bash
+        run: |
+          rm -rf doc
+          rm -rf scripts
+
+          rm src/run_unit_tests.py
+          rm -rf src/tribler/test_integration
+          rm -rf src/tribler/test_unit
+
+          rm -rf pyipv8/.github
+          rm pyipv8/.gitignore
+          rm pyipv8/.gitmodules
+          rm pyipv8/.readthedocs.yaml
+          rm pyipv8/.ruff.toml
+          rm pyipv8/*.md
+          rm pyipv8/*.ini
+          rm pyipv8/create_setup_taskmanager.py
+          rm pyipv8/create_test_coverage_report.py
+          rm pyipv8/github_increment_version.py
+          rm pyipv8/run_all_tests.py
+          rm pyipv8/setup.py
+          rm -rf pyipv8/doc
+          rm -rf pyipv8/scripts
+          rm -rf pyipv8/stresstest
+          rm -rf pyipv8/systemd
+          rm -rf pyipv8/ipv8/test
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -57,6 +84,7 @@ jobs:
           cd src/tribler/ui/
           npm install
           npm run build
+          rm -rf node_modules
       - name: Determine tag
         shell: bash
         run: |
