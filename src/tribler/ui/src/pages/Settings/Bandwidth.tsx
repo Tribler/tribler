@@ -13,7 +13,7 @@ export default function Bandwith() {
 
     if (!settings) {
         (async () => { setSettings(await triblerService.getSettings()) })();
-        return;
+        return null;
     }
 
     return (

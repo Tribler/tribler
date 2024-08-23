@@ -12,7 +12,7 @@ export default function Anonimity() {
 
     if (!settings) {
         (async () => { setSettings(await triblerService.getSettings()) })();
-        return;
+        return null;
     }
 
     return (

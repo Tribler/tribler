@@ -14,7 +14,7 @@ export default function Seeding() {
 
     if (!settings) {
         (async () => { setSettings(await triblerService.getSettings()) })();
-        return;
+        return null;
     }
 
     return (
