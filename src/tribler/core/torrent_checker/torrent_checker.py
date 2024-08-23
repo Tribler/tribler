@@ -33,7 +33,7 @@ TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 10  # The interval for checking the health of a random torrent
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
-MAX_TORRENTS_CHECKED_PER_SESSION = 50
+MAX_TORRENTS_CHECKED_PER_SESSION = 5  # (5 random + 5 per tracker = 10 torrents) per 10 seconds
 
 TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
 USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
@@ -57,7 +57,7 @@ class TorrentChecker(TaskManager):
     A class to check the health of torrents.
     """
 
-    def __init__(self,  # noqa: PLR0913
+    def __init__(self,
                  config: TriblerConfigManager,
                  download_manager: DownloadManager,
                  notifier: Notifier,

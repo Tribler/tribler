@@ -31,7 +31,7 @@ class UserActivityManager:
         self.queries: OrderedDict[str, typing.Set[InfoHash]] = OrderedDict()
         self.max_query_history = max_query_history
         self.database_manager: UserActivityLayer = session.db.user_activity
-        self.torrent_checker: TorrentChecker = session.torrent_checker
+        self.torrent_checker: TorrentChecker | None = session.torrent_checker
         self.task_manager = task_manager
 
         # Hook events
@@ -84,5 +84,6 @@ class UserActivityManager:
         """
         Check the health of a given infohash.
         """
-        self.task_manager.register_anonymous_task("Check preferable torrent",
-                                                  self.torrent_checker.check_torrent_health, infohash)
+        if self.torrent_checker:
+            self.task_manager.register_anonymous_task("Check preferable torrent",
+                                                      self.torrent_checker.check_torrent_health, infohash)
