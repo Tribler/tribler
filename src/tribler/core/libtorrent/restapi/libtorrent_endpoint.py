@@ -64,7 +64,7 @@ class LibTorrentEndpoint(RESTEndpoint):
         if hop not in self.download_manager.ltsessions:
             return RESTResponse({"hop": hop, "settings": {}})
 
-        lt_session = self.download_manager.ltsessions[hop]
+        lt_session = await self.download_manager.ltsessions[hop]
         if hop == 0:
             lt_settings = self.download_manager.get_session_settings(lt_session)
             lt_settings["peer_fingerprint"] = hexlify(lt_settings["peer_fingerprint"].encode()).decode()
@@ -107,10 +107,10 @@ class LibTorrentEndpoint(RESTEndpoint):
             hop = int(args["hop"])
 
         if hop not in self.download_manager.ltsessions or \
-                not hasattr(self.download_manager.ltsessions[hop], "post_session_stats"):
+                not hasattr(self.download_manager.ltsessions[hop].result(), "post_session_stats"):
             return RESTResponse({"hop": hop, "session": {}})
 
         self.download_manager.session_stats_callback = on_session_stats_alert_received
-        self.download_manager.ltsessions[hop].post_session_stats()
+        (await self.download_manager.ltsessions[hop]).post_session_stats()
         stats = await session_stats
         return RESTResponse({"hop": hop, "session": stats})

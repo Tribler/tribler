@@ -10,7 +10,7 @@ import dataclasses
 import logging
 import os
 import time
-from asyncio import CancelledError, gather, iscoroutine, shield, sleep, wait_for
+from asyncio import CancelledError, Future, gather, iscoroutine, shield, sleep, wait_for
 from binascii import hexlify, unhexlify
 from collections import defaultdict
 from copy import deepcopy
@@ -94,7 +94,7 @@ class DownloadManager(TaskManager):
 
         self.state_dir = Path(config.get_version_state_dir())
         self.ltsettings: dict[lt.session, dict] = {}  # Stores a copy of the settings dict for each libtorrent session
-        self.ltsessions: dict[int, lt.session] = {}
+        self.ltsessions: dict[int, Future[lt.session]] = {}
         self.dht_health_manager: DHTHealthManager | None = None
         self.listen_ports: dict[int, dict[str, int]] = defaultdict(dict)
 
@@ -102,8 +102,8 @@ class DownloadManager(TaskManager):
 
         self.notifier = notifier
 
-        self.set_upload_rate_limit(0)
-        self.set_download_rate_limit(0)
+        self.register_task("Set default upload rate limit", self.set_upload_rate_limit, 0)
+        self.register_task("Set default download rate limit", self.set_download_rate_limit, 0)
 
         self.downloads: Dict[bytes, Download] = {}
 
@@ -171,19 +171,15 @@ class DownloadManager(TaskManager):
 
         See https://github.com/Tribler/tribler/issues/5319
         """
-        while not (self.get_session() and self.get_session().status().dht_nodes > min_dht_peers):
+        while (await self.get_session()).status().dht_nodes < min_dht_peers:
             await asyncio.sleep(1)
 
-    def initialize(self) -> None:
+    async def initialize(self) -> None:
         """
         Initialize the directory structure, launch the periodic tasks and start libtorrent background processes.
         """
         # Create the checkpoints directory
         self.checkpoint_directory.mkdir(exist_ok=True, parents=True)
-
-        # Start upnp
-        if self.config.get("libtorrent/upnp"):
-            self.get_session().start_upnp()
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1, ignore=(Exception, ))
@@ -193,6 +189,10 @@ class DownloadManager(TaskManager):
         self.register_task("task_cleanup_metacache", self._task_cleanup_metainfo_cache, interval=60, delay=0)
 
         self.set_download_states_callback(self.sesscb_states_callback)
+
+        # Start upnp
+        if self.config.get("libtorrent/upnp"):
+            (await self.get_session()).start_upnp()
 
     def start(self) -> None:
         """
@@ -248,13 +248,14 @@ class DownloadManager(TaskManager):
         if self.has_session():
             logger.info("Saving state...")
             self.notify_shutdown_state("Writing session state to disk.")
+            session = await self.get_session()
             with open(self.state_dir / LTSTATE_FILENAME, "wb") as ltstate_file:  # noqa: ASYNC230
-                ltstate_file.write(lt.bencode(self.get_session().save_state()))
+                ltstate_file.write(lt.bencode(session.save_state()))
 
         if self.has_session() and self.config.get("libtorrent/upnp"):
             logger.info("Stopping upnp...")
             self.notify_shutdown_state("Stopping UPnP.")
-            self.get_session().stop_upnp()
+            (await self.get_session()).stop_upnp()
 
         # Remove metadata temporary directory
         if self.metadata_tmpdir:
@@ -360,12 +361,12 @@ class DownloadManager(TaskManager):
         """
         return hops in self.ltsessions
 
-    def get_session(self, hops: int = 0) -> lt.session:
+    def get_session(self, hops: int = 0) -> Future[lt.session]:
         """
         Get the session for the given number of anonymization hops.
         """
         if hops not in self.ltsessions:
-            self.ltsessions[hops] = self.create_session(hops)
+            self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}", self.create_session, hops)
 
         return self.ltsessions[hops]
 
@@ -392,7 +393,7 @@ class DownloadManager(TaskManager):
         """
         self._map_call_on_ltsessions(hops, "set_max_connections", conns)
 
-    def set_upload_rate_limit(self, rate: int) -> None:
+    async def set_upload_rate_limit(self, rate: int) -> None:
         """
         Set the upload rate limit for the given session.
         """
@@ -403,18 +404,19 @@ class DownloadManager(TaskManager):
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {"upload_rate_limit": libtorrent_rate, "outgoing_port": 0, "num_outgoing_ports": 1}
         for session in self.ltsessions.values():
-            self.set_session_settings(session, settings_dict)
+            self.set_session_settings(await session, settings_dict)
 
-    def get_upload_rate_limit(self, hops: int = 0) -> int:
+    async def get_upload_rate_limit(self, hops: int = 0) -> int:
         """
         Get the upload rate limit for the session with the given hop count.
         """
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = self.get_session(hops).upload_rate_limit()
+        session = await self.get_session(hops)
+        libtorrent_rate = session.upload_rate_limit()
         return self.reverse_convert_rate(rate=libtorrent_rate)
 
-    def set_download_rate_limit(self, rate: int) -> None:
+    async def set_download_rate_limit(self, rate: int) -> None:
         """
         Set the download rate limit for the given session.
         """
@@ -423,13 +425,14 @@ class DownloadManager(TaskManager):
         # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
         settings_dict = {"download_rate_limit": libtorrent_rate}
         for session in self.ltsessions.values():
-            self.set_session_settings(session, settings_dict)
+            self.set_session_settings(await session, settings_dict)
 
-    def get_download_rate_limit(self, hops: int = 0) -> int:
+    async def get_download_rate_limit(self, hops: int = 0) -> int:
         """
         Get the download rate limit for the session with the given hop count.
         """
-        libtorrent_rate = self.get_session(hops=hops).download_rate_limit()
+        session = await self.get_session(hops)
+        libtorrent_rate = session.download_rate_limit()
         return self.reverse_convert_rate(rate=libtorrent_rate)
 
     def process_alert(self, alert: lt.alert, hops: int = 0) -> None:  # noqa: C901, PLR0912
@@ -598,23 +601,21 @@ class DownloadManager(TaskManager):
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 
-    def _request_torrent_updates(self) -> None:
+    async def _request_torrent_updates(self) -> None:
         for ltsession in self.ltsessions.values():
-            if ltsession:
-                ltsession.post_torrent_updates(0xffffffff)
+            (await ltsession).post_torrent_updates(0xffffffff)
 
-    def _task_process_alerts(self) -> None:
+    async def _task_process_alerts(self) -> None:
         for hops, ltsession in list(self.ltsessions.items()):
-            if ltsession:
-                for alert in ltsession.pop_alerts():
-                    self.process_alert(alert, hops=hops)
+            for alert in (await ltsession).pop_alerts():
+                self.process_alert(alert, hops=hops)
 
     def _map_call_on_ltsessions(self, hops: int | None, funcname: str, *args: Any, **kwargs) -> None:  # noqa: ANN401
         if hops is None:
             for session in self.ltsessions.values():
-                getattr(session, funcname)(*args, **kwargs)
+                session.add_done_callback(lambda s: getattr(s.result(), funcname)(*args, **kwargs))
         else:
-            getattr(self.get_session(hops), funcname)(*args, **kwargs)
+            self.get_session(hops).add_done_callback(lambda s: getattr(s.result(), funcname)(*args, **kwargs))
 
     async def start_download_from_uri(self, uri: str, config: DownloadConfig | None = None) -> Download:
         """
@@ -732,7 +733,7 @@ class DownloadManager(TaskManager):
         if resume_data:
             logger.debug("Download resume data: %s", str(atp["resume_data"]))
 
-        ltsession = self.get_session(download.config.get_hops())
+        ltsession = await self.get_session(download.config.get_hops())
         infohash = download.get_def().get_infohash()
 
         if infohash in self.metainfo_requests and self.metainfo_requests[infohash].download != download:
@@ -813,12 +814,12 @@ class DownloadManager(TaskManager):
         This is the extra step necessary to apply a new maximum download/upload rate setting.
         :return:
         """
+        rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
+        download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
+        settings = {"download_rate_limit": download_rate,
+                    "upload_rate_limit": rate}
         for lt_session in self.ltsessions.values():
-            rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
-            download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
-            settings = {"download_rate_limit": download_rate,
-                        "upload_rate_limit": rate}
-            self.set_session_settings(lt_session, settings)
+            lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
 
     def post_session_stats(self) -> None:
         """
@@ -826,7 +827,7 @@ class DownloadManager(TaskManager):
         """
         logger.info("Post session stats")
         for session in self.ltsessions.values():
-            session.post_session_stats()
+            session.add_done_callback(lambda s: s.result().post_session_stats())
 
     async def remove_download(self, download: Download, remove_content: bool = False,
                               remove_checkpoint: bool = True) -> None:
@@ -844,8 +845,7 @@ class DownloadManager(TaskManager):
                 if download.stream is not None:
                     download.stream.disable()
                 logger.debug("Removing handle %s", hexlify(infohash))
-                ltsession = self.get_session(download.config.get_hops())
-                ltsession.remove_torrent(handle, int(remove_content))
+                (await self.get_session(download.config.get_hops())).remove_torrent(handle, int(remove_content))
         else:
             logger.debug("Cannot remove handle %s because it does not exists", hexlify(infohash))
         await download.shutdown()
@@ -892,7 +892,7 @@ class DownloadManager(TaskManager):
 
         await self.start_download(tdef=download.tdef, config=config)
 
-    def update_trackers(self, infohash: bytes, trackers: list[str]) -> None:
+    def update_trackers(self, infohash: bytes, trackers: list[bytes]) -> None:
         """
         Update the trackers for a download.
 

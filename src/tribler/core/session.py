@@ -162,7 +162,7 @@ class Session:
         for server in self.socks_servers:
             await server.start()
         self.download_manager.socks_listen_ports = [s.port for s in self.socks_servers]
-        self.download_manager.initialize()
+        await self.download_manager.initialize()
         self.download_manager.start()
 
         # IPv8

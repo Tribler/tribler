@@ -1,4 +1,4 @@
-from asyncio import ensure_future, sleep
+from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
 from unittest.mock import Mock
 
@@ -76,7 +76,9 @@ class TestLibTorrentEndpoint(TestBase):
         """
         Test if getting settings for zero hops gives extended info.
         """
-        self.download_manager.ltsessions = {0: Mock()}
+        fut = Future()
+        fut.set_result(Mock())
+        self.download_manager.ltsessions = {0: fut}
         self.download_manager.get_session_settings = Mock(return_value={"peer_fingerprint": "test", "test": "test"})
 
         response = await self.endpoint.get_libtorrent_settings(GetLibtorrentSettingsRequest({}))
@@ -91,9 +93,9 @@ class TestLibTorrentEndpoint(TestBase):
         """
         Test if getting settings for more hops leaves out extended info.
         """
-        self.download_manager.ltsessions = {2: Mock(
-            get_settings=Mock(return_value={"test": "test"})
-        )}
+        fut = Future()
+        fut.set_result(Mock(get_settings=Mock(return_value={"test": "test"})))
+        self.download_manager.ltsessions = {2: fut}
 
         response = await self.endpoint.get_libtorrent_settings(GetLibtorrentSettingsRequest({"hop": 2}))
         response_body_json = await response_to_json(response)
@@ -132,7 +134,9 @@ class TestLibTorrentEndpoint(TestBase):
         """
         Test if getting session info for a known number of hops forwards the known settings.
         """
-        self.download_manager.ltsessions = {0: Mock()}
+        fut = Future()
+        fut.set_result(Mock())
+        self.download_manager.ltsessions = {0: fut}
 
         response_future = ensure_future(self.endpoint.get_libtorrent_session_info(GetLibtorrentSettingsRequest({})))
         await sleep(0)

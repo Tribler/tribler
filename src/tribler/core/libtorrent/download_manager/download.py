@@ -517,20 +517,20 @@ class Download(TaskManager):
 
         # When the send buffer watermark is too low, double the buffer size to a
         # maximum of 50MiB. This is the same mechanism as Deluge uses.
-        lt_session = self.download_manager.get_session(self.config.get_hops())
+        lt_session = self.download_manager.get_session(self.config.get_hops()).result()
         settings = self.download_manager.get_session_settings(lt_session)
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
             if settings["send_buffer_watermark"] <= 26214400:
                 self._logger.info("Setting send_buffer_watermark to %s", 2 * settings["send_buffer_watermark"])
                 settings["send_buffer_watermark"] *= 2
-                self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
+                self.download_manager.set_session_settings(self.download_manager.get_session().result(), settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif (alert.message().endswith("max outstanding disk writes reached")
               and settings["max_queued_disk_bytes"] <= 33554432):
             self._logger.info("Setting max_queued_disk_bytes to %s", 2 * settings["max_queued_disk_bytes"])
             settings["max_queued_disk_bytes"] *= 2
-            self.download_manager.set_session_settings(self.download_manager.get_session(), settings)
+            self.download_manager.set_session_settings(self.download_manager.get_session().result(), settings)
 
     def on_torrent_removed_alert(self, alert: lt.torrent_removed_alert) -> None:
         """
@@ -771,7 +771,7 @@ class Download(TaskManager):
             if info.source & info.pex:
                 pex_peers += 1
 
-        ltsession = self.download_manager.get_session(self.config.get_hops())
+        ltsession = self.download_manager.get_session(self.config.get_hops()).result()
         public = self.tdef and not self.tdef.is_private()
 
         result = self.tracker_status.copy()
@@ -864,7 +864,7 @@ class Download(TaskManager):
         self.tdef = tdef
 
     @check_handle(None)
-    def add_trackers(self, trackers: list[str]) -> None:
+    def add_trackers(self, trackers: list[bytes]) -> None:
         """
         Add the given trackers to the handle.
         """
