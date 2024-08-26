@@ -339,6 +339,7 @@ class UserActivityComponent(BaseLauncher):
         out["manager"] = UserActivityManager(TaskManager(), session, max_query_history)
         return out
 
+
 @precondition('session.config.get("versioning/enabled")')
 class VersioningComponent(ComponentLauncher):
     """

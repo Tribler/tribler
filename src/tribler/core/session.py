@@ -38,6 +38,9 @@ from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 from tribler.core.socks5.server import Socks5Server
 
 if TYPE_CHECKING:
+    from tribler.core.database.store import MetadataStore
+    from tribler.core.database.tribler_database import TriblerDatabase
+    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
     from tribler.tribler_config import TriblerConfigManager
 
 logger = logging.getLogger(__name__)
@@ -113,9 +116,9 @@ class Session:
         self.rest_manager = RESTManager(self.config)
 
         # Optional globals, set by components:
-        self.db = None
-        self.mds = None
-        self.torrent_checker = None
+        self.db: TriblerDatabase | None = None
+        self.mds: MetadataStore | None = None
+        self.torrent_checker: TorrentChecker | None = None
 
     def register_launchers(self) -> None:
         """
