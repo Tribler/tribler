@@ -1,0 +1,14 @@
+name: Build GUI
+on: pull_request
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup npm
+        uses: actions/setup-node@v4
+      - name: Build npm
+        run: |
+          cd src/tribler/ui/
+          npm install
+          npm run build

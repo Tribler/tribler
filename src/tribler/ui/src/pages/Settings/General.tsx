@@ -15,7 +15,7 @@ export default function General() {
 
     if (!settings) {
         (async () => { setSettings(await triblerService.getSettings()) })();
-        return;
+        return null;
     }
 
     return (
