@@ -5,6 +5,7 @@ import { Path } from "@/models/path.model";
 import { GuiSettings, Settings } from "@/models/settings.model";
 import { Torrent } from "@/models/torrent.model";
 import axios, { AxiosInstance } from "axios";
+import { handleHTTPError } from "./reporting";
 
 
 export class TriblerService {
@@ -19,7 +20,8 @@ export class TriblerService {
             baseURL: this.baseURL,
             withCredentials: true,
         });
-        this.events = new EventSource(this.baseURL + '/events', { withCredentials: true })
+        this.http.interceptors.response.use(function (response) { return response; }, handleHTTPError);
+        this.events = new EventSource(this.baseURL + '/events', { withCredentials: true });
         // Gets the GuiSettings
         this.getSettings();
     }

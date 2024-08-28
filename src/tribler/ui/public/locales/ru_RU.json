@@ -130,5 +130,9 @@
     "VersionAvailable": "ДОСТУПНА НОВАЯ ВЕРСИЯ",
     "VersionUpgrading": "Обновление",
     "VersionImport": "ИМПОРТ",
-    "VersionRemove": "УДАЛЯТЬ"
+    "VersionRemove": "УДАЛЯТЬ",
+    "ErrorNotification": "Триблер обнаружил ошибку! ",
+    "ErrorSearchButton": "Поиск решений",
+    "ErrorReportButton": "Отчет на GitHub",
+    "ErrorIgnoreButton": "игнорировать"
 }
