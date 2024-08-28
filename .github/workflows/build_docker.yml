@@ -1,14 +1,6 @@
 name: Publish Docker Image
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - 'main'
-      - 'docker'
-    tags:
-      - 'v*'
-
+on: workflow_dispatch
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
