@@ -1,7 +1,7 @@
 
 services:
   tribler:
-    image: ghcr.io/tribler/tribler:main
+    image: ghcr.io/tribler/tribler:latest
     network_mode: host
     environment:
       CORE_API_PORT: 8085
