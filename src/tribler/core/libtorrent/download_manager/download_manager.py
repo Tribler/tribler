@@ -40,10 +40,13 @@ SOCKS5_PROXY_DEF = 2
 LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 DEFAULT_DHT_ROUTERS = [
+    ("dht.aelitis.com", 6881),
+    ("dht.libtorrent.org", 6881),
     ("dht.libtorrent.org", 25401),
+    ("dht.transmissionbt.com", 6881),
+    ("router.bitcomet.com", 6881),
     ("router.bittorrent.com", 6881),
     ("router.utorrent.com", 6881),
-    ("dht.transmissionbt.com", 6881),
 ]
 DEFAULT_LT_EXTENSIONS = [
     lt.create_ut_metadata_plugin,
