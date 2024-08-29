@@ -1,6 +1,7 @@
 import { Circuit } from "@/models/circuit.model";
 import { OverlayStats } from "@/models/overlay.model";
 import axios, { AxiosInstance } from "axios";
+import { handleHTTPError } from "./reporting";
 
 
 export class IPv8Service {
@@ -12,6 +13,7 @@ export class IPv8Service {
             baseURL: this.baseURL,
             withCredentials: true,
         });
+        this.http.interceptors.response.use(function (response) { return response; }, handleHTTPError);
     }
 
 

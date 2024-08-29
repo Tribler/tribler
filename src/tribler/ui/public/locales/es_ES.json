@@ -130,5 +130,9 @@
     "VersionAvailable": "NUEVA VERSIÓN DISPONIBLE",
     "VersionUpgrading": "Actualización",
     "VersionImport": "IMPORTAR",
-    "VersionRemove": "ELIMINAR"
+    "VersionRemove": "ELIMINAR",
+    "ErrorNotification": "¡Tribler encontró un error! ",
+    "ErrorSearchButton": "Buscar soluciones",
+    "ErrorReportButton": "Informe en GitHub",
+    "ErrorIgnoreButton": "Ignorar"
 }

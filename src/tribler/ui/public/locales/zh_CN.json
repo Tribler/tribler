@@ -129,5 +129,9 @@
     "VersionAvailable": "新版本上线",
     "VersionUpgrading": "升级中",
     "VersionImport": "进口",
-    "VersionRemove": "消除"
+    "VersionRemove": "消除",
+    "ErrorNotification": "Tribler 遇到错误！",
+    "ErrorSearchButton": "搜索解决方案",
+    "ErrorReportButton": "在 GitHub 上报告",
+    "ErrorIgnoreButton": "忽略"
 }
