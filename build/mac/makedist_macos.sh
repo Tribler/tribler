@@ -7,9 +7,6 @@ set -e # exit when any command fails
 
 source ./build/mac/env.sh
 
-# ----- Clean UI
-rm -rf src/tribler/ui/node_modules
-
 # ----- Build
 pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
 
