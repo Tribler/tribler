@@ -2,30 +2,21 @@ Building on Mac
 ===============
 
 We assume you've set up your environment to run Tribler.
+Don't forget to build the GUI using NPM!
 Run the following commands in your terminal (assuming you are in the Tribler's repository root folder).
-
-.. code-block:: none
-
-    git describe | python -c "import sys; print(next(sys.stdin).lstrip('v'))" > .TriblerVersion
-    git rev-parse HEAD > .TriblerCommit
-
-    python ./build/update_version.py -r .
 
 First, install additional requirements:
 
-.. code-block:: none
+.. code-block::
 
     python -m pip install -r requirements-build.txt
 
 
 Second, create the ``.dmg`` file in the ``dist`` directory.
+You can set the ``GITHUB_TAG`` to whatever you want to have your version set as.
 
-.. code-block:: none
+.. code-block::
 
-    export QT_QPA_PLATFORM=offscreen
-    export QT_ACCESSIBILITY=1
-    export QT_IM_MODULE=ibus
-    export "TRIBLER_VERSION=$(head -n 1 .TriblerVersion)"
+    export GITHUB_TAG="1.2.3"
 
     ./build/mac/makedist_macos.sh
-

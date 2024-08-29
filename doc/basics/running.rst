@@ -3,6 +3,7 @@ Running Tribler from Source
 
 In order to run Tribler from its source you will need to perform some setup.
 We assume you have ``git`` and ``python`` installed.
+If you want to run a GUI for Tribler, you will need ``npm`` installed too.
 
 
 Steps
@@ -10,20 +11,34 @@ Steps
 
 1. Clone the Tribler repo:
 
-.. code-block:: bash
+.. code-block::
 
-    git clone https://github.com/tribler/tribler
-    
-    
-2. Install python packages:
+    git clone --recursive https://github.com/tribler/tribler
 
-.. code-block:: bash
+.. warning::
+ Tribler uses submodules.
+ If you (1) download the ZIP or (2) forget to recursively clone, your ``pyipv8`` folder will be empty.
+ Repair the former by `downloading the IPv8 zip <https://github.com/Tribler/py-ipv8>`_ and extracting it in the ``pyipv8`` folder and repair the latter by running ``git submodule update --init``.
+    
+2. Install the python dependencies:
+
+.. code-block::
 
     python -m pip install --upgrade -r tribler/requirements.txt
 
-3. Run Tribler:
+3. Build the GUI:
 
-.. code-block:: bash
+.. code-block::
+
+    cd src/tribler/ui/
+    npm install
+    npm run build
+
+4. Add the IPv8 submodule to your ``PYTHONPATH``. For example, (Windows) ``set PYTHONPATH=%PYTHONPATH%;pyipv8``, (Linux) ``export PYTHONPATH="${PYTHONPATH}:pyipv8"`` or (PyCharm) right click the ``pyipv8`` folder and ``Mark Directory as/Sources Root``.
+
+5. Run Tribler:
+
+.. code-block::
 
     cd src
     python run_tribler.py
@@ -35,25 +50,17 @@ If this is your case, continue reading for your appropriate platform.
 MacOS
 -----
 
-You may need to install QT5 and other packages separately:
+You may need to install  other packages separately:
 
-.. code-block:: bash
+.. code-block::
 
-    # QT5
-    brew install python3 qt5 sip pyqt5
-    brew cask install qt-creator  # if you want the visual designer
-    brew link qt5 --force  # to allow access qmake from the terminal
-    qmake --version  # test whether qt is installed correctly
-    export PATH="/usr/local/opt/qt@5/bin:$PATH"
-    
-    # Other packages
     brew install gmp mpfr libmpc libsodium
 
 The security system on MacOS can prevent ``libsodium.dylib`` from being dynamically linked into Tribler when running Python.
 If this library cannot be loaded, it gives an error that libsodium could not be found.
 You can link or copy ``libsodium.dylib`` into the Tribler root directory:
 
-.. code-block:: bash
+.. code-block::
 
     cd tribler  # Wherever you have Tribler installed
     cp /usr/local/lib/libsodium.dylib ./ || cp /opt/local/lib/libsodium.dylib ./

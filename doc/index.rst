@@ -1,22 +1,12 @@
-Welcome to Tribler's documentation!
-===================================
+.. note::
+ Looking for user documentation? Check out https://www.tribler.org/howto.html
+
+Welcome to Tribler's developer documentation!
+=============================================
 
 Tribler aims to give anonymous access to content. We are trying to make privacy, strong cryptography, and authentication the Internet norm.
 
-For the past 20 years we have been building a very robust Peer-to-Peer system.
-Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
-   
-
-Obtaining the latest release
-============================
-
-Just click `here <https://github.com/Tribler/tribler/releases/latest>`__ and download the latest package for your OS.
-
-Obtaining support
-=================
-
-If you found a bug or have a feature request, please make sure you read our contribution rules and then `open an issue <https://github.com/Tribler/tribler/issues/new>`_. We will have a look at it ASAP.
-
+These documents specify how to run Tribler from the latest source code and how to build Tribler distributions.
    
 Table of contents
 =================

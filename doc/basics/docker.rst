@@ -1,3 +1,6 @@
+.. warning::
+ This document is out-of-date for the newest 8.0 source code.
+
 Running Tribler in Docker
 =========================
 
