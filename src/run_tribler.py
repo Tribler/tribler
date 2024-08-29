@@ -117,7 +117,7 @@ async def main() -> None:
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
 
-    image_path = Path(tribler.__file__).parent / "ui/public/tribler.png"
+    image_path = tribler.get_webui_root() / "public" / "tribler.png"
     image = Image.open(image_path.resolve())
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
