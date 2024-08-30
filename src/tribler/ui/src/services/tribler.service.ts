@@ -141,6 +141,31 @@ export class TriblerService {
         }
     }
 
+    async addDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put(`/downloads/${infohash}/trackers`, { url: trackerUrl })).data.added;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async removeDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.delete(`/downloads/${infohash}/trackers`, { data: { url: trackerUrl } })).data.removed;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async forceCheckDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put(`/downloads/${infohash}/tracker_force_announce`, { url: trackerUrl })).data.forced;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+
+    }
+
     // Statistics
 
     async getIPv8Statistics(): Promise<undefined | ErrorDict | {total_up: number, total_down: number}> {

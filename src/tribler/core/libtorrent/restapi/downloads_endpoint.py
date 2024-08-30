@@ -75,6 +75,9 @@ class DownloadsEndpoint(RESTEndpoint):
             web.delete("/{infohash}", self.delete_download),
             web.patch("/{infohash}", self.update_download),
             web.get("/{infohash}/torrent", self.get_torrent),
+            web.put("/{infohash}/trackers", self.add_tracker),
+            web.delete("/{infohash}/trackers", self.remove_tracker),
+            web.put("/{infohash}/tracker_force_announce", self.tracker_force_announce),
             web.get("/{infohash}/files", self.get_files),
             web.get("/{infohash}/files/expand", self.expand_tree_directory),
             web.get("/{infohash}/files/collapse", self.collapse_tree_directory),
@@ -611,6 +614,134 @@ class DownloadsEndpoint(RESTEndpoint):
             "content-type": "application/x-bittorrent",
             "Content-Disposition": f"attachment; filename={hexlify(infohash).decode()}.torrent"
         })
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Add a tracker to the specified torrent.",
+        parameters=[{
+            "in": "path",
+            "name": "infohash",
+            "description": "Infohash of the download to add the given tracker to",
+            "type": "string",
+            "required": True
+        }],
+        responses={
+            200: {
+                "schema": schema(AddTrackerResponse={"added": Boolean}),
+                "examples": {"added": True}
+            }
+        }
+    )
+    @json_schema(schema(AddTrackerRequest={
+        "url": (String, "The tracker URL to insert"),
+    }))
+    async def add_tracker(self, request: Request) -> RESTResponse:
+        """
+        Return the .torrent file associated with the specified download.
+        """
+        infohash = unhexlify(request.match_info["infohash"])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404()
+
+        parameters = await request.json()
+        url = parameters.get("url")
+        if not url:
+            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+
+        try:
+            download.add_trackers([url])
+            download.handle.force_reannounce(0, len(download.handle.trackers()) - 1)
+        except RuntimeError as e:
+            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+
+        return RESTResponse({"added": True})
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Remove a tracker from the specified torrent.",
+        parameters=[{
+            "in": "path",
+            "name": "infohash",
+            "description": "Infohash of the download to remove the given tracker from",
+            "type": "string",
+            "required": True
+        }],
+        responses={
+            200: {
+                "schema": schema(AddTrackerResponse={"removed": Boolean}),
+                "examples": {"removed": True}
+            }
+        }
+    )
+    @json_schema(schema(AddTrackerRequest={
+        "url": (String, "The tracker URL to remove"),
+    }))
+    async def remove_tracker(self, request: Request) -> RESTResponse:
+        """
+        Return the .torrent file associated with the specified download.
+        """
+        infohash = unhexlify(request.match_info["infohash"])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404()
+
+        parameters = await request.json()
+        url = parameters.get("url")
+        if not url:
+            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+
+        try:
+            download.handle.replace_trackers([tracker for tracker in download.handle.trackers()
+                                              if tracker["url"] != url])
+        except RuntimeError as e:
+            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+
+        return RESTResponse({"removed": True})
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Forcefully announce to the given tracker.",
+        parameters=[{
+            "in": "path",
+            "name": "infohash",
+            "description": "Infohash of the download to force the tracker announce for",
+            "type": "string",
+            "required": True
+        }],
+        responses={
+            200: {
+                "schema": schema(AddTrackerResponse={"forced": Boolean}),
+                "examples": {"forced": True}
+            }
+        }
+    )
+    @json_schema(schema(AddTrackerRequest={
+        "url": (String, "The tracker URL to query"),
+    }))
+    async def tracker_force_announce(self, request: Request) -> RESTResponse:
+        """
+        Forcefully announce to the given tracker.
+        """
+        infohash = unhexlify(request.match_info["infohash"])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404()
+
+        parameters = await request.json()
+        url = parameters.get("url")
+        if not url:
+            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+
+        try:
+            for i, tracker in enumerate(download.handle.trackers()):
+                if tracker["url"] == url:
+                    download.handle.force_reannounce(0, i)
+                    break
+        except RuntimeError as e:
+            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+
+        return RESTResponse({"forced": True})
 
     @docs(
         tags=["Libtorrent"],

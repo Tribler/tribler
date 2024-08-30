@@ -749,10 +749,12 @@ class Download(TaskManager):
         self.handle = cast(lt.torrent_handle, self.handle)
         # Make sure all trackers are in the tracker_status dict
         try:
-            for announce_entry in self.handle.trackers():
-                url = announce_entry["url"]
-                if url not in self.tracker_status:
-                    self.tracker_status[url] = (0, "Not contacted yet")
+            tracker_urls = {tracker["url"] for tracker in self.handle.trackers()}
+            for removed in (set(self.tracker_status.keys()) - tracker_urls):
+                self.tracker_status.pop(removed)
+            for tracker_url in tracker_urls:
+                if tracker_url not in self.tracker_status:
+                    self.tracker_status[tracker_url] = (0, "Not contacted yet")
         except UnicodeDecodeError:
             self._logger.warning("UnicodeDecodeError in get_tracker_status")
 

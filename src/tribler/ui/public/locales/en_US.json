@@ -106,6 +106,8 @@
     "MagnetDialogInputLabel": "Please enter the URL/magnet link in the field below:",
     "MagnetDialogHeader": "Add torrent from URL/magnet link",
 	"MagnetDialogError": "Could not process URL/magnet link",
+    "TrackerDialogInputLabel": "Please enter the tracker URL in the field below:",
+    "TrackerDialogHeader": "Add torrent from tracker URL",
     "Add": "Add",
     "FilterByName": "Filter by name",
     "WithSelected": "With selected:",
@@ -159,5 +161,8 @@
     "ToastErrorDownloadSetHops": "Failed change the anonymity of download!",
     "ToastErrorDownloadSetFiles": "Failed to set files for download!",
     "ToastErrorUpgradeFailed": "Upgrade failed!",
-    "ToastErrorRemoveVersion": "Failed to remove version {{version}}!"
+    "ToastErrorRemoveVersion": "Failed to remove version {{version}}!",
+    "ToastErrorTrackerAdd": "Failed to add tracker!",
+    "ToastErrorTrackerRemove": "Failed to remove tracker!",
+    "ToastErrorTrackerCheck": "Failed to check tracker!"
 }
