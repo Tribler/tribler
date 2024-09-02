@@ -32,10 +32,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Git Tag Version
+      - name: Create tags
         id: git_tag_version
         run: |
-          echo "VERSION=$(git describe --tags)" >> $GITHUB_ENV
+          TAG=$REGISTRY/$IMAGE_NAME:$(git describe --tags)
+          COMMIT=$REGISTRY/$IMAGE_NAME:$REF_NAME
+          VERSION=$REGISTRY/$IMAGE_NAME:latest
+          echo "TAG1=${TAG,,}" >> $GITHUB_ENV
+          echo "TAG2=${COMMIT,,}" >> $GITHUB_ENV
+          echo "TAG3=${VERSION,,}" >> $GITHUB_ENV
+        env:
+          REGISTRY=${{ env.REGISTRY }}
+          IMAGE_NAME=${{ env.IMAGE_NAME }}
+          REF_NAME=${{ github.ref_name }}
 
       - name: Build and push Docker image
         id: push
@@ -45,9 +54,9 @@ jobs:
           file: build/docker/build.Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.TAG1 }}
+            ${{ env.TAG2 }}
+            ${{ env.TAG3 }}
           build-args: |
             GIT_BRANCH=${{ github.ref_name }}
             GIT_REPO=https://github.com/${{ github.repository }}
