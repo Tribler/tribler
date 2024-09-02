@@ -1,0 +1,11 @@
+
+services:
+  tribler:
+    image: ghcr.io/tribler/tribler:latest
+    network_mode: host
+    environment:
+      CORE_API_PORT: 8085
+      CORE_API_KEY: "changeme"
+    volumes:
+      - ~/.Tribler/git:/home/user/.Tribler
+      - ~/Downloads/TriblerDownloads:/home/user/Downloads/TriblerDownloads
