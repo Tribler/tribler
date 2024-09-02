@@ -44,8 +44,10 @@ class TestDownloadManager(TestBase):
         """
         super().setUp()
         self.manager = DownloadManager(MockTriblerConfigManager(), Notifier(), Mock())
-        self.manager.ltsessions = {i: Mock(status=Mock(dht_nodes=0), get_torrents=Mock(return_value=[]))
-                                   for i in range(4)}
+        for i in range(4):
+            fut = Future()
+            fut.set_result(Mock(status=Mock(dht_nodes=0), get_torrents=Mock(return_value=[])))
+            self.manager.ltsessions[i] = fut
         self.manager.set_download_states_callback(self.manager.sesscb_states_callback)
 
     async def tearDown(self) -> None:
@@ -158,7 +160,7 @@ class TestDownloadManager(TestBase):
         mock_alert = type("add_torrent_alert", (object,), {"handle": mock_handle,
                                                            "error": Mock(value=Mock(return_value=None)),
                                                            "category": MagicMock(return_value=None)})
-        self.manager.ltsessions[0].async_add_torrent = lambda _: self.manager.process_alert(mock_alert())
+        self.manager.ltsessions[0].result().async_add_torrent = lambda _: self.manager.process_alert(mock_alert())
 
         with patch.object(self.manager, "remove_download", AsyncMock()):
             download = await self.manager.start_download(tdef=TorrentDefNoMetainfo(b"\x01" * 20, b""),
@@ -201,7 +203,7 @@ class TestDownloadManager(TestBase):
         """
         mock_handle = Mock(info_hash=Mock(return_value=Mock(to_bytes=Mock(return_value=b"\x01" * 20))),
                            is_valid=Mock(return_value=True))
-        self.manager.ltsessions[0].get_torrents = Mock(return_value=[mock_handle])
+        self.manager.ltsessions[0].result().get_torrents = Mock(return_value=[mock_handle])
         download = await self.manager.start_download(tdef=TorrentDefNoMetainfo(b"\x01" * 20, b"name"),
                                                      config=self.create_mock_download_config(),
                                                      checkpoint_disabled=True)
@@ -268,19 +270,21 @@ class TestDownloadManager(TestBase):
         """
         Test if the proxy settings can be set.
         """
-        self.manager.set_proxy_settings(self.manager.get_session(0), 0, ("a", "1234"), ("abc", "def"))
+        self.manager.set_proxy_settings(self.manager.get_session(0).result(), 0, ("a", "1234"), ("abc", "def"))
 
         self.assertEqual(call({"proxy_type": 0, "proxy_hostnames": True, "proxy_peer_connections": True,
                                "proxy_hostname": "a", "proxy_port": 1234, "proxy_username": "abc",
-                               "proxy_password": "def"}), self.manager.ltsessions[0].apply_settings.call_args)
+                               "proxy_password": "def"}), self.manager.ltsessions[0].result().apply_settings.call_args)
 
-    def test_post_session_stats(self) -> None:
+    async def test_post_session_stats(self) -> None:
         """
         Test if post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
         """
         self.manager.post_session_stats()
 
-        self.manager.ltsessions[0].post_session_stats.assert_called_once()
+        await sleep(0)
+
+        self.manager.ltsessions[0].result().post_session_stats.assert_called_once()
 
     async def test_load_checkpoint_no_metainfo(self) -> None:
         """
@@ -475,26 +479,32 @@ class TestDownloadManager(TestBase):
         self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
                             {announce_url[0] for announce_url in download.tdef.metainfo[b"announce-list"]})
 
-    def test_get_download_rate_limit(self) -> None:
+    async def test_get_download_rate_limit(self) -> None:
         """
         Test if the download rate limit can be set.
         """
         settings = {}
-        self.manager.ltsessions[0].get_settings = Mock(return_value=settings)
-        self.manager.ltsessions[0].download_rate_limit = functools.partial(settings.get, "download_rate_limit")
+        self.manager.ltsessions[0] = Future()
+        self.manager.ltsessions[0].set_result(Mock(
+            get_settings=Mock(return_value=settings),
+            download_rate_limit=functools.partial(settings.get, "download_rate_limit")
+        ))
 
-        self.manager.set_download_rate_limit(42)
+        await self.manager.set_download_rate_limit(42)
 
-        self.assertEqual(42, self.manager.get_download_rate_limit())
+        self.assertEqual(42, await self.manager.get_download_rate_limit())
 
-    def test_get_upload_rate_limit(self) -> None:
+    async def test_get_upload_rate_limit(self) -> None:
         """
         Test if the upload rate limit can be set.
         """
         settings = {}
-        self.manager.ltsessions[0].get_settings = Mock(return_value=settings)
-        self.manager.ltsessions[0].upload_rate_limit = functools.partial(settings.get, "upload_rate_limit")
+        self.manager.ltsessions[0] = Future()
+        self.manager.ltsessions[0].set_result(Mock(
+            get_settings=Mock(return_value=settings),
+            upload_rate_limit = functools.partial(settings.get, "upload_rate_limit")
+        ))
 
-        self.manager.set_upload_rate_limit(42)
+        await self.manager.set_upload_rate_limit(42)
 
-        self.assertEqual(42, self.manager.get_upload_rate_limit())
+        self.assertEqual(42, await self.manager.get_upload_rate_limit())

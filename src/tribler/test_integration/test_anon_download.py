@@ -162,7 +162,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         manager.metadata_tmpdir = Mock(name=config.get_dest_dir())
         manager.checkpoint_directory = config.get_dest_dir()
         manager.peer_mid = b"0000"
-        manager.initialize()
+        await manager.initialize()
         manager.start()
         await sleep(0)
 

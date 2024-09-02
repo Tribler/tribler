@@ -194,7 +194,7 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         manager.metadata_tmpdir = Mock(name=config.get_dest_dir())
         manager.checkpoint_directory = config.get_dest_dir()
         manager.peer_mid = b"0000"
-        manager.initialize()
+        await manager.initialize()
         manager.start()
         await sleep(0)
 
@@ -206,7 +206,7 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         """
         config = await self.add_mock_download_config(self.download_manager_seeder, 1)
 
-        with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC101
+        with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC230
             f.write(bytes([0] * 524288))
 
         metainfo = create_torrent_file([config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"], {})["metainfo"]

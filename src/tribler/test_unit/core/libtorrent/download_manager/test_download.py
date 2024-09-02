@@ -669,7 +669,7 @@ class TestDownload(TestBase):
         self.assertTrue(download.config.config["TEST_CRASH"])
         self.assertEqual("name", download.config.config["download_defaults"]["name"])
 
-    def test_get_tracker_status_unicode_decode_error(self) -> None:
+    async def test_get_tracker_status_unicode_decode_error(self) -> None:
         """
         Test if a tracker status is returned when getting trackers leads to a UnicodeDecodeError.
 
@@ -677,7 +677,9 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), None, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
-        download.download_manager = Mock(get_session=Mock(return_value=Mock(is_dht_running=Mock(return_value=False))))
+        fut = Future()
+        fut.set_result(Mock(is_dht_running=Mock(return_value=False)))
+        download.download_manager = Mock(get_session=Mock(return_value=fut))
         download.handle = Mock(is_valid=Mock(return_value=True),
                                get_peer_info=Mock(
                                    return_value=[Mock(source=1, dht=1, pex=0)] * 42 + [Mock(source=1, pex=1, dht=0)] * 7
