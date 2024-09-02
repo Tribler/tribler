@@ -10,7 +10,7 @@ First, install additional requirements:
 .. code-block::
 
     sudo apt-get -y install alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
-    python -m pip install --upgrade -r requirements-build.txt
+    python -m pip install --upgrade -r build/requirements.txt
 
 Second, create the ``.deb`` file in the ``dist`` directory.
 You can set the ``GITHUB_TAG`` to whatever you want to have your version set as.

@@ -27,7 +27,7 @@ REM ----- Build
 REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
 REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
 ECHO Building Tribler using Cx_Freeze
-call python3 setup.py build
+call python3 build/setup.py build
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
