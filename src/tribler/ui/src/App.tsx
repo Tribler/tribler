@@ -56,7 +56,7 @@ export default function App() {
                     {t("ErrorNotification")}
                 </div>
                 <div className="border border-t-0 border-red-400 rounded-b bg-card px-4 py-3 text-red-600" style={{whiteSpace: "pre"}}>
-                    <p id="error_popup_text" className="overflow-y-auto"></p>
+                    <p id="error_popup_text" className="overflow-y-scroll max-h-64"></p>
                     <div className="w-1/2 justify-start">
                         <Button className="h-10 pl-2 my-2 w-1/3 mx-2 justify-start rounded-none text-muted-foreground bg-secondary" variant="outline" onClick={searchError}>
                             {t("ErrorSearchButton")}
