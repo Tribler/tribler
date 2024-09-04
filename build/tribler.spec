@@ -34,9 +34,13 @@ if sys.platform == 'darwin':
     show_console = True
 
 data_to_copy = [
+    # UI related files
+    (os.path.join(src_dir, "tribler", "ui", "dist"), 'ui/dist'),
+    (os.path.join(src_dir, "tribler", "ui", "public"), 'ui/public'),
+
+    # Tribler source files and resources
     (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
-    (os.path.join(src_dir, "tribler", "ui", "public"), 'tribler_source/tribler/ui/public'),
-    (os.path.join(src_dir, "tribler", "ui", "dist"), 'tribler_source/tribler/ui/dist'),
+    (os.path.join(src_dir, "tribler", "ui"), 'tribler_source/tribler/ui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
 
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')

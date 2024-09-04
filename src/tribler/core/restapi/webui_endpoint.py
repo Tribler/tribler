@@ -1,9 +1,9 @@
 import logging
 import mimetypes
-import pathlib
 
 from aiohttp import ClientSession, web
 
+import tribler
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 
@@ -22,7 +22,7 @@ class WebUIEndpoint(RESTEndpoint):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.app.add_routes([web.get('/{path:.*}', self.return_files)])
 
-        self.webui_root = (pathlib.Path(__file__).absolute() / "../../../ui/").resolve()
+        self.webui_root = tribler.get_webui_root()
         self.has_dist = (self.webui_root / 'dist').exists()
         self.session = ClientSession() if not self.has_dist else None
 
