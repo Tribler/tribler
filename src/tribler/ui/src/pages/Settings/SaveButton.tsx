@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useTranslation } from "react-i18next";
 
 
@@ -26,12 +26,6 @@ export default function SaveButton(props: SaveButtonProps) {
     return (
         <>
             <Button type="submit" className="mt-2" onClick={save}>{t('Save')}</Button>
-            <Toaster
-                position="bottom-left"
-                toastOptions={{
-                    className: 'bg-accent text-foreground font-light',
-                }}
-            />
         </>
     )
 }
