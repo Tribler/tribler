@@ -10,14 +10,17 @@ import { triblerService } from "@/services/tribler.service";
 import { useInterval } from "@/hooks/useInterval";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useEffect, useState } from "react";
+import toast, { Toaster } from 'react-hot-toast';
 import Cookies from "js-cookie";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { Ban } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
     const [shutdownLogs, setShutdownLogs] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
+    const { t } = useTranslation();
 
     useEffect(() => {
         const key = searchParams.get("key");
@@ -43,7 +46,13 @@ export function Header() {
     }, 1000);
 
     useEffect(() => {
-        (async () => { triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent) })();
+        (async () => {
+            triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent) })();
+            triblerService.getNewVersion().then(
+                (result) => {
+                    if (result) toast(t("VersionAvailable") + ": " + result, {icon: "ℹ", });},
+                (error) => {}
+            );
         return () => {
             (async () => { triblerService.removeEventListener("tribler_shutdown_state", OnShutdownEvent) })();
         }
@@ -119,6 +128,13 @@ export function Header() {
                     </div>
                 </div>
             </header>
+
+            <Toaster
+                position="bottom-left"
+                toastOptions={{
+                    className: 'bg-accent text-foreground font-light',
+                }}
+            />
         </>
     )
 }
