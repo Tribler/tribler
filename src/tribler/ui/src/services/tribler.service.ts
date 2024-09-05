@@ -4,8 +4,14 @@ import { File as BTFile } from "@/models/file.model";
 import { Path } from "@/models/path.model";
 import { GuiSettings, Settings } from "@/models/settings.model";
 import { Torrent } from "@/models/torrent.model";
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 import { handleHTTPError } from "./reporting";
+
+
+const OnError = (event: MessageEvent) => {
+    const data = JSON.parse(event.data);
+    handleHTTPError(new Error(data.traceback));
+};
 
 
 export class TriblerService {
@@ -22,6 +28,7 @@ export class TriblerService {
         });
         this.http.interceptors.response.use(function (response) { return response; }, handleHTTPError);
         this.events = new EventSource(this.baseURL + '/events', { withCredentials: true });
+        this.addEventListener("tribler_exception", OnError);
         // Gets the GuiSettings
         this.getSettings();
     }

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from asyncio import Event
+import sys
+from asyncio import AbstractEventLoop, Event
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Any, Generator, Type, cast
 
 import aiohttp
 from ipv8.loader import IPv8CommunityLoader
@@ -38,6 +39,8 @@ from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 from tribler.core.socks5.server import Socks5Server
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from tribler.core.database.store import MetadataStore
     from tribler.core.database.tribler_database import TriblerDatabase
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
@@ -148,6 +151,35 @@ class Session:
         self.rest_manager.add_endpoint(StatisticsEndpoint())
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))
 
+    def _except_hook(self, typ: Type[BaseException], value: BaseException, traceback: TracebackType | None) -> None:
+        """
+        Handle an uncaught exception.
+
+        Note: at this point the REST interface is available.
+        Note2: ignored BaseExceptions are BaseExceptionGroup, GeneratorExit, KeyboardInterrupt and SystemExit
+        """
+        if isinstance(value, Exception):
+            cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(value)
+
+    def _asyncio_except_hook(self, loop: AbstractEventLoop, context: dict[str, Any]) -> None:
+        """
+        Handle an uncaught asyncio exception.
+
+        Note: at this point the REST interface is available.
+        Note2: ignored BaseExceptions are BaseExceptionGroup, GeneratorExit, KeyboardInterrupt and SystemExit
+        """
+        exc = context.get("exception")
+        if isinstance(exc, Exception):
+            cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
+            raise exc
+
+    def attach_exception_handler(self) -> None:
+        """
+        Hook ourselves in as the general exception handler.
+        """
+        sys.excepthook = self._except_hook
+        asyncio.get_running_loop().set_exception_handler(self._asyncio_except_hook)
+
     async def start(self) -> None:
         """
         Initialize and launch all components and REST endpoints.
@@ -157,6 +189,7 @@ class Session:
 
         # REST (1/2)
         await self.rest_manager.start()
+        self.attach_exception_handler()
 
         # Libtorrent
         for server in self.socks_servers:
