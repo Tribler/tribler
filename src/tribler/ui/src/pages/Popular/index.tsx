@@ -1,6 +1,6 @@
 import SimpleTable from "@/components/ui/simple-table";
 import SaveAs from "@/dialogs/SaveAs";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useInterval } from '@/hooks/useInterval';
 
 
-const torrentColumns: ColumnDef<Torrent>[] = [
+const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }): ColumnDef<Torrent>[] => [
     {
         accessorKey: "category",
         header: "",
@@ -30,7 +30,11 @@ const torrentColumns: ColumnDef<Torrent>[] = [
         accessorKey: "name",
         header: translateHeader('Name'),
         cell: ({ row }) => {
-            return <span className="line-clamp-1">{row.original.name}</span>
+            return <span
+                className="inline-block cursor-pointer hover:underline line-clamp-1"
+                onClick={() => onDownload(row.original)}>
+                {row.original.name}
+            </span>
         },
     },
     {
@@ -59,10 +63,12 @@ export default function Popular() {
         setTorrents(filterDuplicates(popular, 'infohash'));
     }, 5000, true);
 
-    const OnDoubleClick = (torrent: Torrent) => {
+    const handleDownload = useCallback((torrent: Torrent) => {
         setTorrentDoubleClicked(torrent);
         setOpen(true);
-    }
+    }, []);
+
+    const torrentColumns = useMemo(() => getColumns({ onDownload: handleDownload }), [handleDownload]);
 
     return (
         <>
@@ -79,7 +85,6 @@ export default function Popular() {
             <SimpleTable
                 data={torrents}
                 columns={torrentColumns}
-                onRowDoubleClick={(torrent) => { if (torrent) { OnDoubleClick(torrent) } }}
             />
         </>
     )
