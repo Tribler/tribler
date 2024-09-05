@@ -30,6 +30,7 @@ from tribler.core.libtorrent.download_manager.download_state import DownloadStat
 from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef, TorrentDefNoMetainfo
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
+from tribler.tribler_config import VERSION_SUBDIR
 
 if TYPE_CHECKING:
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
@@ -299,13 +300,12 @@ class DownloadManager(TaskManager):
         libtorrent_port = self.config.get("libtorrent/port")
         logger.info("Libtorrent port: %d", libtorrent_port)
         if hops == 0:
-            settings["user_agent"] = "Tribler/Experimental"
+            settings["user_agent"] = 'Tribler/' + VERSION_SUBDIR
             enable_utp = self.config.get("libtorrent/utp")
             settings["enable_outgoing_utp"] = enable_utp
             settings["enable_incoming_utp"] = enable_utp
             settings["prefer_rc4"] = True
             settings["listen_interfaces"] = f"0.0.0.0:{libtorrent_port or 6881}"
-            settings["handshake_client_version"] = "Tribler/Experimental"
         else:
             settings["enable_outgoing_utp"] = True
             settings["enable_incoming_utp"] = True
