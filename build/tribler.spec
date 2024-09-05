@@ -49,7 +49,7 @@ data_to_copy = [
     (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
     (os.path.join(src_dir, "tribler", "ui"), 'tribler_source/tribler/ui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
-    (os.path.join(root_dir, "tribler.dist-info", "METADATA"), 'tribler.dist-info/METADATA'),
+    (os.path.join(root_dir, "tribler.dist-info", "METADATA"), 'tribler.dist-info'),
 
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
