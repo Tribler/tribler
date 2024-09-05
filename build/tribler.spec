@@ -27,6 +27,13 @@ raw_version = os.getenv("GITHUB_TAG")
 version_numbers = [str(value) for value in map(int, re.findall(r"\d+", raw_version))]
 version_str = str(Version(".".join(version_numbers)))
 
+# PyInstaller can automatically generate metadata but I don't trust it (Quinten)
+os.mkdir("tribler.dist-info")
+with open("tribler.dist-info/METADATA", "w") as metadata_file:
+    metadata_file.write(f"""Metadata-Version: 2.3
+Name: Tribler
+Version: {version_str}""")
+
 # On macOS, we always show the console to prevent the double-dock bug (although the OS does not actually show the console).
 # See https://github.com/Tribler/tribler/issues/3817
 show_console = os.environ.get('SHOW_CONSOLE', 'false') == 'true'
@@ -42,6 +49,7 @@ data_to_copy = [
     (os.path.join(src_dir, "tribler", "core"), 'tribler_source/tribler/core'),
     (os.path.join(src_dir, "tribler", "ui"), 'tribler_source/tribler/ui'),
     (os.path.join(root_dir, "build", "win", "resources"), 'tribler_source/resources'),
+    (os.path.join(root_dir, "tribler.dist-info", "METADATA"), 'tribler.dist-info/METADATA'),
 
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
