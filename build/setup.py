@@ -45,6 +45,13 @@ raw_version = os.getenv("GITHUB_TAG")
 version_numbers = [str(value) for value in map(int, re.findall(r"\d+", raw_version))]
 version = Version(".".join(version_numbers))
 
+# cx_Freeze does not automatically make the package metadata
+os.mkdir("tribler.dist-info")
+with open("tribler.dist-info/METADATA", "w") as metadata_file:
+    metadata_file.write(f"""Metadata-Version: 2.3
+Name: Tribler
+Version: {str(version)}""")
+
 setup(
     name="tribler",
     version=str(version),
