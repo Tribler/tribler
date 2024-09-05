@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, Iterator, List, Set
 
 from pony import orm
 from pony.orm import raw_sql
-from pony.orm.core import Database, Entity, Query, select
+from pony.orm.core import Database, Entity, Query, UnrepeatableReadError, select
 from pony.utils import between
 
 from tribler.core.database.layers.layer import EntityImpl, Layer
@@ -113,7 +113,7 @@ if TYPE_CHECKING:
         updated_at: datetime.datetime
         auto_generated: bool
 
-        def __init__(self, statement: Statement, peer: Peer, operation: int, clock: int,  # noqa: D107, PLR0913
+        def __init__(self, statement: Statement, peer: Peer, operation: int, clock: int,  # noqa: D107
                      signature: bytes, auto_generated: bool) -> None: ...
 
         @staticmethod
@@ -278,7 +278,7 @@ class KnowledgeDataAccessLayer(Layer):
             results = results.filter(lambda r: r.type == resource_type.value)
         return results
 
-    def get_statements(self, source_type: ResourceType | None, source_name: str | None,  # noqa: PLR0913
+    def get_statements(self, source_type: ResourceType | None, source_name: str | None,
                        statements_getter: Callable[[Entity], Entity],
                        target_condition: Callable[[Statement], bool], condition: Callable[[Statement], bool],
                        case_sensitive: bool, ) -> Iterator[Statement]:
@@ -443,9 +443,14 @@ class KnowledgeDataAccessLayer(Layer):
             case_sensitive=case_sensitive,
         )
 
-        return [SimpleStatement(subject_type=s.subject.type, subject=s.subject.name, predicate=s.object.type,
-                                object=s.object.name)
-                for s in statements]
+        results = []
+        for s in statements:
+            try:
+                results.append(SimpleStatement(subject_type=s.subject.type, subject=s.subject.name,
+                                               predicate=s.object.type, object=s.object.name))
+            except UnrepeatableReadError as e:
+                self.logger.exception(e)
+        return results
 
     def get_suggestions(self, subject_type: ResourceType | None = None, subject: str | None = "",
                         predicate: ResourceType | None = None, case_sensitive: bool = True) -> List[str]:
