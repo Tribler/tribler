@@ -194,6 +194,10 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         download = await self.download_manager_downloader.start_download(tdef=TorrentDefNoMetainfo(infohash, b"test"),
                                                                          config=config)
+
+        while not self.download_manager_seeder.listen_ports[0]:
+            await sleep(0.1)
+
         self.overlay(DOWNLOADER).bittorrent_peers[download] = {
             ("127.0.0.1", self.download_manager_seeder.listen_ports[0]["127.0.0.1"])
         }
