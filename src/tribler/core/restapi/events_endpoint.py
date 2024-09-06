@@ -4,6 +4,7 @@ import json
 import time
 from asyncio import CancelledError, Event, Queue
 from contextlib import suppress
+from traceback import format_exception
 from typing import TYPE_CHECKING, TypedDict
 
 import marshmallow.fields
@@ -23,6 +24,7 @@ topics_to_send_to_gui = [
     Notification.tunnel_removed,
     Notification.watch_folder_corrupt_file,
     Notification.tribler_new_version,
+    Notification.tribler_exception,
     Notification.torrent_finished,
     Notification.torrent_health_updated,
     Notification.tribler_shutdown_state,
@@ -112,7 +114,10 @@ class EventsEndpoint(RESTEndpoint):
         """
         return {
             "topic": Notification.tribler_exception.value.name,
-            "kwargs": {"error": str(reported_error)},
+            "kwargs": {
+                "error": str(reported_error),
+                "traceback": "".join(format_exception(type(reported_error), reported_error,
+                                                      reported_error.__traceback__))},
         }
 
     def encode_message(self, message: MessageDict) -> bytes:

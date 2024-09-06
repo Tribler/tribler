@@ -116,7 +116,7 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertEqual((b'event: tribler_exception\n'
-                          b'data: {"error": "test message"}'
+                          b'data: {"error": "test message", "traceback": "ValueError: test message\\n"}'
                           b'\n\n'), request.payload_writer.captured[1])
 
     async def test_forward_error(self) -> None:
@@ -133,7 +133,7 @@ class TestEventsEndpoint(TestBase):
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
         self.assertEqual((b'event: tribler_exception\n'
-                          b'data: {"error": "test message"}'
+                          b'data: {"error": "test message", "traceback": "ValueError: test message\\n"}'
                           b'\n\n'), request.payload_writer.captured[1])
 
     async def test_error_before_connection(self) -> None:
@@ -175,9 +175,10 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertIsNone(self.endpoint.undelivered_error)
-        self.assertEqual((b'event: tribler_exception\n'
-                          b'data: {"error": "Object of type bytes is not JSON serializable"}'
-                          b'\n\n'), request.payload_writer.captured[1])
+        self.assertTrue(request.payload_writer.captured[1].startswith(
+            b'event: tribler_exception\n'
+            b'data: {"error": "Object of type bytes is not JSON serializable", "traceback": "'
+        ))
 
     async def test_forward_notification(self) -> None:
         """
