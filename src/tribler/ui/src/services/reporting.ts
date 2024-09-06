@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
 export function handleHTTPError(error: Error | AxiosError) {
     const error_popup_text = document.querySelector("#error_popup_text");
@@ -16,4 +16,8 @@ export function handleHTTPError(error: Error | AxiosError) {
         error_popup.classList.toggle("hidden");
     }
     return Promise.reject(error);
+}
+
+export function handles(...handled: number[]): AxiosRequestConfig {
+    return { validateStatus: function (status: number) { return handled.includes(status); } }
 }
