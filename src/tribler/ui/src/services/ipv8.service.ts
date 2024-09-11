@@ -13,7 +13,6 @@ export class IPv8Service {
             baseURL: this.baseURL,
             withCredentials: true,
         });
-        this.http.interceptors.response.use(function (response) { return response; }, handleHTTPError);
     }
 
 
