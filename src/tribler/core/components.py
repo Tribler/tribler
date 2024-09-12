@@ -284,6 +284,7 @@ class DHTDiscoveryComponent(BaseLauncher):
 
 
 @set_in_session("tunnel_community")
+@precondition('session.config.get("tunnel_community/enabled")')
 @after("DHTDiscoveryComponent")
 @walk_strategy("tribler.core.tunnel.discovery", "GoldenRatioStrategy", -1)
 @overlay("tribler.core.tunnel.community", "TriblerTunnelCommunity")
