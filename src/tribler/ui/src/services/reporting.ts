@@ -8,7 +8,10 @@ export function handleHTTPError(error: Error | AxiosError) {
     if (axios.isAxiosError(error) && error.response?.data?.error?.message){
         error_popup_text.textContent = error.response.data.error.message.replace(/(?:\n)/g, '\r\n');
     } else {
-        error_popup_text.textContent = error.message;
+        var stack = "";
+        if (error.stack)
+            stack = error.stack.replace(/(?:\n)/g, '\r\n');
+        error_popup_text.textContent = error.message + "\n" + stack;
     }
     const error_popup = document.querySelector("#error_popup");
     if (error_popup && error_popup.classList.contains("hidden")) {

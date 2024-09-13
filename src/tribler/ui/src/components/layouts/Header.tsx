@@ -74,7 +74,7 @@ export function Header() {
     }
 
     return (
-        <>
+        <div className="h-fit">
             <Dialog open={!online || shutdownLogs.length > 0}>
                 <DialogContent
                     closable={false}
@@ -148,6 +148,6 @@ export function Header() {
                     className: 'bg-accent text-foreground font-light',
                 }}
             />
-        </>
+        </div>
     )
 }

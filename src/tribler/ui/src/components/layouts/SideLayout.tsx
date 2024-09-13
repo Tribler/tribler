@@ -21,7 +21,7 @@ export function SideLayout() {
     const [showNav, setShowNav] = useState(false)
 
     return (
-        <>
+        <div className="flex-grow flex flex-col">
             <Header />
             <div className="flex-grow container px-0 flex flex-col md:flex-row md:space-x-4 lg:space-x-4 md:pl-6">
                 <div>
@@ -119,6 +119,6 @@ export function SideLayout() {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     )
 }

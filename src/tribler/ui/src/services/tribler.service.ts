@@ -26,7 +26,6 @@ export class TriblerService {
             baseURL: this.baseURL,
             withCredentials: true,
         });
-        this.http.interceptors.response.use(function (response) { return response; }, handleHTTPError);
         this.events = new EventSource(this.baseURL + '/events', { withCredentials: true });
         this.addEventListener("tribler_exception", OnError);
         // Gets the GuiSettings
