@@ -130,7 +130,7 @@ class MetadataStore:
     Storage of metadata for channels and torrents.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
             self,
             db_filename: str,
             private_key: PrivateKey,
@@ -530,7 +530,7 @@ class MetadataStore:
         return left_join(g for g in self.TorrentMetadata if g.rowid in fts_ids)
 
     @db_session
-    def get_entries_query(  # noqa: C901, PLR0912, PLR0913
+    def get_entries_query(  # noqa: C901, PLR0913
             self,
             metadata_type: int | None = None,
             channel_pk: bytes | None = None,
@@ -557,26 +557,25 @@ class MetadataStore:
 
         if txt_filter:
             pony_query = self.search_keyword(txt_filter, origin_id=origin_id)
-        else:
-            pony_query = left_join(g for g in self.TorrentMetadata)
-
-        infohash_set = infohash_set or ({infohash} if infohash else None)
-        if popular:
+        elif popular:
             if metadata_type != REGULAR_TORRENT:
                 msg = "With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed"
                 raise TypeError(msg)
 
             t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
-            health_list = list(
-                select(
-                    health for health in self.TorrentState
+            return select(
+                    g for g in self.TorrentMetadata
+                    for health in self.TorrentState
                     if health.has_data == 1  # The condition had to be written this way for the partial index to work
                     and health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
+                    and g.health == health
                 ).order_by(
-                    lambda health: (desc(health.seeders), desc(health.leechers), desc(health.last_check))
-                )[:POPULAR_TORRENTS_COUNT]
-            )
-            pony_query = pony_query.where(lambda g: g.health in health_list)
+                    lambda g: (desc(g.health.seeders), desc(g.health.leechers), desc(g.health.last_check))
+                ).limit(POPULAR_TORRENTS_COUNT)
+        else:
+            pony_query = left_join(g for g in self.TorrentMetadata)
+
+        infohash_set = infohash_set or ({infohash} if infohash else None)
 
         if max_rowid is not None:
             pony_query = pony_query.where(lambda g: g.rowid <= max_rowid)
@@ -624,54 +623,51 @@ class MetadataStore:
             sort_expression = raw_sql(f"g.{sort_by} COLLATE NOCASE" + (" DESC" if sort_desc else ""))
             pony_query = pony_query.sort_by(sort_expression)
 
-        if sort_by is None:
-            if txt_filter:
-                """
-                The following call of `sort_by` produces an ORDER BY expression that looks like this:
+        if sort_by is None and txt_filter:
+            """
+            The following call of `sort_by` produces an ORDER BY expression that looks like this:
 
-                ORDER BY
-                    case when "g"."metadata_type" = $CHANNEL_TORRENT then 1
-                         when "g"."metadata_type" = $COLLECTION_NODE then 2
-                         else 3 end,
+            ORDER BY
+                case when "g"."metadata_type" = $CHANNEL_TORRENT then 1
+                     when "g"."metadata_type" = $COLLECTION_NODE then 2
+                     else 3 end,
 
-                    search_rank(
-                        $QUERY_STRING,
-                        g.title,
-                        torrentstate.seeders,
-                        torrentstate.leechers,
-                        $CURRENT_TIME - strftime('%s', g.torrent_date)
-                    ) DESC,
+                search_rank(
+                    $QUERY_STRING,
+                    g.title,
+                    torrentstate.seeders,
+                    torrentstate.leechers,
+                    $CURRENT_TIME - strftime('%s', g.torrent_date)
+                ) DESC,
 
-                    "torrentstate"."last_check" DESC,
+                "torrentstate"."last_check" DESC,
 
-                So, the channel torrents and channel folders are always on top if they are not filtered out.
-                Then regular torrents are selected in order of their relevance according to a search_rank() result.
-                If two torrents have the same search rank, they are ordered by the last time they were checked.
+            So, the channel torrents and channel folders are always on top if they are not filtered out.
+            Then regular torrents are selected in order of their relevance according to a search_rank() result.
+            If two torrents have the same search rank, they are ordered by the last time they were checked.
 
-                The search_rank() function is called directly from the SQLite query, but is implemented in Python,
-                it is actually the torrent_rank() function from core/utilities/search_utils.py, wrapped with
-                keep_exception() to return possible exception from SQLite to Python.
+            The search_rank() function is called directly from the SQLite query, but is implemented in Python,
+            it is actually the torrent_rank() function from core/utilities/search_utils.py, wrapped with
+            keep_exception() to return possible exception from SQLite to Python.
 
-                The search_rank() function receives the following arguments:
-                  - the current query string (like "Big Buck Bunny");
-                  - the title of the current torrent;
-                  - the number of seeders;
-                  - the number of leechers;
-                  - the number of seconds since the torrent's creation time.
-                """
+            The search_rank() function receives the following arguments:
+              - the current query string (like "Big Buck Bunny");
+              - the title of the current torrent;
+              - the number of seeders;
+              - the number of leechers;
+              - the number of seconds since the torrent's creation time.
+            """
 
-                pony_query = pony_query.sort_by(
-                    f"""
-                    (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
-                    raw_sql('''search_rank(
-                        $txt_filter, g.title, torrentstate.seeders, torrentstate.leechers,
-                        $int(time()) - strftime('%s', g.torrent_date)
-                    ) DESC'''),
-                    desc(g.health.last_check)  # just to trigger the TorrentState table inclusion into the left join
-                """
-                )
-            elif popular:
-                pony_query = pony_query.sort_by('(desc(g.health.seeders), desc(g.health.leechers))')
+            pony_query = pony_query.sort_by(
+                f"""
+                (1 if g.metadata_type == {CHANNEL_TORRENT} else 2 if g.metadata_type == {COLLECTION_NODE} else 3),
+                raw_sql('''search_rank(
+                    $txt_filter, g.title, torrentstate.seeders, torrentstate.leechers,
+                    $int(time()) - strftime('%s', g.torrent_date)
+                ) DESC'''),
+                desc(g.health.last_check)  # just to trigger the TorrentState table inclusion into the left join
+            """
+            )
 
         return pony_query
 
