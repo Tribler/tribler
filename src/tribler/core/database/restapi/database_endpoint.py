@@ -122,6 +122,8 @@ class DatabaseEndpoint(RESTEndpoint):
             sanitized["channel_pk"] = unhexlify(parameters["channel_pk"])
         if "origin_id" in parameters:
             sanitized["origin_id"] = int(parameters["origin_id"])
+        if "popular" in parameters and parse_bool(parameters.get("popular", "false")):
+            sanitized["sort_by"] = "HEALTH"
         return sanitized
 
     @db_session

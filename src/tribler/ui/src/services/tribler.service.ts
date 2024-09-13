@@ -147,12 +147,12 @@ export class TriblerService {
         return (await this.http.get(`/metadata/search/completions?q=${txt_filter}`)).data.completions;
     }
 
-    async searchTorrentsLocal(txt_filter: string, hide_xxx: boolean): Promise<Torrent[]> {
-        return (await this.http.get(`/metadata/search/local?first=1&last=200&metadata_type=300&exclude_deleted=1&fts_text=${txt_filter}&hide_xxx=${+hide_xxx}`)).data.results;
+    async searchTorrentsLocal(txt_filter: string): Promise<Torrent[]> {
+        return (await this.http.get(`/metadata/search/local?first=1&last=200&metadata_type=300&exclude_deleted=1&fts_text=${txt_filter}`)).data.results;
     }
 
-    async searchTorrentsRemote(txt_filter: string, hide_xxx: boolean): Promise<{ request_uuid: string, peers: string[] }> {
-        return (await this.http.put(`/search/remote?fts_text=${txt_filter}&hide_xxx=${+hide_xxx}&metadata_type=300&exclude_deleted=1`)).data;
+    async searchTorrentsRemote(txt_filter: string, popular: boolean): Promise<{ request_uuid: string, peers: string[] }> {
+        return (await this.http.put(`/search/remote?fts_text=${txt_filter}&popular=${+popular}&metadata_type=300&exclude_deleted=1`)).data;
     }
 
     // Settings
