@@ -287,7 +287,10 @@ class DownloadManager(TaskManager):
                                             "enable_upnp": int(self.config.get("libtorrent/upnp")),
                                             "enable_dht": int(self.config.get("libtorrent/dht")),
                                             "enable_lsd": int(self.config.get("libtorrent/lsd")),
-                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp"))}
+                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp")),
+                                            "active_downloads": -1,
+                                            "active_seeds": -1
+                                            }
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
