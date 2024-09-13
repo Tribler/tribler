@@ -9,24 +9,34 @@ import LanguageSelect from "../language-select";
 import { triblerService } from "@/services/tribler.service";
 import { useInterval } from "@/hooks/useInterval";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast, { Toaster } from 'react-hot-toast';
 import Cookies from "js-cookie";
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { Ban } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ScrollArea } from "../ui/scroll-area";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
     const [shutdownLogs, setShutdownLogs] = useState<string[]>([]);
+    const logsEndRef = useRef<null | HTMLDivElement>(null)
     const [searchParams, setSearchParams] = useSearchParams();
     const { t } = useTranslation();
+
+    const scrollToBottom = () => {
+        logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    useEffect(() => {
+        scrollToBottom()
+    }, [shutdownLogs]);
 
     useEffect(() => {
         const key = searchParams.get("key");
         if (key) {
             const oldKey = Cookies.get("api_key");
-            Cookies.set("api_key", key, { sameSite:'strict' });
+            Cookies.set("api_key", key, { sameSite: 'strict' });
             searchParams.delete("key");
             setSearchParams(searchParams);
             if (key !== oldKey) {
@@ -86,9 +96,12 @@ export function Header() {
                                 Tribler may not be running or your browser is missing a cookie.
                                 <br />In latter case please re-open Tribler from the system tray
                             </DialogDescription>
-                            : <DialogDescription className="text-xs font-mono">
-                                {shutdownLogs.map(log => <p>{log}<br /></p>)}
-                            </DialogDescription>
+                            : <ScrollArea className="max-h-[380px]">
+                                <DialogDescription className="text-xs font-mono">
+                                    {shutdownLogs.map(log => <p>{log}<br /></p>)}
+                                    <div ref={logsEndRef} />
+                                </DialogDescription>
+                            </ScrollArea>
                         }
                     </DialogHeader>
                 </DialogContent>
