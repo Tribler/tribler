@@ -73,9 +73,9 @@ export default function Search() {
     useEffect(() => {
         const searchTorrents = async () => {
             if (!query) return;
-            const localResults = await triblerService.searchTorrentsLocal(query, true);
+            const localResults = await triblerService.searchTorrentsLocal(query);
             setTorrents(filterDuplicates(localResults, 'infohash'));
-            const remoteQuery = await triblerService.searchTorrentsRemote(query, true);
+            const remoteQuery = await triblerService.searchTorrentsRemote(query, false);
             setRequest(remoteQuery.request_uuid);
         }
         searchTorrents();
