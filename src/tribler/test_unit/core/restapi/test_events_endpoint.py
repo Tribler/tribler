@@ -1,4 +1,4 @@
-from asyncio import ensure_future, sleep
+from asyncio import Future, ensure_future, sleep
 
 from aiohttp.abc import AbstractStreamWriter
 from ipv8.test.base import TestBase
@@ -19,7 +19,20 @@ class GetEventsRequest(MockRequest):
         Create a new GetEventsRequest.
         """
         self.payload_writer = MockStreamWriter(endpoint, count=count)
+        self._handler_waiter = Future()
         super().__init__({}, "GET", "/api/events", payload_writer=self.payload_writer)
+
+    def shutdown(self) -> None:
+        """
+        Mimic a shutdown.
+        """
+        self._handler_waiter.cancel()
+
+    def finish_handler(self) -> None:
+        """
+        Mimic finishing a handler.
+        """
+        self._handler_waiter.set_result(None)
 
 
 class MockStreamWriter(AbstractStreamWriter):
@@ -214,3 +227,17 @@ class TestEventsEndpoint(TestBase):
         self.assertEqual((b'event: tribler_new_version\n'
                           b'data: {"version": "super cool version"}'
                           b'\n\n'), request.payload_writer.captured[1])
+
+    async def test_shutdown_parent_before_event(self) -> None:
+        """
+        Test if a parent shutdown does not cause errors after handling a child.
+        """
+        request = GetEventsRequest(self.endpoint, count=3)  # Blocks until shutdown
+        response_future = ensure_future(self.endpoint.get_events(request))
+
+        request.shutdown()  # 1. The parent protocol is shut down
+        self.endpoint.shutdown_event.set()  # 2. Tribler signals shutdown to the events endpoint
+        response = await response_future
+        request.finish_handler()  # 3. aiohttp behavior: finish the request handling
+
+        self.assertEqual(200, response.status)
