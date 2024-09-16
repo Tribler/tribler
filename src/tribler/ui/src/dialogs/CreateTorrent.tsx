@@ -1,5 +1,6 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -11,6 +12,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
+import { ErrorDict, isErrorDict } from "@/services/reporting";
 import SelectRemotePath from "./SelectRemotePath";
 import { PathInput } from "@/components/path-input";
 import { Settings } from "@/models/settings.model";
@@ -52,15 +54,27 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
 
     async function resetPath() {
         const settings = await triblerService.getSettings();
-        setDestination(settings.libtorrent.download_defaults.saveas);
+        if (settings === undefined){
+            toast.error(`${t("ToastErrorDefaultDLDir")} ${t("ToastErrorGenNetworkErr")}`);
+        } else if (isErrorDict(settings)) {
+            toast.error(`${t("ToastErrorDefaultDLDir")} ${settings.error}`);
+        } else {
+            setDestination(settings.libtorrent.download_defaults.saveas);
+        }
     }
 
     async function addDir(dirname: string) {
         const response = await triblerService.listFiles(dirname, true);
-        setFiles([
-            ...files,
-            ...response.paths.filter((item) => !item.dir)
-        ]);
+        if (response === undefined){
+            toast.error(`${t("ToastErrorDirectoryAdd")} ${t("ToastErrorGenNetworkErr")}`);
+        } else if (isErrorDict(response)) {
+            toast.error(`${t("ToastErrorDirectoryAdd")} ${response.error}`);
+        } else {
+            setFiles([
+                ...files,
+                ...response.paths.filter((item) => !item.dir)
+            ]);
+        }
     }
 
     async function addFile(filename: string) {
@@ -160,7 +174,16 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                         variant="outline"
                         type="submit"
                         onClick={() => {
-                            triblerService.createTorrent(name, description, files.map((f) => f.path), destination, seed);
+                            triblerService.createTorrent(name, description, files.map((f) => f.path), destination, seed).then(
+                                (response) => {
+                                    if (response === undefined) {
+                                        toast.error(`${t("ToastErrorCreateTorrent", {name: name})} ${t("ToastErrorGenNetworkErr")}`);
+                                    } else if (isErrorDict(response)) {
+                                        // Quinten: according to the typing, response could not be a ErrorDict here?!
+                                        toast.error(`${t("ToastErrorCreateTorrent", {name: name})} ${(response as ErrorDict).error}`);
+                                    }
+                                }
+                            );
                             if (props.onOpenChange)
                                 props.onOpenChange(false);
                         }}

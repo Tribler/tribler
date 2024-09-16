@@ -1,6 +1,7 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
@@ -74,9 +75,14 @@ export default function Search() {
         const searchTorrents = async () => {
             if (!query) return;
             const localResults = await triblerService.searchTorrentsLocal(query);
-            setTorrents(filterDuplicates(localResults, 'infohash'));
+            if (!(localResults === undefined) && !isErrorDict(localResults)) {
+                // Don't bother the user on error, just try again later.
+                setTorrents(filterDuplicates(localResults, 'infohash'));
+            }
             const remoteQuery = await triblerService.searchTorrentsRemote(query, false);
-            setRequest(remoteQuery.request_uuid);
+            if (!(remoteQuery === undefined) && !isErrorDict(remoteQuery)) {
+                setRequest(remoteQuery.request_uuid);
+            }
         }
         searchTorrents();
     }, [query]);

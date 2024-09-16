@@ -5,6 +5,7 @@ import { Download } from "@/models/download.model";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress"
 import { capitalize, formatBytes, translateHeader } from "@/lib/utils";
+import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
 import { CaretSortIcon } from "@radix-ui/react-icons";
 import { ColumnDef } from "@tanstack/react-table"
@@ -155,9 +156,14 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
         let infohash = (selectedDownloads.length === 1) ? selectedDownloads[0].infohash : '';
         if (infohashes)
             infohash = infohashes[0] ?? "";
-        setDownloads((await triblerService.getDownloads(infohash, !!infohash, !!infohash)).filter((download) => {
-            return statusFilter.includes(download.status_code);
-        }))
+
+        // Don't bother the user on error, just try again later.
+        const response = await triblerService.getDownloads(infohash, !!infohash, !!infohash);
+        if (response !== undefined && !isErrorDict(response)) {
+            setDownloads(response.filter((download: Download) => {
+                return statusFilter.includes(download.status_code);
+            }));
+        }
     }
 
     useEffect(() => {

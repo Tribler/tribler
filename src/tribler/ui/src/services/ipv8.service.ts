@@ -1,7 +1,14 @@
+import { Bucket, DHTStats, Values } from "@/models/bucket.model";
 import { Circuit } from "@/models/circuit.model";
-import { OverlayStats } from "@/models/overlay.model";
-import axios, { AxiosInstance } from "axios";
-import { handleHTTPError } from "./reporting";
+import { Drift } from "@/models/drift.model";
+import { Exit } from "@/models/exit.model";
+import { Overlay, OverlayStats } from "@/models/overlay.model";
+import { Relay } from "@/models/relay.model";
+import { Swarm } from "@/models/swarm.model";
+import { Task } from "@/models/task.model";
+import { Peer } from "@/models/tunnelpeer.model";
+import axios, { AxiosError, AxiosInstance } from "axios";
+import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
 
 
 export class IPv8Service {
@@ -16,64 +23,124 @@ export class IPv8Service {
     }
 
 
-    async enableDrift(enable: boolean): Promise<boolean> {
-        return (await this.http.put('/asyncio/drift', { enable })).data.success;
+    async enableDrift(enable: boolean): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put('/asyncio/drift', { enable })).data.success;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getDrift() {
-        return (await this.http.get('/asyncio/drift')).data.measurements;
+    async getDrift(): Promise<undefined | ErrorDict | Drift[]> {
+        try {
+            return (await this.http.get('/asyncio/drift')).data.measurements;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getTasks() {
-        return (await this.http.get('/asyncio/tasks')).data.tasks;
+    async getTasks(): Promise<undefined | ErrorDict | Task[]> {
+        try {
+            return (await this.http.get('/asyncio/tasks')).data.tasks;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async setAsyncioDebug(enable: boolean, slownessThreshold: number): Promise<boolean> {
-        return (await this.http.put('/asyncio/debug', {enable: enable, slow_callback_duration: slownessThreshold})).data.success;
+    async setAsyncioDebug(enable: boolean, slownessThreshold: number): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put('/asyncio/debug', {enable: enable, slow_callback_duration: slownessThreshold})).data.success;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getAsyncioDebug(): Promise<any> {
-        return (await this.http.get('/asyncio/debug')).data;
+    async getAsyncioDebug(): Promise<undefined | ErrorDict | any> {
+        try {
+            return (await this.http.get('/asyncio/debug')).data;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getOverlays() {
-        return (await this.http.get('/overlays')).data.overlays;
+    async getOverlays(): Promise<undefined | ErrorDict | Overlay[]> {
+        try {
+            return (await this.http.get('/overlays')).data.overlays;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getOverlayStatistics(): Promise<OverlayStats[]> {
-        return (await this.http.get('/overlays/statistics')).data.statistics;
+    async getOverlayStatistics(): Promise<undefined | ErrorDict | OverlayStats[]> {
+        try {
+            return (await this.http.get('/overlays/statistics')).data.statistics;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getTunnelPeers() {
-        return (await this.http.get('/tunnel/peers')).data.peers;
+    async getTunnelPeers(): Promise<undefined | ErrorDict | Peer[]> {
+        try {
+            return (await this.http.get('/tunnel/peers')).data.peers;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getCircuits(): Promise<Circuit[]> {
-        return (await this.http.get('/tunnel/circuits')).data.circuits;
+    async getCircuits(): Promise<undefined | ErrorDict | Circuit[]> {
+        try {
+            return (await this.http.get('/tunnel/circuits')).data.circuits;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getRelays() {
-        return (await this.http.get('/tunnel/relays')).data.relays;
+    async getRelays(): Promise<undefined | ErrorDict | Relay[]> {
+        try {
+            return (await this.http.get('/tunnel/relays')).data.relays;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getExits() {
-        return (await this.http.get('/tunnel/exits')).data.exits;
+    async getExits(): Promise<undefined | ErrorDict | Exit[]> {
+        try {
+            return (await this.http.get('/tunnel/exits')).data.exits;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getSwarms() {
-        return (await this.http.get('/tunnel/swarms')).data.swarms;
+    async getSwarms(): Promise<undefined | ErrorDict | Swarm[]> {
+        try {
+            return (await this.http.get('/tunnel/swarms')).data.swarms;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getDHTStatistics() {
-        return (await this.http.get('/dht/statistics')).data.statistics;
+    async getDHTStatistics(): Promise<undefined | ErrorDict | DHTStats> {
+        try {
+            return (await this.http.get('/dht/statistics')).data.statistics;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async getBuckets() {
-        return (await this.http.get('/dht/buckets')).data.buckets;
+    async getBuckets(): Promise<undefined | ErrorDict | Bucket[]> {
+        try {
+            return (await this.http.get('/dht/buckets')).data.buckets;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
-    async lookupDHTValue(hash: string) {
-        return this.http.get(`/dht/values/${hash}`);
+    async lookupDHTValue(hash: string): Promise<undefined | ErrorDict | Values> {
+        try {
+            return this.http.get(`/dht/values/${hash}`);
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 }
 

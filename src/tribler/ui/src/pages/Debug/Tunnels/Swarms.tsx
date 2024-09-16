@@ -1,6 +1,7 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { Swarm } from "@/models/swarm.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatBytes, formatTimeDiff } from "@/lib/utils";
@@ -55,7 +56,11 @@ export default function Swarms() {
     const [swarms, setSwarms] = useState<Swarm[]>([])
 
     useInterval(async () => {
-        setSwarms((await ipv8Service.getSwarms()));
+        const response = await ipv8Service.getSwarms();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            setSwarms(response);
+        }
     }, 5000, true);
 
     return <SimpleTable data={swarms} columns={swarmColumns} />

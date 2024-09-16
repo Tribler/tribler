@@ -1,6 +1,7 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { OverlayMsgStats } from "@/models/overlay.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { useInterval } from '@/hooks/useInterval';
@@ -50,28 +51,32 @@ export default function Details() {
 
     useInterval(async () => {
         let stats: OverlayMsgStats[] = [];
-        for (var overlayStats of (await ipv8Service.getOverlayStatistics())) {
-            for (const [communityName, communityStats] of Object.entries(overlayStats)) {
-                if (Object.entries(communityStats).length === 0) { break }
-                stats.push({
-                    name: communityName,
-                    identifier: -1,
-                    num_up: 0,
-                    num_down: 0,
-                    bytes_up: 0,
-                    bytes_down: 0,
-                    first_measured_up: 0,
-                    first_measured_down: 0,
-                    last_measured_up: 0,
-                    last_measured_down: 0,
-                });
-                for (const [msgName, msgStats] of Object.entries(communityStats)) {
-                    msgStats.name = msgName;
-                    stats.push(msgStats);
+        const response = await ipv8Service.getOverlayStatistics();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            for (var overlayStats of response) {
+                for (const [communityName, communityStats] of Object.entries(overlayStats)) {
+                    if (Object.entries(communityStats).length === 0) { break }
+                    stats.push({
+                        name: communityName,
+                        identifier: -1,
+                        num_up: 0,
+                        num_down: 0,
+                        bytes_up: 0,
+                        bytes_down: 0,
+                        first_measured_up: 0,
+                        first_measured_down: 0,
+                        last_measured_up: 0,
+                        last_measured_down: 0,
+                    });
+                    for (const [msgName, msgStats] of Object.entries(communityStats)) {
+                        msgStats.name = msgName;
+                        stats.push(msgStats);
+                    }
                 }
             }
+            setStatistics(stats);
         }
-        setStatistics(stats);
     }, 5000, true);
 
     if (statistics.length === 0) {
