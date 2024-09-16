@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import time
-from asyncio import CancelledError, Event, Queue
+from asyncio import CancelledError, Event, Future, Queue
 from contextlib import suppress
 from traceback import format_exception
 from typing import TYPE_CHECKING, TypedDict
@@ -250,6 +250,12 @@ class EventsEndpoint(RESTEndpoint):
             self._logger.warning("Event stream was canceled")
         else:
             self._logger.info("Event stream was closed due to shutdown")
+
+        # A ``shutdown()`` on our parent may have cancelled ``_handler_waiter`` before this method returns.
+        # If we leave this be, an error will be raised if the ``Future`` result is set after this method returns.
+        # See: https://github.com/Tribler/tribler/issues/8156
+        if request.protocol._handler_waiter and request.protocol._handler_waiter.cancelled():  # noqa: SLF001
+            request.protocol._handler_waiter = Future()  # noqa: SLF001
 
         # See: https://github.com/Tribler/tribler/pull/7906
         with suppress(ValueError):
