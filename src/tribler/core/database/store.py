@@ -388,7 +388,8 @@ class MetadataStore:
         payload_list = []
         while offset < len(chunk_data):
             payload, offset = read_payload_with_offset(chunk_data, offset)
-            if payload:
+            if payload and isinstance(payload, TorrentMetadataPayload):
+                # Silently ignore deprecated payloads
                 payload_list.append(payload)
 
         if health_info and len(health_info) == len(payload_list):

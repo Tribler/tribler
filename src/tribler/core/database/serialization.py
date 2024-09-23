@@ -21,9 +21,17 @@ NULL_SIG = b'\x00' * 64
 NULL_KEY = b'\x00' * 64
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
+TYPELESS = 100
+CHANNEL_NODE = 200
+METADATA_NODE = 210
 COLLECTION_NODE = 220
+JSON_NODE = 230
+CHANNEL_DESCRIPTION = 231
+BINARY_NODE = 240
+CHANNEL_THUMBNAIL = 241
 REGULAR_TORRENT = 300
 CHANNEL_TORRENT = 400
+DELETED = 500
 SNIPPET = 600
 
 
@@ -67,13 +75,14 @@ def read_payload_with_offset(data: bytes, offset: int = 0) -> tuple[TorrentMetad
     """
     # First we have to determine the actual payload type
     metadata_type = struct.unpack_from('>H', data, offset=offset)[0]
+    payload_class = METADATA_TYPE_TO_PAYLOAD_CLASS.get(metadata_type)
+    if payload_class is not None:
+        payload, offset = default_serializer.unpack_serializable(payload_class, data, offset=offset)
+        payload.signature = data[offset: offset + 64]
+        return payload, offset + 64
 
-    if metadata_type != REGULAR_TORRENT:
-        raise UnknownBlobTypeException(metadata_type)
-
-    payload, offset = default_serializer.unpack_serializable(TorrentMetadataPayload, data, offset=offset)
-    payload.signature = data[offset: offset + 64]
-    return payload, offset + 64
+    # Unknown metadata type, raise exception
+    raise UnknownBlobTypeException
 
 
 @vp_compile
@@ -163,6 +172,46 @@ class ChannelNodePayload(SignedPayload):
 
 
 @vp_compile
+class MetadataNodePayload(ChannelNodePayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*ChannelNodePayload.names, "title", "tags"]
+    format_list = [*ChannelNodePayload.format_list, "varlenIutf8", "varlenIutf8"]
+
+
+@vp_compile
+class JsonNodePayload(ChannelNodePayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*ChannelNodePayload.names, "json_text"]
+    format_list = [*ChannelNodePayload.format_list, "varlenIutf8"]
+
+
+@vp_compile
+class BinaryNodePayload(ChannelNodePayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*ChannelNodePayload.names, "binary_data", "data_type"]
+    format_list = [*ChannelNodePayload.format_list, "varlenI", "varlenIutf8"]
+
+
+@vp_compile
+class CollectionNodePayload(MetadataNodePayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*MetadataNodePayload.names, "num_entries"]
+    format_list = [*MetadataNodePayload.format_list, "Q"]
+
+
+@vp_compile
 class TorrentMetadataPayload(ChannelNodePayload):
     """
     Payload for metadata that stores a torrent.
@@ -199,6 +248,36 @@ class TorrentMetadataPayload(ChannelNodePayload):
         """
         return (f"magnet:?xt=urn:btih:{hexlify(self.infohash).decode()}&dn={self.title}"
                 + (f"&tr={self.tracker_info}" if self.tracker_info else ""))
+
+
+@vp_compile
+class ChannelMetadataPayload(TorrentMetadataPayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*TorrentMetadataPayload.names, "num_entries", "start_timestamp"]
+    format_list = [*TorrentMetadataPayload.format_list, "Q", "Q"]
+
+
+@vp_compile
+class DeletedMetadataPayload(SignedPayload):
+    """
+    Deprecated, do not use.
+    """
+
+    names = [*SignedPayload.names, "delete_signature"]
+    format_list = [*SignedPayload.format_list, "64s"]
+
+
+METADATA_TYPE_TO_PAYLOAD_CLASS = {
+    REGULAR_TORRENT: TorrentMetadataPayload,
+    CHANNEL_TORRENT: ChannelMetadataPayload,
+    COLLECTION_NODE: CollectionNodePayload,
+    CHANNEL_THUMBNAIL: BinaryNodePayload,
+    CHANNEL_DESCRIPTION: JsonNodePayload,
+    DELETED: DeletedMetadataPayload,
+}
 
 
 @vp_compile
