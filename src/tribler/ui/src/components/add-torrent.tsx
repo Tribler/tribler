@@ -1,10 +1,12 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from 'react-hot-toast';
 import { Button } from "./ui/button";
 import { PlusIcon, Cloud, File as FileIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { Input } from "./ui/input";
 import SaveAs from "@/dialogs/SaveAs";
 import CreateTorrent from "@/dialogs/CreateTorrent";
@@ -130,7 +132,14 @@ export function AddTorrent() {
                     }
                     else {
                         for (let file of files) {
-                            (async () => { await triblerService.startDownloadFromFile(file) })();
+                            (async () => {
+                                const response = await triblerService.startDownloadFromFile(file);
+                                if (response === undefined) {
+                                    toast.error(`${t("ToastErrorStartDownload")} ${t("ToastErrorGenNetworkErr")}`);
+                                } else if (isErrorDict(response)){
+                                    toast.error(`${t("ToastErrorStartDownload")} ${response.error}`);
+                                }
+                             })();
                         }
                     }
                     navigate("/downloads/all");

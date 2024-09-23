@@ -1,9 +1,15 @@
 import axios, { AxiosError } from "axios";
 
+export interface ErrorDict { [error: string]: string; };
+
+export function isErrorDict(object: any): object is ErrorDict {
+    return (typeof object === 'object') && ('error' in object);
+}
+
 export function handleHTTPError(error: Error | AxiosError) {
     const error_popup_text = document.querySelector("#error_popup_text");
     if (!error_popup_text){
-        return Promise.reject(error);
+        return;
     }
     if (axios.isAxiosError(error) && error.response?.data?.error?.message){
         error_popup_text.textContent = error.response.data.error.message.replace(/(?:\n)/g, '\r\n');
@@ -18,5 +24,23 @@ export function handleHTTPError(error: Error | AxiosError) {
         // Unhide if we were hidden
         error_popup.classList.toggle("hidden");
     }
-    return Promise.reject(error);
+}
+
+export function formatAxiosError(error: Error | AxiosError): ErrorDict | undefined {
+    if (axios.isAxiosError(error)) {
+         if (!error.response) {
+            // This is a network error, see https://github.com/axios/axios?tab=readme-ov-file#error-types
+            // We don't need to do anything, but the GUI should not crash on this
+            return undefined;
+         }
+         var handled = error.response.data?.error?.handled
+         if (error.response.data.error.handled == false) {
+            // This is an error that conforms to the internal unhandled error format: ask the user what to do
+            handleHTTPError(error);
+         }
+         // This is some (probably expected) REST API error
+         return error.response.data;
+     }
+     // No idea what this is: make it someone else's problem
+     throw error;
 }

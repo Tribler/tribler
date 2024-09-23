@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -37,9 +39,15 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
 
     async function reloadPaths(dir: string) {
         const response = await triblerService.browseFiles(dir, showFiles || false);
-        setPaths(response.paths);
-        setCurrentPath(response.current);
-        setLastClicked((selectDir) ? { name: '', path: response.current, dir: true } : undefined);
+        if (response === undefined) {
+            toast.error(`${t("ToastErrorBrowseFiles")} ${t("ToastErrorGenNetworkErr")}`);
+        } else if (isErrorDict(response)){
+            toast.error(`${t("ToastErrorBrowseFiles")} ${response.error}`);
+        } else {
+            setPaths(response.paths);
+            setCurrentPath(response.current);
+            setLastClicked((selectDir) ? { name: '', path: response.current, dir: true } : undefined);
+        }
     }
 
     return (

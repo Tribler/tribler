@@ -3,7 +3,9 @@ import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { useEffect } from "react";
+import toast from 'react-hot-toast';
 
 
 const LanguageSelect = () => {
@@ -19,9 +21,12 @@ const LanguageSelect = () => {
     const changeLanguage = async (lng: string) => {
         setLanguage(lng);
         i18n.changeLanguage(lng);
-        await triblerService.setSettings({
-            ui: { lang: lng }
-        });
+        const response = await triblerService.setSettings({ ui: { lang: lng } });
+        if (response === undefined) {
+            toast.error(`${t("ToastErrorSetLanguage")} ${t("ToastErrorGenNetworkErr")}`);
+        } else if (isErrorDict(response)){
+            toast.error(`${t("ToastErrorSetLanguage")} ${response.error}`);
+        }
     };
 
     return (

@@ -7,7 +7,7 @@ export interface Metainfo {
     }
 }
 
-interface MetainfoFile {
+export interface MetainfoFile {
     length: number;
     path: string[];
 

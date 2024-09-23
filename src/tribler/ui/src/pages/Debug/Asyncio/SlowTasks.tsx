@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
+import { useTranslation } from "react-i18next";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,17 +12,36 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 export default function SlowTasks() {
+    const { t } = useTranslation();
     const [debug, setDebug] = useState<{ messages?: { message: string }[] }>({})
     const [slownessThreshold, setSlownessThreshold] = useState<number>(0.1)
 
     useInterval(async () => {
-        setDebug(await ipv8Service.getAsyncioDebug());
+        const response = await ipv8Service.getAsyncioDebug();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            setDebug(response);
+        }
     }, 5000, true);
 
     useEffect(() => {
-        (async () => { await ipv8Service.setAsyncioDebug(true, slownessThreshold) })();
+        (async () => {
+            const response = await ipv8Service.setAsyncioDebug(true, slownessThreshold);
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorEnableAsyncio")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)){
+                toast.error(`${t("ToastErrorEnableAsyncio")} ${response.error}`);
+            }
+        })();
         return () => {
-            (async () => { await ipv8Service.setAsyncioDebug(false, slownessThreshold) })();
+            (async () => {
+                const response = await ipv8Service.setAsyncioDebug(false, slownessThreshold);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDisableAsyncio")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDisableAsyncio")} ${response.error}`);
+                }
+            })();
         }
     }, []);
 
@@ -40,7 +62,15 @@ export default function SlowTasks() {
                     <Button
                         variant="outline"
                         className="h-8 w-8 p-0"
-                        onClick={() => ipv8Service.setAsyncioDebug(true, slownessThreshold)}
+                        onClick={() => {
+                            ipv8Service.setAsyncioDebug(true, slownessThreshold).then((response) => {
+                                if (response === undefined) {
+                                    toast.error(`${t("ToastErrorSlowness")} ${t("ToastErrorGenNetworkErr")}`);
+                                } else if (isErrorDict(response)){
+                                    toast.error(`${t("ToastErrorSlowness")} ${response.error}`);
+                                }
+                            });
+                        }}
                     >
                         OK
                     </Button>

@@ -1,6 +1,7 @@
 import { Download } from "@/models/download.model";
 import { triblerService } from "@/services/tribler.service";
-
+import { isErrorDict } from "@/services/reporting";
+import toast from 'react-hot-toast';
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -31,23 +32,51 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
 
     const onPlay = () => {
         selectedDownloads.forEach((download) => {
-            (async () => { await triblerService.resumeDownload(download.infohash) })();
+            (async () => {
+                const response = await triblerService.resumeDownload(download.infohash);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadPlay")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadPlay")} ${response.error}`);
+                }
+             })();
         });
     }
     const onPause = () => {
         selectedDownloads.forEach((download) => {
-            (async () => { await triblerService.stopDownload(download.infohash) })();
+            (async () => {
+                const response = await triblerService.stopDownload(download.infohash);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadStop")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadStop")} ${response.error}`);
+                }
+             })();
         });
     }
     const onRemove = (removeData: boolean) => {
         selectedDownloads.forEach((download) => {
-            (async () => { await triblerService.removeDownload(download.infohash, removeData) })();
+            (async () => {
+                const response = await triblerService.removeDownload(download.infohash, removeData);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadRemove")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadRemove")} ${response.error}`);
+                }
+             })();
         });
         setRemoveDialogOpen(false);
     }
     const onRecheck = () => {
         selectedDownloads.forEach((download) => {
-            (async () => { await triblerService.recheckDownload(download.infohash) })();
+            (async () => {
+                const response = await triblerService.recheckDownload(download.infohash);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error}`);
+                }
+             })();
         });
     }
     const onExportTorrent = () => {
@@ -64,12 +93,25 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
         }
     }
     const onMoveDownloadConfirmed = () => {
-        triblerService.moveDownload(selectedDownloads[0].infohash, storageLocation);
+        triblerService.moveDownload(selectedDownloads[0].infohash, storageLocation).then(async (response) => {
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)){
+                toast.error(`${t("ToastErrorDownloadMove")} ${response.error}`);
+            }
+        });
         setStorageDialogOpen(false);
     }
     const onSetHops = (hops: number) => {
         selectedDownloads.forEach((download) => {
-            (async () => { await triblerService.setDownloadHops(download.infohash, hops) })();
+            (async () => {
+                const response = await triblerService.setDownloadHops(download.infohash, hops);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadSetHops")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadSetHops")} ${response.error}`);
+                }
+             })();
         });
     }
 

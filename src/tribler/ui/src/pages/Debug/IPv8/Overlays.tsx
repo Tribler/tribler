@@ -2,6 +2,7 @@ import SimpleTable from "@/components/ui/simple-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { Overlay, Peer } from "@/models/overlay.model";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useInterval } from '@/hooks/useInterval';
@@ -104,7 +105,11 @@ export default function Overlays() {
     const [selectedOverlay, setSelectedOverlay] = useState<Overlay | undefined>()
 
     useInterval(async () => {
-        setOverlays((await ipv8Service.getOverlays()));
+        const response = await ipv8Service.getOverlays();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            setOverlays(response);
+        }
     }, 5000, true);
 
     // We're not getting resize event for elements within ResizeablePanel, so we track the ResizablePanel itself.

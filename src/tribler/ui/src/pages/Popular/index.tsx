@@ -2,6 +2,7 @@ import SimpleTable from "@/components/ui/simple-table";
 import SaveAs from "@/dialogs/SaveAs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink, translateHeader } from "@/lib/utils";
@@ -60,10 +61,15 @@ export default function Popular() {
     const [request, setRequest] = useState<string>("");
 
     useInterval(async () => {
-        const popular = await triblerService.getPopularTorrents(true);
-        setTorrents(filterDuplicates(popular, 'infohash'));
+        const popular = await triblerService.getPopularTorrents();
+        if (!(popular === undefined) && !isErrorDict(popular)) {
+            // Don't bother the user on error, just try again later.
+            setTorrents(filterDuplicates(popular, 'infohash'));
+        }
         const remoteQuery = await triblerService.searchTorrentsRemote('', true);
-        setRequest(remoteQuery.request_uuid);
+        if (!(remoteQuery === undefined) && !isErrorDict(remoteQuery)) {
+            setRequest(remoteQuery.request_uuid);
+        }
     }, 5000, true);
 
     useEffect(() => {

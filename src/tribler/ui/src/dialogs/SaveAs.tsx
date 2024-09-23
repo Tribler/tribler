@@ -1,6 +1,8 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { formatBytes, getFilesFromMetainfo, getRowSelection, translateHeader } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,8 +14,18 @@ import { ColumnDef } from "@tanstack/react-table";
 import { useNavigate } from "react-router-dom";
 import { Settings } from "@/models/settings.model";
 import { useTranslation } from "react-i18next";
+import { TFunction } from 'i18next';
 import { PathInput } from "@/components/path-input";
 
+
+function startDownloadCallback(response: any, t: TFunction) {
+    // We have to receive a translation function. Otherwise, we violate React's hook scoping.
+    if (response === undefined) {
+        toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
+    } else if (isErrorDict(response)){
+        toast.error(`${t("ToastErrorDownloadStart")} ${response.error}`);
+    }
+}
 
 const fileColumns: ColumnDef<TorrentFile>[] = [
     {
@@ -95,6 +107,13 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             setExists(false);
             setFiles([])
             const newSettings = await triblerService.getSettings();
+            if (newSettings === undefined) {
+                setError(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
+                return;
+            } else if (isErrorDict(newSettings)){
+                setError(`${t("ToastErrorGetSettings")} ${newSettings.error}`);
+                return;
+            }
             const safeSeeding = !!newSettings?.libtorrent?.download_defaults?.safeseeding_enabled;
             const safeDownloading = !!newSettings?.libtorrent?.download_defaults?.anonymity_enabled;
             setSettings(newSettings);
@@ -114,8 +133,10 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 response = await triblerService.getMetainfo(uri);
             }
 
-            if (response?.error) {
-                setError(response.error);
+            if (response === undefined) {
+                setError(`${t("ToastErrorGetMetainfo")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)) {
+                setError(`t("ToastErrorGetMetainfo")} ${response.error}`);
             } else if (response) {
                 setFiles(getFilesFromMetainfo(response.metainfo));
                 setExists(!!response.download_exists);
@@ -145,10 +166,10 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         if (!settings) return;
 
         if (torrent) {
-            triblerService.startDownloadFromFile(torrent, params);
+            triblerService.startDownloadFromFile(torrent, params).then((response) => {startDownloadCallback(response, t)});
         }
         else if (uri) {
-            triblerService.startDownload(uri, params);
+            triblerService.startDownload(uri, params).then((response) => {startDownloadCallback(response, t)});
         }
 
         if (props.onOpenChange) {

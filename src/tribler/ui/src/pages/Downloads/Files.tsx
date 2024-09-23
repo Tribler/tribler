@@ -1,11 +1,14 @@
+import toast from 'react-hot-toast';
 import { ColumnDef } from "@tanstack/react-table";
 import { File } from "@/models/file.model";
 import { Download } from "@/models/download.model";
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState } from "react";
+import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
 import SimpleTable from "@/components/ui/simple-table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatBytes, getRowSelection, translateHeader } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 
 const fileColumns: ColumnDef<File>[] = [
@@ -54,7 +57,18 @@ const fileColumns: ColumnDef<File>[] = [
     },
 ]
 
+async function updateFiles(setFiles: Dispatch<SetStateAction<File[]>>, infohash: string, initialized: MutableRefObject<boolean>) {
+    const response = await triblerService.getDownloadFiles(infohash);
+    if (response !== undefined && !isErrorDict(response)) {
+        setFiles(response);
+    } else {
+        // Don't bother the user on error, just try again later.
+        initialized.current = false;
+    }
+}
+
 export default function Files({ download }: { download: Download }) {
+    const { t } = useTranslation();
     const [files, setFiles] = useState<File[]>([]);
     const initialized = useRef(false)
 
@@ -78,7 +92,13 @@ export default function Files({ download }: { download: Download }) {
         }
 
         if (shouldUpdate)
-            triblerService.setDownloadFiles(download.infohash, selectIndices);
+            triblerService.setDownloadFiles(download.infohash, selectIndices).then((response) => {
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error}`);
+                }
+            });
     }
 
     useEffect(() => {
@@ -87,7 +107,7 @@ export default function Files({ download }: { download: Download }) {
             return;
         }
         initialized.current = true;
-        (async () => setFiles(await triblerService.getDownloadFiles(download.infohash)))();
+        updateFiles(setFiles, download.infohash, initialized);
     }, []);
 
     // We'll wait until the API call returns so the selection gets set by initialRowSelection

@@ -3,8 +3,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Settings } from "@/models/settings.model";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import toast from 'react-hot-toast';
 import SaveButton from "./SaveButton";
 import { Input } from "@/components/ui/input";
 
@@ -14,7 +16,16 @@ export default function General() {
     const [settings, setSettings] = useState<Settings>();
 
     if (!settings) {
-        (async () => { setSettings(await triblerService.getSettings()) })();
+        (async () => {
+            const response = await triblerService.getSettings();
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)){
+                toast.error(`${t("ToastErrorGetSettings")} ${response.error}`);
+            } else {
+                setSettings(response);
+            }
+        })();
         return null;
     }
 
@@ -193,8 +204,14 @@ export default function General() {
 
             <SaveButton
                 onClick={async () => {
-                    if (settings)
-                        await triblerService.setSettings(settings);
+                    if (settings){
+                        const response = await triblerService.setSettings(settings);
+                        if (response === undefined) {
+                            toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
+                        } else if (isErrorDict(response)){
+                            toast.error(`${t("ToastErrorSetSettings")} ${response.error}`);
+                        }
+                    }
                 }}
             />
         </div>

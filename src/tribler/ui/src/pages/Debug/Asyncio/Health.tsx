@@ -1,31 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { ipv8Service } from '@/services/ipv8.service';
+import { isErrorDict } from "@/services/reporting";
+import { Drift } from "@/models/drift.model";
 import { average, median } from '@/lib/utils';
 import { useInterval } from '@/hooks/useInterval';
+import { useTranslation } from "react-i18next";
 
-
-interface Drift {
-    timestamp: number;
-    drift: number;
-}
 
 export default function Health() {
     const [drifts, setDrifts] = useState<Drift[]>([]);
-    const ref = useRef<HTMLCanvasElement>(null)
+    const ref = useRef<HTMLCanvasElement>(null);
+    const { t } = useTranslation();
 
     useInterval(async () => {
         let measurements = await ipv8Service.getDrift();
 
-        const now = new Date().getTime() / 1000;
-        setDrifts(measurements.filter((drift: Drift) => drift.timestamp > now - 11.0));
+        if (!(measurements === undefined) && !isErrorDict(measurements)) {
+            // We ignore errors and correct with the missing information on the next call
+            const now = new Date().getTime() / 1000;
+            setDrifts(measurements.filter((drift: Drift) => drift.timestamp > now - 11.0));
 
-        updateCanvas();
+            updateCanvas();
+        }
     }, 250, true);
 
     useEffect(() => {
-        (async () => { await ipv8Service.enableDrift(true) })();
+        (async () => {
+            const response = await ipv8Service.enableDrift(true);
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorEnableHealth")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)){
+                toast.error(`${t("ToastErrorEnableHealth")} ${response.error}`);
+            }
+        })();
         return () => {
-            (async () => { await ipv8Service.enableDrift(false) })();
+            (async () => {
+                const response = await ipv8Service.enableDrift(false);
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDisableHealth")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)){
+                    toast.error(`${t("ToastErrorDisableHealth")} ${response.error}`);
+                }
+            })();
         }
     }, []);
 

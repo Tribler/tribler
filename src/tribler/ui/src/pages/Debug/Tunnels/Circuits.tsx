@@ -1,6 +1,7 @@
 import SimpleTable from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { Circuit } from "@/models/circuit.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatBytes, formatFlags, formatTimeDiff } from "@/lib/utils";
@@ -61,7 +62,11 @@ export default function Circuits() {
     const [circuits, setCircuits] = useState<Circuit[]>([])
 
     useInterval(async () => {
-        setCircuits((await ipv8Service.getCircuits()));
+        const response = await ipv8Service.getCircuits();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            setCircuits(response);
+        }
     }, 5000, true);
 
     return <SimpleTable data={circuits} columns={circuitColumns} />

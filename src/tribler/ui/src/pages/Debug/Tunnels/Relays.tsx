@@ -2,6 +2,7 @@ import SimpleTable from "@/components/ui/simple-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
+import { isErrorDict } from "@/services/reporting";
 import { Relay } from "@/models/relay.model";
 import { formatBytes, formatTimeDiff } from "@/lib/utils";
 import { useInterval } from '@/hooks/useInterval';
@@ -47,7 +48,11 @@ export default function Relays() {
     const [relays, setRelays] = useState<Relay[]>([])
 
     useInterval(async () => {
-        setRelays((await ipv8Service.getRelays()));
+        const response = await ipv8Service.getRelays();
+        if (!(response === undefined) && !isErrorDict(response)) {
+            // We ignore errors and correct with the missing information on the next call
+            setRelays(response);
+        }
     }, 5000, true);
 
     return <SimpleTable data={relays} columns={relayColumns} />

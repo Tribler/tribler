@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import toast from 'react-hot-toast';
 import { Torrent } from "@/models/torrent.model";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { formatTimeAgo } from "@/lib/utils";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 
 
 export function SwarmHealth({ torrent }: { torrent: Torrent }) {
+    const { t } = useTranslation();
     const [checking, setChecking] = useState<boolean>(false)
 
     useEffect(() => {
@@ -26,8 +30,16 @@ export function SwarmHealth({ torrent }: { torrent: Torrent }) {
                     <div
                         className="flex flex-nowrap items-center whitespace-nowrap cursor-button"
                         onClick={() => {
-                            triblerService.getTorrentHealth(torrent.infohash)
                             setChecking(true);
+                            triblerService.getTorrentHealth(torrent.infohash).then((response) => {
+                                if (response === undefined){
+                                    setChecking(false);
+                                    toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
+                                } else if (isErrorDict(response)) {
+                                    setChecking(false);
+                                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error}`);
+                                }
+                            });
                         }}
                     >
                         {checking ?

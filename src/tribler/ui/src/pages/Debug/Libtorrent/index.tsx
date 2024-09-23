@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyValue } from "@/models/keyvalue.model";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { useInterval } from '@/hooks/useInterval';
@@ -25,17 +26,25 @@ export default function Libtorrent() {
     const [session, setSession] = useState<KeyValue[]>([])
 
     useInterval(async () => {
-        let settings = [];
-        for (const [key, value] of Object.entries(await triblerService.getLibtorrentSettings(hops))) {
-            settings.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+        const libtorrentSettings = await triblerService.getLibtorrentSettings(hops);
+        if (!(libtorrentSettings === undefined) && !isErrorDict(libtorrentSettings)) {
+            // Don't bother the user on error, just try again later.
+            let settings = [];
+            for (const [key, value] of Object.entries(libtorrentSettings)) {
+                settings.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+            }
+            setSettings(settings)
         }
-        setSettings(settings)
 
-        let session = [];
-        for (const [key, value] of Object.entries(await triblerService.getLibtorrentSession(hops))) {
-            session.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+        const libtorrentSession = await triblerService.getLibtorrentSession(hops);
+        if (!(libtorrentSession === undefined) && !isErrorDict(libtorrentSession)) {
+            // Don't bother the user on error, just try again later.
+            let session = [];
+            for (const [key, value] of Object.entries(libtorrentSession)) {
+                session.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+            }
+            setSession(session)
         }
-        setSession(session)
 
     }, 5000, true);
 

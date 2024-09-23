@@ -7,6 +7,7 @@ import { ModeToggle } from "../mode-toggle";
 import { Search } from "./Search";
 import LanguageSelect from "../language-select";
 import { triblerService } from "@/services/tribler.service";
+import { isErrorDict } from "@/services/reporting";
 import { useInterval } from "@/hooks/useInterval";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useEffect, useRef, useState } from "react";
@@ -133,7 +134,15 @@ export function Header() {
                             <Button
                                 variant="ghost"
                                 className="w-9 px-0"
-                                onClick={() => triblerService.shutdown()}
+                                onClick={() => {
+                                    triblerService.shutdown().then((response) => {
+                                        if (response === undefined) {
+                                            toast.error(`${"ToastErrorShutdown"} ${"ToastErrorGenNetworkErr"}`);
+                                        } else if (isErrorDict(response)){
+                                            toast.error(`${"ToastErrorShutdown"} ${response.error}`);
+                                        }
+                                    })
+                                }}
                             >
                                 <ExitIcon />
                             </Button>
