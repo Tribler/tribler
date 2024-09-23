@@ -354,13 +354,10 @@ class TorrentChecker(TaskManager):
         self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
         health = aggregate_responses_for_infohash(infohash, cast(List[TrackerResponse], successful_responses))
-        if health.last_check == 0:  # if not zero, was already updated in get_tracker_response
-            health.last_check = int(time.time())
-            health.self_checked = True
-            self.update_torrent_health(health)
+        if health.last_check == 0:
+            self.notify(health)  # We don't need to store this in the db, but we still need to notify the GUI
         else:
-            # We don't need to store this in the db, but we still need to notify the GUI
-            self.notify(health)
+            self.update_torrent_health(health)
         return health
 
     def create_session_for_request(self, tracker_url: str, timeout: float = 20) -> TrackerSession | None:
