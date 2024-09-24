@@ -106,6 +106,8 @@
     "MagnetDialogInputLabel": "Пожалуйста, введите URL/magnet-ссылку в поле ниже:",
     "MagnetDialogHeader": "Добавить торренты по URL/magnet-ссылке",
     "MagnetDialogError": "Не удалось обработать URL/магнитную ссылку",
+    "TrackerDialogInputLabel": "Введите URL-адрес трекера в поле ниже:",
+    "TrackerDialogHeader": "Добавить торрент с URL-адреса трекера",
     "Add": "ДОБАВИТЬ",
     "FilterByName": "Фильтровать по имени",
     "WithSelected": "С выбранным:",
@@ -159,5 +161,8 @@
     "ToastErrorDownloadSetHops": "Не удалось изменить анонимность загрузки!",
     "ToastErrorDownloadSetFiles": "Не удалось установить файлы для скачивания!",
     "ToastErrorUpgradeFailed": "Обновление не удалось!",
-    "ToastErrorRemoveVersion": "Не удалось удалить версию {{version}}!"
+    "ToastErrorRemoveVersion": "Не удалось удалить версию {{version}}!",
+    "ToastErrorTrackerAdd": "Не удалось добавить трекер!",
+    "ToastErrorTrackerRemove": "Не удалось удалить трекер!",
+    "ToastErrorTrackerCheck": "Не удалось проверить трекер!"
 }

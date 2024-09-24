@@ -105,6 +105,8 @@
     "MagnetDialogInputLabel": "请在下面字段输入 URL/磁力链接：",
     "MagnetDialogHeader": "从 URL/磁力链接添加种子文件",
     "MagnetDialogError": "无法处理 URL/磁力链接",
+    "TrackerDialogInputLabel": "请在下面的字段中输入跟踪器 URL：",
+    "TrackerDialogHeader": "从跟踪器 URL 添加 torrent",
     "Add": "添加",
     "FilterByName": "按名称过滤",
     "WithSelected": "已选择：",
@@ -158,5 +160,8 @@
     "ToastErrorDownloadSetHops": "更改下载匿名失败！",
     "ToastErrorDownloadSetFiles": "设置文件下载失败！",
     "ToastErrorUpgradeFailed": "升级失败！",
-    "ToastErrorRemoveVersion": "删除版本失败 {{version}}！"
+    "ToastErrorRemoveVersion": "删除版本失败 {{version}}！",
+    "ToastErrorTrackerAdd": "添加追踪器失败！",
+    "ToastErrorTrackerRemove": "删除跟踪器失败！",
+    "ToastErrorTrackerCheck": "检查追踪器失败！"
 }

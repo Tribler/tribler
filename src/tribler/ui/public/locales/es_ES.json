@@ -106,6 +106,8 @@
     "MagnetDialogInputLabel": "Introduzca el enlace URL/magnet en el siguiente recuadro:",
     "MagnetDialogHeader": "Añadir torrent desde URL/enlace magnet",
     "MagnetDialogError": "No se pudo procesar la URL/enlace magnético",
+    "TrackerDialogInputLabel": "Introduzca la URL del rastreador en el campo siguiente:",
+    "TrackerDialogHeader": "Agregar torrent desde la URL del rastreador",
     "Add": "AÑADIR",
     "FilterByName": "Filtrar por nombre",
     "WithSelected": "Con seleccionado:",
@@ -159,5 +161,8 @@
     "ToastErrorDownloadSetHops": "¡Error al cambiar el anonimato de la descarga!",
     "ToastErrorDownloadSetFiles": "¡No se pudieron configurar los archivos para descargar!",
     "ToastErrorUpgradeFailed": "¡La actualización falló!",
-    "ToastErrorRemoveVersion": "No se pudo eliminar la versión {{version}}!"
+    "ToastErrorRemoveVersion": "No se pudo eliminar la versión {{version}}!",
+    "ToastErrorTrackerAdd": "¡No se pudo agregar el rastreador!",
+    "ToastErrorTrackerRemove": "¡No se pudo eliminar el rastreador!",
+    "ToastErrorTrackerCheck": "¡No se pudo verificar el rastreador!"
 }

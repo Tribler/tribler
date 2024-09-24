@@ -4,6 +4,7 @@ Keep this text for the test_stream test.
 from __future__ import annotations
 
 from asyncio import ensure_future, sleep
+from binascii import hexlify
 from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call, patch
@@ -228,6 +229,32 @@ class DeselectTreePathRequest(MockRequest):
         """
         super().__init__(query, "GET", f"/downloads/{infohash}/files/deselect")
         self._infohash = infohash
+
+    @property
+    def match_info(self) -> UrlMappingMatchInfo:
+        """
+        Get the match info (the infohash in the url).
+        """
+        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
+
+
+class GenericTrackerRequest(MockRequest):
+    """
+    A MockRequest that mimics requests to add, remove or check trackers.
+    """
+
+    def __init__(self, infohash: str, url: str | None, method: str, sub_endpoint: str) -> None:
+        """
+        Create a new AddDownloadRequest.
+        """
+        super().__init__({"url": url}, method, f"/downloads/{infohash}/{sub_endpoint}")
+        self._infohash = infohash
+
+    async def json(self) -> dict:
+        """
+        Get the json equivalent of the query (i.e., just the query).
+        """
+        return self._query
 
     @property
     def match_info(self) -> UrlMappingMatchInfo:
@@ -1187,3 +1214,196 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(206, response.status)
         self.assertEqual(b'"', request.get_transmitted())
+
+    async def test_add_tracker(self) -> None:
+        """
+        Test if trackers can be added to a download.
+        """
+        trackers = ["http://127.0.0.1/somethingelse"]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers),
+                               add_tracker=lambda tracker_dict: trackers.append(tracker_dict["url"]))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.add_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["added"])
+        self.assertListEqual(["http://127.0.0.1/somethingelse", url], trackers)
+        self.assertEqual(call(0, 1), download.handle.force_reannounce.call_args)
+
+    async def test_add_tracker_no_download(self) -> None:
+        """
+        Test if adding a tracker fails when no download is found.
+        """
+        self.download_manager.get_download = Mock(return_value=None)
+
+        response = await self.endpoint.add_tracker(GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce",
+                                                                         "PUT", "trackers"))
+
+        self.assertEqual(404, response.status)
+
+    async def test_add_tracker_no_url(self) -> None:
+        """
+        Test if adding a tracker fails when no tracker url is given.
+        """
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+
+        response = await self.endpoint.add_tracker(GenericTrackerRequest("AA" * 20, None, "PUT", "trackers"))
+
+        self.assertEqual(400, response.status)
+
+    async def test_add_tracker_handle_error(self) -> None:
+        """
+        Test if adding a tracker fails when a libtorrent internal error occurs.
+        """
+        trackers = ["http://127.0.0.1/somethingelse"]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers),
+                               add_tracker=Mock(side_effect=RuntimeError("invalid torrent handle used")))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.add_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(500, response.status)
+        self.assertEqual("invalid torrent handle used", response_body_json["error"])
+
+    async def test_remove_tracker(self) -> None:
+        """
+        Test if trackers can be removed from a download.
+        """
+        trackers = [{"url": "http://127.0.0.1/somethingelse", "verified": True},
+                    {"url": "http://127.0.0.1/announce", "verified": True}]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers),
+                               replace_trackers=lambda new_trackers: (trackers.clear()
+                                                                      is trackers.extend(new_trackers)))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["removed"])
+        self.assertListEqual([{"url": "http://127.0.0.1/somethingelse", "verified": True}], trackers)
+
+    async def test_remove_tracker_no_download(self) -> None:
+        """
+        Test if removing a tracker fails when no download is found.
+        """
+        self.download_manager.get_download = Mock(return_value=None)
+
+        response = await self.endpoint.remove_tracker(GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce",
+                                                                            "DELETE", "trackers"))
+
+        self.assertEqual(404, response.status)
+
+    async def test_remove_tracker_no_url(self) -> None:
+        """
+        Test if removing a tracker fails when no tracker url is given.
+        """
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+
+        response = await self.endpoint.remove_tracker(GenericTrackerRequest("AA" * 20, None, "DELETE", "trackers"))
+
+        self.assertEqual(400, response.status)
+
+    async def test_remove_tracker_handle_error(self) -> None:
+        """
+        Test if removing a tracker fails when a libtorrent internal error occurs.
+        """
+        trackers = [{"url": "http://127.0.0.1/somethingelse", "verified": True},
+                    {"url": "http://127.0.0.1/announce", "verified": True}]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers),
+                               replace_trackers=Mock(side_effect=RuntimeError("invalid torrent handle used")))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(500, response.status)
+        self.assertEqual("invalid torrent handle used", response_body_json["error"])
+
+    async def test_tracker_force_announce(self) -> None:
+        """
+        Test if trackers can be force announced.
+        """
+        trackers = [{"url": "http://127.0.0.1/somethingelse", "verified": True},
+                    {"url": "http://127.0.0.1/announce", "verified": True}]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.tracker_force_announce(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "tracker_force_announce")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["forced"])
+        self.assertEqual(call(0, 1), download.handle.force_reannounce.call_args)
+
+    async def test_tracker_force_announce_no_download(self) -> None:
+        """
+        Test if force-announcing a tracker fails when no download is found.
+        """
+        self.download_manager.get_download = Mock(return_value=None)
+
+        response = await self.endpoint.tracker_force_announce(
+            GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce", "PUT", "tracker_force_announce")
+        )
+
+        self.assertEqual(404, response.status)
+
+    async def test_tracker_force_announce_no_url(self) -> None:
+        """
+        Test if force-announcing a tracker fails when no tracker url is given.
+        """
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+
+        response = await self.endpoint.tracker_force_announce(GenericTrackerRequest("AA" * 20, None, "PUT",
+                                                                                    "tracker_force_announce"))
+
+        self.assertEqual(400, response.status)
+
+    async def test_tracker_force_announce_handle_error(self) -> None:
+        """
+        Test if force-announcing a tracker fails when a libtorrent internal error occurs.
+        """
+        trackers = [{"url": "http://127.0.0.1/somethingelse", "verified": True},
+                    {"url": "http://127.0.0.1/announce", "verified": True}]
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers),
+                               force_reannounce=Mock(side_effect=RuntimeError("invalid torrent handle used")))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.tracker_force_announce(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "tracker_force_announce")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(500, response.status)
+        self.assertEqual("invalid torrent handle used", response_body_json["error"])
