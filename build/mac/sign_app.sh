@@ -23,4 +23,4 @@ fi
 
 echo "Signing $APP_FILE with Apple Dev ID: $APPLE_DEV_ID"
 SIGN_MSG="Developer ID Application: $APPLE_DEV_ID"
-codesign --deep --force --verbose --sign "$SIGN_MSG" --options runtime $APP_FILE
+codesign --deep --force --verbose --sign "$SIGN_MSG" --entitlements ./build/mac/entitlements.plist --options runtime $APP_FILE
