@@ -46,7 +46,7 @@ version_numbers = [str(value) for value in map(int, re.findall(r"\d+", raw_versi
 version = Version(".".join(version_numbers))
 
 # cx_Freeze does not automatically make the package metadata
-os.mkdir("tribler.dist-info")
+os.makedirs("tribler.dist-info", exist_ok=True)
 with open("tribler.dist-info/METADATA", "w") as metadata_file:
     metadata_file.write(f"""Metadata-Version: 2.3
 Name: Tribler
