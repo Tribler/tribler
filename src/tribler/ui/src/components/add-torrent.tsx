@@ -87,6 +87,7 @@ export function AddTorrent() {
                             type="submit"
                             onClick={() => {
                                 if (uriInput) {
+                                    setTorrent(undefined);
                                     setUrlDialogOpen(false);
                                     setSaveAsDialogOpen(true);
                                 }
