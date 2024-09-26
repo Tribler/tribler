@@ -9,7 +9,7 @@ First, install additional requirements:
 
 .. code-block::
 
-    sudo apt-get -y install alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
+    sudo apt-get -y install alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm libcairo2-dev patchelf
     python -m pip install --upgrade -r build/requirements.txt
 
 Second, create the ``.deb`` file in the ``dist`` directory.
