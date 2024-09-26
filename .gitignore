@@ -5,12 +5,20 @@
 dist/
 output/
 screenshots/
+tribler.dist-info
 
+src/tribler/run.py
 src/ec_multichain.pem
 src/secondary_key.pem
-
 src/state_directory/
 src/venv/
-
 src/tribler/src/tribler/gui/screenshots/
 
+build/debian/tribler/debian/.debhelper/
+build/debian/tribler/debian/debhelper-build-stamp
+build/debian/tribler/debian/files
+build/debian/tribler/debian/*.debhelper
+build/debian/tribler/debian/tribler.substvars
+build/debian/tribler/debian/tribler/
+build/debian/tribler/usr/share/tribler/
+build/debian/tribler_*

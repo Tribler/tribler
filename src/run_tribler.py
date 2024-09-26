@@ -11,7 +11,6 @@ import typing
 import webbrowser
 from pathlib import Path
 
-import pystray
 from aiohttp import ClientSession
 from PIL import Image
 
@@ -35,10 +34,13 @@ def parse_args() -> Arguments:
     """
     Parse the command-line arguments.
     """
-    parser = argparse.ArgumentParser(prog='Tribler [Experimental]', description='Run Tribler BitTorrent client')
-    parser.add_argument('torrent', help='torrent file to download', default='', nargs='?')
-    parser.add_argument('--log-level', default="INFO", action="store_true", help="set the log level",
+    parser = argparse.ArgumentParser(prog='Tribler', description='Run Tribler BitTorrent client')
+    parser.add_argument('torrent', help='Torrent file to download', default='', nargs='?')
+    parser.add_argument('--log-level', default="INFO", action="store", nargs='?',
+                        help="Set the log level. The default is 'INFO'",
+                        choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         dest="log_level")
+    parser.add_argument('-s', '--server', action='store_true', help="Run headless as a server without graphical pystray interface")
     return vars(parser.parse_args())
 
 
@@ -64,12 +66,10 @@ async def start_download(config: TriblerConfigManager, server_url: str, torrent_
         else:
             logger.warning("Failed to start torrent %s: %s", torrent_uri, await response.text())
 
-
-async def main() -> None:
+def init_config(parsed_args: Arguments) -> TriblerConfigManager:
     """
-    The main script entry point.
+    Add environment variables to the configuration.
     """
-    parsed_args = parse_args()
     logging.basicConfig(level=parsed_args["log_level"], stream=sys.stdout)
     logger.info("Run Tribler: %s", parsed_args)
 
@@ -90,6 +90,14 @@ async def main() -> None:
     if config.get("api/key") is None:
         config.set("api/key", os.urandom(16).hex())
         config.write()
+    return config
+
+async def main() -> None:
+    """
+    The main script entry point.
+    """
+    parsed_args = parse_args()
+    config = init_config(parsed_args)
 
     logger.info("Creating session. API port: %d. API key: %s.", config.get("api/http_port"), config.get("api/key"))
     session = Session(config)
@@ -102,34 +110,37 @@ async def main() -> None:
             torrent_uri = Path(torrent_uri).read_text()
     server_url = await session.find_api_server()
 
+    headless = parsed_args.get('server')
     if server_url:
         logger.info("Core already running at %s", server_url)
         if torrent_uri:
             logger.info("Starting torrent using existing core")
             await start_download(config, server_url, torrent_uri)
-        webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
+        if not headless:
+            webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
         logger.info("Shutting down")
         return
 
     await session.start()
-
     server_url = await session.find_api_server()
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
-
-    image_path = tribler.get_webui_root() / "public" / "tribler.png"
-    image = Image.open(image_path.resolve())
-    api_port = session.rest_manager.get_api_port()
-    url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
-    menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
-            pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
-    icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
-    webbrowser.open_new_tab(url)
-    threading.Thread(target=icon.run).start()
+    if not headless:
+        import pystray
+        image_path = tribler.get_webui_root() / "public" / "tribler.png"
+        image = Image.open(image_path.resolve())
+        api_port = session.rest_manager.get_api_port()
+        url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
+        menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
+                pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
+        icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
+        webbrowser.open_new_tab(url)
+        threading.Thread(target=icon.run).start()
 
     await session.shutdown_event.wait()
     await session.shutdown()
-    icon.stop()
+    if not headless:
+        icon.stop()
     logger.info("Tribler shutdown completed")
 
 
