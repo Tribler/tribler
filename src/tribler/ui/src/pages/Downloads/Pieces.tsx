@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 
 
-export default function Pieces({ pieces64 }: { pieces64: string }) {
+export default function Pieces({ pieces64, numpieces }: { pieces64: string, numpieces: number }) {
     const ref = useRef<HTMLCanvasElement>(null)
 
-    const convertPieces = (pieces64: string) => {
+    const convertPieces = (pieces64: string, numpieces: number) => {
         if (pieces64 === undefined) { return [] }
 
         // Remove trailing '='
@@ -12,7 +12,7 @@ export default function Pieces({ pieces64 }: { pieces64: string }) {
 
         const pieces = [];
         const pieceString = atob(pieces64);
-        for (let i = 0; i < pieceString.length; ++i) {
+        for (let i = 0; i < Math.min(numpieces, pieceString.length); ++i) {
             const pieceNumber = pieceString[i].charCodeAt(0);
             for (let j = 8 - 1; j >= 0; --j) {
                 pieces.push(pieceNumber & 1 << j ? 1 : 0);
@@ -23,14 +23,14 @@ export default function Pieces({ pieces64 }: { pieces64: string }) {
 
     useEffect(() => {
         if (ref.current) {
-            const canvas = ref.current.getContext('2d')
-            const pieces = convertPieces(pieces64)
+            const canvas = ref.current.getContext('2d');
+            const pieces = convertPieces(pieces64, numpieces);
             if (!canvas || !pieces || pieces.length === 0) { return; }
 
             // Get size from the HTML canvas element
             const width = canvas.canvas.width;
             const height = canvas.canvas.height;
-            const numPieces = pieces.length;
+            const numPieces = numpieces;
 
             if (numPieces <= width) {
                 const pieceWidth = width / numPieces;
@@ -55,7 +55,7 @@ export default function Pieces({ pieces64 }: { pieces64: string }) {
                 }
             }
         }
-    }, [pieces64])
+    }, [pieces64, numpieces])
 
     return <canvas ref={ref} style={{ height: '20px', width: '97%', background: 'white', border: '1px solid #2f2f2f' }} />
 }

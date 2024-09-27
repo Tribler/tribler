@@ -40,7 +40,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                     <div className="flex flex-col h-full p-4 text-sm">
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Progress')}</div>
-                            <div className="basis-3/4 m-auto"><Pieces pieces64={download.pieces || ''} /></div>
+                            <div className="basis-3/4 m-auto"><Pieces numpieces={download.total_pieces} pieces64={download.pieces || ''} /></div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Name')}</div>
