@@ -5,7 +5,7 @@ from asyncio import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from contextlib import suppress
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -411,7 +411,12 @@ class DownloadsEndpoint(RESTEndpoint):
                 params['anon_hops'] = int(params['anon_hops'])
             if 'safe_seeding' in params:
                 params['safe_seeding'] = params['safe_seeding'] != 'false'
-            tdef = TorrentDef.load_from_memory(await request.read())
+            body = await request.read()
+            metainfo = cast(dict[bytes, Any], lt.bdecode(body))
+            packed_selected_files = cast(Optional[list[int]], metainfo.pop(b"selected_files", None))
+            if packed_selected_files is not None:
+                params["selected_files"] = packed_selected_files
+            tdef = TorrentDef.load_from_dict(metainfo)
         else:
             params = await request.json()
             uri = params.get("uri")
