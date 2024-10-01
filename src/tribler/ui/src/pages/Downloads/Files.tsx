@@ -1,66 +1,66 @@
 import toast from 'react-hot-toast';
-import { ColumnDef } from "@tanstack/react-table";
-import { File } from "@/models/file.model";
+import { ColumnDef, Row } from "@tanstack/react-table";
+import { FileTreeItem } from "@/models/file.model";
 import { Download } from "@/models/download.model";
-import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, MutableRefObject, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
 import SimpleTable from "@/components/ui/simple-table";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatBytes, getRowSelection, translateHeader } from "@/lib/utils";
+import { filesToTree, formatBytes, getSelectedFilesFromTree } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-
-const fileColumns: ColumnDef<File>[] = [
+const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && "indeterminate")
-                }
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => {
-                    console.log(value);
-                    row.toggleSelected(!!value)
-                }}
-                aria-label="Select row"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
+        header: "Path",
+        accessorKey: "path",
+        cell: ({ row }) => {
+            return (
+                <div
+                    className="flex text-start items-center"
+                    style={{
+                        paddingLeft: `${row.depth * 2}rem`
+                    }}
+                >
+                    {row.original.subRows && row.original.subRows.length > 0 && (
+                        <button onClick={row.getToggleExpandedHandler()}>
+                            {row.getIsExpanded()
+                                ? <ChevronDown size="16" color="#777"></ChevronDown>
+                                : <ChevronRight size="16" color="#777"></ChevronRight>}
+                        </button>
+                    )}
+                    {row.original.name}
+                </div>
+            )
+        }
     },
     {
-        accessorKey: "name",
-        header: translateHeader('Name'),
-    },
-    {
+        header: "Size",
         accessorKey: "size",
-        header: translateHeader('Size'),
         cell: ({ row }) => {
-            return <span>{formatBytes(row.original.size)}</span>
+            return (
+                <div className='flex items-center'>
+                    <Checkbox className='mr-2' checked={row.original.included} onCheckedChange={() => onSelectedFiles(row)}></Checkbox>
+                    <span>{formatBytes(row.original.size)}</span>
+                </div>
+            )
         },
     },
     {
+        header: "Progress",
         accessorKey: "progress",
-        header: translateHeader('Progress'),
         cell: ({ row }) => {
-            return <span>{(row.original.progress * 100).toFixed(1)}%</span>
+            return <span>{((row.original.progress || 0) * 100).toFixed(1)}%</span>
         },
     },
-]
+];
 
-async function updateFiles(setFiles: Dispatch<SetStateAction<File[]>>, infohash: string, initialized: MutableRefObject<boolean>) {
-    const response = await triblerService.getDownloadFiles(infohash);
+async function updateFiles(setFiles: Dispatch<SetStateAction<FileTreeItem[]>>, download: Download, initialized: MutableRefObject<boolean>) {
+    const response = await triblerService.getDownloadFiles(download.infohash);
     if (response !== undefined && !isErrorDict(response)) {
-        setFiles(response);
+        const files = filesToTree(response, download.name, '/');
+        setFiles(files);
     } else {
         // Don't bother the user on error, just try again later.
         initialized.current = false;
@@ -69,36 +69,28 @@ async function updateFiles(setFiles: Dispatch<SetStateAction<File[]>>, infohash:
 
 export default function Files({ download }: { download: Download }) {
     const { t } = useTranslation();
-    const [files, setFiles] = useState<File[]>([]);
+    const [files, setFiles] = useState<FileTreeItem[]>([]);
     const initialized = useRef(false)
 
-    function OnSelectedFilesChange(selectedFiles: File[]) {
-        let shouldUpdate = false;
-        let selectIndices: number[] = [];
+    function OnSelectedFilesChange(row: Row<FileTreeItem>) {
+        // Are we including or excluding files?
+        const shouldInclude = row.original.included == false;
+        // Get all indices that need toggling
+        const toggleIndices = getSelectedFilesFromTree(row.original, !shouldInclude);
+        const currentIndcices = getSelectedFilesFromTree(files[0]);
+        if (shouldInclude)
+            var selectedIndices = [...new Set(currentIndcices).union(new Set(toggleIndices))];
+        else
+            var selectedIndices = [...new Set(currentIndcices).difference(new Set(toggleIndices))];
 
-        for (let file of files) {
-            let otherFile = undefined
-            for (let f of selectedFiles) {
-                if (f.index === file.index) {
-                    otherFile = f;
-                    selectIndices.push(otherFile.index);
-                    break;
-                }
+        triblerService.setDownloadFiles(download.infohash, selectedIndices).then((response) => {
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)) {
+                toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error}`);
             }
-
-            const otherIncluded = !!otherFile;
-            shouldUpdate = shouldUpdate || (file.included !== otherIncluded);
-            file.included = otherIncluded;
-        }
-
-        if (shouldUpdate)
-            triblerService.setDownloadFiles(download.infohash, selectIndices).then((response) => {
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
-                    toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error}`);
-                }
-            });
+        });
+        updateFiles(setFiles, download, initialized);
     }
 
     useEffect(() => {
@@ -107,20 +99,25 @@ export default function Files({ download }: { download: Download }) {
             return;
         }
         initialized.current = true;
-        updateFiles(setFiles, download.infohash, initialized);
+        updateFiles(setFiles, download, initialized);
     }, []);
 
-    // We'll wait until the API call returns so the selection gets set by initialRowSelection
+    useEffect(() => {
+        if (download.status_code === 3)
+            updateFiles(setFiles, download, initialized);
+    }, [download]);
+
+    const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), [OnSelectedFilesChange]);
+
+    // The API call may not be finished yet or the download is still getting metainfo.
     if (files.length === 0)
-        return <></>;
+        return <span className="flex pl-4 pt-2 text-muted-foreground">No files available</span>;
 
     return <SimpleTable
         data={files}
         columns={fileColumns}
-        pageSize={10}
-        allowSelectCheckbox={true}
-        onSelectedRowsChange={OnSelectedFilesChange}
-        initialRowSelection={getRowSelection(files, (file) => file.included)}
+        expandable={true}
+        pageSize={50}
         maxHeight={'none'}
     />
 }

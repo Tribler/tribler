@@ -1,73 +1,71 @@
 import SimpleTable from "@/components/ui/simple-table";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { formatBytes, getFilesFromMetainfo, getRowSelection, translateHeader } from "@/lib/utils";
+import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree, translateHeader } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
 import { JSX } from "react/jsx-runtime";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 import { useNavigate } from "react-router-dom";
 import { Settings } from "@/models/settings.model";
 import { useTranslation } from "react-i18next";
 import { TFunction } from 'i18next';
 import { PathInput } from "@/components/path-input";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { FileTreeItem } from "@/models/file.model";
 
 
 function startDownloadCallback(response: any, t: TFunction) {
     // We have to receive a translation function. Otherwise, we violate React's hook scoping.
     if (response === undefined) {
         toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
-    } else if (isErrorDict(response)){
+    } else if (isErrorDict(response)) {
         toast.error(`${t("ToastErrorDownloadStart")} ${response.error}`);
     }
 }
 
-const fileColumns: ColumnDef<TorrentFile>[] = [
+const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
-        id: "select",
-        header: ({ table }) => (
-            <Checkbox
-                checked={
-                    table.getIsAllPageRowsSelected() ||
-                    (table.getIsSomePageRowsSelected() && "indeterminate")
-                }
-                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                aria-label="Select all"
-            />
-        ),
-        cell: ({ row }) => (
-            <Checkbox
-                checked={row.getIsSelected()}
-                onCheckedChange={(value) => row.toggleSelected(!!value)}
-                aria-label="Select row"
-            />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "path",
+        accessorKey: "name",
         header: translateHeader('Name'),
+        cell: ({ row }) => {
+            return (
+                <div
+                    className="flex text-start items-center"
+                    style={{
+                        paddingLeft: `${row.depth * 2}rem`
+                    }}
+                >
+                    {row.original.subRows && row.original.subRows.length > 0 && (
+                        <button onClick={row.getToggleExpandedHandler()}>
+                            {row.getIsExpanded()
+                                ? <ChevronDown size="16" color="#777"></ChevronDown>
+                                : <ChevronRight size="16" color="#777"></ChevronRight>}
+                        </button>
+                    )}
+                    {row.original.name}
+                </div>
+            )
+        }
     },
     {
-        accessorKey: "length",
+        accessorKey: "size",
         header: translateHeader('Size'),
         cell: ({ row }) => {
-            return <span className="whitespace-nowrap">{formatBytes(row.original.length)}</span>
+            return (
+                <div className='flex items-center'>
+                    <Checkbox className='mr-2' checked={row.original.included} onCheckedChange={() => onSelectedFiles(row)}></Checkbox>
+                    <span>{formatBytes(row.original.size)}</span>
+                </div>
+            )
         },
     },
 ]
-
-interface TorrentFile {
-    path: string;
-    length: number;
-    included?: boolean;
-}
 
 interface Params {
     destination: string
@@ -81,6 +79,15 @@ interface SaveAsProps {
     torrent?: File;
 }
 
+const toggleTree = (tree: FileTreeItem, included: boolean = true) => {
+    if (tree.subRows && tree.subRows.length) {
+        for (const item of tree.subRows) {
+            toggleTree(item, included);
+        }
+    }
+    tree.included = included;
+}
+
 export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & DialogProps) {
     let { uri, torrent } = props;
 
@@ -89,8 +96,20 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [settings, setSettings] = useState<Settings | undefined>();
     const [error, setError] = useState<string | undefined>();
     const [exists, setExists] = useState<boolean>(false);
-    const [selectedFiles, setSelectedFiles] = useState<TorrentFile[]>([]);
-    const [files, setFiles] = useState<TorrentFile[]>([]);
+    const [files, setFiles] = useState<FileTreeItem[]>([]);
+
+
+    function OnSelectedFilesChange(row: Row<FileTreeItem>) {
+        toggleTree(row.original, !row.original.included);
+        fixTreeProps(files[0]);
+        setFiles([...files]);
+        setParams({
+            ...params,
+            selected_files: getSelectedFilesFromTree(files[0]),
+        });
+    }
+
+    const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), [OnSelectedFilesChange]);
     const [params, setParams] = useState<Params>({
         destination: '',
         anon_hops: 0,
@@ -110,7 +129,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             if (newSettings === undefined) {
                 setError(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
                 return;
-            } else if (isErrorDict(newSettings)){
+            } else if (isErrorDict(newSettings)) {
                 setError(`${t("ToastErrorGetSettings")} ${newSettings.error}`);
                 return;
             }
@@ -138,38 +157,26 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             } else if (isErrorDict(response)) {
                 setError(`t("ToastErrorGetMetainfo")} ${response.error}`);
             } else if (response) {
-                setFiles(getFilesFromMetainfo(response.metainfo));
+                const info = getFilesFromMetainfo(response.metainfo);
+                var files = info.files;
+                files.sort((f1: any, f2: any) => f1.name > f2.name ? 1 : -1);
+                files = filesToTree(files, info.name);
+                setFiles(files);
+                setParams((prev) => ({ ...prev, selected_files: getSelectedFilesFromTree(files[0]) }));
                 setExists(!!response.download_exists);
             }
         }
         reload();
     }, [uri, torrent]);
 
-    useEffect(() => {
-        let indexes = [];
-        for (let i = 0; i < selectedFiles.length; i++) {
-            for (let j = 0; j < files.length; j++) {
-                if (selectedFiles[i].path === files[j].path) {
-                    indexes.push(j);
-                    break;
-                }
-            }
-        }
-
-        setParams({
-            ...params,
-            selected_files: indexes,
-        })
-    }, [selectedFiles]);
-
     function OnDownloadClicked() {
         if (!settings) return;
 
         if (torrent) {
-            triblerService.startDownloadFromFile(torrent, params).then((response) => {startDownloadCallback(response, t)});
+            triblerService.startDownloadFromFile(torrent, params).then((response) => { startDownloadCallback(response, t) });
         }
         else if (uri) {
-            triblerService.startDownload(uri, params).then((response) => {startDownloadCallback(response, t)});
+            triblerService.startDownload(uri, params).then((response) => { startDownloadCallback(response, t) });
         }
 
         if (props.onOpenChange) {
@@ -209,8 +216,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             data={files}
                             columns={fileColumns}
                             allowSelectCheckbox={true}
-                            onSelectedRowsChange={setSelectedFiles}
                             initialRowSelection={getRowSelection(files, () => true)}
+                            expandable={true}
                             maxHeight={200} />
                         {exists && <span className="text-center text-tribler text-sm">{t('DownloadExists')}</span>}
                     </>
@@ -265,7 +272,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         variant="outline"
                         type="submit"
                         onClick={() => OnDownloadClicked()}
-                        disabled={exists || (files.length !== 0 && selectedFiles.length === 0)}>
+                        disabled={exists || (files.length !== 0 && params.selected_files.length === 0)}>
                         {t('Download')}
                     </Button>
                     <DialogClose asChild>
