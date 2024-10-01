@@ -72,14 +72,48 @@ export class TriblerService {
         }
     }
 
+    async _mixSelectedIntoMetainfo(torrent: File, selected_files: number[] | undefined): Promise<Uint8Array> {
+        // Read the torrent data from file
+        const raw_bytes = new Uint8Array(await torrent.arrayBuffer());
+
+        // Create the new data blocks
+        const new_key = new Uint8Array([49, 52, 58, 115, 101, 108, 101, 99, 116, 101, 100, 95, 102, 105, 108, 101, 115])  // b"14:selected_files"
+        if ((selected_files !== undefined) && (selected_files.length > 0)){
+            const str_selected = selected_files.join('ei');
+            var new_list = new Uint8Array(4 + str_selected.length);  // b"li" + str_selected + b"ee"
+            new_list[0] = 108;  // b"l"
+            new_list[1] = 105;  // b"i"
+            new_list.set(str_selected.split('').map((c) => { return c.charCodeAt(0); }), 2);
+            new_list[new_list.length - 2] = 101;  // b"e"
+            new_list[new_list.length - 1] = 101;  // b"e"
+        } else {
+            var new_list = new Uint8Array([108, 101]);  // b"le"
+        }
+
+        // Merge everything into the output buffer
+        const buf_len = raw_bytes.length + new_list.length + 17;  // (raw_bytes.length - 1) + 17 + new_list.length + 1
+        const modified_data = new Uint8Array(buf_len);
+        modified_data.set(raw_bytes, 0);
+        modified_data.set(new_key, raw_bytes.length - 1);  // [!] this overwrites the last byte of raw_bytes
+        modified_data.set(new_list, raw_bytes.length + 16);  // (raw_bytes.length - 1) + 17
+        modified_data[buf_len - 1] = 101; // b"e"
+
+        return modified_data;
+    }
+
     async startDownloadFromFile(torrent: File, params: DownloadConfig = {}): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put('/downloads', torrent, {
-                params: params,
-                headers: {
-                    'Content-Type': 'applications/x-bittorrent'
-                }
-            })).data.started;
+            // The way selected files are URL encoded leads to the pattern "&selected_files[]=<<FILE_NUMBER>>",
+            // roughly 20 characters per file in a torrent. With the max of 8190 bytes for a URL, this will lead to
+            // HTTP 400 errors for torrents that go over +- 400 files.
+            return (await this.http.put('/downloads',
+                                        await this._mixSelectedIntoMetainfo(torrent, params.selected_files), {
+                                            params: {...params, "selected_files": []},
+                                            headers: {
+                                                'Content-Type': 'applications/x-bittorrent'
+                                            }
+                                        }
+            )).data.started;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
