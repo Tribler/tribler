@@ -33,8 +33,7 @@ export function formatAxiosError(error: Error | AxiosError): ErrorDict | undefin
             // We don't need to do anything, but the GUI should not crash on this
             return undefined;
          }
-         var handled = error.response.data?.error?.handled
-         if (error.response.data.error.handled == false) {
+         if (error.response.data?.error?.handled == false) {
             // This is an error that conforms to the internal unhandled error format: ask the user what to do
             handleHTTPError(error);
          }
