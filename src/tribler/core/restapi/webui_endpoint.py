@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import mimetypes
 
@@ -20,25 +22,30 @@ class WebUIEndpoint(RESTEndpoint):
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.app.add_routes([web.get('/{path:.*}', self.return_files)])
+        self.app.add_routes([web.get("/{path:.*}", self.return_files)])
 
         self.webui_root = tribler.get_webui_root()
-        self.has_dist = (self.webui_root / 'dist').exists()
+        self.has_dist = (self.webui_root / "dist").exists()
         self.session = ClientSession() if not self.has_dist else None
 
-    async def return_files(self, request: web.Request) -> RESTResponse:
+    async def return_files(self, request: web.Request) -> RESTResponse | web.FileResponse:
         """
         Return the file at the requested path.
         """
-        path = request.match_info['path'] or 'index.html'
+        path = request.match_info["path"] or "index.html"
 
         if self.session:
-            async with self.session.get(f'http://localhost:5173/{path}') as response:
-                return web.Response(body=await response.read(), content_type=response.content_type)
+            async with self.session.get(f"http://localhost:5173/{path}") as client_response:
+                return RESTResponse(body=await client_response.read(), content_type=client_response.content_type)
         else:
-            resource = self.webui_root / 'dist' / path
+            resource = self.webui_root / "dist" / path
             response = web.FileResponse(resource)
-            response.content_type = 'application/javascript' if path.endswith('.tsx') else mimetypes.guess_type(path)[0]
+            if path.endswith(".tsx"):
+                response.content_type = "application/javascript"
+            elif (guessed_type := mimetypes.guess_type(path)[0]) is not None:
+                response.content_type = guessed_type
+            else:
+                response.content_type = "application/octet-stream"
             return response
 
     async def shutdown_task_manager(self) -> None:

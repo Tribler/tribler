@@ -400,17 +400,20 @@ class DownloadsEndpoint(RESTEndpoint):
         "uri*": (String, "The URI of the torrent file that should be downloaded. This URI can either represent a file "
                          "location, a magnet link or a HTTP(S) url."),
     }))
-    async def add_download(self, request: Request) -> RESTResponse:
+    async def add_download(self, request: Request) -> RESTResponse:  # noqa: C901
         """
         Start a download from a provided URI.
         """
         tdef = uri = None
         if request.content_type == 'applications/x-bittorrent':
-            params = dict(request.query.items())
-            if 'anon_hops' in params:
-                params['anon_hops'] = int(params['anon_hops'])
-            if 'safe_seeding' in params:
-                params['safe_seeding'] = params['safe_seeding'] != 'false'
+            params: dict[str, str | int | list[int]] = {}
+            for k, v in request.query.items():
+                if k == "anon_hops":
+                    params[k] = int(v)
+                elif k == "safe_seeding":
+                    params[k] = v != "false"
+                else:
+                    params[k] = v
             body = await request.read()
             metainfo = cast(dict[bytes, Any], lt.bdecode(body))
             packed_selected_files = cast(Optional[list[int]], metainfo.pop(b"selected_files", None))

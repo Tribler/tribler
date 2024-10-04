@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import socket
 from asyncio import BaseTransport, wait_for
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from aiohttp import TCPConnector
 from aiohttp.abc import AbstractResolver
 
 from tribler.core.socks5.client import Socks5Client, Socks5ClientUDPConnection
+
+if TYPE_CHECKING:
+    from aiohttp.abc import ResolveResult
 
 
 class FakeResolver(AbstractResolver):
@@ -15,7 +18,7 @@ class FakeResolver(AbstractResolver):
     Pretend to resolve an address. Just echo it back.
     """
 
-    async def resolve(self, host: str, port: int = 0, family: int = socket.AF_INET) -> list[dict[str, str | int]]:
+    async def resolve(self, host: str, port: int = 0, family: int = socket.AF_INET) -> list[ResolveResult]:
         """
         Resolve a host to itself.
         """
