@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState } from '@tanstack/react-table';
+import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
@@ -28,6 +28,7 @@ interface ReactTableProps<T extends object> {
     allowMultiSelect?: boolean;
     filters?: { id: string, value: string }[];
     maxHeight?: string | number;
+    expandable?: boolean;
 }
 
 function SimpleTable<T extends object>({
@@ -44,7 +45,8 @@ function SimpleTable<T extends object>({
     allowSelectCheckbox,
     allowMultiSelect,
     filters,
-    maxHeight
+    maxHeight,
+    expandable
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -52,25 +54,30 @@ function SimpleTable<T extends object>({
     });
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
+    const [expanded, setExpanded] = useState<ExpandedState>({});
 
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: !!pageSize ? getPaginationRowModel() : undefined,
+        getExpandedRowModel: expandable ? getExpandedRowModel() : undefined,
         enableRowSelection: true,
         pageCount,
         state: {
             pagination,
             rowSelection,
             columnFilters,
+            expanded
         },
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
         onPaginationChange: setPagination,
-        onRowSelectionChange: (arg) => {
+        onRowSelectionChange: (arg: SetStateAction<RowSelectionState>) => {
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
         },
+        onExpandedChange: setExpanded,
+        getSubRows: (row: any) => row?.subRows,
     });
 
     const { t } = useTranslation();
@@ -99,7 +106,7 @@ function SimpleTable<T extends object>({
     // For some reason the ScrollArea scrollbar is only shown when it's set to a specific height.
     // So, we wrap it in a parent div, monitor its size, and set the height of the table accordingly.
     const parentRef = useRef<HTMLTableElement>(null);
-    const parentRect = (!maxHeight) ? useResizeObserver({ref: parentRef}) : undefined;
+    const parentRect = (!maxHeight) ? useResizeObserver({ ref: parentRef }) : undefined;
 
     return (
         <>

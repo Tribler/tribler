@@ -10,6 +10,8 @@ import zh from 'javascript-time-ago/locale/zh'
 import Cookies from "js-cookie";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
+import { FileTreeItem } from "@/models/file.model";
+import { CheckedState } from "@radix-ui/react-checkbox";
 
 TimeAgo.setDefaultLocale(en.locale)
 TimeAgo.addLocale(en)
@@ -38,11 +40,15 @@ export function unhexlify(input: string) {
 export function getFilesFromMetainfo(metainfo: string) {
     const info = JSON.parse(unhexlify(metainfo))?.info || {};
     if (!info?.files) {
-        return [{ length: info.length, path: info.name }];
+        return {
+            files: [{ size: info.length, name: info.name, index: 0 }],
+            name: info.name
+        };
     }
-    return info.files.map((file: any) => (
-        { length: file.length, path: file.path.join('\\') }
-    ));
+    return {
+        files: info.files.map((file: any, i: number) => ({ size: file.length, name: file.path.join('\\'), index: i })),
+        name: info.name
+    };
 }
 
 export function getMagnetLink(infohash: string, name: string): string {
@@ -151,4 +157,71 @@ export function filterDuplicates(data: any[], key: string) {
         seen.add(item[key]);
         return !duplicate;
     });
+}
+
+export const filesToTree = (files: FileTreeItem[], defaultName = "root", separator: string = '\\') => {
+    if (files.length <= 1) {
+        if (files.length == 1 && files[0].included == undefined)
+            files[0].included = true;
+        return files;
+    }
+
+    let result: any[] = [];
+    let level = { result };
+
+    files.forEach(file => {
+        file.name.split(separator).reduce((r: any, name, i, a) => {
+            if (!r[name]) {
+                r[name] = { result: [] };
+                r.result.push({ included: true, ...file, name, subRows: r[name].result })
+            }
+            return r[name];
+        }, level)
+    })
+
+    files = [{
+        index: -1,
+        name: defaultName,
+        size: 1,
+        progress: 1,
+        included: true,
+        subRows: result,
+    }];
+    fixTreeProps(files[0]);
+    return files;
+}
+
+export const fixTreeProps = (tree: FileTreeItem): { size: number, downloaded: number, included: CheckedState | undefined } => {
+    if (tree.subRows && tree.subRows.length) {
+        tree.size = tree.downloaded = 0;
+        tree.included = undefined;
+        for (const item of tree.subRows) {
+            const { size, downloaded, included } = fixTreeProps(item);
+            tree.size += size;
+            tree.downloaded += downloaded;
+            if (tree.included !== undefined)
+                tree.included = tree.included == included ? included : 'indeterminate';
+            else
+                tree.included = included;
+        }
+        tree.progress = (tree.downloaded || 0) / tree.size;
+    }
+    return {
+        size: tree.size,
+        downloaded: tree.size * (tree.progress || 0),
+        included: tree.included
+    };
+}
+
+export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean = true) => {
+    const selectedFiles: number[] = [];
+    if (tree.subRows && tree.subRows.length) {
+        for (const item of tree.subRows) {
+            for (const i of getSelectedFilesFromTree(item, included))
+                selectedFiles.push(i);
+        }
+    }
+    else if (tree.included === included)
+        selectedFiles.push(tree.index);
+    return selectedFiles;
 }
