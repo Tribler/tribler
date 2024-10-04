@@ -19,7 +19,6 @@ from tribler.core.components import (
     RendezvousComponent,
     TorrentCheckerComponent,
     TunnelComponent,
-    UserActivityComponent,
     VersioningComponent,
 )
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -128,8 +127,7 @@ class Session:
         Register all IPv8 launchers that allow communities to be loaded.
         """
         for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
-                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent, UserActivityComponent,
-                               VersioningComponent]:
+                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent, VersioningComponent]:
             instance = launcher_class()
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
