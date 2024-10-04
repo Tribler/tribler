@@ -10,7 +10,6 @@ from pony.orm import Database, db_session
 
 from tribler.core.database.layers.health import HealthDataAccessLayer
 from tribler.core.database.layers.knowledge import KnowledgeDataAccessLayer
-from tribler.core.database.layers.user_activity import UserActivityLayer
 
 if TYPE_CHECKING:
     import dataclasses
@@ -52,7 +51,6 @@ class TriblerDatabase:
 
         self.knowledge = KnowledgeDataAccessLayer(self.instance)
         self.health = HealthDataAccessLayer(self.knowledge)
-        self.user_activity = UserActivityLayer(self.instance)
 
         self.Misc = self.define_binding(self.instance)
 
