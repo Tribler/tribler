@@ -136,16 +136,6 @@ class TunnelCommunityConfig(TypedDict):
     max_circuits: int
 
 
-class UserActivityConfig(TypedDict):
-    """
-    Settings for the user activity component.
-    """
-
-    enabled: bool
-    max_query_history: int
-    health_check_interval: float
-
-
 class TriblerConfig(TypedDict):
     """
     The main Tribler settings and all of its components' sub-settings.
@@ -163,7 +153,6 @@ class TriblerConfig(TypedDict):
     rendezvous: RendezvousConfig
     torrent_checker: TorrentCheckerConfig
     tunnel_community: TunnelCommunityConfig
-    user_activity: UserActivityConfig
     versioning: VersioningConfig
 
     state_dir: str
@@ -220,7 +209,6 @@ DEFAULT_CONFIG = {
     "rendezvous": RendezvousConfig(enabled=True),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
-    "user_activity": UserActivityConfig(enabled=True, max_query_history=500, health_check_interval=5.0),
     "versioning": VersioningConfig(enabled=True),
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),

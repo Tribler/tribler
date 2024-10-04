@@ -89,11 +89,6 @@ export interface Settings {
         min_circuits: number;
         max_circuits: number;
     },
-    user_activity: {
-        enabled: boolean;
-        max_query_history: number;
-        health_check_interval: number;
-    },
     state_dir: string;
     memory_db: boolean;
     ui: GuiSettings;
