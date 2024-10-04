@@ -110,6 +110,14 @@ class LibtorrentConfig(TypedDict):
     download_defaults: DownloadDefaultsConfig
 
 
+class RecommenderConfig(TypedDict):
+    """
+    Settings for the user recommender component.
+    """
+
+    enabled: bool
+
+
 class RendezvousConfig(TypedDict):
     """
     Settings for the rendezvous component.
@@ -150,6 +158,7 @@ class TriblerConfig(TypedDict):
     database: DatabaseConfig
     knowledge_community: KnowledgeCommunityConfig
     libtorrent: LibtorrentConfig
+    recommender: RecommenderConfig
     rendezvous: RendezvousConfig
     torrent_checker: TorrentCheckerConfig
     tunnel_community: TunnelCommunityConfig
@@ -206,6 +215,7 @@ DEFAULT_CONFIG = {
             channel_download=False,
             add_download_to_channel=False)
         ),
+    "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
