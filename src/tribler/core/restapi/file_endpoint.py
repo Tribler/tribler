@@ -51,13 +51,13 @@ class FileEndpoint(RESTEndpoint):
                                  "paths": paths})
 
         # Move up until we find a directory
-        path = Path(path).resolve()
-        while not path.is_dir():
-            path = path.parent
+        parent_path = Path(path).resolve()
+        while not parent_path.is_dir():
+            parent_path = parent_path.parent
 
         # Get all files/subdirs
         results = []
-        for file in path.iterdir():
+        for file in parent_path.iterdir():
             if not file.is_dir() and not show_files:
                 continue
             with contextlib.suppress(PermissionError):
@@ -68,11 +68,11 @@ class FileEndpoint(RESTEndpoint):
         # Get parent path (if available)
         results.insert(0, {
             "name": "..",
-            "path": str(path.parent.resolve()) if path != path.parent else "/",
+            "path": str(parent_path.parent.resolve()) if parent_path != parent_path.parent else "/",
             "dir": True,
         })
 
-        return RESTResponse({"current": str(path.resolve()),
+        return RESTResponse({"current": str(parent_path.resolve()),
                              "paths": results})
 
     async def list(self, request: web.Request) -> RESTResponse:

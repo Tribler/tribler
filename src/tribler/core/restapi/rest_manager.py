@@ -261,7 +261,7 @@ class RESTManager:
                                    str(e))
             raise
 
-        current_port = api_port or self.site._server.sockets[0].getsockname()[1]  # noqa: SLF001
+        current_port = api_port or cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
         self.config.set("api/http_port_running", current_port)
         self.config.write()
 
@@ -280,7 +280,7 @@ class RESTManager:
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
-        current_port = port or self.site_https._server.sockets[0].getsockname()[1]  # noqa: SLF001
+        current_port = port or cast(Server, self.site_https._server).sockets[0].getsockname()[1]  # noqa: SLF001
         self.config.set("api/https_port_running", current_port)
         self.config.write()
 
