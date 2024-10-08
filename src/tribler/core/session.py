@@ -5,6 +5,7 @@ import logging
 import sys
 from asyncio import AbstractEventLoop, Event
 from contextlib import contextmanager
+from traceback import format_exception
 from typing import TYPE_CHECKING, Any, Generator, Type, cast
 
 import aiohttp
@@ -16,6 +17,7 @@ from tribler.core.components import (
     DatabaseComponent,
     DHTDiscoveryComponent,
     KnowledgeComponent,
+    RecommenderComponent,
     RendezvousComponent,
     TorrentCheckerComponent,
     TunnelComponent,
@@ -127,7 +129,8 @@ class Session:
         Register all IPv8 launchers that allow communities to be loaded.
         """
         for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
-                               RendezvousComponent, TorrentCheckerComponent, TunnelComponent, VersioningComponent]:
+                               RecommenderComponent, RendezvousComponent, TorrentCheckerComponent, TunnelComponent,
+                               VersioningComponent]:
             instance = launcher_class()
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
@@ -156,6 +159,7 @@ class Session:
         Note: at this point the REST interface is available.
         Note2: ignored BaseExceptions are BaseExceptionGroup, GeneratorExit, KeyboardInterrupt and SystemExit
         """
+        logger.exception("Uncaught exception: %s", "".join(format_exception(typ, value, traceback)))
         if isinstance(value, Exception):
             cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(value)
 
@@ -168,6 +172,8 @@ class Session:
         """
         exc = context.get("exception")
         if isinstance(exc, Exception):
+            logger.exception("Uncaught async exception: %s",
+                             "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
             cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
             raise exc
 

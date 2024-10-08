@@ -20,6 +20,17 @@ from run_all_tests import (
     windows_missing_libsodium,
 )
 
+if platform.system() == "Darwin":
+    """
+    The unit tests on Mac lock up on multiprocess getaddrinfo calls. We establish the lan addresses once here before
+    spawning any children.
+
+    File "/Users/runner/hostedtoolcache/Python/3.9.20/x64/lib/python3.9/socket.py", line 966, in getaddrinfo
+|       for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+    """
+    from ipv8.messaging.interfaces.lan_addresses.interfaces import get_lan_addresses
+    get_lan_addresses()
+
 
 def task_tribler_test(*test_names: str) -> tuple[bool, int, float, list[tuple[str, str, str]], str]:
     """

@@ -139,7 +139,9 @@ export default function Search() {
                 <SaveAs
                     open={open}
                     onOpenChange={() => {
-                        setTorrentDoubleClicked(undefined)
+                        if (query !== null)
+                            triblerService.clickedResult(query, torrentDoubleClicked, torrents);
+                        setTorrentDoubleClicked(undefined);
                         setOpen(false);
                     }}
                     uri={getMagnetLink(torrentDoubleClicked.infohash, torrentDoubleClicked.name)}

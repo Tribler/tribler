@@ -282,6 +282,46 @@ class DHTDiscoveryComponent(BaseLauncher):
         session.rest_manager.get_endpoint("/api/ipv8").endpoints["/dht"].dht = community
 
 
+@precondition('session.config.get("recommender/enabled")')
+@overlay("tribler.core.recommender.community", "RecommenderCommunity")
+class RecommenderComponent(CommunityLauncherWEndpoints):
+    """
+    Launch instructions for the user recommender community.
+    """
+
+    def get_kwargs(self, session: Session) -> dict:
+        """
+        Create and forward the rendezvous database for the Community.
+        """
+        from tribler.core.recommender.manager import Manager
+
+        db_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "recommender.db")
+        if session.config.get("memory_db"):
+            db_path = ":memory:"
+
+        out = super().get_kwargs(session)
+        out["manager"] = Manager(db_path)
+
+        return out
+
+    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
+        """
+        When we are done launching, register our REST API.
+        """
+        from tribler.core.recommender.community import RecommenderCommunity
+
+        endpoint = session.rest_manager.get_endpoint("/api/recommender")
+        endpoint.manager = cast(RecommenderCommunity, community).manager
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the knowledge endpoint.
+        """
+        from tribler.core.recommender.restapi.endpoint import RecommenderEndpoint
+
+        return [*super().get_endpoints(), RecommenderEndpoint()]
+
+
 @set_in_session("tunnel_community")
 @precondition('session.config.get("tunnel_community/enabled")')
 @after("DHTDiscoveryComponent")

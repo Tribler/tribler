@@ -375,6 +375,24 @@ export class TriblerService {
         }
     }
 
+    // Recommender
+
+    async clickedResult(query: string, clicked: Torrent, results: Torrent[]): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put(`/recommender/clicked`, {
+                        query: query,
+                        chosen_index: results.findIndex((e) => e.infohash == clicked.infohash),
+                        results: results.map((x) => { return {
+                            infohash: x.infohash,
+                            seeders: x.num_seeders,
+                            leechers: x.num_leechers
+                        };})
+                    })).data.added;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     // Misc
 
     async browseFiles(path: string, showFiles: boolean): Promise<undefined | ErrorDict | { current: string, paths: Path[] }> {
