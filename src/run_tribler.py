@@ -1,22 +1,67 @@
 from __future__ import annotations
 
-import argparse
-import asyncio
-import encodings.idna  # noqa: F401 (https://github.com/pyinstaller/pyinstaller/issues/1113)
-import logging.config
-import os
 import sys
-import threading
-import typing
-import webbrowser
-from pathlib import Path
+import traceback
 
-from aiohttp import ClientSession
-from PIL import Image
 
-import tribler
-from tribler.core.session import Session
-from tribler.tribler_config import VERSION_SUBDIR, TriblerConfigManager
+def show_error(exc: Exception, shutdown: bool = True) -> None:
+    """
+    Create a native pop-up without any third party dependency.
+
+    :param exc: the error to show to the user
+    :param shutdown: whether to shut down after showing the error
+    """
+    title = f"A {exc.__class__.__name__} occurred"
+    text = "\n\n".join([str(a) for a in exc.args])
+    sep = "*" * 80
+
+    print('\n'.join([sep, title, sep, traceback.format_exc(), sep]), file=sys.stderr)  # noqa: T201, FLY002
+    try:
+        if sys.platform == 'win32':
+            import win32api
+
+            win32api.MessageBox(0, text, title)
+        elif sys.platform == 'Linux':
+            import subprocess
+
+            subprocess.Popen(['xmessage', '-center', text])  # noqa: S603, S607
+        elif sys.platform == 'Darwin':
+            import subprocess
+
+            subprocess.Popen(['/usr/bin/osascript', '-e', text])  # noqa: S603
+        else:
+            print(f'cannot create native pop-up for system {sys.platform}')  # noqa: T201
+    except Exception as exception:
+        # Use base Exception, because code above can raise many
+        # non-obvious types of exceptions:
+        # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
+        print(f'Error while showing a message box: {exception}')  # noqa: T201
+
+    if shutdown:
+        sys.exit(1)
+
+
+try:
+    import argparse
+    import asyncio
+    import encodings.idna  # noqa: F401 (https://github.com/pyinstaller/pyinstaller/issues/1113)
+    import logging.config
+    import os
+    import sys
+    import threading
+    import typing
+    import webbrowser
+    from pathlib import Path
+
+    from aiohttp import ClientSession
+    from PIL import Image
+
+    import tribler
+    from tribler.core.session import Session
+    from tribler.tribler_config import VERSION_SUBDIR, TriblerConfigManager
+
+except Exception as e:
+    show_error(e)
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +111,7 @@ async def start_download(config: TriblerConfigManager, server_url: str, torrent_
         else:
             logger.warning("Failed to start torrent %s: %s", torrent_uri, await response.text())
 
+
 def init_config(parsed_args: Arguments) -> TriblerConfigManager:
     """
     Add environment variables to the configuration.
@@ -92,36 +138,49 @@ def init_config(parsed_args: Arguments) -> TriblerConfigManager:
         config.write()
     return config
 
-async def main() -> None:
-    """
-    The main script entry point.
-    """
-    parsed_args = parse_args()
-    config = init_config(parsed_args)
 
-    logger.info("Creating session. API port: %d. API key: %s.", config.get("api/http_port"), config.get("api/key"))
-    session = Session(config)
-
+def load_torrent_uri(parsed_args: Arguments) -> str | None:
+    """
+    Loads the torrent URI.
+    """
     torrent_uri = parsed_args.get('torrent')
     if torrent_uri and os.path.exists(torrent_uri):
         if torrent_uri.endswith(".torrent"):
             torrent_uri = Path(torrent_uri).as_uri()
         if torrent_uri.endswith(".magnet"):
             torrent_uri = Path(torrent_uri).read_text()
-    server_url = await session.find_api_server()
+    return torrent_uri
 
-    headless = parsed_args.get('server')
-    if server_url:
-        logger.info("Core already running at %s", server_url)
-        if torrent_uri:
-            logger.info("Starting torrent using existing core")
-            await start_download(config, server_url, torrent_uri)
-        if not headless:
-            webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
-        logger.info("Shutting down")
-        return
 
-    await session.start()
+async def main() -> None:
+    """
+    The main script entry point.
+    """
+    try:
+        parsed_args = parse_args()
+        config = init_config(parsed_args)
+
+        logger.info("Creating session. API port: %d. API key: %s.", config.get("api/http_port"), config.get("api/key"))
+        session = Session(config)
+
+        torrent_uri = load_torrent_uri(parsed_args)
+        server_url = await session.find_api_server()
+
+        headless = parsed_args.get('server')
+        if server_url:
+            logger.info("Core already running at %s", server_url)
+            if torrent_uri:
+                logger.info("Starting torrent using existing core")
+                await start_download(config, server_url, torrent_uri)
+            if not headless:
+                webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
+            logger.info("Shutting down")
+            return
+
+        await session.start()
+    except Exception as exc:
+        show_error(exc)
+
     server_url = await session.find_api_server()
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
