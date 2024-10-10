@@ -17,7 +17,7 @@ class TorrentInfoFormat(VariablePayload):
     """
 
     format_list = ["20s", "I", "I", "Q"]
-    names = ["infohash", "seeders", " leechers", "timestamp"]
+    names = ["infohash", "seeders", "leechers", "timestamp"]
     length = 36
 
     infohash: bytes
