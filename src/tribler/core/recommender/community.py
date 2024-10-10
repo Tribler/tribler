@@ -68,16 +68,17 @@ def create_crawl_query_info(query_id: int) -> dict:
     }
 
 
-def create_crawl_query_info_response(query_id: int, results: int, chosen_index: int, query: str) -> dict:
+def create_crawl_query_info_response(query_id: int, timestamp: int, results: int, chosen_index: int, query: str) -> dict:
     """
     A response with the number of available results for the query with the id ``query_id``.
     """
     return {
-        "version": 0,
+        "version": 1,
         "type": "query_info",
         "query_id": query_id,
         "results": results,
         "chosen_index": chosen_index,
+        "timestamp": timestamp,
         "query": query
     }
 
@@ -176,7 +177,8 @@ class RecommenderCommunity(Community):
             query_id=query.rowid,
             results=len(unpacked["results"]),
             chosen_index=unpacked["chosen_index"],
-            query=unpacked["query"]
+            timestamp=unpacked.get("timestamp", 0),
+            query=unpacked["query"],
         )), b""))
 
     @lazy_wrapper(Crawl)
@@ -220,6 +222,7 @@ class PartialQueryCache(NumberCache):
         self.total_results = response["results"]
         self.results: list[ResultItem | None] = [None] * self.total_results
         self.chosen_index = response["chosen_index"]
+        self.timestamp = response.get("timestamp", 0)
         self.query = response["query"]
 
     def get_next_range(self) -> tuple[int, int] | None:
@@ -300,7 +303,7 @@ class RecommenderCommunityCrawler(RecommenderCommunity):
                 self.crawl_history[peer_mid] = (max_id, missing)
 
     def finalize_query(self, peer: Peer, query_id: int, query: str, chosen_index: int,
-                       results: list[ResultItem]) -> None:
+                       timestamp: int, results: list[ResultItem]) -> None:
         """
         Update self.crawl_history and write the results to a file.
         """
@@ -308,6 +311,7 @@ class RecommenderCommunityCrawler(RecommenderCommunity):
         os.makedirs(query_dir, exist_ok=True)
         json_dict = {
             "query": query,
+            "timestamp": timestamp,
             "chosen_index": chosen_index,
             "results": results
         }
@@ -356,7 +360,7 @@ class RecommenderCommunityCrawler(RecommenderCommunity):
 
         if next_range is None:
             self.logger.info("Query %d is empty for %s.", response["query_id"], str(peer))
-            self.finalize_query(peer, cache.query_id, cache.query, cache.chosen_index, [])
+            self.finalize_query(peer, cache.query_id, cache.query, cache.chosen_index, cache.timestamp, [])
         else:
             self.request_cache.add(cache)
             self.ez_send(peer, Crawl(peer.mid, self.json_pack(create_crawl_fragment(
@@ -375,7 +379,7 @@ class RecommenderCommunityCrawler(RecommenderCommunity):
 
         if next_range is None:
             self.logger.info("Query %d has completed for %s.", response["query_id"], str(peer))
-            self.finalize_query(peer, cache.query_id, cache.query, cache.chosen_index,
+            self.finalize_query(peer, cache.query_id, cache.query, cache.chosen_index, cache.timestamp,
                                 cast(list[ResultItem] , cache.results))
         else:
             self.request_cache.add(cache)  # Reset the two-minute timer
