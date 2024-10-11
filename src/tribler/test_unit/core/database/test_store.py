@@ -210,3 +210,18 @@ class TestMetadataStore(TestBase[MockCommunity]):
         self.assertEqual(20, ordered1.size)
         self.assertEqual(10, ordered2.size)
         self.assertEqual(1, ordered3.size)
+
+    @db_session
+    def test_get_entries_query_deprecated(self) -> None:
+        """
+        Test if the get entries query ignores invalid arguments.
+        """
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xab" * 20, "title": "abc", "size": 20})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xcd" * 20, "title": "def", "size": 1})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xef" * 20, "title": "ghi", "size": 10})
+
+        ordered1, ordered2, ordered3 = self.metadata_store.get_entries_query(sort_by="size", sort_desc=True,
+                                                                             exclude_deleted="1")[:]
+        self.assertEqual(20, ordered1.size)
+        self.assertEqual(10, ordered2.size)
+        self.assertEqual(1, ordered3.size)

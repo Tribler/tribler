@@ -548,13 +548,17 @@ class MetadataStore:
             self_checked_torrent: bool | None = None,
             health_checked_after: int | None = None,
             popular: bool | None = None,
+            **kwargs
     ) -> Query:
         """
         This method implements REST-friendly way to get entries from the database.
 
+        Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
+
         :return: PonyORM query object corresponding to the given params.
         """
-        # Warning! For Pony magic to work, iteration variable name (e.g. 'g') should be the same everywhere!
+        if kwargs:
+            self._logger.info("get_entries_query got ignored kwargs: %s", ", ".join(kwargs.keys()))
 
         if txt_filter:
             pony_query = self.search_keyword(txt_filter, origin_id=origin_id)
