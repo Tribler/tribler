@@ -149,7 +149,8 @@ def create_torrent_file(file_path_list: list[Path], params: InfoDict,  # noqa: C
         fs.add_file(str(relative), getsize(str(path)))
 
     piece_size = params[b"piece length"] if params.get(b"piece length") else 0
-    flags = lt.create_torrent_flags_t.optimize
+    flag_v1_only = 2**6  # Backward compatibility for libtorrent < 2.x
+    flags = lt.create_torrent_flags_t.optimize | flag_v1_only
     params = {k: (v.decode() if isinstance(v, bytes) else v) for k, v in params.items()}
 
     torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
