@@ -65,7 +65,7 @@ jobs:
       - name: Set commit pending status
         uses: guibranco/github-status-action-v2@v1.1.13
         with:
-          authToken: ${{secrets.GITHUB_TOKEN}}
+          authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
           description: 'Pending..'
           state: 'pending'
@@ -82,7 +82,7 @@ jobs:
           actual_pull_head: ${{needs.set_pending_status.outputs.actual_pull_head}}
         uses: guibranco/github-status-action-v2@v1.1.13
         with:
-          authToken: ${{secrets.GITHUB_TOKEN}}
+          authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
           description: 'Failed!'
           state: 'failure'
@@ -99,7 +99,7 @@ jobs:
           actual_pull_head: ${{needs.set_pending_status.outputs.actual_pull_head}}
         uses: guibranco/github-status-action-v2@v1.1.13
         with:
-          authToken: ${{secrets.GITHUB_TOKEN}}
+          authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
           description: 'Success!'
           state: 'success'
