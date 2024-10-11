@@ -37,7 +37,7 @@ jobs:
           cd src
           python run_unit_tests.py -a
   macos:
-    runs-on: macos-12
+    runs-on: macos-14
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
@@ -47,9 +47,12 @@ jobs:
         with:
           python-version: '3.9'
           cache: 'pip'
+      - shell: bash
+        run: |
+          cp /opt/homebrew/opt/libsodium/lib/libsodium.dylib /Library/Frameworks/Python.framework/Versions/3.9/lib/libsodium.dylib
+          sed -i".backup" 's|libtorrent==1.2.19|https://tribler.org/libtorrent-2.0.11-cp39-cp39-macosx_14_0_arm64.whl|' requirements.txt
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: |
           cd src
           python run_unit_tests.py -a
-

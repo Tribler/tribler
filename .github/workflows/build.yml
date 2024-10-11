@@ -4,7 +4,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-12, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
 
     runs-on: ${{ matrix.os }}
 
