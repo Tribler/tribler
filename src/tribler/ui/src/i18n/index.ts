@@ -7,7 +7,7 @@ i18n
     .use(HttpBackend)
     .use(initReactI18next)
     .init({
-        supportedLngs: ['en_US', 'es_ES', 'pt_BR', 'ru_RU', 'zh_CN'],
+        supportedLngs: ['en_US', 'es_ES', 'pt_BR', 'ru_RU', 'zh_CN', 'ko_KR'],
         lng: triblerService.guiSettings.lang,
         fallbackLng: 'en_US',
         interpolation: {
