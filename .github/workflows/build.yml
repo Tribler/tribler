@@ -98,6 +98,7 @@ jobs:
         run: |
           sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
+          mv build/debian/tribler_${GITHUB_TAG}_all.deb build/debian/tribler_${GITHUB_TAG}_amd64.deb
       - name: Build Executables (MacOS-12)
         if: matrix.os == 'macos-12'
         run: |
