@@ -56,6 +56,19 @@ TORRENT_WITH_DIRS_CONTENT = (
     b'e'
 )
 
+
+TORRENT_WITH_VIDEO = (
+    b'd'
+        b'4:infod'
+            b'6:lengthi10e'
+            b'4:name13:somevideo.mp4'
+            b'12:piece lengthi524288e'
+            b'6:pieces10:\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'
+        b'e'
+    b'e'
+)
+
+
 TORRENT_WITH_DIRS = libtorrent.torrent_info(libtorrent.bdecode(TORRENT_WITH_DIRS_CONTENT))
 """
 Torrent structure:
