@@ -3,7 +3,6 @@ Keep this text for the test_stream test.
 """
 from __future__ import annotations
 
-from asyncio import ensure_future, sleep
 from binascii import hexlify
 from io import StringIO
 from pathlib import Path
@@ -21,7 +20,7 @@ from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
 from tribler.test_unit.base_restapi import BodyCapture, MockRequest, response_to_bytes, response_to_json
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT
+from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
 from tribler.tribler_config import TriblerConfigManager
 
 
@@ -269,7 +268,9 @@ class StreamRequest(MockRequest):
     A MockRequest that mimics StreamRequests.
     """
 
-    def __init__(self, query: dict, infohash: str, fileindex: int) -> None:
+    __slots__ = ['http_range']
+
+    def __init__(self, query: dict, infohash: str, fileindex: int, **kwargs) -> None:
         """
         Create a new StreamRequest.
         """
@@ -277,6 +278,7 @@ class StreamRequest(MockRequest):
         self._infohash = infohash
         self._fileindex = fileindex
         self._payload_writer = BodyCapture()
+        self.http_range = Mock(**kwargs)
 
     def get_transmitted(self) -> bytes:
         """
@@ -413,7 +415,6 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual(0, response_body_json["downloads"][0]["total_pieces"])
         self.assertEqual(0, response_body_json["downloads"][0]["all_time_upload"])
         self.assertEqual([], response_body_json["downloads"][0]["trackers"])
-        self.assertIsNone(response_body_json["downloads"][0]["vod_mode"])
         self.assertEqual(1, response_body_json["checkpoints"]["total"])
         self.assertEqual(1, response_body_json["checkpoints"]["loaded"])
         self.assertTrue(response_body_json["checkpoints"]["all_loaded"])
@@ -633,106 +634,6 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
         self.assertEqual("this download does not exist", response_body_json["error"])
-
-    async def test_update_download_bad_vod_mode(self) -> None:
-        """
-        Test if a graceful error is returned when the vod mode parameter is garbage.
-        """
-        self.download_manager.get_download = Mock(return_value=Mock())
-
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"vod_mode": "bla"}, "01" * 20))
-        response_body_json = await response_to_json(response)
-
-        self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("vod_mode must be bool flag", response_body_json["error"])
-
-    async def test_update_download_vod_mode_no_fileindex(self) -> None:
-        """
-        Test if a download can be turned into a VOD download.
-        """
-        download = self.create_mock_download()
-        self.download_manager.get_download = Mock(return_value=download)
-
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"vod_mode": True}, "01" * 20))
-        response_body_json = await response_to_json(response)
-
-        self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("fileindex is necessary to enable vod_mode", response_body_json["error"])
-
-    async def test_update_download_vod_mode_enable(self) -> None:
-        """
-        Test if a download can be turned into a VOD download.
-        """
-        download = self.create_mock_download()
-        self.download_manager.get_download = Mock(return_value=download)
-
-        with patch("tribler.core.libtorrent.download_manager.stream.Stream.enable", AsyncMock()):
-            response = await self.endpoint.update_download(UpdateDownloadRequest({"vod_mode": True,
-                                                                                  "fileindex": 0},
-                                                                                 "01" * 20))
-        response_body_json = await response_to_json(response)
-        download.stream.close()
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress"])
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress_consec"])
-        self.assertEqual(0, response_body_json["vod_header_progress"])
-        self.assertEqual(0, response_body_json["vod_footer_progress"])
-        self.assertFalse(response_body_json["vod_mode"])
-        self.assertEqual("01" * 20, response_body_json["infohash"])
-        self.assertTrue(response_body_json["modified"])
-
-    async def test_update_download_vod_mode_reenable(self) -> None:
-        """
-        Test if a VOD download can be turned into still a VOD download.
-        """
-        download = self.create_mock_download()
-        download.stream = Stream(download)
-        self.download_manager.get_download = Mock(return_value=download)
-
-        with patch("tribler.core.libtorrent.download_manager.stream.Stream.enable", AsyncMock()):
-            response = await self.endpoint.update_download(UpdateDownloadRequest({"vod_mode": True,
-                                                                                  "fileindex": 0},
-                                                                                 "01" * 20))
-        response_body_json = await response_to_json(response)
-        download.stream.close()
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress"])
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress_consec"])
-        self.assertEqual(0, response_body_json["vod_header_progress"])
-        self.assertEqual(0, response_body_json["vod_footer_progress"])
-        self.assertFalse(response_body_json["vod_mode"])
-        self.assertEqual("01" * 20, response_body_json["infohash"])
-        self.assertTrue(response_body_json["modified"])
-
-    async def test_update_download_vod_mode_disable(self) -> None:
-        """
-        Test if a VOD download can be turned into a normal download.
-        """
-        download = self.create_mock_download()
-        download.handle = Mock(is_valid=Mock(return_value=False))
-        download.stream = Stream(download)
-        download.stream.infohash = b"\x01" * 20
-        download.stream.fileindex = 0
-        self.download_manager.get_download = Mock(return_value=download)
-
-        with patch("tribler.core.libtorrent.download_manager.stream.Stream.enable", AsyncMock()):
-            response = await self.endpoint.update_download(UpdateDownloadRequest({"vod_mode": False,
-                                                                                  "fileindex": 0},
-                                                                                 "01" * 20))
-        response_body_json = await response_to_json(response)
-        download.stream.close()
-
-        self.assertEqual(200, response.status)
-        self.assertIsNone(download.stream.fileindex)
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress"])
-        self.assertEqual(0, response_body_json["vod_prebuffering_progress_consec"])
-        self.assertEqual(0, response_body_json["vod_header_progress"])
-        self.assertEqual(0, response_body_json["vod_footer_progress"])
-        self.assertFalse(response_body_json["vod_mode"])
-        self.assertEqual("01" * 20, response_body_json["infohash"])
-        self.assertTrue(response_body_json["modified"])
 
     async def test_update_download_anon_hops_garbage(self) -> None:
         """
@@ -1172,15 +1073,16 @@ class TestDownloadsEndpoint(TestBase):
         download.stream.infohash = b"\x01" * 20
         download.stream.fileindex = 0
         download.stream.filesize = 0
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
         self.download_manager.get_download = Mock(return_value=download)
 
+        request = StreamRequest({}, "01" * 20, 0, start=100, stop=200)
         with patch("tribler.core.libtorrent.download_manager.stream.Stream.enable", AsyncMock()):
-            response = await self.endpoint.stream(StreamRequest({}, "01" * 20, 0))
-        response_body_bytes = await response_to_bytes(response)
-        download.stream.close()
+            response = await self.endpoint.stream(request)
+            await response.prepare(request)
 
         self.assertEqual(416, response.status)
-        self.assertEqual(b"Requested Range Not Satisfiable", response_body_bytes)
+        self.assertEqual("Requested Range Not Satisfiable", response.reason)
 
     async def test_stream(self) -> None:
         """
@@ -1202,15 +1104,13 @@ class TestDownloadsEndpoint(TestBase):
         download.stream.prebuffsize = 0
         download.stream.enable = AsyncMock()
         download.lt_status = Mock(pieces=[True])
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
         self.download_manager.get_download = Mock(return_value=download)
 
-        request = StreamRequest({}, "01" * 20, 0)
+        request = StreamRequest({}, "01" * 20, 0, start=0, stop=1)
         with patch("tribler.core.libtorrent.download_manager.stream.Stream.enable", AsyncMock()):
-            response_future = ensure_future(self.endpoint.stream(request))
-            while not request.get_transmitted():
-                await sleep(0)
-            request.transport.closing = True
-            response = await response_future
+            response = await self.endpoint.stream(request)
+            await response.prepare(request)
 
         self.assertEqual(206, response.status)
         self.assertEqual(b'"', request.get_transmitted())
