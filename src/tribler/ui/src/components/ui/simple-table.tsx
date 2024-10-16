@@ -1,6 +1,6 @@
 import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel } from '@tanstack/react-table';
+import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
 import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
@@ -60,6 +60,7 @@ function SimpleTable<T extends object>({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
         getPaginationRowModel: !!pageSize ? getPaginationRowModel() : undefined,
         getExpandedRowModel: expandable ? getExpandedRowModel() : undefined,
         enableRowSelection: true,
