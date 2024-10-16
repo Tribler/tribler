@@ -158,7 +158,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
             infohash = infohashes[0] ?? "";
 
         // Don't bother the user on error, just try again later.
-        const response = await triblerService.getDownloads(infohash, !!infohash, !!infohash);
+        const response = await triblerService.getDownloads(infohash, !!infohash, !!infohash, !!infohash);
         if (response !== undefined && !isErrorDict(response)) {
             setDownloads(response.filter((download: Download) => {
                 return statusFilter.includes(download.status_code);
