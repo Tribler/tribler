@@ -284,7 +284,7 @@ class DHTDiscoveryComponent(BaseLauncher):
 
 @precondition('session.config.get("recommender/enabled")')
 @overlay("tribler.core.recommender.community", "RecommenderCommunity")
-class RecommenderComponent(CommunityLauncherWEndpoints):
+class RecommenderComponent(BaseLauncher):
     """
     Launch instructions for the user recommender community.
     """
