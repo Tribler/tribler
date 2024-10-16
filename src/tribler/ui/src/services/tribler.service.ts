@@ -48,9 +48,9 @@ export class TriblerService {
 
     // Downloads
 
-    async getDownloads(infohash: string = '', getPeers: boolean = false, getPieces: boolean = false): Promise<undefined | ErrorDict | Download[]> {
+    async getDownloads(infohash: string = '', getPeers: boolean = false, getPieces: boolean = false, getAvailability: boolean = false): Promise<undefined | ErrorDict | Download[]> {
         try {
-            return (await this.http.get(`/downloads?infohash=${infohash}&get_peers=${+getPeers}&get_pieces=${+getPieces}`)).data.downloads;
+            return (await this.http.get(`/downloads?infohash=${infohash}&get_peers=${+getPeers}&get_pieces=${+getPieces}&get_availability=${+getAvailability}`)).data.downloads;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
