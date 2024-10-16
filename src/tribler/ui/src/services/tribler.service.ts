@@ -382,6 +382,7 @@ export class TriblerService {
             return (await this.http.put(`/recommender/clicked`, {
                         query: query,
                         chosen_index: results.findIndex((e) => e.infohash == clicked.infohash),
+                        timestamp: Date.now(),
                         results: results.map((x) => { return {
                             infohash: x.infohash,
                             seeders: x.num_seeders,

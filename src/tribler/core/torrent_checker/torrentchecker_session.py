@@ -283,7 +283,7 @@ class UdpTrackerSession(TrackerSession):
     # A list of transaction IDs that have been used in order to avoid conflict.
     _active_session_dict: dict[UdpTrackerSession, int] = {}
 
-    def __init__(self, tracker_url: str, tracker_address: tuple[str, int], announce_page: str,  # noqa: PLR0913
+    def __init__(self, tracker_url: str, tracker_address: tuple[str, int], announce_page: str,
                  timeout: float, proxy: tuple, socket_mgr: UdpSocketManager) -> None:
         """
         Create a session for UDP trackers.
