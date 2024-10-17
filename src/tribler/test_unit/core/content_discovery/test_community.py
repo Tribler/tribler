@@ -5,12 +5,13 @@ import sys
 from binascii import hexlify
 from typing import TYPE_CHECKING, cast
 from unittest import skipIf
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 from ipv8.messaging.payload import IntroductionRequestPayload, NewIntroductionRequestPayload
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import MockEndpointListener
 
+import tribler
 from tribler.core.content_discovery.community import ContentDiscoveryCommunity, ContentDiscoverySettings
 from tribler.core.content_discovery.payload import (
     PopularTorrentsRequest,
@@ -205,7 +206,20 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         message, = received
 
         self.assertEqual(sys.platform, message.platform)
-        self.assertEqual("Tribler Experimental", message.version)
+        self.assertEqual("Tribler git", message.version)
+
+    async def test_request_for_version_build(self) -> None:
+        """
+        Test if a build version request is responded to.
+        """
+        with patch.dict(tribler.core.content_discovery.community.__dict__, {"version": lambda _: "1.2.3"}), \
+                self.assertReceivedBy(0, [VersionResponse]) as received:
+            self.overlay(0).ez_send(self.peer(1), VersionRequest())
+            await self.deliver_messages()
+        message, = received
+
+        self.assertEqual(sys.platform, message.platform)
+        self.assertEqual("Tribler 1.2.3", message.version)
 
     def test_search_for_tags_no_db(self) -> None:
         """

@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import libtorrent as lt
@@ -114,7 +115,11 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if parameters.get("export_dir"):
             export_dir = Path(parameters["export_dir"])
 
-        params["created by"] = "Tribler version: Tribler Experimental"
+        try:
+            v = version("tribler")
+        except PackageNotFoundError:
+            v = "git"
+        params["created by"] = f"Tribler version: {v}"
         params["nodes"] = False
         params["httpseeds"] = False
         params["encoding"] = False

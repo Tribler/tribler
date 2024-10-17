@@ -4,6 +4,7 @@ import json
 import time
 from asyncio import CancelledError, Event, Future, Queue
 from contextlib import suppress
+from importlib.metadata import PackageNotFoundError, version
 from traceback import format_exception
 from typing import TYPE_CHECKING, TypedDict
 
@@ -103,9 +104,13 @@ class EventsEndpoint(RESTEndpoint):
         """
         Create the initial message to announce to the GUI.
         """
+        try:
+            v = version("tribler")
+        except PackageNotFoundError:
+            v = "git"
         return {
             "topic": Notification.events_start.value.name,
-            "kwargs": {"public_key": self.public_key or "", "version": "Tribler Experimental"}
+            "kwargs": {"public_key": self.public_key or "", "version": v}
         }
 
     def error_message(self, reported_error: Exception) -> MessageDict:
