@@ -6,6 +6,7 @@ import sys
 import time
 import uuid
 from binascii import hexlify, unhexlify
+from importlib.metadata import PackageNotFoundError, version
 from itertools import count
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
@@ -254,7 +255,11 @@ class ContentDiscoveryCommunity(Community):
         """
         Callback for when our Tribler version and Operating System is requested.
         """
-        version_response = VersionResponse("Tribler Experimental", sys.platform)
+        try:
+            v = version("tribler")
+        except PackageNotFoundError:
+            v = "git"
+        version_response = VersionResponse(f"Tribler {v}", sys.platform)
         self.ez_send(peer, version_response)
 
     @lazy_wrapper(VersionResponse)

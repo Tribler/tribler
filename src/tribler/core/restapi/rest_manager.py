@@ -5,6 +5,7 @@ import ssl
 import traceback
 from asyncio.base_events import Server
 from functools import wraps
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable, Generic, TypeVar, cast
 
@@ -210,13 +211,17 @@ class RESTManager:
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
         self._logger.info("Starting RESTManager...")
+        try:
+            v = version("tribler")
+        except PackageNotFoundError:
+            v = "git"
 
         # Not using setup_aiohttp_apispec here, as we need access to the APISpec to set the security scheme
         aiohttp_apispec = AiohttpApiSpec(
             url="/docs/swagger.json",
             app=self.root_endpoint.app,
             title="Tribler REST API documentation",
-            version="Tribler Experimental",
+            version=f"Tribler {v}",
             swagger_path="/docs"
         )
         if self.config.get("api/key"):
