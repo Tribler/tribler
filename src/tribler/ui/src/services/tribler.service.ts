@@ -220,7 +220,7 @@ export class TriblerService {
 
     // Torrents / search
 
-    async getMetainfo(uri: string): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean}> {
+    async getMetainfo(uri: string): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean, valid_certificate: boolean}> {
         try {
             return (await this.http.get(`/torrentinfo?uri=${uri}`)).data;
         } catch (error) {

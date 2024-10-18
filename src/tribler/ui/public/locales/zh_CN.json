@@ -100,6 +100,7 @@
     "Download": "下载",
     "Cancel": "取消",
     "LoadingTorrent": "正在载入种子文件 {{method, string}}……",
+    "HTTPSCertificateInvalid": "服务器的 HTTPS 证书无效！\n攻击者可能给您提供了错误的种子。",
     "anonymously": "匿名",
     "directly": "直接",
     "MagnetDialogInputLabel": "请在下面字段输入 URL/磁力链接：",

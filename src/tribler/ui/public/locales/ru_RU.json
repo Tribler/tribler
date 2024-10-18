@@ -101,6 +101,7 @@
     "Download": "Входящий",
     "Cancel": "Отмена",
     "LoadingTorrent": "Загружаем список файлов торрента {{method, string}}...",
+    "HTTPSCertificateInvalid": "Сервер имеет недействительный сертификат HTTPS!\nЗлоумышленник мог предоставить вам неправильный торрент.",
     "anonymously": "анонимно",
     "directly": "напрямую",
     "MagnetDialogInputLabel": "Пожалуйста, введите URL/magnet-ссылку в поле ниже:",

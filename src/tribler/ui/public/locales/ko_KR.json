@@ -98,6 +98,7 @@
     "Download": "내려받기",
     "Cancel": "취소",
     "LoadingTorrent": "토렌트 파일 {{method, string}}을(를) 불러오는 중...",
+    "HTTPSCertificateInvalid": "서버에 잘못된 HTTPS 인증서가 있습니다!\n공격자가 잘못된 토렌트를 제공했을 수도 있습니다.",
     "anonymously": "무기명",
     "directly": "직접",
     "MagnetDialogInputLabel": "아래에 URL/마그넷 링크를 입력 :",

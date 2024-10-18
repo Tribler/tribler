@@ -4,8 +4,9 @@ from binascii import unhexlify
 from ssl import SSLError
 from unittest.mock import AsyncMock, Mock, patch
 
-from aiohttp import ClientConnectorError, ClientResponseError, ServerConnectionError
+from aiohttp import ClientConnectorCertificateError, ClientConnectorError, ClientResponseError, ServerConnectionError
 from ipv8.test.base import TestBase
+from ipv8.util import succeed
 
 import tribler
 from tribler.core.libtorrent.download_manager.download_manager import MetainfoLookup
@@ -351,6 +352,28 @@ class TestTorrentInfoEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("test", response_body_json["error"])
+
+    async def test_get_torrent_info_https_certificate_error(self) -> None:
+        """
+        Test if it is returned that an invalid certificate for an HTTPS request was used.
+        """
+        async def server_response(_: str, valid_cert: bool = True) -> bytes:
+            """
+            Pretend that the request causes a certificate error in strict "valid_cert" mode.
+            """
+            if valid_cert:
+                raise ClientConnectorCertificateError(None, RuntimeError("Invalid certificate test error!"))
+            return await succeed(b"d4:infod6:lengthi0eee")
+        with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
+                        {"unshorten": mock_unshorten}), \
+                patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
+                      server_response):
+            response = await self.endpoint.get_torrent_info(GetTorrentInfoRequest({"hops": 0,
+                                                                                   "uri": "https://127.0.0.1/file"}))
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertFalse(response_body_json["valid_certificate"])
 
     async def test_get_torrent_info_http_no_metainfo(self) -> None:
         """

@@ -16,7 +16,7 @@ import { Settings } from "@/models/settings.model";
 import { useTranslation } from "react-i18next";
 import { TFunction } from 'i18next';
 import { PathInput } from "@/components/path-input";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { FileTreeItem } from "@/models/file.model";
 
 
@@ -95,6 +95,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
     const [settings, setSettings] = useState<Settings | undefined>();
     const [error, setError] = useState<string | undefined>();
+    const [warning, setWarning] = useState<string | undefined>();
     const [exists, setExists] = useState<boolean>(false);
     const [files, setFiles] = useState<FileTreeItem[]>([]);
 
@@ -164,6 +165,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 setFiles(files);
                 setParams((prev) => ({ ...prev, selected_files: getSelectedFilesFromTree(files[0]) }));
                 setExists(!!response.download_exists);
+                setWarning((!('valid_certificate' in response) || (response.valid_certificate == true)) ? undefined : t("HTTPSCertificateInvalid"));
             }
         }
         reload();
@@ -268,6 +270,12 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                     </label>
                 </div>
                 <DialogFooter>
+                    {warning && (
+                        <div className="flex flex-row text-muted-foreground space-x-2">
+                            <AlertTriangle className="self-center" />
+                            <label className="whitespace-pre-line text-xs self-center">{warning}</label>
+                        </div>
+                    )}
                     <Button
                         variant="outline"
                         type="submit"
