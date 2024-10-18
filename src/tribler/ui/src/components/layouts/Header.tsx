@@ -61,7 +61,7 @@ export function Header() {
             triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent) })();
             triblerService.getNewVersion().then(
                 (result) => {
-                    if (result) toast(t("VersionAvailable") + ": " + result, {icon: "ℹ", });},
+                    if (result && !isErrorDict(result)) toast(t("VersionAvailable") + ": " + result, {icon: "ℹ", });},
                 (error) => {}
             );
         return () => {
