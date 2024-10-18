@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Iterable
 import libtorrent as lt
 from aiohttp import (
     BaseConnector,
+    ClientConnectorCertificateError,
     ClientConnectorError,
     ClientResponseError,
     ClientSession,
@@ -20,7 +21,7 @@ from aiohttp import (
 )
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
-from marshmallow.fields import String
+from marshmallow.fields import Boolean, String
 from yarl import URL
 
 from tribler.core.database.orm_bindings.torrent_metadata import tdef_to_metadata_dict
@@ -65,7 +66,8 @@ def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
 
 
 async def query_uri(uri: str, connector: BaseConnector | None = None, headers: LooseHeaders | None = None,
-                    timeout: ClientTimeout | None = None, return_json: bool = False, ) -> bytes | dict:
+                    timeout: ClientTimeout | None = None, return_json: bool = False,
+                    valid_cert: bool = True) -> bytes | dict:
     """
     Retrieve the response for the given aiohttp context.
     """
@@ -76,7 +78,7 @@ async def query_uri(uri: str, connector: BaseConnector | None = None, headers: L
         kwargs["timeout"] = timeout
 
     async with ClientSession(connector=connector, raise_for_status=True) as session, \
-            await session.get(uri, **kwargs) as response:
+            await session.get(uri, ssl=valid_cert, **kwargs) as response:
         if return_json:
             return await response.json(content_type=None)
         return await response.read()
@@ -112,7 +114,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         responses={
             200: {
                 "description": "Return a hex-encoded json-encoded string with torrent metainfo",
-                "schema": schema(GetMetainfoResponse={"metainfo": String})
+                "schema": schema(GetMetainfoResponse={"metainfo": String, "download_exists": Boolean,
+                                                      "valid_certificate": Boolean})
             }
         }
     )
@@ -136,6 +139,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         uri = await unshorten(p_uri)
         scheme = URL(uri).scheme
+        valid_cert = True
 
         if scheme == "file":
             file_path = url_to_path(uri)
@@ -147,7 +151,11 @@ class TorrentInfoEndpoint(RESTEndpoint):
                                     status=HTTP_INTERNAL_SERVER_ERROR)
         elif scheme in ("http", "https"):
             try:
-                response = await query_uri(uri)
+                try:
+                    response = await query_uri(uri)
+                except ClientConnectorCertificateError:
+                    response = await query_uri(uri, valid_cert=False)
+                    valid_cert = False
             except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError,
                     AsyncTimeoutError, ValueError) as e:
                 self._logger.warning("Error while querying http uri: %s", str(e))
@@ -219,7 +227,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         json_dump = json.dumps(ready_for_unicode, ensure_ascii=False)
 
         return RESTResponse({"metainfo": hexlify(json_dump.encode()).decode(),
-                             "download_exists": download and not download_is_metainfo_request})
+                             "download_exists": download and not download_is_metainfo_request,
+                             "valid_certificate": valid_cert})
 
     @docs(
         tags=["Libtorrent"],

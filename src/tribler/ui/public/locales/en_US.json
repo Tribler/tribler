@@ -101,6 +101,7 @@
     "Download": "Download",
     "Cancel": "Cancel",
     "LoadingTorrent": "Loading torrent files {{method, string}}...",
+    "HTTPSCertificateInvalid": "The server has an invalid HTTPS certificate!\nAn attacker could have given you the wrong torrent.",
     "anonymously": "anonymously",
     "directly": "directly",
     "MagnetDialogInputLabel": "Please enter the URL/magnet link in the field below:",
