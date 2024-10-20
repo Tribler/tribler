@@ -1,4 +1,3 @@
-import math
 from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock
@@ -116,7 +115,7 @@ class TestDownloadState(TestBase):
         """
         state = DownloadState(Mock(), Mock(all_time_upload=200, all_time_download=0), None)
 
-        self.assertEqual(math.inf, state.get_all_time_ratio())
+        self.assertEqual(-1, state.get_all_time_ratio())
 
     def test_get_files_completion(self) -> None:
         """
