@@ -6,7 +6,6 @@ Author(s): Arno Bakker
 from __future__ import annotations
 
 import logging
-import math
 from enum import Enum
 from typing import TYPE_CHECKING
 
@@ -214,7 +213,8 @@ class DownloadState:
             return 0
 
         if not self.all_time_download:
-            return 0 if not self.all_time_upload else math.inf
+            # We're returning -1 instead of infinity, as it avoids issues when JSON encoding.
+            return 0 if not self.all_time_upload else -1
 
         return self.all_time_upload / self.all_time_download
 

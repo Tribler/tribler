@@ -68,7 +68,12 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Ratio')}</div>
-                            <div className="basis-3/4">{download?.all_time_ratio.toFixed(2)} ({formatBytes(download?.all_time_upload)} upload; {formatBytes(download?.all_time_download)} dowload)</div>
+                            <div className="basis-3/4">{
+                                download.all_time_ratio < 0 ?
+                                    String(`∞`) :
+                                    download?.all_time_ratio.toFixed(2)}
+                                &nbsp;({formatBytes(download?.all_time_upload)} upload; {formatBytes(download?.all_time_download)} dowload)
+                            </div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Availability')}</div>
