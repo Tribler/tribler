@@ -50,6 +50,7 @@ class RecommenderEndpoint(RESTEndpoint):
     @json_schema(schema(ClickedRequest={
         "query": (String, "The query that led to the list of results"),
         "chosen_index": (String, "The winning result index in the results list"),
+        "timestamp": (Integer, "The timestamp of the query"),
         "results": (List(Nested(schema(ClickedResult={"infohash": (String, "A displayed infohash"),
                                                       "seeders": (Integer, "Its displayed number of seeders"),
                                                       "leechers": (Integer, "Its displayed number of seeders")}))),
@@ -63,6 +64,7 @@ class RecommenderEndpoint(RESTEndpoint):
         {
             query: str,
             chosen_index: int,
+            timestamp: int,
             results: list[{
                 infohash: str,
                 seeders: int,

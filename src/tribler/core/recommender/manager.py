@@ -54,4 +54,4 @@ class Manager:
         Inject data into our database.
         """
         with db_session:
-            self.Query(version=0, json=json_data)
+            self.Query(version=1, json=json_data)

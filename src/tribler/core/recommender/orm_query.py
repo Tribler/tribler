@@ -29,6 +29,7 @@ if TYPE_CHECKING:
         """
         {
             chosen_index: int,
+            timestamp: int,
             query: str,
             results: [{infohash: str, seeders: int, leechers: int}]
         }

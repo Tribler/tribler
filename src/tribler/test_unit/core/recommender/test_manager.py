@@ -27,7 +27,7 @@ class TestManager(TestBase):
 
         self.assertEqual(1, size)
         self.assertEqual(1, result.rowid)
-        self.assertEqual(0, result.version)
+        self.assertEqual(1, result.version)
         self.assertEqual('{"key":"value"}', result.json)
 
     def test_get_total_queries(self) -> None:

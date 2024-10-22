@@ -30,7 +30,7 @@ class StubRecommenderCommunityCrawler(RecommenderCommunityCrawler):
         """
 
     def finalize_query(self, peer: Peer, query_id: int, query: str, chosen_index: int,
-                       results: list[ResultItem]) -> None:
+                       timestamp: int,results: list[ResultItem]) -> None:
         """
         Don't write to disk.
         """
@@ -122,11 +122,40 @@ class TestRecommenderCommunity(TestBase[RecommenderCommunity]):
         self.assertEqual("table_size", response["type"])
         self.assertEqual(0, response["total_queries"])
 
-    async def test_crawl_query(self) -> None:
+    async def test_crawl_query_v0(self) -> None:
         """
         Test if a single query can be crawled.
         """
         self.overlay(0).manager.add_query('{"query": "test query", "chosen_index": 2, "results": ['
+                                          f'{{"infohash": "{"01" * 20}", "seeders": 1, "leechers": 2}}, '
+                                          f'{{"infohash": "{"02" * 20}", "seeders": 3, "leechers": 4}}, '
+                                          f'{{"infohash": "{"03" * 20}", "seeders": 5, "leechers": 6}}'
+                                          ']}')
+
+        with self.assertReceivedBy(1, [CrawlResponse, CrawlResponse, CrawlResponse]) as messages:
+            self.crawler_overlay().crawl_next(self.peer(0))
+            await self.deliver_messages()
+
+        response1 = json.loads(messages[0].data)
+        response2 = json.loads(messages[1].data)
+        response3 = json.loads(messages[2].data)
+        self.assertEqual("table_size", response1["type"])
+        self.assertEqual("query_info", response2["type"])
+        self.assertEqual(1, response2["query_id"])
+        self.assertEqual("query_fragment", response3["type"])
+        self.assertEqual(1, response3["query_id"])
+        self.assertListEqual(["01" * 20, "02" * 20, "03" * 20], response3["infohashes"])
+        self.assertListEqual([1, 3, 5], response3["seeders"])
+        self.assertListEqual([2, 4, 6], response3["leechers"])
+        self.assertIn(self.mid(0), self.crawler_overlay().crawl_history)
+        self.assertEqual(1, self.crawler_overlay().crawl_history[self.mid(0)][0], "The known size should be 1")
+        self.assertSetEqual(set(), self.crawler_overlay().crawl_history[self.mid(0)][1], "There should be no missing")
+
+    async def test_crawl_query_v1(self) -> None:
+        """
+        Test if a single query can be crawled.
+        """
+        self.overlay(0).manager.add_query('{"query": "test query", "timestamp": 1234567890, "chosen_index": 2, "results": ['
                                           f'{{"infohash": "{"01" * 20}", "seeders": 1, "leechers": 2}}, '
                                           f'{{"infohash": "{"02" * 20}", "seeders": 3, "leechers": 4}}, '
                                           f'{{"infohash": "{"03" * 20}", "seeders": 5, "leechers": 6}}'
