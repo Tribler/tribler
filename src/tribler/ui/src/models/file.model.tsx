@@ -19,3 +19,8 @@ export interface FileTreeItem {
     included?: CheckedState;
     subRows?: FileTreeItem[];
 }
+
+export interface FileLink {
+    uri: string;
+    name: string;
+}

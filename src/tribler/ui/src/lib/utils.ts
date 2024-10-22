@@ -10,8 +10,9 @@ import zh from 'javascript-time-ago/locale/zh'
 import Cookies from "js-cookie";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
-import { FileTreeItem } from "@/models/file.model";
+import { FileLink, FileTreeItem } from "@/models/file.model";
 import { CheckedState } from "@radix-ui/react-checkbox";
+import JSZip from "jszip";
 
 TimeAgo.setDefaultLocale(en.locale)
 TimeAgo.addLocale(en)
@@ -224,4 +225,30 @@ export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean =
     else if (tree.included === included)
         selectedFiles.push(tree.index);
     return selectedFiles;
+}
+
+export function downloadFile(file: FileLink) {
+    var link = document.createElement("a");
+    link.download = file.name;
+    link.href = file.uri;
+    link.click();
+}
+
+export async function downloadFilesAsZip(files: FileLink[], zipName: string) {
+    const zip = new JSZip();
+    for (let i = 0; i < files.length; i++) {
+        const response = await fetch(files[i].uri);
+        if (response.status != 200) continue;
+        const blob = await response.blob();
+
+        zip.file(files[i].name, blob);
+
+        if (i == files.length - 1) {
+            const zipData = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement("a");
+            link.href = window.URL.createObjectURL(zipData);
+            link.download = zipName;
+            link.click();
+        }
+    }
 }
