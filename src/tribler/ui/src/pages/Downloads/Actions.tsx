@@ -22,6 +22,7 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { PathInput } from "@/components/path-input";
+import { downloadFile, downloadFilesAsZip } from "@/lib/utils";
 
 
 export default function Actions({ selectedDownloads }: { selectedDownloads: Download[] }) {
@@ -36,10 +37,10 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 const response = await triblerService.resumeDownload(download.infohash);
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadPlay")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
+                } else if (isErrorDict(response)) {
                     toast.error(`${t("ToastErrorDownloadPlay")} ${response.error}`);
                 }
-             })();
+            })();
         });
     }
     const onPause = () => {
@@ -48,10 +49,10 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 const response = await triblerService.stopDownload(download.infohash);
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadStop")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
+                } else if (isErrorDict(response)) {
                     toast.error(`${t("ToastErrorDownloadStop")} ${response.error}`);
                 }
-             })();
+            })();
         });
     }
     const onRemove = (removeData: boolean) => {
@@ -60,10 +61,10 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 const response = await triblerService.removeDownload(download.infohash, removeData);
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadRemove")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
+                } else if (isErrorDict(response)) {
                     toast.error(`${t("ToastErrorDownloadRemove")} ${response.error}`);
                 }
-             })();
+            })();
         });
         setRemoveDialogOpen(false);
     }
@@ -73,18 +74,20 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 const response = await triblerService.recheckDownload(download.infohash);
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
+                } else if (isErrorDict(response)) {
                     toast.error(`${t("ToastErrorDownloadCheck")} ${response.error}`);
                 }
-             })();
+            })();
         });
     }
     const onExportTorrent = () => {
-        const link = document.createElement('a');
-        link.href = `/api/downloads/${selectedDownloads[0].infohash}/torrent`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const files = selectedDownloads.map((download) => ({
+            uri: `/api/downloads/${download.infohash}/torrent`,
+            name: `${download.infohash}.torrent`
+        }));
+
+        if (files.length == 1) downloadFile(files[0]);
+        else if (files.length > 1) downloadFilesAsZip(files, 'torrents.zip');
     }
     const onMoveDownload = () => {
         if (selectedDownloads.length == 1) {
@@ -96,7 +99,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
         triblerService.moveDownload(selectedDownloads[0].infohash, storageLocation).then(async (response) => {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if (isErrorDict(response)){
+            } else if (isErrorDict(response)) {
                 toast.error(`${t("ToastErrorDownloadMove")} ${response.error}`);
             }
         });
@@ -108,10 +111,10 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 const response = await triblerService.setDownloadHops(download.infohash, hops);
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadSetHops")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)){
+                } else if (isErrorDict(response)) {
                     toast.error(`${t("ToastErrorDownloadSetHops")} ${response.error}`);
                 }
-             })();
+            })();
         });
     }
 
@@ -212,7 +215,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                         <CheckCheckIcon className="mr-2 h-4 w-4" />
                         {t('ForceRecheck')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onExportTorrent()} disabled={selectedDownloads.length !== 1}>
+                    <DropdownMenuItem onClick={() => onExportTorrent()} disabled={selectedDownloads.length < 1}>
                         <ExternalLinkIcon className="mr-2 h-4 w-4" />
                         {t('ExportTorrent')}
                     </DropdownMenuItem>
