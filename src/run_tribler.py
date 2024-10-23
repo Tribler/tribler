@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import sys
 import traceback
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pystray import Icon
 
 
 def show_error(exc: Exception, shutdown: bool = True) -> None:
@@ -21,11 +25,11 @@ def show_error(exc: Exception, shutdown: bool = True) -> None:
             import win32api
 
             win32api.MessageBox(0, text, title)
-        elif sys.platform == 'Linux':
+        elif sys.platform == 'linux':
             import subprocess
 
             subprocess.Popen(['xmessage', '-center', text])  # noqa: S603, S607
-        elif sys.platform == 'Darwin':
+        elif sys.platform == 'darwin':
             import subprocess
 
             subprocess.Popen(['/usr/bin/osascript', '-e', text])  # noqa: S603
@@ -152,6 +156,46 @@ def load_torrent_uri(parsed_args: Arguments) -> str | None:
     return torrent_uri
 
 
+async def mac_event_loop() -> None:
+    """
+    Consume Mac events on the asyncio main thread.
+
+    WARNING: sendEvent_ can block on some events. In particular, while the tray menu is open.
+    """
+    from AppKit import NSApp, NSEventMaskAny
+    from Foundation import NSDate, NSDefaultRunLoopMode
+
+    while True:
+        event = NSApp().nextEventMatchingMask_untilDate_inMode_dequeue_(NSEventMaskAny, NSDate.now(),
+                                                                        NSDefaultRunLoopMode, True)
+        if event is None:
+            await asyncio.sleep(0.5)
+        else:
+            NSApp().sendEvent_(event)
+            await asyncio.sleep(0.01)
+
+
+def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
+    """
+    Create the tray icon.
+    """
+    import pystray
+    image_path = tribler.get_webui_root() / "public" / "tribler.png"
+    image = Image.open(image_path.resolve())
+    api_port = session.rest_manager.get_api_port()
+    url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
+    menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
+            pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
+    icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
+    webbrowser.open_new_tab(url)
+    if sys.platform == "darwin":
+        icon.run_detached(None)
+        asyncio.ensure_future(mac_event_loop())  # noqa: RUF006
+    else:
+        threading.Thread(target=icon.run).start()
+    return icon
+
+
 async def main() -> None:
     """
     The main script entry point.
@@ -185,16 +229,7 @@ async def main() -> None:
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
     if not headless:
-        import pystray
-        image_path = tribler.get_webui_root() / "public" / "tribler.png"
-        image = Image.open(image_path.resolve())
-        api_port = session.rest_manager.get_api_port()
-        url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
-        menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
-                pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
-        icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
-        webbrowser.open_new_tab(url)
-        threading.Thread(target=icon.run).start()
+        icon = spawn_tray_icon(session, config)
 
     await session.shutdown_event.wait()
     await session.shutdown()
