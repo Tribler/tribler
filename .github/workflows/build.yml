@@ -4,11 +4,19 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
-
+        include:  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
+          - os: ubuntu-latest
+            architecture: x64
+          - os: windows-latest
+            architecture: x86
+          - os: windows-latest
+            architecture: x64
     runs-on: ${{ matrix.os }}
-
     steps:
+
+      ########################################
+      # NSIS installer (Windows, always x86) #
+      ########################################
       - name: Check out SimpleFC repository (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/checkout@v4
@@ -35,6 +43,10 @@ jobs:
           copy "Release UNICODE\nsProcess.dll" "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\nsProcess.dll"
           cd ../Include
           copy nsProcess.nsh "C:\Program Files (x86)\NSIS\Include\nsProcess.nsh"
+
+      #######################
+      # Package preparation #
+      #######################
       - name: Check-out repository
         uses: actions/checkout@v4
         with:
@@ -67,10 +79,11 @@ jobs:
           rm -rf pyipv8/stresstest
           rm -rf pyipv8/systemd
           rm -rf pyipv8/ipv8/test
-      - name: Setup Python
+      - name: Setup Python ${{ matrix.architecture }}
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          architecture: ${{ matrix.architecture }}
           cache: 'pip'
           cache-dependency-path: |
             **/build/requirements.txt
@@ -86,38 +99,59 @@ jobs:
           npm install
           npm run build
           rm -rf node_modules
-      - name: Determine tag
+      - name: Determine release tag
         shell: bash
         run: |
           git fetch --tags
           git for-each-ref --count=1 --sort=-creatordate --format '%(refname)' refs/tags > raw_tag.txt
           GITHUB_TAG=$(git name-rev --tags --name-only $(cat raw_tag.txt))
           echo "GITHUB_TAG=${GITHUB_TAG#v}" >> $GITHUB_ENV
+
+      #####################
+      # Individual builds #
+      #####################
       - name: Build Executables (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
-          mv build/debian/tribler_${GITHUB_TAG}_all.deb build/debian/tribler_${GITHUB_TAG}_amd64.deb
+          mv build/debian/tribler_${GITHUB_TAG}_all.deb build/debian/tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
+
       - name: Build Executables (MacOS-12)
         if: matrix.os == 'macos-12'
         run: |
           mv ./build/tribler.spec ./tribler.spec
           ./build/mac/makedist_macos.sh
-      - uses: actions/cache/restore@v4
+
+      - name: Fetch libsodium.dll (Windows)
         if: matrix.os == 'windows-latest'
-        id: restore_cache
-        with:
-          path: src/libsodium.dll
-          key: cache_libsodium_dll
+        run: |
+          vcpkg install libsodium:${{ matrix.architecture }}-windows
+          Copy C:/vcpkg/packages/libsodium_${{ matrix.architecture }}-windows/bin/libsodium.dll src/libsodium.dll
+      - name: Install OpenSSL (Windows, x86)
+        if: ${{ matrix.os == 'windows-latest' && matrix.architecture == 'x86'}}
+        run: |
+          Remove-Item -Path "C:\Program Files\OpenSSL" -Force -Recurse
+          vcpkg install openssl:x86-windows
+          New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
       - name: Build Executables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
+          (gc build/win/resources/tribler.nsi) -replace '!define BITVERSION "x86"', '!define BITVERSION "${{ matrix.architecture }}"' | Out-File -encoding ASCII build/win/resources/tribler.nsi
           ./build/win/makedist_win.bat
+          echo 'Double-check executable architectures'
+          echo '> Should be "${{ matrix.architecture }}"'
+          7z l ./dist/tribler/tribler.exe | findstr CPU
+          echo '> Should be "x86"'
+          7z l ./dist/*.exe | findstr CPU
+
+      ################################
+      # Cleanup and artifact uploads #
+      ################################
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }} Build
+          name: ${{ runner.os }} ${{ matrix.architecture }} Build
           path: |
             dist/*.exe
             dist/*.dmg

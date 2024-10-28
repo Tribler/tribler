@@ -111,15 +111,9 @@ Section "!Main EXE" SecMain
     ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
 
-    ; Libraries dependant on 2012 are: LibTorrent
-    ; 2019-10-24: Latest version is compiled against 2015 so we don't need this dependency here. Remove it completely
-    ; When python2 dependency is removed.
-    ; File vc_redist_110.exe
-    ; ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
-
     ; Libraries dependant on 2015 are: Python, Qt5
-    File "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.x64.exe"
-    ExecWait "$INSTDIR\vc_redist.x64.exe /q /norestart"
+    File "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.${BITVERSION}.exe"
+    ExecWait "$INSTDIR\vc_redist.${BITVERSION}.exe /q /norestart"
 
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""
