@@ -61,16 +61,22 @@ class RecommenderEndpoint(RESTEndpoint):
         The user has clicked one infohash over others.
 
         We expect the format:
-        {
-            query: str,
-            chosen_index: int,
-            timestamp: int,
-            results: list[{
-                infohash: str,
-                seeders: int,
-                leechers: int
-            }]
-        }
+
+        .. code-block::
+
+            {
+                query: str,
+                chosen_index: int,
+                timestamp: int,
+                results: list[{
+                    infohash: str,
+                    seeders: int,
+                    leechers: int
+                }]
+            }
+
+        :param request: the user request.
+        :returns: the REST response.
         """
         parameters = await request.text()
 

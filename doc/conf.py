@@ -16,7 +16,13 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sphinx.application import Sphinx
+    from sphinx.domains.python import PyObject
 
 # -- Project information -----------------------------------------------------
 
@@ -80,7 +86,7 @@ language = "en"
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -198,3 +204,18 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+
+def skip_illegal_classes(app: Sphinx, what: str, name: str, obj: PyObject, skip: bool, options: list[str]) -> bool:
+    """
+    Sphinx errors out on ``tribler.core.libtorrent.torrentdef.FileDict.__init__``. We get rid of it here.
+    """
+    if what == "class" and name == "tribler.core.libtorrent.torrentdef.FileDict":
+        return True
+    return skip
+
+def setup(sphinx: Sphinx) -> None:
+    """
+    Callback for when Sphinx is setup. We install a workaround for an illegal class here.
+    """
+    sphinx.connect("autoapi-skip-member", skip_illegal_classes)
