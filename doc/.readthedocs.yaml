@@ -14,6 +14,9 @@ build:
     python: "3.10"
   apt_packages:
     - graphviz
+  jobs:
+    pre_build:
+      - dot -Tsvg "doc/reference/software_architecture.dot" -o "doc/reference/software_architecture.svg";
 
 python:
   install:
