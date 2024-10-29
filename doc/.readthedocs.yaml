@@ -12,6 +12,8 @@ build:
   tools:
     # Check https://docs.readthedocs.io/en/stable/config-file/v2.html#build-tools-python
     python: "3.10"
+  apt_packages:
+    - graphviz
 
 python:
   install:

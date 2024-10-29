@@ -26,6 +26,12 @@ Table of contents
    building/mac.rst
    building/windows.rst
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference:
+
+   reference/software_architecture.rst
+
 
 Search
 ======

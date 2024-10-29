@@ -566,8 +566,7 @@ class TorrentDef:
         """
         The list of files in the torrent def.
 
-        :param exts: (Optional) list of filename extensions (without leading .)
-        to search for.
+        :param exts: (Optional) list of filename extensions (without leading .) to search for.
         :return: A list of filenames.
         """
         videofiles = []

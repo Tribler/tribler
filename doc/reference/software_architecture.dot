@@ -1,0 +1,147 @@
+digraph G {
+  fontname="Helvetica,Arial,sans-serif";
+  node [fontname="Helvetica,Arial,sans-serif"];
+  edge [fontname="Helvetica,Arial,sans-serif"];
+  compound=true;
+  forcelabels=true;
+
+  subgraph cluster_0 {
+    label = "[PYTHON]";
+    style=filled;
+    color=floralwhite;
+
+    subgraph cluster_0_0 {
+      label = "src.tribler.core";
+      style=filled;
+      color=lightgrey;
+      node [style=filled, fillcolor=white, color=black];
+
+      session [label="session.py"];
+
+      db [label="TriblerDatabase", shape=rectangle, style="filled,dashed", fillcolor=gray90];
+      session -> db;
+
+      mds [label="MetadataStore", shape=rectangle, style="filled,dashed", fillcolor=gray90];
+      session -> mds;
+
+      torrentchecker [label="TorrentChecker", shape=rectangle, style="filled,dashed", fillcolor=gray90];
+      session -> torrentchecker;
+
+      configmgr [label="TriblerConfigManager", shape=rectangle];
+      session -> configmgr;
+
+      notifier [label="Notifier", shape=rectangle];
+      session -> notifier;
+
+      dlmgr [label="DownloadManager", shape=rectangle];
+      configmgr -> dlmgr;
+      session -> dlmgr;
+
+      restmgr [label="RESTManager", shape=rectangle];
+      configmgr -> restmgr;
+      session -> restmgr;
+
+      loader [label="IPv8CommunityLoader", shape=rectangle];
+      configmgr -> loader;
+      session -> loader;
+
+      ipv8 [label="IPv8", shape=rectangle];
+      loader -> ipv8;
+      configmgr -> ipv8;
+      session -> ipv8;
+    }
+
+    subgraph cluster_0_1 {
+      label = "src.tribler.core.components";
+      style=filled;
+      fillcolor=lightgrey;
+      color=white;
+      node [style=filled, fillcolor=white, color=black];
+
+      baselauncher [label="BaseLauncher", shape=rectangle];
+      componentlauncher [label="ComponentLauncher", shape=rectangle];
+      {rank=same baselauncher; componentlauncher}
+
+      versioning [label="Versioning", shape=rectangle];
+      componentlauncher -> versioning;
+
+      dbcomp [label="TriblerDatabase", shape=rectangle];
+      componentlauncher -> dbcomp;
+
+      triblerdb [label="TriblerDatabase", shape=rectangle];
+      dbcomp -> triblerdb;
+
+      dhtdisc [label="DHTDiscovery", shape=rectangle];
+      baselauncher -> dhtdisc;
+
+      recomm [label="Recommender", shape=rectangle];
+      baselauncher -> recomm;
+
+      tunnel [label="Tunnel", shape=rectangle];
+      baselauncher -> tunnel;
+
+      mddb [label="MetadataStore", shape=rectangle];
+      dbcomp -> mddb;
+
+      tchecker [label="TorrentChecker", shape=rectangle];
+      componentlauncher -> tchecker;
+
+      contentdiscovery [label="ContentDiscovery", shape=rectangle];
+      baselauncher -> contentdiscovery;
+      dbcomp -> contentdiscovery;
+      tchecker -> contentdiscovery;
+
+      knowledge [label="Knowledge", shape=rectangle];
+      baselauncher -> knowledge;
+      dbcomp -> knowledge;
+
+      rendezvous [label="Rendezvous", shape=rectangle];
+      baselauncher -> rendezvous;
+      dbcomp -> rendezvous;
+    }
+  }
+
+  subgraph cluster_1 {
+    label = "[TYPESCRIPT]\nsrc/tribler/ui";
+    style=filled;
+    color=aliceblue;
+    node [style=filled,fillcolor=white, color=black];
+
+    htmlindex [label="App", shape=rectangle];
+
+    ipv8service [label="IPv8Service", shape=rectangle];
+    triblerservice [label="TriblerService", shape=rectangle];
+
+    error_popup [label="error_popup", shape=rectangle];
+    htmlindex -> error_popup;
+
+    router [label="RouterProvider", shape=rectangle];
+    htmlindex -> router;
+
+    pagedebug [label="Debug", shape=rectangle];
+    router -> pagedebug;
+
+    pagedownloads [label="Downloads", shape=rectangle];
+    router -> pagedownloads;
+
+    pagepopular [label="Popular", shape=rectangle];
+    router -> pagepopular;
+
+    pagesearch [label="Search", shape=rectangle];
+    router -> pagesearch;
+
+    pagesettings [label="Settings", shape=rectangle];
+    router -> pagesettings;
+  }
+
+  start -> session [lhead=cluster_0_0, minlen="2"];
+  start -> htmlindex [lhead=cluster_1, minlen="2", headlabel="                       webbrowser.open_new_tab()", labeldistance=8];
+
+  ipv8 -> baselauncher [style="invis"];
+  loader -> componentlauncher [style="invis"];
+
+  ipv8service -> restmgr [dir="both", style="dotted", arrowhead="vee", arrowtail="vee"];
+  triblerservice -> restmgr [dir="both", style="dotted", arrowhead="vee", arrowtail="vee"];
+
+  start [label="src/run_tribler.py", shape=doubleoctagon, style=filled, fillcolor=floralwhite];
+}

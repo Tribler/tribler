@@ -8,7 +8,7 @@ Currently, only running the (unstable!) ``latest`` release is supported.
 
 
 Preparation
------
+-----------
 
 Fetch the docker image:
 
@@ -17,7 +17,7 @@ Fetch the docker image:
     docker pull ghcr.io/tribler/tribler:latest
 
 Running
------
+-------
 
 Choose a SECRET key for the background communication with Tribler.
 In the following example, we use the key ``changeme`` (don't use this yourself).
@@ -44,7 +44,7 @@ By default, the REST API is bound to localhost inside the container so to
 access the APIs, network needs to be set to host (--net="host").
 
 Stopping
------
+--------
 
 To stop Tribler, you should get the container id of your process and then stop it.
 You can view all active docker containers using ``docker ps`` and you can stop a container id using ``docker stop``.

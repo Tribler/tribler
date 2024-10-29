@@ -13,10 +13,14 @@ def url_to_path(file_url: str) -> str:
     """
     Convert a URL to a path.
 
-    Example:
-    -------
+    For example:
+
+    .. code-block::
+
         'file:///path/to/file' -> '/path/to/file'
 
+    :param file_url: the URL for a file.
+    :returns: the filesystem path for the file.
     """
     url = URL(file_url)
 

@@ -160,7 +160,7 @@ async def mac_event_loop() -> None:
     """
     Consume Mac events on the asyncio main thread.
 
-    WARNING: sendEvent_ can block on some events. In particular, while the tray menu is open.
+    WARNING: ``sendEvent_`` can block on some events. In particular, while the tray menu is open.
     """
     from AppKit import NSApp, NSEventMaskAny
     from Foundation import NSDate, NSDefaultRunLoopMode

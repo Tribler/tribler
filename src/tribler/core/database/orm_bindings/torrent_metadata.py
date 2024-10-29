@@ -81,7 +81,7 @@ if TYPE_CHECKING:
 
 def infohash_to_id(infohash: bytes) -> int:
     """
-    This function is used to devise id_ from infohash in deterministic way. Used in FFA channels.
+    This function is used to devise ``id_`` from infohash in deterministic way. Used in FFA channels.
     """
     return abs(unpack(">q", infohash[:8])[0])
 
@@ -107,7 +107,7 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
         "title": tdef.get_name_as_unicode()[:300],
         "tags": tags[:200],
         "size": tdef.get_length(),
-        "torrent_date": torrent_date if torrent_date >= EPOCH else EPOCH,
+        "torrent_date": max(torrent_date, EPOCH),
         "tracker_info": tracker_info,
     }
 
