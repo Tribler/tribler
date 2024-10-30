@@ -61,8 +61,11 @@ def get_freeze_build_options():
         ("src/tribler/ui/public", "tribler_source/tribler/ui/public"),
         ("src/tribler/ui/dist", "tribler_source/tribler/ui/dist"),
         ("build/win/resources", "tribler_source/resources"),
-        ("tribler.dist-info/METADATA", "lib/tribler.dist-info/METADATA")
+        ("tribler.dist-info/METADATA", "lib/tribler.dist-info/METADATA"),
     ]
+
+    if platform.system() == "Linux" and platform.machine() == "aarch64":
+        included_files.append(("libcrypt-06cd74a6.so.2", "lib/libcrypt-06cd74a6.so.2"))
 
     # These packages will be excluded from the build
     excluded_packages = [

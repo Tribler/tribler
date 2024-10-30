@@ -7,6 +7,8 @@ jobs:
         include:  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
           - os: ubuntu-latest
             architecture: x64
+          - os: ubuntu-latest
+            architecture: aarch64
           - os: windows-latest
             architecture: x86
           - os: windows-latest
@@ -80,6 +82,7 @@ jobs:
           rm -rf pyipv8/systemd
           rm -rf pyipv8/ipv8/test
       - name: Setup Python ${{ matrix.architecture }}
+        if: matrix.architecture != 'aarch64'
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
@@ -88,6 +91,7 @@ jobs:
           cache-dependency-path: |
             **/build/requirements.txt
       - name: Install Dependencies
+        if: matrix.architecture != 'aarch64'
         run: |
           pip install --upgrade -r build/requirements.txt
       - name: Setup npm
@@ -110,12 +114,46 @@ jobs:
       #####################
       # Individual builds #
       #####################
-      - name: Build Executables (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Build Executables (Ubuntu x64)
+        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
         run: |
           sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
           mv build/debian/tribler_${GITHUB_TAG}_all.deb build/debian/tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
+
+      - name: Build Executables (Ubuntu aarch64)
+        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'aarch64'
+        uses: uraimo/run-on-arch-action@v2
+        id: run_ubuntu_aarch64
+        with:
+          arch: ${{ matrix.architecture }}
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --volume "${PWD}:/tribler"
+          env: |
+            GITHUB_TAG: ${{ env.GITHUB_TAG }}
+          shell: /bin/sh
+          install: |
+            apt-get update -q -y
+            apt-get install -q -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm python3-pip libcairo2-dev
+          run: |
+            python3 -m pip install --upgrade pip
+            python3 -m pip install --upgrade -r /tribler/build/requirements.txt
+            python3 -m pip install meson ninja
+
+            cd /tribler
+            python3 -m pip install --upgrade cx_Freeze==7.2.3  # cx_Freeze workaround
+            cp /lib/${{ matrix.architecture }}-linux-gnu/libcrypt.so.1 libcrypt-06cd74a6.so.2  # cx_Freeze workaround
+            export PATH="/usr/local/bin:$PATH"
+            ./build/debian/makedist_debian.sh
+
+            cd build/debian
+            apt-get install -y --fix-broken ./tribler_${GITHUB_TAG}_all.deb
+            timeout 10s tribler -s || true
+            cat /tmp/*tribler*.log
+            
+            mv tribler_${GITHUB_TAG}_all.deb tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
 
       - name: Build Executables (MacOS-12)
         if: matrix.os == 'macos-12'
