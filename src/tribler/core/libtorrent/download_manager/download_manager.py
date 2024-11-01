@@ -1004,7 +1004,8 @@ class DownloadManager(TaskManager):
         Load a checkpoint from a given file name.
         """
         try:
-            conf_obj = ConfigObj(str(filename), configspec=DownloadConfig.get_spec_file_name(self.config))
+            conf_obj = ConfigObj(str(filename), configspec=DownloadConfig.get_spec_file_name(self.config),
+                                 encoding="utf-8")
             conf_obj.validate(Validator())
             config = DownloadConfig(conf_obj)
         except Exception:

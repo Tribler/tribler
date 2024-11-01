@@ -53,7 +53,7 @@ def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:
     """
     Read the file at the source path and import its settings.
     """
-    old = ConfigObj(src)
+    old = ConfigObj(src, encoding="utf-8")
     _copy_if_exists(old, "api/key", dst, "api/key")
     _copy_if_exists(old, "api/http_enabled", dst, "api/http_enabled")
     _copy_if_exists(old, "api/https_enabled", dst, "api/https_enabled")

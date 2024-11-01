@@ -155,8 +155,11 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
             if (response === undefined) {
                 setError(`${t("ToastErrorGetMetainfo")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if ('error' in response && typeof response.error === 'object') {
+                let errorCode = response.error as {handled: boolean, code: string, message: string};
+                setError(`${t("ToastErrorGetMetainfo")} ${errorCode.code}`);
             } else if (isErrorDict(response)) {
-                setError(`t("ToastErrorGetMetainfo")} ${response.error}`);
+                setError(`${t("ToastErrorGetMetainfo")} ${response.error}`);
             } else if (response) {
                 const info = getFilesFromMetainfo(response.metainfo);
                 var files = info.files;
