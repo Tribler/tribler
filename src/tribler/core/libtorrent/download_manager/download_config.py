@@ -125,12 +125,12 @@ class DownloadConfig:
         Create a new download config from the given Tribler configuration.
         """
         spec_file_name = DownloadConfig.get_spec_file_name(settings)
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
+        defaults = ConfigObj(StringIO(SPEC_CONTENT), encoding="utf-8")
         defaults["filename"] = spec_file_name
         Path(spec_file_name).parent.mkdir(parents=True, exist_ok=True)  # Required for the next write
         with open(spec_file_name, "wb") as spec_file:
             defaults.write(spec_file)
-        defaults = ConfigObj(StringIO(), configspec=spec_file_name)
+        defaults = ConfigObj(StringIO(), configspec=spec_file_name, encoding="utf-8")
         defaults.validate(Validator())
         config = DownloadConfig(defaults)
 
@@ -147,7 +147,7 @@ class DownloadConfig:
         """
         Create a copy of this config.
         """
-        return DownloadConfig(ConfigObj(self.config))
+        return DownloadConfig(ConfigObj(self.config, encoding="utf-8"))
 
     def write(self, filename: Path) -> None:
         """
