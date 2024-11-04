@@ -119,7 +119,13 @@ jobs:
         run: |
           sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
-          mv build/debian/tribler_${GITHUB_TAG}_all.deb build/debian/tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
+          
+          cd build/debian
+          sudo apt-get install -y --fix-broken ./tribler_${GITHUB_TAG}_all.deb
+          timeout 10s tribler -s || true
+          cat /tmp/*tribler*.log
+          
+          mv tribler_${GITHUB_TAG}_all.deb tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
 
       - name: Build Executables (Ubuntu aarch64)
         if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'aarch64'
@@ -143,7 +149,6 @@ jobs:
             python3 -m pip install meson ninja
 
             cd /tribler
-            python3 -m pip install --upgrade cx_Freeze==7.2.3  # cx_Freeze workaround
             cp /lib/${{ matrix.architecture }}-linux-gnu/libcrypt.so.1 libcrypt-06cd74a6.so.2  # cx_Freeze workaround
             export PATH="/usr/local/bin:$PATH"
             ./build/debian/makedist_debian.sh
