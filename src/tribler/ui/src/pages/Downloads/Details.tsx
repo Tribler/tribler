@@ -41,7 +41,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
 
     return (
         <Tabs ref={tabsRef} defaultValue="details" className="w-full" >
-            <TabsList className="flex flex-1 flex-cols-4">
+            <TabsList className="flex flex-1 flex-cols-4 border-b">
                 <TabsTrigger value="details">{t('Details')}</TabsTrigger>
                 <TabsTrigger value="files">{t('Files')}</TabsTrigger>
                 <TabsTrigger value="trackers">{t('Trackers')}</TabsTrigger>
