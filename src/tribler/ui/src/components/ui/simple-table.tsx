@@ -113,9 +113,9 @@ function SimpleTable<T extends object>({
         <>
             <div ref={parentRef} className='flex-grow flex'>
                 <Table maxHeight={maxHeight ?? (parentRect?.height ?? 200)}>
-                    <TableHeader className="bg-neutral-100 dark:bg-neutral-900 border-0 z-20">
+                    <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="bg-neutral-100 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-900">
                                 {headerGroup.headers.map((header, index) => {
                                     return (
                                         <TableHead key={header.id} className={cn({ 'pl-4': index === 0, 'pr-4': index + 1 === headerGroup.headers.length, })}>
