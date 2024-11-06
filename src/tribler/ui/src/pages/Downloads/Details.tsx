@@ -11,12 +11,14 @@ import Trackers from "./Trackers";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Download } from "@/models/download.model";
 import Pieces from "./Pieces";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 
 export default function DownloadDetails({ selectedDownloads }: { selectedDownloads: Download[] }) {
     const [download, setDownload] = useState<Download | undefined>();
+    const tabsRef = useRef<HTMLTableElement>(null);
+    const [contentStyle, setContentStyle] = useState<{ height?: string }>({});
 
     useEffect(() => {
         setDownload((selectedDownloads.length == 1) ? selectedDownloads[0] : undefined);
@@ -24,20 +26,31 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
 
     const { t } = useTranslation();
 
+
+    useLayoutEffect(() => {
+        if (tabsRef.current && contentStyle?.height !== (tabsRef.current.offsetHeight - 40 + "px")) {
+            setContentStyle({
+                // The 40px (CSS class h-10) is to compensate for the height of the TabsList
+                height: tabsRef.current.offsetHeight - 40 + "px",
+            })
+        }
+    });
+
     if (!download)
         return null;
 
     return (
-        <ScrollArea className="w-full">
-            <Tabs defaultValue="details" className="w-full flex flex-col flex-wrap">
-                <TabsList className="flex-1 flex-cols-4">
-                    <TabsTrigger value="details">{t('Details')}</TabsTrigger>
-                    <TabsTrigger value="files">{t('Files')}</TabsTrigger>
-                    <TabsTrigger value="trackers">{t('Trackers')}</TabsTrigger>
-                    <TabsTrigger value="peers">{t('Peers')}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="details" >
-                    <div className="flex flex-col h-full p-4 text-sm">
+        <Tabs ref={tabsRef} defaultValue="details" className="w-full" >
+            <TabsList className="flex flex-1 flex-cols-4 border-b">
+                <TabsTrigger value="details">{t('Details')}</TabsTrigger>
+                <TabsTrigger value="files">{t('Files')}</TabsTrigger>
+                <TabsTrigger value="trackers">{t('Trackers')}</TabsTrigger>
+                <TabsTrigger value="peers">{t('Peers')}</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details" style={contentStyle}>
+                <ScrollArea className="h-full">
+                    <div className="flex flex-col p-4 text-sm">
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Progress')}</div>
                             <div className="basis-3/4 m-auto"><Pieces numpieces={download.total_pieces} pieces64={download.pieces || ''} /></div>
@@ -80,17 +93,23 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                             <div className="basis-3/4">{download?.availability}</div>
                         </div>
                     </div>
-                </TabsContent>
-                <TabsContent value="files">
+                </ScrollArea>
+            </TabsContent>
+            <TabsContent value="files" style={contentStyle}>
+                <ScrollArea className="h-full">
                     <Files download={download} key={download.infohash} />
-                </TabsContent>
-                <TabsContent value="trackers">
+                </ScrollArea>
+            </TabsContent>
+            <TabsContent value="trackers" style={contentStyle}>
+                <ScrollArea className="h-full">
                     <Trackers download={download} />
-                </TabsContent>
-                <TabsContent value="peers">
+                </ScrollArea>
+            </TabsContent>
+            <TabsContent value="peers" style={contentStyle}>
+                <ScrollArea className="h-full">
                     <Peers download={download} />
-                </TabsContent>
-            </Tabs>
-        </ScrollArea>
+                </ScrollArea>
+            </TabsContent>
+        </Tabs>
     )
 }

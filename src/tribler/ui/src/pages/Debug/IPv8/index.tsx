@@ -6,7 +6,7 @@ import Details from "./Details";
 export default function IPv8() {
     return (
         <Tabs defaultValue="overlays" className="w-full flex flex-col flex-wrap">
-            <TabsList className="flex-rows-3">
+            <TabsList className="flex-rows-3 border-b">
                 <TabsTrigger value="overlays">Overlays</TabsTrigger>
                 <TabsTrigger value="details">Details</TabsTrigger>
             </TabsList>

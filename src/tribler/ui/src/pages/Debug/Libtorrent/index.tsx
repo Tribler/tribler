@@ -50,7 +50,7 @@ export default function Libtorrent() {
 
     return (
         <Tabs defaultValue="settings" className="w-full flex flex-col flex-wrap">
-            <TabsList className="flex-rows-4">
+            <TabsList className="flex-rows-4 border-b">
                 <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="session">Session</TabsTrigger>
                 <div className="flex items-center flex-1"></div>
