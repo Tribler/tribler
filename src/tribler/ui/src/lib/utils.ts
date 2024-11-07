@@ -31,11 +31,8 @@ export function capitalize(name: string) {
 }
 
 export function unhexlify(input: string) {
-    var result = '';
-    for (var i = 0, l = input.length; i < l; i += 2) {
-        result += String.fromCharCode(parseInt(input.slice(i, i + 2), 16));
-    }
-    return result;
+    // Solution by SuperStormer @ https://stackoverflow.com/a/76241398
+    return new TextDecoder().decode(new Uint8Array([...input.matchAll(/[0-9a-f]{2}/g)].map(a => parseInt(a[0], 16))));
 };
 
 export function getFilesFromMetainfo(metainfo: string) {
