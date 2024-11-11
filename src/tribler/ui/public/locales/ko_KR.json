@@ -16,6 +16,7 @@
     "Seeding": "시딩",
     "Anonymity": "익명성",
     "Debug": "디버그",
+    "Versions": "버전",
     "ImportTorrentFile": "파일에서 토런트 가져오기",
     "ImportTorrentURL": "마그넷/URL에서 토렌트 가져오기",
     "CreateTorrent": "파일에서 토렌트 만들기",

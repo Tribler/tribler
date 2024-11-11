@@ -16,6 +16,7 @@
     "Seeding": "Раздача",
     "Anonymity": "Анонимность",
     "Debug": "Отладка",
+    "Versions": "Версии",
     "ImportTorrentFile": "Загрузить торрент из файла",
     "ImportTorrentURL": "Загрузить торрент по URL/magnet-ссылке",
     "CreateTorrent": "Создать торрент",

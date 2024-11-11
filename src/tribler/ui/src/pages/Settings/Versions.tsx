@@ -106,44 +106,44 @@ export default function Versions() {
     return (
         <div className="p-6">
             <div className="grid grid-cols-4 gap-2 items-center">
-                <Label className="whitespace-nowrap pr-5 font-bold">
+                <Label className="whitespace-nowrap pr-5 font-bold" key="current_version_header">
                     {t('VersionCurrent')}:
                 </Label>
-                <Suspense fallback={<Label>...</Label>}>
-                    <Label>
+                <Suspense fallback={<Label key="current_version_label">...</Label>}>
+                    <Label key="current_version_label">
                         {version ? version : "..."}
                     </Label>
                 </Suspense>
-                <Suspense fallback={<Label></Label>}>
-                    {newVersion ? <Label>{t('VersionAvailable')}: {newVersion}</Label> : <Label></Label>}
+                <Suspense fallback={<Label key="current_version_available"></Label>}>
+                    {newVersion ? <Label key="current_version_available">{t('VersionAvailable')}: {newVersion}</Label> : <Label key="current_version_available"></Label>}
                 </Suspense>
-                <Label></Label>
+                <Label key="spacer1"></Label>
 
-                <Label style={{marginBottom: "1cm"}}></Label>
-                <Label></Label><Label></Label><Label></Label>
+                <Label style={{marginBottom: "1cm"}} key="spacer2"></Label>
+                <Label key="spacer3"></Label><Label key="spacer4"></Label><Label key="spacer5"></Label>
 
-                <Label className="whitespace-nowrap pr-5 font-bold">{t('VersionOld')}</Label>
-                <Label></Label><Label></Label><Label></Label>
+                <Label className="whitespace-nowrap pr-5 font-bold" key="old_version_header">{t('VersionOld')}</Label>
+                <Label key="spacer6"></Label><Label key="spacer7"></Label><Label key="spacer8"></Label>
 
                 {
                     versions.reduce((r: string[], e: string) => {r.push(e, e, e, e); return r;}, new Array<string>()).map(function(old_version: string, i: number){
                         switch (i % 4){
                             case 0: {
-                                return (<Label>{old_version}</Label>)
+                                return (<Label key={`current_version_label_${i}`}>{old_version}</Label>)
                             }
                             case 1: {
-                                return (<Label></Label>)  // Blank column to outline with the data above
+                                return (<Label key={`spacer_${9+i}`}></Label>)  // Blank column to outline with the data above
                             }
                             case 2: {
                                 return (
                                            (typeof canUpgrade === "string") && (canUpgrade == old_version) ? (
-                                               isUpgrading ? <div className="flex justify-center p-5 gap-1"><RefreshCw opacity="0.5" className="animate-spin duration-500" /><Label className="content-center text-muted-foreground">{t('VersionUpgrading')}...</Label></div>
-                                               : <Button variant="default" type="submit" onClick={(e) => clickedImport(e, old_version)}>{t('VersionImport')}</Button>)
-                                           : <Label></Label>
+                                               isUpgrading ? <div className="flex justify-center p-5 gap-1"><RefreshCw opacity="0.5" className="animate-spin duration-500" key={`import_status_${i}`} /><Label className="content-center text-muted-foreground">{t('VersionUpgrading')}...</Label></div>
+                                               : <Button variant="default" type="submit" onClick={(e) => clickedImport(e, old_version)} key={`import_status_${i}`}>{t('VersionImport')}</Button>)
+                                           : <Label key={`import_status_${i}`}></Label>
                                        )
                             }
                             default: {
-                                return (<Button variant="destructive" type="submit" onClick={(e) => clickedRemove(e, old_version)}>{t('VersionRemove')}</Button>)
+                                return (<Button variant="destructive" type="submit" onClick={(e) => clickedRemove(e, old_version)} key={`remove_button_${i}`}>{t('VersionRemove')}</Button>)
                             }
                         }
                     })

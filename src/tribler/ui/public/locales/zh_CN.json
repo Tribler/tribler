@@ -16,6 +16,7 @@
     "Seeding": "做种",
     "Anonymity": "匿名",
     "Debug": "调试",
+    "Versions": "版本",
     "ImportTorrentFile": "从文件导入种子",
     "ImportTorrentURL": "从磁力/URL 导入种子",
     "CreateTorrent": "从文件创建种子",

@@ -16,6 +16,7 @@
     "Seeding": "Seeding",
     "Anonymity": "Anonimidade",
     "Debug": "Depurar",
+    "Versions": "Versões",
     "ImportTorrentFile": "Importar torrent do um arquivo",
     "ImportTorrentURL": "Importar torrent de magnet/URL",
     "CreateTorrent": "Criar torrent de um arquivo(s)",
