@@ -7,6 +7,5 @@ if __name__ == "__main__":
     tree = parse(metainfo_xml)
     root = tree.getroot()
     releases_tag = root.find("releases")
-    releases_tag.append(SubElement(releases_tag, "release", {"version": getenv("GITHUB_TAG"),
-                                                             "date": strftime("%Y-%m-%d", localtime())}))
+    SubElement(releases_tag, "release", {"version": getenv("GITHUB_TAG"), "date": strftime("%Y-%m-%d", localtime())})
     tree.write(metainfo_xml, encoding="utf-8", xml_declaration=True)
