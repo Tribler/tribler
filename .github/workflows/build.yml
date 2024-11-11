@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         include:  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             architecture: x64
           - os: ubuntu-latest
             architecture: aarch64
@@ -115,9 +115,10 @@ jobs:
       # Individual builds #
       #####################
       - name: Build Executables (Ubuntu x64)
-        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        if: matrix.os == 'ubuntu-20.04' && matrix.architecture == 'x64'
         run: |
-          sudo apt-get install -y --allow-downgrades alien cpio=2.13+dfsg-7 devscripts fakeroot gir1.2-gtk-4.0 libgirepository1.0-dev rpm
+          sudo apt-get update -q -y
+          sudo apt-get install -y --allow-downgrades alien devscripts fakeroot gir1.2-gtk-3.0 libgirepository1.0-dev rpm
           ./build/debian/makedist_debian.sh
           
           cd build/debian
