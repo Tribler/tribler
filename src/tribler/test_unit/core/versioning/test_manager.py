@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from ipv8.taskmanager import TaskManager
 from ipv8.test.base import TestBase
+from packaging.version import Version
 
 import tribler
 from tribler.core.versioning.manager import VersioningManager
@@ -169,6 +170,21 @@ class TestVersioningManager(TestBase):
         """
         self.manager.get_versions = Mock(return_value=[FROM])
         self.manager.get_current_version = Mock(return_value=TO)
+
+        with patch("os.path.isfile", lambda _: False):
+            self.assertEqual(FROM, self.manager.can_upgrade())
+
+    def test_can_upgrade_to_current_soft(self) -> None:
+        """
+        Check if we can upgrade to the currently supported soft version.
+
+        For example, the database directory may be (hard) version ``8.0`` and the actual (soft) version ``8.0.3``.
+        """
+        self.manager.get_versions = Mock(return_value=[FROM])
+        db_version = Version(TO)
+        self.manager.get_current_version = Mock(
+            return_value=f"{db_version.major}.{db_version.minor}.{db_version.micro + 1}"
+        )
 
         with patch("os.path.isfile", lambda _: False):
             self.assertEqual(FROM, self.manager.can_upgrade())
