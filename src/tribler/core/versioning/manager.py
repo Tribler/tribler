@@ -95,7 +95,9 @@ class VersioningManager:
         if FROM not in self.get_versions():
             return False  # We can't upgrade from this version.
 
-        return FROM if (self.get_current_version() in [None, TO]) else False  # Always allow upgrades to git (None).
+        # Always allow upgrades to git (None).
+        current_version = self.get_current_version()
+        return FROM if (current_version is None or Version(TO) <= Version(current_version)) else False
 
     def perform_upgrade(self) -> None:
         """
