@@ -107,7 +107,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
             </TabsContent>
             <TabsContent value="peers" style={contentStyle}>
                 <ScrollArea className="h-full">
-                    <Peers download={download} />
+                    <Peers download={download} height={contentStyle.height}/>
                 </ScrollArea>
             </TabsContent>
         </Tabs>

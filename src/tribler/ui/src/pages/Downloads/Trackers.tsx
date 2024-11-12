@@ -79,11 +79,11 @@ export default function Trackers({ download }: { download: Download }) {
 
     return (
         <div>
-            <div className="flex-col items-center grid-cols-1">
-                <SimpleTable data={download.trackers as TrackerRow[]} columns={trackerColumns} />
-                <div className="flex-none h-1 min-h-1 max-h-1 bg-secondary"></div>
-                <Button className="flex-none mx-4 my-2 min-w-24 max-h-8" variant="secondary" onClick={() => {setTrackerDialogOpen(true)}}>{t('Add')}</Button>
+            <div className="border-b-4 border-muted">
+                <SimpleTable data={download.trackers as TrackerRow[]} columns={trackerColumns} maxHeight={''} />
             </div>
+            <Button className="mx-4 my-2 min-w-24 max-h-8" variant="secondary" onClick={() => { setTrackerDialogOpen(true) }}>{t('Add')}</Button>
+
             <Dialog open={trackerDialogOpen} onOpenChange={setTrackerDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -109,7 +109,7 @@ export default function Trackers({ download }: { download: Download }) {
                                     triblerService.addDownloadTracker(download.infohash, trackerInput).then((response) => {
                                         if (response === undefined) {
                                             toast.error(`${"ToastErrorTrackerAdd"} ${"ToastErrorGenNetworkErr"}`);
-                                        } else if (isErrorDict(response)){
+                                        } else if (isErrorDict(response)) {
                                             toast.error(`${"ToastErrorTrackerAdd"} ${response.error}`);
                                         }
                                     });
