@@ -76,9 +76,9 @@ const peerColumns: ColumnDef<Peer>[] = [
     },
 ]
 
-export default function Peers({ download }: { download: Download }) {
+export default function Peers({ download, height }: { download: Download, height?: string }) {
     if (!download.peers)
         return null;
 
-    return <SimpleTable data={download.peers} columns={peerColumns} />
+    return <SimpleTable data={download.peers} columns={peerColumns} maxHeight={height}/>
 }
