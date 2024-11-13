@@ -55,7 +55,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>Please select a {selectDir ? 'directory' : 'file'}</DialogTitle>
-                    <DialogDescription className="text-base">{currentPath || initialPath}</DialogDescription>
+                    <DialogDescription className="text-base break-all line-clamp-1">{currentPath || initialPath}</DialogDescription>
                 </DialogHeader>
 
                 <ScrollArea className="max-h-[380px] border">
@@ -79,7 +79,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                 </ScrollArea>
 
                 <DialogFooter className="items-baseline">
-                    {!selectDir && <p className="grow text-base">{lastClicked?.path || initialPath}</p>}
+                    {!selectDir && <p className="grow text-base break-all line-clamp-1">{lastClicked?.path || initialPath}</p>}
                     <Button
                         variant="outline"
                         type="submit"
