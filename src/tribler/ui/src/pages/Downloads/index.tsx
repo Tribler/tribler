@@ -54,6 +54,9 @@ const downloadColumns: ColumnDef<Download>[] = [
                 </Button>
             )
         },
+        cell: ({ row }) => {
+            return <span className="break-all line-clamp-1">{row.original.name}</span>
+        },
     },
     {
         accessorKey: "size",
