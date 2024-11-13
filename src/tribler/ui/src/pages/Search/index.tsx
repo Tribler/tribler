@@ -33,7 +33,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
         header: "Name",
         cell: ({ row }) => {
             return <span
-                className="inline-block cursor-pointer hover:underline line-clamp-1"
+                className="cursor-pointer hover:underline break-all line-clamp-1"
                 onClick={() => onDownload(row.original)}>
                 {row.original.name}
             </span>

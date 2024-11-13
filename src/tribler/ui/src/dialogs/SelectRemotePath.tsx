@@ -72,7 +72,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                             >
                                 {item.dir && <Folder className="pr-2" />}
                                 {!item.dir && <FileIcon className="pr-2" />}
-                                {item.name}
+                                <span className="break-all line-clamp-1">{item.name}</span>
                             </div>
                         ))}
                     </div>
