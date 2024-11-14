@@ -48,7 +48,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
                                 : <ChevronRight size="16" color="#777"></ChevronRight>}
                         </button>
                     )}
-                    {row.original.name}
+                    <span className="break-all line-clamp-1">{row.original.name}</span>
                 </div>
             )
         }

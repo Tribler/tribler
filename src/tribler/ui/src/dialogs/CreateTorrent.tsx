@@ -27,7 +27,7 @@ const filenameColumns: ColumnDef<Filename>[] = [
         accessorKey: "path",
         header: "Filename",
         cell: ({ row }) => {
-            return <span className="line-clamp-1 text-xs">{row.original.path}</span>
+            return <span className="break-all line-clamp-1 text-xs">{row.original.path}</span>
         },
     },
 ]
