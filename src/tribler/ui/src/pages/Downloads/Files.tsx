@@ -5,7 +5,7 @@ import { Download } from "@/models/download.model";
 import { Dispatch, MutableRefObject, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { filesToTree, formatBytes, getSelectedFilesFromTree } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
-        header: "Path",
+        header: getHeader("Path"),
         accessorKey: "path",
         cell: ({ row }) => {
             return (
@@ -36,7 +36,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
         }
     },
     {
-        header: "Size",
+        header: getHeader("Size"),
         accessorKey: "size",
         cell: ({ row }) => {
             return (
@@ -48,7 +48,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
         },
     },
     {
-        header: "Progress",
+        header: getHeader("Progress"),
         accessorKey: "progress",
         cell: ({ row }) => {
             return <span>{((row.original.progress || 0) * 100).toFixed(1)}%</span>

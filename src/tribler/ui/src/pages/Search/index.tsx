@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
@@ -30,7 +30,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
     },
     {
         accessorKey: "name",
-        header: "Name",
+        header: getHeader("Name"),
         cell: ({ row }) => {
             return <span
                 className="cursor-pointer hover:underline break-all line-clamp-1"
@@ -41,21 +41,21 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
     },
     {
         accessorKey: "size",
-        header: "Size",
+        header: getHeader("Size"),
         cell: ({ row }) => {
             return <span className="whitespace-nowrap">{formatBytes(row.original.size)}</span>
         },
     },
     {
         accessorKey: "num_seeders",
-        header: "Health",
+        header: getHeader("Health"),
         cell: ({ row }) => {
             return <SwarmHealth torrent={row.original} />
         },
     },
     {
         accessorKey: "created",
-        header: "Created",
+        header: getHeader("Created"),
         cell: ({ row }) => {
             return <span className="whitespace-nowrap">{formatTimeAgo(row.original.created)}</span>
         },
@@ -150,6 +150,7 @@ export default function Search() {
             <SimpleTable
                 data={torrents}
                 columns={torrentColumns}
+                storeSortingState="search-sorting"
             />
         </>
     )

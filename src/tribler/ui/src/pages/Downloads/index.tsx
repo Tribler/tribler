@@ -1,15 +1,12 @@
 import Actions from "./Actions";
 import DownloadDetails from "./Details";
-import SimpleTable from "@/components/ui/simple-table"
+import SimpleTable, { getHeader } from "@/components/ui/simple-table"
 import { Download } from "@/models/download.model";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress"
-import { capitalize, formatBytes, translateHeader } from "@/lib/utils";
+import { capitalize, formatBytes } from "@/lib/utils";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
-import { CaretSortIcon } from "@radix-ui/react-icons";
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,39 +32,21 @@ const downloadColumns: ColumnDef<Download>[] = [
     {
         accessorKey: "name",
         minSize: 0,
-        header: ({ column }) => {
-            const { t } = useTranslation();
-            return (
-                <Button
-                    className="pl-0"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-                    {t('Name')}
-                    {column.getIsSorted() === "desc" ? (
-                        <ArrowDownIcon className="ml-2 h-4 w-4" />
-                    ) : column.getIsSorted() === "asc" ? (
-                        <ArrowUpIcon className="ml-2 h-4 w-4" />
-                    ) : (
-                        <CaretSortIcon className="ml-2 h-4 w-4" />
-                    )}
-                </Button>
-            )
-        },
+        header: getHeader('Name'),
         cell: ({ row }) => {
             return <span className="break-all line-clamp-1">{row.original.name}</span>
         },
     },
     {
         accessorKey: "size",
-        header: translateHeader('Size'),
+        header: getHeader('Size'),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.size)}</span>
         },
     },
     {
         accessorKey: "status",
-        header: translateHeader('Status'),
+        header: getHeader('Status'),
         cell: ({ row }) => {
             return (
                 <div className="grid">
@@ -83,35 +62,35 @@ const downloadColumns: ColumnDef<Download>[] = [
     },
     {
         accessorKey: "num_seeds",
-        header: translateHeader('Seeds'),
+        header: getHeader('Seeds'),
         cell: ({ row }) => {
             return <span>{row.original.num_connected_seeds} ({row.original.num_seeds})</span>
         },
     },
     {
         accessorKey: "num_peers",
-        header: translateHeader('Peers'),
+        header: getHeader('Peers'),
         cell: ({ row }) => {
             return <span>{row.original.num_connected_peers} ({row.original.num_peers})</span>
         },
     },
     {
         accessorKey: "speed_down",
-        header: translateHeader('SpeedDown'),
+        header: getHeader('SpeedDown'),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.speed_down)}/s</span>
         },
     },
     {
         accessorKey: "speed_up",
-        header: translateHeader('SpeedUp'),
+        header: getHeader('SpeedUp'),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.speed_up)}/s</span>
         },
     },
     {
         accessorKey: "hops",
-        header: translateHeader('Hops'),
+        header: getHeader('Hops'),
     },
 ]
 
@@ -215,6 +194,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                             allowMultiSelect={true}
                             onSelectedRowsChange={setSelectedDownloads}
                             maxHeight={Math.max((parentRect?.height ?? 50)-50, 50)}
+                            storeSortingState="download-sorting"
                         />
                     </Card>
                 </div>

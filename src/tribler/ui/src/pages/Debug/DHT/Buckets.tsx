@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -11,18 +11,18 @@ import { useInterval } from '@/hooks/useInterval';
 const bucketColumns: ColumnDef<Bucket>[] = [
     {
         accessorKey: "prefix",
-        header: "Prefix",
+        header: getHeader("Prefix", false),
     },
     {
         accessorKey: "last_changed",
-        header: "Last changed",
+        header: getHeader("Last changed", false),
         cell: ({ row }) => {
             return <span>{formatTimeDiff(row.original.last_changed)}</span>
         },
     },
     {
         accessorKey: "peer",
-        header: "# Peers",
+        header: getHeader("# Peers", false),
         cell: ({ row }) => {
             return <span>{row.original.peers.length}</span>
         },

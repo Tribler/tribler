@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -11,23 +11,23 @@ import { useInterval } from '@/hooks/useInterval';
 const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
-        header: "IP",
+        header: getHeader("IP", false),
     },
     {
         accessorKey: "port",
-        header: "Port",
+        header: getHeader("Port", false),
     },
     {
         accessorKey: "mid",
-        header: "Mid",
+        header: getHeader("Mid", false),
     },
     {
         accessorKey: "is_key_compatible",
-        header: "Key compatible?",
+        header: getHeader("Key compatible?", false),
     },
     {
         accessorKey: "flags",
-        header: "Flags",
+        header: getHeader("Flags", false),
         cell: ({ row }) => {
             return <span>{formatFlags(row.original.flags)}</span>
         },

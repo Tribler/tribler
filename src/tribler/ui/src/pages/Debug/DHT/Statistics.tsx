@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -10,11 +10,11 @@ import { useInterval } from '@/hooks/useInterval';
 const statisticColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: "Key",
+        header: getHeader("Key", false),
     },
     {
         accessorKey: "value",
-        header: "Value",
+        header: getHeader("Value", false),
         cell: ({ row }) => {
             return <span className="whitespace-pre">{row.original.value}</span>
         },

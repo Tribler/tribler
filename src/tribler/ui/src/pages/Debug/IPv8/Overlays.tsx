@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
@@ -12,25 +12,25 @@ import { useResizeObserver } from "@/hooks/useResizeObserver";
 const overlayColumns: ColumnDef<Overlay>[] = [
     {
         accessorKey: "overlay_name",
-        header: "Name",
+        header: getHeader("Name", false),
     },
     {
         accessorKey: "id",
-        header: "Community ID",
+        header: getHeader("Community ID", false),
         cell: ({ row }) => {
             return <span>{row.original.id.slice(0, 10)}</span>
         },
     },
     {
         accessorKey: "my_peer",
-        header: "My peer",
+        header: getHeader("My peer", false),
         cell: ({ row }) => {
             return <span>{row.original.my_peer.slice(0, 10)}</span>
         },
     },
     {
         accessorKey: "peers",
-        header: "Peers",
+        header: getHeader("Peers", false),
         cell: ({ row }) => {
             return (
                 <span className={`font-medium ${(row.original.peers.length < 20) ? `text-green-400` :
@@ -42,7 +42,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
     },
     {
         accessorKey: "statistics.bytes_up",
-        header: "Upload (MB)",
+        header: getHeader("Upload (MB)", false),
         cell: ({ row }) => {
             if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
             return <span>{(row.original.statistics.bytes_up / 1024 ** 2).toFixed(3)}</span>
@@ -50,7 +50,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
     },
     {
         accessorKey: "statistics.bytes_down",
-        header: "Download (MB)",
+        header: getHeader("Download (MB)", false),
         cell: ({ row }) => {
             if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
             return <span>{(row.original.statistics.bytes_down / 1024 ** 2).toFixed(3)}</span>
@@ -58,7 +58,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
     },
     {
         accessorKey: "statistics.num_up",
-        header: "# Msg sent",
+        header: getHeader("# Msg sent", false),
         cell: ({ row }) => {
             if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
             return <span>{row.original.statistics.num_up}</span>
@@ -66,7 +66,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
     },
     {
         accessorKey: "statistics.num_down",
-        header: "# Msg received",
+        header: getHeader("# Msg received", false),
         cell: ({ row }) => {
             if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
             return <span>{row.original.statistics.num_down}</span>
@@ -74,7 +74,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
     },
     {
         accessorKey: "statistics.diff_time",
-        header: "Diff (sec)",
+        header: getHeader("Diff (sec)", false),
         cell: ({ row }) => {
             if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
             return <span>{row.original.statistics.diff_time.toFixed(3)}</span>
@@ -85,15 +85,15 @@ const overlayColumns: ColumnDef<Overlay>[] = [
 const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
-        header: "IP",
+        header: getHeader("IP", false),
     },
     {
         accessorKey: "port",
-        header: "Port",
+        header: getHeader("Port", false),
     },
     {
         accessorKey: "public_key",
-        header: "Public key",
+        header: getHeader("Public key", false),
         cell: ({ row }) => {
             return <p className="max-w-[700px] text-ellipsis overflow-hidden">{row.original.public_key}</p>
         },

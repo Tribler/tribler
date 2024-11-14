@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -11,41 +11,41 @@ import { useInterval } from '@/hooks/useInterval';
 const swarmColumns: ColumnDef<Swarm>[] = [
     {
         accessorKey: "info_hash",
-        header: "Infohash",
+        header: getHeader("Infohash", false),
     },
     {
         accessorKey: "num_seeders",
-        header: "# Seeders",
+        header: getHeader("# Seeders", false),
     },
     {
         accessorKey: "num_connections",
-        header: "# Connections",
+        header: getHeader("# Connections", false),
     },
     {
         accessorKey: "num_connections_incomplete",
-        header: "# Pending",
+        header: getHeader("# Pending", false),
     },
     {
         accessorKey: "seeding",
-        header: "Seeding?",
+        header: getHeader("Seeding?", false),
     },
     {
         accessorKey: "last_lookup",
-        header: "Last lookup",
+        header: getHeader("Last lookup", false),
         cell: ({ row }) => {
             return <span>{formatTimeDiff(row.original.last_lookup)}</span>
         },
     },
     {
         accessorKey: "bytes_up",
-        header: "Up",
+        header: getHeader("Up", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>
         },
     },
     {
         accessorKey: "bytes_down",
-        header: "Down",
+        header: getHeader("Down", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>
         },

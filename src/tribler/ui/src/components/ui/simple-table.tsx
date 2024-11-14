@@ -1,16 +1,54 @@
 import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
-import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
 
+
+export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
+    if (!addSorting) {
+        return () => {
+            const { t } = useTranslation();
+            return <span className='select-none'>{translate ? t(name) : name}</span>;
+        }
+    }
+
+    return ({ column }) => {
+        const { t } = useTranslation();
+        return (
+            <div className='select-none flex'>
+                <span
+                    className="cursor-pointer hover:text-black dark:hover:text-white flex flex-row items-center"
+                    onClick={() => column.toggleSorting()}>
+                    {translate ? t(name) : name}
+                    {column.getIsSorted() === "desc" ? (
+                        <ArrowDownIcon className="ml-2" />
+                    ) : column.getIsSorted() === "asc" ? (
+                        <ArrowUpIcon className="ml-2" />
+                    ) : (
+                        <></>
+                    )}
+                </span>
+            </div>
+        )
+    }
+}
+
+function getStoredSortingState(key?: string) {
+    if (key) {
+        let sortingString = localStorage.getItem(key);
+        if (sortingString) {
+            return JSON.parse(sortingString);
+        }
+    }
+}
 
 interface ReactTableProps<T extends object> {
     data: T[];
@@ -29,6 +67,7 @@ interface ReactTableProps<T extends object> {
     filters?: { id: string, value: string }[];
     maxHeight?: string | number;
     expandable?: boolean;
+    storeSortingState?: string;
 }
 
 function SimpleTable<T extends object>({
@@ -46,7 +85,8 @@ function SimpleTable<T extends object>({
     allowMultiSelect,
     filters,
     maxHeight,
-    expandable
+    expandable,
+    storeSortingState
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -55,6 +95,7 @@ function SimpleTable<T extends object>({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
+    const [sorting, setSorting] = useState<SortingState>(getStoredSortingState(storeSortingState) || []);
 
     const table = useReactTable({
         data,
@@ -69,7 +110,8 @@ function SimpleTable<T extends object>({
             pagination,
             rowSelection,
             columnFilters,
-            expanded
+            expanded,
+            sorting
         },
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
@@ -78,6 +120,7 @@ function SimpleTable<T extends object>({
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
         },
         onExpandedChange: setExpanded,
+        onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
     });
 
@@ -103,6 +146,12 @@ function SimpleTable<T extends object>({
             }
         }
     }, [filters])
+
+    useEffect(() => {
+        if (storeSortingState) {
+            localStorage.setItem(storeSortingState, JSON.stringify(sorting));
+        }
+    }, [sorting]);
 
     // For some reason the ScrollArea scrollbar is only shown when it's set to a specific height.
     // So, we wrap it in a parent div, monitor its size, and set the height of the table accordingly.
