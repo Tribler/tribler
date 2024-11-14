@@ -42,7 +42,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         if (response === undefined) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${t("ToastErrorGenNetworkErr")}`);
         } else if (isErrorDict(response)){
-            toast.error(`${t("ToastErrorBrowseFiles")} ${response.error}`);
+            toast.error(`${t("ToastErrorBrowseFiles")} ${response.error.message}`);
         } else {
             setPaths(response.paths);
             setCurrentPath(response.current);

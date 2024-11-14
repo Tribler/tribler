@@ -30,7 +30,7 @@ export default function SlowTasks() {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorEnableAsyncio")} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)){
-                toast.error(`${t("ToastErrorEnableAsyncio")} ${response.error}`);
+                toast.error(`${t("ToastErrorEnableAsyncio")} ${response.error.message}`);
             }
         })();
         return () => {
@@ -39,7 +39,7 @@ export default function SlowTasks() {
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDisableAsyncio")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)){
-                    toast.error(`${t("ToastErrorDisableAsyncio")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDisableAsyncio")} ${response.error.message}`);
                 }
             })();
         }
@@ -67,7 +67,7 @@ export default function SlowTasks() {
                                 if (response === undefined) {
                                     toast.error(`${t("ToastErrorSlowness")} ${t("ToastErrorGenNetworkErr")}`);
                                 } else if (isErrorDict(response)){
-                                    toast.error(`${t("ToastErrorSlowness")} ${response.error}`);
+                                    toast.error(`${t("ToastErrorSlowness")} ${response.error.message}`);
                                 }
                             });
                         }}

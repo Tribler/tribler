@@ -151,7 +151,8 @@ class VersioningEndpoint(RESTEndpoint):
                 "schema": schema(RemoveVersionResponse={"success": Bool})
             },
             HTTP_BAD_REQUEST: {
-                "schema": schema(RemoveVersionNotFoundResponse={"error": String})
+                "schema": schema(RemoveVersionNotFoundResponse={"error": schema(ErrorResponse={"handled": Bool,
+                                                                                               "message": String})})
             }
         }
     )
@@ -161,6 +162,9 @@ class VersioningEndpoint(RESTEndpoint):
         """
         version = request.match_info["version"]
         if not version:
-            return RESTResponse({"error": "No version given"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "No version given"
+                                }}, status=HTTP_BAD_REQUEST)
         request.context[0].remove_version(version)
         return RESTResponse({"success": True})

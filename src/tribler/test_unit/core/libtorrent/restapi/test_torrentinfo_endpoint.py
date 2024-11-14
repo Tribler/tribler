@@ -58,7 +58,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("wrong value of 'hops' parameter: foo", response_body_json["error"])
+        self.assertEqual("wrong value of 'hops' parameter: foo", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_bad_scheme(self) -> None:
         """
@@ -68,7 +68,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("invalid uri", response_body_json["error"])
+        self.assertEqual("invalid uri", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_no_metainfo(self) -> None:
         """
@@ -80,7 +80,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_file_filenotfounderror(self) -> None:
         """
@@ -91,7 +91,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("error while decoding torrent file: .", response_body_json["error"])
+        self.assertEqual("error while decoding torrent file: .", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_file_typeerror(self) -> None:
         """
@@ -102,7 +102,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("error while decoding torrent file: .", response_body_json["error"])
+        self.assertEqual("error while decoding torrent file: .", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_file_valueerror(self) -> None:
         """
@@ -113,7 +113,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("error while decoding torrent file: .", response_body_json["error"])
+        self.assertEqual("error while decoding torrent file: .", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_file_runtimeerror(self) -> None:
         """
@@ -124,7 +124,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("error while decoding torrent file: .", response_body_json["error"])
+        self.assertEqual("error while decoding torrent file: .", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_magnet_runtimeerror_compat(self) -> None:
         """
@@ -136,7 +136,8 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("Error while getting an infohash from magnet: RuntimeError: ", response_body_json["error"])
+        self.assertEqual("Error while getting an infohash from magnet: RuntimeError: ",
+                         response_body_json["error"]["message"])
 
     async def test_get_torrent_info_magnet_runtimeerror_modern(self) -> None:
         """
@@ -151,7 +152,8 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("Error while getting an infohash from magnet: RuntimeError: ", response_body_json["error"])
+        self.assertEqual("Error while getting an infohash from magnet: RuntimeError: ",
+                         response_body_json["error"]["message"])
 
     async def test_get_torrent_info_magnet_no_metainfo(self) -> None:
         """
@@ -165,7 +167,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
         self.assertEqual(60, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
@@ -184,7 +186,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_clientresponseerror(self) -> None:
         """
@@ -199,7 +201,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("0, message='', url='test'", response_body_json["error"])
+        self.assertEqual("0, message='', url='test'", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_sslerror(self) -> None:
         """
@@ -214,7 +216,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("('test',)", response_body_json["error"])
+        self.assertEqual("('test',)", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_clientconnectorerror(self) -> None:
         """
@@ -230,7 +232,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("Cannot connect to host test:42 ssl:default [None]", response_body_json["error"])
+        self.assertEqual("Cannot connect to host test:42 ssl:default [None]", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_timeouterror(self) -> None:
         """
@@ -245,7 +247,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_valueerror(self) -> None:
         """
@@ -260,7 +262,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_serverconnectionerror(self) -> None:
         """
@@ -275,7 +277,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_clientresponseerror(self) -> None:
         """
@@ -290,7 +292,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("0, message='', url='test'", response_body_json["error"])
+        self.assertEqual("0, message='', url='test'", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_sslerror(self) -> None:
         """
@@ -305,7 +307,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("('test',)", response_body_json["error"])
+        self.assertEqual("('test',)", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_clientconnectorerror(self) -> None:
         """
@@ -321,7 +323,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("Cannot connect to host test:42 ssl:default [None]", response_body_json["error"])
+        self.assertEqual("Cannot connect to host test:42 ssl:default [None]", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_timeouterror(self) -> None:
         """
@@ -336,7 +338,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_valueerror(self) -> None:
         """
@@ -351,7 +353,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("test", response_body_json["error"])
+        self.assertEqual("test", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_certificate_error(self) -> None:
         """
@@ -389,7 +391,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_no_metainfo(self) -> None:
         """
@@ -405,7 +407,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_redirect_magnet_no_metainfo(self) -> None:
         """
@@ -424,7 +426,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
         self.assertEqual(60.0, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
@@ -447,7 +449,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"])
+        self.assertEqual("metainfo error", response_body_json["error"]["message"])
         self.assertEqual(b"\x01" * 20, self.download_manager.get_metainfo.call_args.args[0])
         self.assertEqual(60.0, self.download_manager.get_metainfo.call_args.kwargs["timeout"])
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
@@ -464,7 +466,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("invalid response", response_body_json["error"])
+        self.assertEqual("invalid response", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_invalid_response_empty_info(self) -> None:
         """
@@ -477,7 +479,7 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("invalid response", response_body_json["error"])
+        self.assertEqual("invalid response", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_valid_download(self) -> None:
         """

@@ -75,7 +75,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             },
             HTTP_BAD_REQUEST: {
                 "schema": HandledErrorSchema,
-                "examples": {"Error": {"error": "files parameter missing"}}
+                "examples": {"Error": {"error": {"handled": True, "message": "files parameter missing"}}}
             }
         }
     )
@@ -96,7 +96,10 @@ class CreateTorrentEndpoint(RESTEndpoint):
         if parameters.get("files"):
             file_path_list = [Path(p) for p in parameters["files"]]
         else:
-            return RESTResponse({"error": "files parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "files parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         if parameters.get("description"):
             params["comment"] = parameters["description"]

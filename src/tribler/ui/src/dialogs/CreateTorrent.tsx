@@ -57,7 +57,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         if (settings === undefined){
             toast.error(`${t("ToastErrorDefaultDLDir")} ${t("ToastErrorGenNetworkErr")}`);
         } else if (isErrorDict(settings)) {
-            toast.error(`${t("ToastErrorDefaultDLDir")} ${settings.error}`);
+            toast.error(`${t("ToastErrorDefaultDLDir")} ${settings.error.message}`);
         } else {
             setDestination(settings.libtorrent.download_defaults.saveas);
         }
@@ -68,7 +68,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         if (response === undefined){
             toast.error(`${t("ToastErrorDirectoryAdd")} ${t("ToastErrorGenNetworkErr")}`);
         } else if (isErrorDict(response)) {
-            toast.error(`${t("ToastErrorDirectoryAdd")} ${response.error}`);
+            toast.error(`${t("ToastErrorDirectoryAdd")} ${response.error.message}`);
         } else {
             setFiles([
                 ...files,
@@ -180,7 +180,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                                         toast.error(`${t("ToastErrorCreateTorrent", {name: name})} ${t("ToastErrorGenNetworkErr")}`);
                                     } else if (isErrorDict(response)) {
                                         // Quinten: according to the typing, response could not be a ErrorDict here?!
-                                        toast.error(`${t("ToastErrorCreateTorrent", {name: name})} ${(response as ErrorDict).error}`);
+                                        toast.error(`${t("ToastErrorCreateTorrent", {name: name})} ${(response as ErrorDict).error.message}`);
                                     }
                                 }
                             );

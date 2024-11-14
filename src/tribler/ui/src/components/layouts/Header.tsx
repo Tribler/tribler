@@ -139,7 +139,7 @@ export function Header() {
                                         if (response === undefined) {
                                             toast.error(`${"ToastErrorShutdown"} ${"ToastErrorGenNetworkErr"}`);
                                         } else if (isErrorDict(response)){
-                                            toast.error(`${"ToastErrorShutdown"} ${response.error}`);
+                                            toast.error(`${"ToastErrorShutdown"} ${response.error.message}`);
                                         }
                                     })
                                 }}

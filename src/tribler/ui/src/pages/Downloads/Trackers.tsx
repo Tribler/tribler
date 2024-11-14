@@ -47,7 +47,7 @@ export default function Trackers({ download }: { download: Download }) {
                                 if (response === undefined) {
                                     toast.error(`${"ToastErrorTrackerCheck"} ${"ToastErrorGenNetworkErr"}`);
                                 } else if (isErrorDict(response)){
-                                    toast.error(`${"ToastErrorTrackerCheck"} ${response.error}`);
+                                    toast.error(`${"ToastErrorTrackerCheck"} ${response.error.message}`);
                                 }
                             });
                         }}>{t("ForceRecheck")}</Button>)
@@ -63,7 +63,7 @@ export default function Trackers({ download }: { download: Download }) {
                                 if (response === undefined) {
                                     toast.error(`${"ToastErrorTrackerRemove"} ${"ToastErrorGenNetworkErr"}`);
                                 } else if (isErrorDict(response)){
-                                    toast.error(`${"ToastErrorTrackerRemove"} ${response.error}`);
+                                    toast.error(`${"ToastErrorTrackerRemove"} ${response.error.message}`);
                                 } else {
                                     download.trackers = download.trackers.filter(tracker => {return tracker.url != props.row.original.url});
                                     var button = event.target as HTMLButtonElement;
@@ -110,7 +110,7 @@ export default function Trackers({ download }: { download: Download }) {
                                         if (response === undefined) {
                                             toast.error(`${"ToastErrorTrackerAdd"} ${"ToastErrorGenNetworkErr"}`);
                                         } else if (isErrorDict(response)) {
-                                            toast.error(`${"ToastErrorTrackerAdd"} ${response.error}`);
+                                            toast.error(`${"ToastErrorTrackerAdd"} ${response.error.message}`);
                                         }
                                     });
                                     setTrackerDialogOpen(false);

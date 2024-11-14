@@ -92,7 +92,10 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         Returns a 404 response code if your channel has not been created.
         """
-        return RESTResponse({"error": message}, status=HTTP_NOT_FOUND)
+        return RESTResponse({"error": {
+                                "handled": True,
+                                "message": message
+                            }}, status=HTTP_NOT_FOUND)
 
     def create_dconfig_from_params(self, parameters: dict) -> tuple[DownloadConfig, None] | tuple[None, str]:
         """
@@ -423,11 +426,17 @@ class DownloadsEndpoint(RESTEndpoint):
             params = await request.json()
             uri = params.get("uri")
             if not uri:
-                return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": "uri parameter missing"
+                                    }}, status=HTTP_BAD_REQUEST)
 
         download_config, error = self.create_dconfig_from_params(params)
         if error:
-            return RESTResponse({"error": error}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": error
+                                }}, status=HTTP_BAD_REQUEST)
 
         try:
             if tdef:
@@ -435,7 +444,10 @@ class DownloadsEndpoint(RESTEndpoint):
             elif uri:
                 download = await self.download_manager.start_download_from_uri(uri, config=download_config)
         except Exception as e:
-            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": str(e)
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         return RESTResponse({"started": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
 
@@ -465,7 +477,10 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         parameters = await request.json()
         if "remove_data" not in parameters:
-            return RESTResponse({"error": "remove_data parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "remove_data parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         infohash = unhexlify(request.match_info["infohash"])
         download = self.download_manager.get_download(infohash)
@@ -514,8 +529,10 @@ class DownloadsEndpoint(RESTEndpoint):
 
         parameters = await request.json()
         if len(parameters) > 1 and "anon_hops" in parameters:
-            return RESTResponse({"error": "anon_hops must be the only parameter in this request"},
-                                status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "anon_hops must be the only parameter in this request"
+                                }}, status=HTTP_BAD_REQUEST)
         if 'anon_hops' in parameters:
             anon_hops = int(parameters['anon_hops'])
             try:
@@ -529,7 +546,10 @@ class DownloadsEndpoint(RESTEndpoint):
             selected_files_list = parameters["selected_files"]
             num_files = len(download.tdef.get_files())
             if not all(0 <= index < num_files for index in selected_files_list):
-                return RESTResponse({"error": "index out of range"}, status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": "index out of range"
+                                    }}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
         if state := parameters.get("state"):
@@ -542,12 +562,17 @@ class DownloadsEndpoint(RESTEndpoint):
             elif state == "move_storage":
                 dest_dir = Path(parameters["dest_dir"])
                 if not dest_dir.exists():
-                    return RESTResponse({"error": f"Target directory ({dest_dir}) does not exist"},
-                                        status=HTTP_BAD_REQUEST)
+                    return RESTResponse({"error": {
+                                            "handled": True,
+                                            "message": f"Target directory ({dest_dir}) does not exist"
+                                        }}, status=HTTP_BAD_REQUEST)
                 download.move_storage(dest_dir)
                 download.checkpoint()
             else:
-                return RESTResponse({"error": "unknown state parameter"}, status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": "unknown state parameter"
+                                    }}, status=HTTP_BAD_REQUEST)
 
         return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
 
@@ -615,13 +640,19 @@ class DownloadsEndpoint(RESTEndpoint):
         parameters = await request.json()
         url = parameters.get("url")
         if not url:
-            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "url parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         try:
             download.add_trackers([url])
             download.handle.force_reannounce(0, len(download.handle.trackers()) - 1)
         except RuntimeError as e:
-            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": str(e)
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         return RESTResponse({"added": True})
 
@@ -657,13 +688,19 @@ class DownloadsEndpoint(RESTEndpoint):
         parameters = await request.json()
         url = parameters.get("url")
         if not url:
-            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "url parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         try:
             download.handle.replace_trackers([tracker for tracker in download.handle.trackers()
                                               if tracker["url"] != url])
         except RuntimeError as e:
-            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": str(e)
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         return RESTResponse({"removed": True})
 
@@ -699,7 +736,10 @@ class DownloadsEndpoint(RESTEndpoint):
         parameters = await request.json()
         url = parameters.get("url")
         if not url:
-            return RESTResponse({"error": "url parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "url parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         try:
             for i, tracker in enumerate(download.handle.trackers()):
@@ -707,7 +747,10 @@ class DownloadsEndpoint(RESTEndpoint):
                     download.handle.force_reannounce(0, i)
                     break
         except RuntimeError as e:
-            return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": str(e)
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         return RESTResponse({"forced": True})
 
@@ -804,7 +847,10 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         path = params.get("path")
         if not path:
-            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "path parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         download.tdef.torrent_file_tree.collapse(Path(path))
 
@@ -845,7 +891,10 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         path = params.get("path")
         if not path:
-            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "path parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         download.tdef.torrent_file_tree.expand(Path(path))
 
@@ -884,7 +933,10 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         path = params.get("path")
         if not path:
-            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "path parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         download.set_selected_file_or_dir(Path(path), True)
 
@@ -923,7 +975,10 @@ class DownloadsEndpoint(RESTEndpoint):
         params = request.query
         path = params.get("path")
         if not path:
-            return RESTResponse({"error": "path parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "path parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         download.set_selected_file_or_dir(Path(path), False)
 

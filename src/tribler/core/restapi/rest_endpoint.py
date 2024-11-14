@@ -87,7 +87,6 @@ def return_handled_exception(exception: Exception) -> RESTResponse:
     return RESTResponse({
         "error": {
             "handled": True,
-            "code": exception.__class__.__name__,
-            "message": str(exception)
+            "message": f"{exception.__class__.__name__}: {exception!s}"
         }
     }, status=HTTP_INTERNAL_SERVER_ERROR)

@@ -123,7 +123,7 @@ class TestKnowledgeEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
-        self.assertEqual("Invalid infohash", response_body_json["error"])
+        self.assertEqual("Invalid infohash", response_body_json["error"]["message"])
 
     async def test_add_invalid_tag_too_short(self) -> None:
         """
@@ -136,7 +136,7 @@ class TestKnowledgeEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
-        self.assertEqual("Invalid tag length", response_body_json["error"])
+        self.assertEqual("Invalid tag length", response_body_json["error"]["message"])
 
     async def test_add_invalid_tag_too_long(self) -> None:
         """
@@ -149,7 +149,7 @@ class TestKnowledgeEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
-        self.assertEqual("Invalid tag length", response_body_json["error"])
+        self.assertEqual("Invalid tag length", response_body_json["error"]["message"])
 
     async def test_modify_tags(self) -> None:
         """
@@ -190,7 +190,7 @@ class TestKnowledgeEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(400, response.status)
-        self.assertEqual("Invalid infohash", response_body_json["error"])
+        self.assertEqual("Invalid infohash", response_body_json["error"]["message"])
 
     async def test_get_suggestions(self) -> None:
         """

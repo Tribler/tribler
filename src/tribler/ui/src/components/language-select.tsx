@@ -25,7 +25,7 @@ const LanguageSelect = () => {
         if (response === undefined) {
             toast.error(`${t("ToastErrorSetLanguage")} ${t("ToastErrorGenNetworkErr")}`);
         } else if (isErrorDict(response)){
-            toast.error(`${t("ToastErrorSetLanguage")} ${response.error}`);
+            toast.error(`${t("ToastErrorSetLanguage")} ${response.error.message}`);
         }
     };
 

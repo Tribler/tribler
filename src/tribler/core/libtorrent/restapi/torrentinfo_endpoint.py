@@ -132,10 +132,16 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 i_hops = int(hops)
             except ValueError:
-                return RESTResponse({"error": f"wrong value of 'hops' parameter: {hops}"}, status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": f"wrong value of 'hops' parameter: {hops}"
+                                    }}, status=HTTP_BAD_REQUEST)
 
         if not p_uri:
-            return RESTResponse({"error": "uri parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "uri parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         uri = await unshorten(p_uri)
         scheme = URL(uri).scheme
@@ -147,8 +153,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 tdef = await TorrentDef.load(file_path)
                 metainfo = tdef.metainfo
             except (OSError, TypeError, ValueError, RuntimeError):
-                return RESTResponse({"error": f"error while decoding torrent file: {file_path}"},
-                                    status=HTTP_INTERNAL_SERVER_ERROR)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": f"error while decoding torrent file: {file_path}"
+                                    }}, status=HTTP_INTERNAL_SERVER_ERROR)
         elif scheme in ("http", "https"):
             try:
                 try:
@@ -159,12 +167,17 @@ class TorrentInfoEndpoint(RESTEndpoint):
             except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError,
                     AsyncTimeoutError, ValueError) as e:
                 self._logger.warning("Error while querying http uri: %s", str(e))
-                return RESTResponse({"error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": str(e)
+                                    }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
             if not isinstance(response, bytes):
                 self._logger.warning("Error while reading response from http uri: %s", repr(response))
-                return RESTResponse({"error": "Error while reading response from http uri"},
-                                    status=HTTP_INTERNAL_SERVER_ERROR)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": "Error while reading response from http uri"
+                                    }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
             if response.startswith(b'magnet'):
                 try:
@@ -176,8 +189,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
                 except RuntimeError as e:
                     return RESTResponse(
-                        {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
-                        status=HTTP_INTERNAL_SERVER_ERROR
+                        {"error": {
+                            "handled": True,
+                            "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
+                        }}, status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
                 metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
@@ -196,19 +211,30 @@ class TorrentInfoEndpoint(RESTEndpoint):
                     infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
             except RuntimeError as e:
                 return RESTResponse(
-                    {"error": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'},
-                    status=HTTP_BAD_REQUEST
+                    {"error": {
+                        "handled": True,
+                        "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
+                    }}, status=HTTP_BAD_REQUEST
                 )
             metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
         else:
-            return RESTResponse({"error": "invalid uri"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "invalid uri"
+                                }}, status=HTTP_BAD_REQUEST)
 
         if not metainfo:
-            return RESTResponse({"error": "metainfo error"}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "metainfo error"
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         if not isinstance(metainfo, dict) or b"info" not in metainfo:
             self._logger.warning("Received metainfo is not a valid dictionary")
-            return RESTResponse({"error": "invalid response"}, status=HTTP_INTERNAL_SERVER_ERROR)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "invalid response"
+                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         # Add the torrent to metadata.db
         torrent_def = TorrentDef.load_from_dict(metainfo)

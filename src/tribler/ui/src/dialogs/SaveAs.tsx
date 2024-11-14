@@ -25,7 +25,7 @@ function startDownloadCallback(response: any, t: TFunction) {
     if (response === undefined) {
         toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
     } else if (isErrorDict(response)) {
-        toast.error(`${t("ToastErrorDownloadStart")} ${response.error}`);
+        toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
     }
 }
 
@@ -131,7 +131,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 setError(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
                 return;
             } else if (isErrorDict(newSettings)) {
-                setError(`${t("ToastErrorGetSettings")} ${newSettings.error}`);
+                setError(`${t("ToastErrorGetSettings")} ${newSettings.error.message}`);
                 return;
             }
             const safeSeeding = !!newSettings?.libtorrent?.download_defaults?.safeseeding_enabled;
@@ -155,11 +155,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
             if (response === undefined) {
                 setError(`${t("ToastErrorGetMetainfo")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if ('error' in response && typeof response.error === 'object') {
-                let errorCode = response.error as {handled: boolean, code: string, message: string};
-                setError(`${t("ToastErrorGetMetainfo")} ${errorCode.code}`);
             } else if (isErrorDict(response)) {
-                setError(`${t("ToastErrorGetMetainfo")} ${response.error}`);
+                setError(`${t("ToastErrorGetMetainfo")} ${response.error.message}`);
             } else if (response) {
                 const info = getFilesFromMetainfo(response.metainfo);
                 var files = info.files;
