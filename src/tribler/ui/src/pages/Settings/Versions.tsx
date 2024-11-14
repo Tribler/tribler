@@ -25,7 +25,7 @@ export default function Versions() {
                 toast.error(`${t("ToastErrorUpgradeFailed")} ${t("ToastErrorGenNetworkErr")}`);
                 setIsUpgrading(false);
             } else if (isErrorDict(response)){
-                toast.error(`${t("ToastErrorUpgradeFailed")} ${response.error}`);
+                toast.error(`${t("ToastErrorUpgradeFailed")} ${response.error.message}`);
                 setIsUpgrading(false);
             }
         });
@@ -36,7 +36,7 @@ export default function Versions() {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorRemoveVersion", {version: old_version})} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)){
-                toast.error(`${t("ToastErrorRemoveVersion", {version: old_version})}  ${response.error}`);
+                toast.error(`${t("ToastErrorRemoveVersion", {version: old_version})}  ${response.error.message}`);
             } else {
                 setVersions(versions.filter((v) => v != old_version));
             }

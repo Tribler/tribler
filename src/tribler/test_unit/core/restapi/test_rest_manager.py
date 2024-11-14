@@ -72,7 +72,7 @@ class TestRESTManager(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_UNAUTHORIZED, response.status)
-        self.assertEqual("Unauthorized access", response_body_json["error"])
+        self.assertEqual("Unauthorized access", response_body_json["error"]["message"])
 
     async def test_key_middleware_valid_unprotected(self) -> None:
         """
@@ -172,7 +172,6 @@ class TestRESTManager(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertFalse(response_body_json["error"]["handled"])
-        self.assertEqual("ValueError", response_body_json["error"]["code"])
         self.assertTrue(response_body_json["error"]["message"].startswith("Traceback (most recent call last):"))
 
     def test_add_endpoint(self) -> None:

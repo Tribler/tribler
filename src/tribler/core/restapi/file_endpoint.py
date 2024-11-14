@@ -83,7 +83,10 @@ class FileEndpoint(RESTEndpoint):
         recursively = request.query.get('recursively') != "0"
 
         if not path.exists():
-            return RESTResponse({"error": f"Directory {path} does not exist"}, status=HTTP_NOT_FOUND)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": f"Directory {path} does not exist"
+                                }}, status=HTTP_NOT_FOUND)
 
         results = [{"name": file.name,
                     "path": str(file.resolve())}

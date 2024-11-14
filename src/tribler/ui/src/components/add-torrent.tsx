@@ -138,7 +138,7 @@ export function AddTorrent() {
                                 if (response === undefined) {
                                     toast.error(`${t("ToastErrorStartDownload")} ${t("ToastErrorGenNetworkErr")}`);
                                 } else if (isErrorDict(response)){
-                                    toast.error(`${t("ToastErrorStartDownload")} ${response.error}`);
+                                    toast.error(`${t("ToastErrorStartDownload")} ${response.error.message}`);
                                 }
                              })();
                         }

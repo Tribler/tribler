@@ -87,7 +87,7 @@ export default function Files({ download }: { download: Download }) {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)) {
-                toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error}`);
+                toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error.message}`);
             }
         });
         updateFiles(setFiles, download, initialized);

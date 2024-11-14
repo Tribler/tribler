@@ -31,7 +31,7 @@ export default function Health() {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorEnableHealth")} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)){
-                toast.error(`${t("ToastErrorEnableHealth")} ${response.error}`);
+                toast.error(`${t("ToastErrorEnableHealth")} ${response.error.message}`);
             }
         })();
         return () => {
@@ -40,7 +40,7 @@ export default function Health() {
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDisableHealth")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)){
-                    toast.error(`${t("ToastErrorDisableHealth")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDisableHealth")} ${response.error.message}`);
                 }
             })();
         }

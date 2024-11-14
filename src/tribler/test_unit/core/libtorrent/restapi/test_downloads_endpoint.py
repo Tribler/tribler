@@ -483,7 +483,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("uri parameter missing", response_body_json["error"])
+        self.assertEqual("uri parameter missing", response_body_json["error"]["message"])
 
     async def test_add_download_unsafe_anon_error(self) -> None:
         """
@@ -497,7 +497,8 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("Cannot set anonymous download without safe seeding enabled", response_body_json["error"])
+        self.assertEqual("Cannot set anonymous download without safe seeding enabled",
+                         response_body_json["error"]["message"])
 
     async def test_add_download_default_parameters(self) -> None:
         """
@@ -551,7 +552,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("invalid uri", response_body_json["error"])
+        self.assertEqual("invalid uri", response_body_json["error"]["message"])
 
     async def test_delete_download_no_remove_data(self) -> None:
         """
@@ -561,7 +562,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("remove_data parameter missing", response_body_json["error"])
+        self.assertEqual("remove_data parameter missing", response_body_json["error"]["message"])
 
     async def test_delete_download_no_download(self) -> None:
         """
@@ -573,7 +574,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_delete_download_no_data(self) -> None:
         """
@@ -619,9 +620,8 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("OSError", response_body_json["error"]["code"])
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("", response_body_json["error"]["message"])
+        self.assertEqual("OSError: ", response_body_json["error"]["message"])
 
     async def test_update_download_no_download(self) -> None:
         """
@@ -633,7 +633,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_update_download_anon_hops_garbage(self) -> None:
         """
@@ -644,7 +644,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("anon_hops must be the only parameter in this request", response_body_json["error"])
+        self.assertEqual("anon_hops must be the only parameter in this request", response_body_json["error"]["message"])
 
     async def test_update_download_anon_hops_update(self) -> None:
         """
@@ -673,9 +673,8 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("OSError", response_body_json["error"]["code"])
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("", response_body_json["error"]["message"])
+        self.assertEqual("OSError: ", response_body_json["error"]["message"])
 
     async def test_update_download_selected_files_out_of_range(self) -> None:
         """
@@ -690,7 +689,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("index out of range", response_body_json["error"])
+        self.assertEqual("index out of range", response_body_json["error"]["message"])
 
     async def test_update_download_selected_files(self) -> None:
         """
@@ -719,7 +718,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("unknown state parameter", response_body_json["error"])
+        self.assertEqual("unknown state parameter", response_body_json["error"]["message"])
 
     async def test_update_download_state_resume(self) -> None:
         """
@@ -783,7 +782,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("Target directory (I don't exist) does not exist", response_body_json["error"])
+        self.assertEqual("Target directory (I don't exist) does not exist", response_body_json["error"]["message"])
 
     async def test_update_download_state_move_storage(self) -> None:
         """
@@ -828,7 +827,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_get_torrent_no_torrent_data(self) -> None:
         """
@@ -840,7 +839,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_get_torrent(self) -> None:
         """
@@ -866,7 +865,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_get_files_without_path(self) -> None:
         """
@@ -942,7 +941,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_collapse_tree_directory(self) -> None:
         """
@@ -973,7 +972,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_expand_tree_directory(self) -> None:
         """
@@ -1003,7 +1002,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_select_tree_path(self) -> None:
         """
@@ -1032,7 +1031,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_deselect_tree_path(self) -> None:
         """
@@ -1061,7 +1060,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
-        self.assertEqual("this download does not exist", response_body_json["error"])
+        self.assertEqual("this download does not exist", response_body_json["error"]["message"])
 
     async def test_stream_unsatisfiable(self) -> None:
         """
@@ -1176,7 +1175,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)
-        self.assertEqual("invalid torrent handle used", response_body_json["error"])
+        self.assertEqual("invalid torrent handle used", response_body_json["error"]["message"])
 
     async def test_remove_tracker(self) -> None:
         """
@@ -1241,7 +1240,7 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)
-        self.assertEqual("invalid torrent handle used", response_body_json["error"])
+        self.assertEqual("invalid torrent handle used", response_body_json["error"]["message"])
 
     async def test_tracker_force_announce(self) -> None:
         """
@@ -1306,4 +1305,4 @@ class TestDownloadsEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)
-        self.assertEqual("invalid torrent handle used", response_body_json["error"])
+        self.assertEqual("invalid torrent handle used", response_body_json["error"]["message"])

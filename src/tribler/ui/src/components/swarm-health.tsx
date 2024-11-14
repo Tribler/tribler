@@ -37,7 +37,7 @@ export function SwarmHealth({ torrent }: { torrent: Torrent }) {
                                     toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
                                 } else if (isErrorDict(response)) {
                                     setChecking(false);
-                                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error}`);
+                                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error.message}`);
                                 }
                             });
                         }}

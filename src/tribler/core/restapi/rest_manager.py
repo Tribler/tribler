@@ -84,7 +84,10 @@ class ApiKeyMiddleware:
         """
         if self.authenticate(request):
             return await handler(request)
-        return RESTResponse({"error": "Unauthorized access"}, status=HTTP_UNAUTHORIZED)
+        return RESTResponse({"error": {
+            "handled": True,
+            "message": "Unauthorized access"
+        }}, status=HTTP_UNAUTHORIZED)
 
     def authenticate(self, request: Request) -> bool:
         """
@@ -120,12 +123,11 @@ async def error_middleware(request: Request, handler: Callable[[Request], Awaita
             "handled": True,
             "message": http_error.text,
         }}, status=HTTP_REQUEST_ENTITY_TOO_LARGE)
-    except Exception as e:
+    except Exception:
         full_exception = traceback.format_exc()
 
         return RESTResponse({"error": {
             "handled": False,
-            "code": e.__class__.__name__,
             "message": str(full_exception)
         }}, status=HTTP_INTERNAL_SERVER_ERROR)
     return response

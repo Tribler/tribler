@@ -85,5 +85,4 @@ class TestRESTEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("ValueError", response_body_json["error"]["code"])
-        self.assertEqual("test message", response_body_json["error"]["message"])
+        self.assertEqual("ValueError: test message", response_body_json["error"]["message"])

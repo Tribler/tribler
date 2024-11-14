@@ -75,10 +75,16 @@ class SearchEndpoint(RESTEndpoint):
         try:
             sanitized = DatabaseEndpoint.sanitize_parameters(request.query)
         except (ValueError, KeyError) as e:
-            return RESTResponse({"error": f"Error processing request parameters: {e}"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": f"Error processing request parameters: {e}"
+            }}, status=HTTP_BAD_REQUEST)
         query = request.query.get("fts_text")
         if query is None:
-            return RESTResponse({"error": f"Got search with no fts_text: {dict(request.query)}"},
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": f"Got search with no fts_text: {dict(request.query)}"
+                                }},
                                 status=HTTP_BAD_REQUEST)
         if t_filter := request.query.get("filter"):
             query += f" {t_filter}"

@@ -63,9 +63,15 @@ class KnowledgeEndpoint(RESTEndpoint):
         """
         try:
             if len(infohash) != 40:
-                return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+                return False, RESTResponse({"error": {
+                                                "handled": True,
+                                                "message": "Invalid infohash"
+                                            }}, status=HTTP_BAD_REQUEST)
         except binascii.Error:
-            return False, RESTResponse({"error": "Invalid infohash"}, status=HTTP_BAD_REQUEST)
+            return False, RESTResponse({"error": {
+                                            "handled": True,
+                                            "message": "Invalid infohash"
+                                        }}, status=HTTP_BAD_REQUEST)
 
         return True, None
 
@@ -77,7 +83,8 @@ class KnowledgeEndpoint(RESTEndpoint):
                 "schema": schema(UpdateTagsResponse={"success": Boolean()})
             },
             HTTP_BAD_REQUEST: {
-                "schema": HandledErrorSchema, "example": {"error": "Invalid tag length"}},
+                "schema": HandledErrorSchema, "example": {"error": {"handled": True, "message": "Invalid tag length"}}
+            }
         },
         description="This endpoint updates a particular torrent with the provided metadata."
     )
@@ -97,7 +104,10 @@ class KnowledgeEndpoint(RESTEndpoint):
         for statement in params["statements"]:
             obj = statement["object"]
             if not is_valid_resource(obj):
-                return RESTResponse({"error": "Invalid tag length"}, status=HTTP_BAD_REQUEST)
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": "Invalid tag length"
+                                    }}, status=HTTP_BAD_REQUEST)
 
             statements.append(statement)
 
@@ -146,7 +156,8 @@ class KnowledgeEndpoint(RESTEndpoint):
                 "schema": schema(SuggestedTagsResponse={"suggestions": List(String)})
             },
             HTTP_BAD_REQUEST: {
-                "schema": HandledErrorSchema, "example": {"error": "Invalid infohash"}},
+                "schema": HandledErrorSchema, "example": {"error": {"handled": True, "message": "Invalid infohash"}}
+            }
         },
         description="This endpoint updates a particular torrent with the provided tags."
     )

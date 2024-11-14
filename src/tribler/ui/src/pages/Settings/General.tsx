@@ -21,7 +21,7 @@ export default function General() {
             if (response === undefined) {
                 toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)){
-                toast.error(`${t("ToastErrorGetSettings")} ${response.error}`);
+                toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
             } else {
                 setSettings(response);
             }
@@ -209,7 +209,7 @@ export default function General() {
                         if (response === undefined) {
                             toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
                         } else if (isErrorDict(response)){
-                            toast.error(`${t("ToastErrorSetSettings")} ${response.error}`);
+                            toast.error(`${t("ToastErrorSetSettings")} ${response.error.message}`);
                         }
                     }
                 }}

@@ -38,7 +38,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadPlay")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadPlay")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDownloadPlay")} ${response.error.message}`);
                 }
             })();
         });
@@ -50,7 +50,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadStop")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadStop")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDownloadStop")} ${response.error.message}`);
                 }
             })();
         });
@@ -62,7 +62,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadRemove")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadRemove")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDownloadRemove")} ${response.error.message}`);
                 }
             })();
         });
@@ -75,7 +75,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error.message}`);
                 }
             })();
         });
@@ -100,7 +100,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
             if (response === undefined) {
                 toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
             } else if (isErrorDict(response)) {
-                toast.error(`${t("ToastErrorDownloadMove")} ${response.error}`);
+                toast.error(`${t("ToastErrorDownloadMove")} ${response.error.message}`);
             }
         });
         setStorageDialogOpen(false);
@@ -112,7 +112,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadSetHops")} ${t("ToastErrorGenNetworkErr")}`);
                 } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadSetHops")} ${response.error}`);
+                    toast.error(`${t("ToastErrorDownloadSetHops")} ${response.error.message}`);
                 }
             })();
         });

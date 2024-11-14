@@ -66,7 +66,7 @@ class TestCreateTorrentEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
-        self.assertEqual("files parameter missing", response_body_json["error"])
+        self.assertEqual("files parameter missing", response_body_json["error"]["message"])
 
     async def test_failure_oserror(self) -> None:
         """
@@ -78,8 +78,7 @@ class TestCreateTorrentEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("OSError", response_body_json["error"]["code"])
-        self.assertEqual("test", response_body_json["error"]["message"])
+        self.assertEqual("OSError: test", response_body_json["error"]["message"])
 
     async def test_failure_unicodedecodeerror(self) -> None:
         """
@@ -92,7 +91,8 @@ class TestCreateTorrentEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("UnicodeDecodeError", response_body_json["error"]["code"])
+        self.assertEqual("UnicodeDecodeError: 'utf-8' codec can't decode bytes in position 0-0: 𓀬",
+                         response_body_json["error"]["message"])
 
     async def test_failure_runtimeerror(self) -> None:
         """
@@ -104,8 +104,7 @@ class TestCreateTorrentEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("RuntimeError", response_body_json["error"]["code"])
-        self.assertEqual("test", response_body_json["error"]["message"])
+        self.assertEqual("RuntimeError: test", response_body_json["error"]["message"])
 
     async def test_create_default(self) -> None:
         """

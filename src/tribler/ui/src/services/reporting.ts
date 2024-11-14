@@ -1,6 +1,6 @@
 import axios, { AxiosError } from "axios";
 
-export interface ErrorDict { [error: string]: string; };
+export interface ErrorDict { [error: string]: {handled: boolean, message: string}; };
 
 export function isErrorDict(object: any): object is ErrorDict {
     return (typeof object === 'object') && ('error' in object);

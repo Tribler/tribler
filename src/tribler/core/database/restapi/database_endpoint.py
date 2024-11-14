@@ -184,7 +184,10 @@ class DatabaseEndpoint(RESTEndpoint):
         try:
             timeout = int(request.query.get("timeout", TORRENT_CHECK_TIMEOUT))
         except ValueError as e:
-            return RESTResponse({"error": f"Error processing timeout parameter: {e}"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": f"Error processing timeout parameter: {e}"
+                                }}, status=HTTP_BAD_REQUEST)
 
         if self.torrent_checker is None:
             return RESTResponse({"checking": False})
@@ -270,16 +273,24 @@ class DatabaseEndpoint(RESTEndpoint):
             sanitized = self.sanitize_parameters(request.query)
             tags = sanitized.pop("tags", None)
         except (ValueError, KeyError):
-            return RESTResponse({"error": "Error processing request parameters"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "Error processing request parameters"
+                                }}, status=HTTP_BAD_REQUEST)
 
         if self.tribler_db is None:
-            return RESTResponse({"error": "Tribler DB not initialized"}, status=HTTP_NOT_FOUND)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "Tribler DB not initialized"
+                                }}, status=HTTP_NOT_FOUND)
 
         include_total = request.query.get("include_total", "")
         query = request.query.get("fts_text")
         if query is None:
-            return RESTResponse({"error": f"Got search with no fts_text: {dict(request.query)}"},
-                                status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": f"Got search with no fts_text: {dict(request.query)}"
+                                }}, status=HTTP_BAD_REQUEST)
         if t_filter := request.query.get("filter"):
             query += f" {t_filter}"
         fts = to_fts_query(query)
@@ -354,7 +365,10 @@ class DatabaseEndpoint(RESTEndpoint):
         """
         args = request.query
         if "q" not in args:
-            return RESTResponse({"error": "query parameter missing"}, status=HTTP_BAD_REQUEST)
+            return RESTResponse({"error": {
+                                    "handled": True,
+                                    "message": "query parameter missing"
+                                }}, status=HTTP_BAD_REQUEST)
 
         keywords = args["q"].strip().lower()
         results = request.context[0].get_auto_complete_terms(keywords, max_terms=5)
