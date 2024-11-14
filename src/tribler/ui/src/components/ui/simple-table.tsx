@@ -1,7 +1,7 @@
 import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
@@ -41,6 +41,15 @@ export function getHeader<T>(name: string, translate: boolean = true, addSorting
     }
 }
 
+function getStoredSortingState(key?: string) {
+    if (key) {
+        let sortingString = localStorage.getItem(key);
+        if (sortingString) {
+            return JSON.parse(sortingString);
+        }
+    }
+}
+
 interface ReactTableProps<T extends object> {
     data: T[];
     columns: ColumnDef<T>[];
@@ -58,6 +67,7 @@ interface ReactTableProps<T extends object> {
     filters?: { id: string, value: string }[];
     maxHeight?: string | number;
     expandable?: boolean;
+    storeSortingState?: string;
 }
 
 function SimpleTable<T extends object>({
@@ -75,7 +85,8 @@ function SimpleTable<T extends object>({
     allowMultiSelect,
     filters,
     maxHeight,
-    expandable
+    expandable,
+    storeSortingState
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -84,6 +95,7 @@ function SimpleTable<T extends object>({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
+    const [sorting, setSorting] = useState<SortingState>(getStoredSortingState(storeSortingState) || []);
 
     const table = useReactTable({
         data,
@@ -98,7 +110,8 @@ function SimpleTable<T extends object>({
             pagination,
             rowSelection,
             columnFilters,
-            expanded
+            expanded,
+            sorting
         },
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
@@ -107,6 +120,7 @@ function SimpleTable<T extends object>({
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
         },
         onExpandedChange: setExpanded,
+        onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
     });
 
@@ -132,6 +146,12 @@ function SimpleTable<T extends object>({
             }
         }
     }, [filters])
+
+    useEffect(() => {
+        if (storeSortingState) {
+            localStorage.setItem(storeSortingState, JSON.stringify(sorting));
+        }
+    }, [sorting]);
 
     // For some reason the ScrollArea scrollbar is only shown when it's set to a specific height.
     // So, we wrap it in a parent div, monitor its size, and set the height of the table accordingly.

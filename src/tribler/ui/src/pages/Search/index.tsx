@@ -150,6 +150,7 @@ export default function Search() {
             <SimpleTable
                 data={torrents}
                 columns={torrentColumns}
+                storeSortingState="search-sorting"
             />
         </>
     )

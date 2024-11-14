@@ -111,6 +111,7 @@ export default function Popular() {
             <SimpleTable
                 data={torrents}
                 columns={torrentColumns}
+                storeSortingState="popular-sorting"
             />
         </>
     )
