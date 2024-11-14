@@ -93,7 +93,7 @@ class DownloadManager(TaskManager):
         super().__init__()
         self.config = config
 
-        self.state_dir = Path(config.get_version_state_dir())
+        self.state_dir = Path(config.get("state_dir"))
         self.ltsettings: dict[lt.session, dict] = {}  # Stores a copy of the settings dict for each libtorrent session
         self.ltsessions: dict[int, Future[lt.session]] = {}
         self.dht_health_manager: DHTHealthManager | None = None
