@@ -352,10 +352,11 @@ def upgrade(config: TriblerConfigManager, source: str, destination: str) -> None
     config.write()
 
     # Step 2: copy downloads
-    os.makedirs(os.path.join(destination, "dlcheckpoints"), exist_ok=True)
+    parent_directory = os.path.dirname(destination)  # Starting from 8.0.4 this is no longer versioned information
+    os.makedirs(os.path.join(parent_directory, "dlcheckpoints"), exist_ok=True)
     for checkpoint in os.listdir(os.path.join(source, "dlcheckpoints")):
         _copy_if_not_exist(os.path.join(source, "dlcheckpoints", checkpoint),
-                           os.path.join(destination, "dlcheckpoints", checkpoint))
+                           os.path.join(parent_directory, "dlcheckpoints", checkpoint))
 
     # Step 3: Copy tribler db.
     os.makedirs(os.path.join(destination, "sqlite"), exist_ok=True)
