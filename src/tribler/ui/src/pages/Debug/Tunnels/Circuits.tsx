@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -11,47 +11,47 @@ import { useInterval } from '@/hooks/useInterval';
 const circuitColumns: ColumnDef<Circuit>[] = [
     {
         accessorKey: "circuit_id",
-        header: "Circuit ID",
+        header: getHeader("Circuit ID", false),
     },
     {
         accessorKey: "actual_hops",
-        header: "Hops",
+        header: getHeader("Hops", false),
         cell: ({ row }) => {
             return <span>{row.original.actual_hops} / {row.original.goal_hops}</span>
         },
     },
     {
         accessorKey: "type",
-        header: "Type",
+        header: getHeader("Type", false),
     },
     {
         accessorKey: "state",
-        header: "State",
+        header: getHeader("State", false),
     },
     {
         accessorKey: "bytes_up",
-        header: "Up",
+        header: getHeader("Up", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>
         },
     },
     {
         accessorKey: "bytes_down",
-        header: "Down",
+        header: getHeader("Down", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>
         },
     },
     {
         accessorKey: "uptime",
-        header: "Uptime",
+        header: getHeader("Uptime", false),
         cell: ({ row }) => {
             return <span>{formatTimeDiff(row.original.creation_time)}</span>
         },
     },
     {
         accessorKey: "exit_flags",
-        header: "Exit flags",
+        header: getHeader("Exit flags", false),
         cell: ({ row }) => {
             return <span>{formatFlags(row.original.exit_flags)}</span>
         },

@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KeyValue } from "@/models/keyvalue.model";
@@ -12,11 +12,11 @@ import { useInterval } from '@/hooks/useInterval';
 export const libtorrentColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: "Key",
+        header: getHeader("Key", false),
     },
     {
         accessorKey: "value",
-        header: "Value",
+        header: getHeader("Value", false),
     },
 ]
 

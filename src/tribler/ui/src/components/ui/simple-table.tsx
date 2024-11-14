@@ -1,16 +1,45 @@
 import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
-import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
 
+
+export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
+    if (!addSorting) {
+        return () => {
+            const { t } = useTranslation();
+            return <span className='select-none'>{translate ? t(name) : name}</span>;
+        }
+    }
+
+    return ({ column }) => {
+        const { t } = useTranslation();
+        return (
+            <div className='select-none flex'>
+                <span
+                    className="cursor-pointer hover:text-black dark:hover:text-white flex flex-row items-center"
+                    onClick={() => column.toggleSorting()}>
+                    {translate ? t(name) : name}
+                    {column.getIsSorted() === "desc" ? (
+                        <ArrowDownIcon className="ml-2" />
+                    ) : column.getIsSorted() === "asc" ? (
+                        <ArrowUpIcon className="ml-2" />
+                    ) : (
+                        <></>
+                    )}
+                </span>
+            </div>
+        )
+    }
+}
 
 interface ReactTableProps<T extends object> {
     data: T[];

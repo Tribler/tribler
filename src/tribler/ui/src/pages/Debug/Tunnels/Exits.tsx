@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -11,29 +11,29 @@ import { useInterval } from '@/hooks/useInterval';
 const exitColumns: ColumnDef<Exit>[] = [
     {
         accessorKey: "circuit_from",
-        header: "From circuit",
+        header: getHeader("From circuit", false),
     },
     {
         accessorKey: "enabled",
-        header: "Enabled?",
+        header: getHeader("Enabled?", false),
     },
     {
         accessorKey: "bytes_up",
-        header: "Up",
+        header: getHeader("Up", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>
         },
     },
     {
         accessorKey: "bytes_down",
-        header: "Down",
+        header: getHeader("Down", false),
         cell: ({ row }) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>
         },
     },
     {
         accessorKey: "uptime",
-        header: "Uptime",
+        header: getHeader("Uptime", false),
         cell: ({ row }) => {
             return <span>{formatTimeDiff(row.original.creation_time)}</span>
         },

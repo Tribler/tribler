@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { formatBytes } from "@/lib/utils";
 import { KeyValue } from "@/models/keyvalue.model";
 import { triblerService } from "@/services/tribler.service";
@@ -11,11 +11,11 @@ import { useInterval } from '@/hooks/useInterval';
 const generalColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: "Key",
+        header: getHeader("Key", false),
     },
     {
         accessorKey: "value",
-        header: "Value",
+        header: getHeader("Value", false),
     },
 ]
 

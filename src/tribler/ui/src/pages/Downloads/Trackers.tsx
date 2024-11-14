@@ -1,8 +1,7 @@
 import { useState } from "react";
 import toast from 'react-hot-toast';
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { translateHeader } from "@/lib/utils";
 import { Download } from "@/models/download.model";
 import { Tracker } from "@/models/tracker.model ";
 import { ColumnDef } from "@tanstack/react-table";
@@ -27,15 +26,15 @@ export default function Trackers({ download }: { download: Download }) {
     const trackerColumns: ColumnDef<TrackerRow>[] = [
         {
             accessorKey: "url",
-            header: translateHeader('Name'),
+            header: getHeader('Name'),
         },
         {
             accessorKey: "status",
-            header: translateHeader('Status'),
+            header: getHeader('Status'),
         },
         {
             accessorKey: "peers",
-            header: translateHeader('Peers'),
+            header: getHeader('Peers'),
         },
         {
             header: "",

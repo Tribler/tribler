@@ -7,7 +7,6 @@ import es from 'javascript-time-ago/locale/es'
 import pt from 'javascript-time-ago/locale/pt'
 import ru from 'javascript-time-ago/locale/ru'
 import zh from 'javascript-time-ago/locale/zh'
-import Cookies from "js-cookie";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
 import { FileLink, FileTreeItem } from "@/models/file.model";
@@ -139,13 +138,6 @@ export function getRowSelection(input: any[], selected_func: (item: any) => bool
         selection[index.toString()] = selected_func(item);
     }
     return selection;
-}
-
-export function translateHeader(name: string) {
-    return () => {
-        const { t } = useTranslation();
-        return t(name);
-    }
 }
 
 export function filterDuplicates(data: any[], key: string) {

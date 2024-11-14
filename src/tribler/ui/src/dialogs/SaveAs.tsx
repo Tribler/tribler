@@ -1,9 +1,9 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useEffect, useMemo, useState } from "react";
 import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree, translateHeader } from "@/lib/utils";
+import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -32,7 +32,7 @@ function startDownloadCallback(response: any, t: TFunction) {
 const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
         accessorKey: "name",
-        header: translateHeader('Name'),
+        header: getHeader('Name'),
         cell: ({ row }) => {
             return (
                 <div
@@ -55,7 +55,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
     },
     {
         accessorKey: "size",
-        header: translateHeader('Size'),
+        header: getHeader('Size'),
         cell: ({ row }) => {
             return (
                 <div className='flex items-center'>

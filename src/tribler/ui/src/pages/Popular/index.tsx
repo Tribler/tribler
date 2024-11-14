@@ -1,11 +1,11 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import SaveAs from "@/dialogs/SaveAs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink, translateHeader } from "@/lib/utils";
+import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useInterval } from '@/hooks/useInterval';
 
@@ -29,7 +29,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
     },
     {
         accessorKey: "name",
-        header: translateHeader('Name'),
+        header: getHeader('Name'),
         cell: ({ row }) => {
             return <span
                 className="cursor-pointer hover:underline break-all line-clamp-1"
@@ -40,14 +40,14 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
     },
     {
         accessorKey: "size",
-        header: translateHeader('Size'),
+        header: getHeader('Size'),
         cell: ({ row }) => {
             return <span className="whitespace-nowrap">{formatBytes(row.original.size)}</span>
         },
     },
     {
         accessorKey: "created",
-        header: translateHeader('Created'),
+        header: getHeader('Created'),
         cell: ({ row }) => {
             return <span className="whitespace-nowrap">{formatTimeAgo(row.original.created)}</span>
         },

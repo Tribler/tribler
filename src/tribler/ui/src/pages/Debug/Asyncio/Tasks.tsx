@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
@@ -11,26 +11,26 @@ import { formatTimeDiff } from "@/lib/utils";
 const taskColumns: ColumnDef<Task>[] = [
     {
         accessorKey: "taskmanager",
-        header: "Taskmanager",
+        header: getHeader("Taskmanager", false),
     },
     {
         accessorKey: "name",
-        header: "Name",
+        header: getHeader("Name", false),
         cell: ({ row }) => {
             return <span className="line-clamp-1">{row.original.name}</span>
         },
     },
     {
         accessorKey: "running",
-        header: "Running?",
+        header: getHeader("Running?", false),
     },
     {
         accessorKey: "interval",
-        header: "Interval",
+        header: getHeader("Interval", false),
     },
     {
         accessorKey: "start_time",
-        header: "Started",
+        header: getHeader("Started", false),
         cell: ({ row }) => {
             return row.original.start_time && <span>{formatTimeDiff(row.original.start_time)}</span>
         },

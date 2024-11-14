@@ -1,4 +1,4 @@
-import SimpleTable from "@/components/ui/simple-table";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
@@ -10,11 +10,11 @@ import { useInterval } from '@/hooks/useInterval';
 const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     {
         accessorKey: "name",
-        header: "Name",
+        header: getHeader("Name", false),
     },
     {
         accessorKey: "bytes_up",
-        header: "Upload (MB)",
+        header: getHeader("Upload (MB)", false),
         cell: ({ row }) => {
             if (row.original.identifier < 0) { return }
             return <span>{(row.original.bytes_up / 1024 ** 2).toFixed(3)}</span>
@@ -22,7 +22,7 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     },
     {
         accessorKey: "bytes_down",
-        header: "Download (MB)",
+        header: getHeader("Download (MB)", false),
         cell: ({ row }) => {
             if (row.original.identifier < 0) { return }
             return <span>{(row.original.bytes_down / 1024 ** 2).toFixed(3)}</span>
@@ -30,7 +30,7 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     },
     {
         accessorKey: "num_up",
-        header: "# Msgs sent",
+        header: getHeader("# Msgs sent", false),
         cell: ({ row }) => {
             if (row.original.identifier < 0) { return }
             return <span>{row.original.num_up}</span>
@@ -38,7 +38,7 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     },
     {
         accessorKey: "num_down",
-        header: "# Msgs received",
+        header: getHeader("# Msgs received", false),
         cell: ({ row }) => {
             if (row.original.identifier < 0) { return }
             return <span>{row.original.num_down}</span>
