@@ -57,7 +57,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Name')}</div>
-                            <div className="basis-3/4">{download?.name}</div>
+                            <div className="basis-3/4 break-all line-clamp-1">{download?.name}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Status')}</div>
@@ -77,7 +77,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Destination')}</div>
-                            <div className="basis-3/4">{download?.destination}</div>
+                            <div className="basis-3/4 break-all line-clamp-1">{download?.destination}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Ratio')}</div>
