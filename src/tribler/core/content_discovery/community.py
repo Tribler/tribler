@@ -178,12 +178,13 @@ class ContentDiscoveryCommunity(Community):
         health_list = [HealthInfo(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
                        for infohash, seeders, leechers, last_check in health_tuples]
 
+        to_resolve = self.process_torrents_health(health_list)
+
         for health_info in health_list:
             # Get a single result per infohash to avoid duplicates
-            with db_session:
-                self.composition.metadata_store.process_torrent_health(health_info)
-            infohash = hexlify(health_info.infohash).decode()
-            self.send_remote_select(peer=peer, infohash=infohash, last=1)
+            if health_info.infohash in to_resolve:
+                infohash = hexlify(health_info.infohash).decode()
+                self.send_remote_select(peer=peer, infohash=infohash, last=1)
 
     @db_session
     def process_torrents_health(self, health_list: list[HealthInfo]) -> set[bytes]:
