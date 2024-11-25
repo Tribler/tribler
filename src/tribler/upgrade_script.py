@@ -36,7 +36,7 @@ def _copy_if_not_exist(src: str, dst: str) -> None:
         shutil.copy(src, dst)
 
 
-def _copy_if_exists(src: ConfigObj, src_path: str, dst: TriblerConfigManager, dst_path: str) -> None:
+def _copy_if_exists(src: ConfigObj, src_path: str, dst: TriblerConfigManager, dst_path: str, conversion: type) -> None:
     """
     Check if the src path is set and copy it into the dst if it is.
     """
@@ -46,7 +46,7 @@ def _copy_if_exists(src: ConfigObj, src_path: str, dst: TriblerConfigManager, ds
             out = out.get(part)
         else:
             return
-    dst.set(dst_path, out)
+    dst.set(dst_path, conversion(out))
 
 
 def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:
@@ -54,39 +54,41 @@ def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:
     Read the file at the source path and import its settings.
     """
     old = ConfigObj(src, encoding="utf-8")
-    _copy_if_exists(old, "api/key", dst, "api/key")
-    _copy_if_exists(old, "api/http_enabled", dst, "api/http_enabled")
-    _copy_if_exists(old, "api/https_enabled", dst, "api/https_enabled")
-    _copy_if_exists(old, "ipv8/statistics", dst, "statistics")
-    _copy_if_exists(old, "libtorrent/port", dst, "libtorrent/port")
-    _copy_if_exists(old, "libtorrent/proxy_type", dst, "libtorrent/proxy_type")
-    _copy_if_exists(old, "libtorrent/proxy_server", dst, "libtorrent/proxy_server")
-    _copy_if_exists(old, "libtorrent/proxy_auth", dst, "libtorrent/proxy_auth")
-    _copy_if_exists(old, "libtorrent/max_connections_download", dst, "libtorrent/max_connections_download")
-    _copy_if_exists(old, "libtorrent/max_download_rate", dst, "libtorrent/max_download_rate")
-    _copy_if_exists(old, "libtorrent/max_upload_rate", dst, "libtorrent/max_upload_rate")
-    _copy_if_exists(old, "libtorrent/utp", dst, "libtorrent/utp")
-    _copy_if_exists(old, "libtorrent/dht", dst, "libtorrent/dht")
-    _copy_if_exists(old, "libtorrent/dht_readiness_timeout", dst, "libtorrent/dht_readiness_timeout")
-    _copy_if_exists(old, "libtorrent/upnp", dst, "libtorrent/upnp")
-    _copy_if_exists(old, "libtorrent/natpmp", dst, "libtorrent/natpmp")
-    _copy_if_exists(old, "libtorrent/lsd", dst, "libtorrent/lsd")
-    _copy_if_exists(old, "download_defaults/anonymity_enabled", dst, "libtorrent/download_defaults/anonymity_enabled")
-    _copy_if_exists(old, "download_defaults/number_hops", dst, "libtorrent/download_defaults/number_hops")
+    _copy_if_exists(old, "api/key", dst, "api/key", str)
+    _copy_if_exists(old, "api/http_enabled", dst, "api/http_enabled", bool)
+    _copy_if_exists(old, "api/https_enabled", dst, "api/https_enabled", bool)
+    _copy_if_exists(old, "ipv8/statistics", dst, "statistics", bool)
+    _copy_if_exists(old, "libtorrent/port", dst, "libtorrent/port", int)
+    _copy_if_exists(old, "libtorrent/proxy_type", dst, "libtorrent/proxy_type", int)
+    _copy_if_exists(old, "libtorrent/proxy_server", dst, "libtorrent/proxy_server", str)
+    _copy_if_exists(old, "libtorrent/proxy_auth", dst, "libtorrent/proxy_auth", str)
+    _copy_if_exists(old, "libtorrent/max_connections_download", dst, "libtorrent/max_connections_download", int)
+    _copy_if_exists(old, "libtorrent/max_download_rate", dst, "libtorrent/max_download_rate", int)
+    _copy_if_exists(old, "libtorrent/max_upload_rate", dst, "libtorrent/max_upload_rate", int)
+    _copy_if_exists(old, "libtorrent/utp", dst, "libtorrent/utp", bool)
+    _copy_if_exists(old, "libtorrent/dht", dst, "libtorrent/dht", bool)
+    _copy_if_exists(old, "libtorrent/dht_readiness_timeout", dst, "libtorrent/dht_readiness_timeout", int)
+    _copy_if_exists(old, "libtorrent/upnp", dst, "libtorrent/upnp", bool)
+    _copy_if_exists(old, "libtorrent/natpmp", dst, "libtorrent/natpmp", bool)
+    _copy_if_exists(old, "libtorrent/lsd", dst, "libtorrent/lsd", bool)
+    _copy_if_exists(old, "download_defaults/anonymity_enabled",
+                    dst, "libtorrent/download_defaults/anonymity_enabled", bool)
+    _copy_if_exists(old, "download_defaults/number_hops", dst, "libtorrent/download_defaults/number_hops", int)
     _copy_if_exists(old, "download_defaults/safeseeding_enabled",
-                    dst, "libtorrent/download_defaults/safeseeding_enabled")
-    _copy_if_exists(old, "download_defaults/saveas", dst, "libtorrent/download_defaults/saveas")
-    _copy_if_exists(old, "download_defaults/seeding_mode", dst, "libtorrent/download_defaults/seeding_mode")
-    _copy_if_exists(old, "download_defaults/seeding_ratio", dst, "libtorrent/download_defaults/seeding_ratio")
-    _copy_if_exists(old, "download_defaults/seeding_time", dst, "libtorrent/download_defaults/seeding_time")
-    _copy_if_exists(old, "download_defaults/channel_download", dst, "libtorrent/download_defaults/channel_download")
+                    dst, "libtorrent/download_defaults/safeseeding_enabled", bool)
+    _copy_if_exists(old, "download_defaults/saveas", dst, "libtorrent/download_defaults/saveas", str)
+    _copy_if_exists(old, "download_defaults/seeding_mode", dst, "libtorrent/download_defaults/seeding_mode", str)
+    _copy_if_exists(old, "download_defaults/seeding_ratio", dst, "libtorrent/download_defaults/seeding_ratio", float)
+    _copy_if_exists(old, "download_defaults/seeding_time", dst, "libtorrent/download_defaults/seeding_time", int)
+    _copy_if_exists(old, "download_defaults/channel_download",
+                    dst, "libtorrent/download_defaults/channel_download", bool)
     _copy_if_exists(old, "download_defaults/add_download_to_channel",
-                    dst, "libtorrent/download_defaults/add_download_to_channel")
-    _copy_if_exists(old, "popularity_community/enabled", dst, "content_discovery_community/enabled")
-    _copy_if_exists(old, "torrent_checking/enabled", dst, "torrent_checker/enabled")
-    _copy_if_exists(old, "tunnel_community/enabled", dst, "tunnel_community/enabled")
-    _copy_if_exists(old, "tunnel_community/min_circuits", dst, "tunnel_community/min_circuits")
-    _copy_if_exists(old, "tunnel_community/max_circuits", dst, "tunnel_community/max_circuits")
+                    dst, "libtorrent/download_defaults/add_download_to_channel", bool)
+    _copy_if_exists(old, "popularity_community/enabled", dst, "content_discovery_community/enabled", bool)
+    _copy_if_exists(old, "torrent_checking/enabled", dst, "torrent_checker/enabled", bool)
+    _copy_if_exists(old, "tunnel_community/enabled", dst, "tunnel_community/enabled", bool)
+    _copy_if_exists(old, "tunnel_community/min_circuits", dst, "tunnel_community/min_circuits", int)
+    _copy_if_exists(old, "tunnel_community/max_circuits", dst, "tunnel_community/max_circuits", int)
 
 
 def _inject_StatementOp(abs_src_db: str, abs_dst_db: str) -> None:
