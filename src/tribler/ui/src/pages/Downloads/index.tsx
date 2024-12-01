@@ -45,7 +45,7 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
     {
-        accessorKey: "status",
+        accessorKey: "progress",
         header: getHeader('Status'),
         cell: ({ row }) => {
             return (
@@ -166,7 +166,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
     };
 
     // We're not getting resize event for elements within ResizeablePanel, so we track the ResizablePanel itself.
-    const parentRect = useResizeObserver({element: document.querySelector('#download-list')});
+    const parentRect = useResizeObserver({ element: document.querySelector('#download-list') });
 
     return (
         <ResizablePanelGroup direction="vertical" >
@@ -193,7 +193,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                             filters={filters}
                             allowMultiSelect={true}
                             onSelectedRowsChange={setSelectedDownloads}
-                            maxHeight={Math.max((parentRect?.height ?? 50)-50, 50)}
+                            maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
                             storeSortingState="download-sorting"
                         />
                     </Card>
