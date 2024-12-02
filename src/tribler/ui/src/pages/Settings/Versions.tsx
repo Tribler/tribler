@@ -66,6 +66,12 @@ export default function Versions() {
                 }
             }
             case 2: {
+                const isUpgrading = await triblerService.isUpgrading();
+                if (!(isUpgrading === undefined) && !isErrorDict(isUpgrading)) {
+                    setIsUpgrading(isUpgrading);
+                } else {
+                    break;  // Don't bother the user on error, just initialize later.
+                }
                 const canUpgrade = await triblerService.canUpgrade();
                 if (!(canUpgrade === undefined) && !isErrorDict(canUpgrade)) {
                     setCanUpgrade(canUpgrade);
