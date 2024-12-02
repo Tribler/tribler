@@ -702,6 +702,17 @@ class DownloadsEndpoint(RESTEndpoint):
                                     "message": str(e)
                                 }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
+        if download.tdef.metainfo:
+            url_bytes = url.encode()
+            if download.tdef.metainfo.get(b'announce-list'):
+                download.tdef.metainfo[b'announce-list'] = [e for e in download.tdef.metainfo[b'announce-list']
+                                                            if e[0] != url_bytes]
+            if url_bytes == download.tdef.metainfo.get(b"announce"):
+                if download.tdef.metainfo.get(b'announce-list'):
+                    download.tdef.metainfo[b"announce"] = download.tdef.metainfo[b'announce-list'][0][0]
+                else:
+                    download.tdef.metainfo.pop(b"announce")
+
         return RESTResponse({"removed": True})
 
     @docs(
