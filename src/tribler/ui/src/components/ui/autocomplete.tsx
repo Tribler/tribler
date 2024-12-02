@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { Button } from "./button";
+import { SearchIcon } from "lucide-react";
 
 
 export function Autocomplete({ placeholder, completions, onChange }: { placeholder: string, completions: (filter: string) => Promise<string[]>, onChange: (query: string) => void }) {
@@ -61,6 +63,19 @@ export function Autocomplete({ placeholder, completions, onChange }: { placehold
                             value={inputValue}
                             ref={inputRef}
                         />
+                        <Button
+                            variant="ghost"
+                            className="h-6 py-0 px-0
+                                       hover:outline hover:outline-neutral-500 outline-1 outline-offset-1
+                                       active:outline active:outline-neutral-900 dark:active:outline-neutral-200"
+                            onClick={() => {
+                                const query = (selectedSuggestion > 0) ? suggestions[selectedSuggestion - 1] : inputValue;
+                                handleSuggestionClick(query);
+                                inputRef.current?.blur();
+                            }}
+                        >
+                            <SearchIcon className="h-5" />
+                        </Button>
                     </div>
                 </div>
                 <div className="relative mt-2">
