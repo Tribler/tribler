@@ -5,10 +5,12 @@ import logging
 import sys
 from asyncio import AbstractEventLoop, Event
 from contextlib import contextmanager
+from os.path import isfile
 from traceback import format_exception
 from typing import TYPE_CHECKING, Any, Generator, Type, cast
 
 import aiohttp
+from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.loader import IPv8CommunityLoader
 from ipv8_service import IPv8
 
@@ -93,6 +95,27 @@ async def _is_url_available(url: str, timeout: int=1) -> bool:
             return False
 
 
+def rescue_keys(config: TriblerConfigManager) -> None:
+    """
+    Check and rescue private keys if necessary.
+    """
+    for key_block in config.get("ipv8/keys"):
+        if key_block["file"] and isfile(key_block["file"]):
+            with open(key_block["file"], "rb") as f:
+                key_content = f.read()
+            try:
+                default_eccrypto.key_from_private_bin(key_content)
+                return
+            except ValueError:
+                with open(key_block["file"], "wb") as f:
+                    if len(key_content) == 64:
+                        logger.warning("Broken, but recoverable private key detected!")
+                        f.write(b"LibNaCLSK:" + key_content)
+                    else:
+                        logger.warning("Broken private key replaced!")
+                        f.write(default_eccrypto.generate_key("curve25519").key_to_bin())
+
+
 class Session:
     """
     A session manager that manages all components.
@@ -112,6 +135,7 @@ class Session:
         self.socks_servers = [Socks5Server(port) for port in self.config.get("libtorrent/socks_listen_ports")]
 
         # IPv8
+        rescue_keys(self.config)
         with rust_enhancements(self):
             self.ipv8 = IPv8(self.config.get("ipv8"), enable_statistics=self.config.get("statistics"))
         self.loader = IPv8CommunityLoader()
