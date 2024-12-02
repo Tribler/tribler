@@ -85,7 +85,7 @@ class KnowledgeCommunity(Community):
                                   operation=operation)
             self.validate_operation(operation)
 
-            with db_session():
+            with db_session(serializable=True):
                 is_added = self.db.knowledge.add_operation(operation, signature.signature)
                 if is_added:
                     s = f"+ operation added ({operation.object!r} \"{operation.predicate}\" {operation.subject!r})"

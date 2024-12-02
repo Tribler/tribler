@@ -47,7 +47,7 @@ class VersioningManager:
         Get all versions in our state directory.
         """
         return [p for p in os.listdir(self.config.get("state_dir"))
-                if os.path.isdir(os.path.join(self.config.get("state_dir"), p))]
+                if os.path.isdir(os.path.join(self.config.get("state_dir"), p)) and p != "dlcheckpoints"]
 
     async def check_version(self) -> str | None:
         """
@@ -103,6 +103,9 @@ class VersioningManager:
         """
         Upgrade old database/download files to our current version.
         """
+        if self.task_manager.get_task("Upgrade") is not None:
+            logger.warning("Ignoring upgrade request: already upgrading.")
+            return
         src_dir = Path(self.config.get("state_dir")) / FROM
         dst_dir = Path(self.config.get_version_state_dir())
         self.task_manager.register_executor_task("Upgrade", upgrade, self.config,
