@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "./Header";
 import { Accordion } from "@radix-ui/react-accordion";
 import { sideMenu } from "@/config/menu";
@@ -15,6 +15,8 @@ import { useTranslation } from "react-i18next";
 export function SideLayout() {
     const { t } = useTranslation();
     const location = useLocation();
+    const navigate = useNavigate();
+    const [history, setHistory] = useState(new Map());
     const [accordionValue, setAccordionValue] = useState(() => {
         return "item-" + sideMenu.findIndex(item => item.items !== undefined ? item.items.filter(subitem => subitem.to !== undefined).map(subitem => subitem.to).includes(location.pathname) : false)
     });
@@ -44,12 +46,19 @@ export function SideLayout() {
                                 {sideMenu.filter((item) => !item.hide || item.hide() !== true).map((item, index) => (
                                     item.items !== undefined ? (
                                         <AccordionItem key={index} value={`item-${index}`} className="border-b-0">
-                                            <AccordionTrigger className={cn(
-                                                buttonVariants({ variant: "ghost" }),
-                                                (item.items.filter(subitem => subitem.to !== undefined).map(subitem => subitem.to))
-                                                    .includes(location.pathname) ? 'bg-accent' : 'hover:bg-accent',
-                                                "justify-between hover:no-underline"
-                                            )}>
+                                            <AccordionTrigger
+                                                className={cn(
+                                                    buttonVariants({ variant: "ghost" }),
+                                                    (item.items.filter(subitem => subitem.to !== undefined).map(subitem => subitem.to))
+                                                        .includes(location.pathname) ? 'bg-accent' : 'hover:bg-accent',
+                                                    "justify-between hover:no-underline"
+                                                )}
+                                                onClick={() => {
+                                                    const target = history.get(item.title) || item.items?.at(0)?.to;
+                                                    if (target) {
+                                                        navigate(target);
+                                                    }
+                                                }}>
                                                 <div className="flex items-center">{item.icon && <item.icon className="mr-2" />} {t(item.title)}</div>
                                             </AccordionTrigger>
                                             <AccordionContent className="pb-2 pl-6">
@@ -59,7 +68,13 @@ export function SideLayout() {
                                                             <NavLink
                                                                 key={subindex}
                                                                 to={submenu.to}
-                                                                onClick={() => setShowNav(false)}
+                                                                onClick={() => {
+                                                                    setShowNav(false);
+                                                                    if (item.title && submenu.to) {
+                                                                        // Keep track of which submenus we navigated to
+                                                                        setHistory(map => new Map(map.set(item.title, submenu.to)));
+                                                                    }
+                                                                }}
                                                                 className={({ isActive }) => cn(
                                                                     buttonVariants({ variant: "ghost" }),
                                                                     isActive ? "bg-accent" : "hover:bg-accent",
