@@ -10,6 +10,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
+import useKeyboardShortcut from 'use-keyboard-shortcut';
 
 
 export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
@@ -96,6 +97,20 @@ function SimpleTable<T extends object>({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
     const [sorting, setSorting] = useState<SortingState>(getStoredSortingState(storeSortingState) || []);
+
+    useKeyboardShortcut(
+        ["Control", "A"],
+        keys => {
+            if (allowMultiSelect) {
+                table.toggleAllRowsSelected(true);
+            }
+        },
+        {
+            overrideSystem: true,
+            ignoreInputFields: true,
+            repeatOnHold: false
+        }
+    );
 
     const table = useReactTable({
         data,
