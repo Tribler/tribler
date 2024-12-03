@@ -1199,6 +1199,93 @@ class TestDownloadsEndpoint(TestBase):
         self.assertTrue(response_body_json["removed"])
         self.assertListEqual([{"url": "http://127.0.0.1/somethingelse", "verified": True}], trackers)
 
+    async def test_remove_tracker_from_metainfo_announce(self) -> None:
+        """
+        Test if trackers can be removed from a download's metainfo with only b"announce".
+        """
+        download = self.create_mock_download()
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
+        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["removed"])
+        self.assertNotIn(b"announce", download.tdef.metainfo)
+
+    async def test_remove_tracker_from_metainfo_announce_list(self) -> None:
+        """
+        Test if trackers can be removed from a download's metainfo with only b"announce-list".
+        """
+        download = self.create_mock_download()
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
+        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/somethingelse"], [b"http://127.0.0.1/announce"]]
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["removed"])
+        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
+
+    async def test_remove_tracker_from_metainfo_announce_both_first(self) -> None:
+        """
+        Test if trackers can be removed from a download's metainfo where the b"announce" is first in b"announce-list".
+        """
+        download = self.create_mock_download()
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
+        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
+        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/announce"], [b"http://127.0.0.1/somethingelse"]]
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["removed"])
+        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce"])
+
+    async def test_remove_tracker_from_metainfo_announce_both_second(self) -> None:
+        """
+        Test if trackers can be removed from a download's metainfo where the b"announce" is second in b"announce-list".
+        """
+        download = self.create_mock_download()
+        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
+        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
+        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/somethingelse"], [b"http://127.0.0.1/announce"]]
+        download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
+        self.download_manager.get_download = Mock(return_value=download)
+        url = "http://127.0.0.1/announce"
+
+        response = await self.endpoint.remove_tracker(
+            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
+        )
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["removed"])
+        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce"])
+
     async def test_remove_tracker_no_download(self) -> None:
         """
         Test if removing a tracker fails when no download is found.
