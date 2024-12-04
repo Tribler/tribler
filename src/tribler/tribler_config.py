@@ -144,6 +144,16 @@ class TunnelCommunityConfig(TypedDict):
     max_circuits: int
 
 
+class WatchFolderConfig(TypedDict):
+    """
+    Settings for the watch folder component.
+    """
+
+    enabled: bool
+    directory: str
+    check_interval: float
+
+
 class TriblerConfig(TypedDict):
     """
     The main Tribler settings and all of its components' sub-settings.
@@ -220,6 +230,7 @@ DEFAULT_CONFIG = {
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
     "versioning": VersioningConfig(enabled=True),
+    "watch_folder": WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
     "memory_db": False

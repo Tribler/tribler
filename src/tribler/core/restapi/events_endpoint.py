@@ -23,7 +23,6 @@ if TYPE_CHECKING:
 topics_to_send_to_gui = [
     Notification.torrent_status_changed,
     Notification.tunnel_removed,
-    Notification.watch_folder_corrupt_file,
     Notification.tribler_new_version,
     Notification.tribler_exception,
     Notification.torrent_finished,
