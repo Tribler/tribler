@@ -1,15 +1,15 @@
+from __future__ import annotations
+
 import random
 from binascii import unhexlify
+from typing import TYPE_CHECKING
 
 from cryptography.exceptions import InvalidSignature
 from ipv8.community import Community, CommunitySettings
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
 from ipv8.lazy_community import lazy_wrapper
-from ipv8.types import Key, Peer
 from pony.orm import db_session
 
 from tribler.core.database.layers.knowledge import Operation, ResourceType
-from tribler.core.database.tribler_database import TriblerDatabase
 from tribler.core.knowledge.operations_requests import OperationsRequests, PeerValidationError
 from tribler.core.knowledge.payload import (
     RawStatementOperationMessage,
@@ -18,6 +18,12 @@ from tribler.core.knowledge.payload import (
     StatementOperationMessage,
     StatementOperationSignature,
 )
+
+if TYPE_CHECKING:
+    from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+    from ipv8.types import Key, Peer
+
+    from tribler.core.database.tribler_database import TriblerDatabase
 
 REQUESTED_OPERATIONS_COUNT = 10
 CLEAR_ALL_REQUESTS_INTERVAL = 10 * 60  # 10 minutes
@@ -50,12 +56,32 @@ class KnowledgeCommunity(Community):
         self.key = settings.key
         self.requests = OperationsRequests()
 
+        self.cool_peers: list[Peer] | None = None
+
         self.add_message_handler(RawStatementOperationMessage, self.on_message)
         self.add_message_handler(RequestStatementOperationMessage, self.on_request)
 
         self.register_task("request_operations", self.request_operations, interval=settings.request_interval)
         self.register_task("clear_requests", self.requests.clear_requests, interval=CLEAR_ALL_REQUESTS_INTERVAL)
         self.logger.info("Knowledge community initialized")
+
+    def get_cool_peers(self) -> list[Peer]:
+        """
+        We may need to freeze the peer list in this community to avoid inflating the peer count.
+
+        Peers sampled from the frozen list are "cool" peers.
+        """
+        known_peers = self.get_peers()
+        if self.max_peers < 0 or len(known_peers) < self.max_peers + 5:
+            self.cool_peers = None
+            return known_peers
+        # We may not be frozen yet and old cool peers may have gone offline.
+        if self.cool_peers is None or len(self.cool_peers) <= len(known_peers) // 2:
+            cool_peers = known_peers[:self.max_peers]
+        else:
+            cool_peers = self.cool_peers
+        self.cool_peers = [p for p in cool_peers if p in known_peers]
+        return self.cool_peers
 
     def request_operations(self) -> None:
         """
@@ -64,7 +90,7 @@ class KnowledgeCommunity(Community):
         if not self.get_peers():
             return
 
-        peer = random.choice(self.get_peers())
+        peer = random.choice(self.get_cool_peers())
         self.requests.register_peer(peer, REQUESTED_OPERATIONS_COUNT)
         self.logger.info("-> request %d operations from peer %s", REQUESTED_OPERATIONS_COUNT, peer.mid.hex())
         self.ez_send(peer, RequestStatementOperationMessage(count=REQUESTED_OPERATIONS_COUNT))
@@ -74,6 +100,10 @@ class KnowledgeCommunity(Community):
         """
         Callback for when a raw statement operation message is received.
         """
+        if peer not in self.get_cool_peers():
+            self.logger.debug("Dropping message from %s: peer is not cool!", str(peer))
+            return
+
         operation, _ = self.serializer.unpack_serializable(StatementOperation, raw.operation)
         signature, _ = self.serializer.unpack_serializable(StatementOperationSignature, raw.signature)
         self.logger.debug("<- message received: %s", str(operation))
@@ -103,6 +133,10 @@ class KnowledgeCommunity(Community):
         """
         Callback for when statement operations are requested.
         """
+        if peer not in self.get_cool_peers():
+            self.logger.debug("Dropping message from %s: peer is not cool!", str(peer))
+            return
+
         operations_count = min(max(1, operation.count), REQUESTED_OPERATIONS_COUNT)
         self.logger.debug("<- peer %s requested %d operations", peer.mid.hex(), operations_count)
 
