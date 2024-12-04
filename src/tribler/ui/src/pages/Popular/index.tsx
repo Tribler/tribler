@@ -112,6 +112,7 @@ export default function Popular() {
                 data={torrents}
                 columns={torrentColumns}
                 storeSortingState="popular-sorting"
+                rowId={(row) => row.infohash}
             />
         </>
     )

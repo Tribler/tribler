@@ -69,6 +69,7 @@ interface ReactTableProps<T extends object> {
     maxHeight?: string | number;
     expandable?: boolean;
     storeSortingState?: string;
+    rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
 }
 
 function SimpleTable<T extends object>({
@@ -87,7 +88,8 @@ function SimpleTable<T extends object>({
     filters,
     maxHeight,
     expandable,
-    storeSortingState
+    storeSortingState,
+    rowId
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -137,6 +139,7 @@ function SimpleTable<T extends object>({
         onExpandedChange: setExpanded,
         onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
+        getRowId: rowId,
     });
 
     const { t } = useTranslation();

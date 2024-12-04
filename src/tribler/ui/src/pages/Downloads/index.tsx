@@ -195,6 +195,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                             onSelectedRowsChange={setSelectedDownloads}
                             maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
                             storeSortingState="download-sorting"
+                            rowId={(row) => row.infohash}
                         />
                     </Card>
                 </div>
