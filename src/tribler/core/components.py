@@ -183,7 +183,7 @@ class DatabaseComponent(ComponentLauncher):
 @precondition('session.config.get("knowledge_community/enabled")')
 @overlay("tribler.core.knowledge.community", "KnowledgeCommunity")
 @kwargs(db="session.db", key='session.ipv8.keys["secondary"].key')
-class KnowledgeComponent(CommunityLauncherWEndpoints):
+class KnowledgeComponent(BaseLauncher):
     """
     Launch instructions for the knowledge community.
     """
