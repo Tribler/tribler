@@ -279,7 +279,7 @@ class RESTManager:
         Start serving HTTPS requests.
         """
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(Path(self.config.get("state_dir")) / "https_certfile")
+        ssl_context.load_cert_chain(Path(self.config.get("api/https_certfile")))
 
         port = self.config.get("api/https_port")
         self.site_https = web.TCPSite(runner, self.https_host, port, ssl_context=ssl_context)
