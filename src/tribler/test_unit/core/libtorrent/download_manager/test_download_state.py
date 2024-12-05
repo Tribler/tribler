@@ -97,7 +97,8 @@ class TestDownloadState(TestBase):
         """
         Test if the all-time ratio is the fraction of the all-time up and down.
         """
-        state = DownloadState(Mock(), Mock(all_time_upload=200, all_time_download=1000), None)
+        tdef = Mock(get_length=Mock(return_value=1000))
+        state = DownloadState(Mock(tdef=tdef), Mock(progress=1, all_time_upload=200), None)
 
         self.assertEqual(0.2, state.get_all_time_ratio())
 
@@ -105,7 +106,8 @@ class TestDownloadState(TestBase):
         """
         Test if the all-time ratio is 0 when the all-time up and down are both 0.
         """
-        state = DownloadState(Mock(), Mock(all_time_upload=0, all_time_download=0), None)
+        tdef = Mock(get_length=Mock(return_value=1000))
+        state = DownloadState(Mock(tdef=tdef), Mock(progress=0, all_time_upload=0), None)
 
         self.assertEqual(0, state.get_all_time_ratio())
 
@@ -113,7 +115,8 @@ class TestDownloadState(TestBase):
         """
         Test if the all-time ratio is 0 when the all-time download is 0.
         """
-        state = DownloadState(Mock(), Mock(all_time_upload=200, all_time_download=0), None)
+        tdef = Mock(get_length=Mock(return_value=1000))
+        state = DownloadState(Mock(tdef=tdef), Mock(progress=0, all_time_upload=1000), None)
 
         self.assertEqual(-1, state.get_all_time_ratio())
 

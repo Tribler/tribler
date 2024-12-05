@@ -212,11 +212,12 @@ class DownloadState:
         if not self.lt_status:
             return 0
 
-        if not self.all_time_download:
+        bytes_completed = self.get_progress() * self.download.tdef.get_length()
+        if not bytes_completed:
             # We're returning -1 instead of infinity, as it avoids issues when JSON encoding.
             return 0 if not self.all_time_upload else -1
 
-        return self.all_time_upload / self.all_time_download
+        return self.all_time_upload / bytes_completed
 
     def get_seeding_time(self) -> int:
         """
@@ -316,7 +317,7 @@ class DownloadState:
             completed = peer.get('completed', 0)
             have = peer.get('have', [])
 
-            if completed == 1 or have and all(have):
+            if completed == 1 or (have and all(have)):
                 nr_seeders_complete += 1
             elif have and len(have) == len(merged_bitfields):
                 for i in range(len(have)):
