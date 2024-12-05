@@ -10,6 +10,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
+import useKeyboardShortcut from 'use-keyboard-shortcut';
 
 
 export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
@@ -68,6 +69,7 @@ interface ReactTableProps<T extends object> {
     maxHeight?: string | number;
     expandable?: boolean;
     storeSortingState?: string;
+    rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
 }
 
 function SimpleTable<T extends object>({
@@ -86,7 +88,8 @@ function SimpleTable<T extends object>({
     filters,
     maxHeight,
     expandable,
-    storeSortingState
+    storeSortingState,
+    rowId
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -96,6 +99,20 @@ function SimpleTable<T extends object>({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
     const [sorting, setSorting] = useState<SortingState>(getStoredSortingState(storeSortingState) || []);
+
+    useKeyboardShortcut(
+        ["Control", "A"],
+        keys => {
+            if (allowMultiSelect) {
+                table.toggleAllRowsSelected(true);
+            }
+        },
+        {
+            overrideSystem: true,
+            ignoreInputFields: true,
+            repeatOnHold: false
+        }
+    );
 
     const table = useReactTable({
         data,
@@ -122,6 +139,7 @@ function SimpleTable<T extends object>({
         onExpandedChange: setExpanded,
         onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
+        getRowId: rowId,
     });
 
     const { t } = useTranslation();

@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import toast, { Toaster } from 'react-hot-toast';
 import Cookies from "js-cookie";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { Ban } from "lucide-react";
+import { Ban, Loader } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "../ui/scroll-area";
 
@@ -84,7 +84,8 @@ export function Header() {
                     }}
                 >
                     <DialogHeader>
-                        <DialogTitle className="flex items-center justify-center mb-3"><Ban className="inline mr-3" />
+                        <DialogTitle className="flex items-center justify-center mb-3">
+                            {online ? <Loader className="inline mr-3 animate-[spin_3s_linear_infinite]" /> : <Ban className="inline mr-3" />}
                             {online
                                 ? "Tribler is shutting down"
                                 : (shutdownLogs.length > 0

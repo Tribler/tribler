@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { Button } from "./button";
+import { SearchIcon } from "lucide-react";
 
 
 export function Autocomplete({ placeholder, completions, onChange }: { placeholder: string, completions: (filter: string) => Promise<string[]>, onChange: (query: string) => void }) {
@@ -61,10 +63,23 @@ export function Autocomplete({ placeholder, completions, onChange }: { placehold
                             value={inputValue}
                             ref={inputRef}
                         />
+                        <Button
+                            variant="ghost"
+                            className="h-6 py-0 px-0
+                                       hover:outline hover:outline-neutral-500 outline-1 outline-offset-1
+                                       active:outline active:outline-neutral-900 dark:active:outline-neutral-200"
+                            onClick={() => {
+                                const query = (selectedSuggestion > 0) ? suggestions[selectedSuggestion - 1] : inputValue;
+                                handleSuggestionClick(query);
+                                inputRef.current?.blur();
+                            }}
+                        >
+                            <SearchIcon className="h-5" />
+                        </Button>
                     </div>
                 </div>
-                <div className="relative mt-2">
-                    {focus && (
+                {focus && suggestions.length > 0 &&(
+                    <div className="relative mt-2">
                         <div className="max-h-[300px] overflow-y-auto overflow-x-hidden absolute top-0 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
                             {suggestions.length > 0 && (suggestions.map((suggestion, index) => (
                                 <div className={`p-1 text-foreground h-full overflow-auto  ${(selectedSuggestion === index + 1) ? 'bg-accent' : ''}`} key={index + 'a'}>
@@ -77,10 +92,9 @@ export function Autocomplete({ placeholder, completions, onChange }: { placehold
                                 </div>
                             )))}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
-
     );
 }

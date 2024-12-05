@@ -151,6 +151,7 @@ export default function Search() {
                 data={torrents}
                 columns={torrentColumns}
                 storeSortingState="search-sorting"
+                rowId={(row) => row.infohash}
             />
         </>
     )

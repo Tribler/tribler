@@ -42,6 +42,7 @@
     "react-router-dom": "^6.16.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
+    "use-keyboard-shortcut": "^1.1.6",
     "zod": "^3.22.4"
   },
   "devDependencies": {

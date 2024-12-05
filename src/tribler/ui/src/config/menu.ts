@@ -16,7 +16,7 @@ interface NavItem {
 }
 
 interface NavItemWithChildren extends NavItem {
-    items?: NavItemWithChildren[]
+    items?: NavItem[]
 }
 
 export const sideMenu: NavItemWithChildren[] = [
