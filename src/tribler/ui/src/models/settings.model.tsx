@@ -89,6 +89,11 @@ export interface Settings {
         min_circuits: number;
         max_circuits: number;
     },
+    watch_folder : {
+        enabled: boolean;
+        directory: string;
+        check_interval: number;
+    }
     state_dir: string;
     memory_db: boolean;
     ui: GuiSettings;
@@ -96,9 +101,7 @@ export interface Settings {
 
 export interface GuiSettings {
     translation?: string;
-    family_filter?: boolean;
     ask_download_settings?: boolean;
-    disable_tags?: boolean;
     dev_mode?: boolean;
     lang?: string;
 }

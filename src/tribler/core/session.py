@@ -24,6 +24,7 @@ from tribler.core.components import (
     TorrentCheckerComponent,
     TunnelComponent,
     VersioningComponent,
+    WatchFolderComponent,
 )
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
@@ -154,7 +155,7 @@ class Session:
         """
         for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
                                RecommenderComponent, RendezvousComponent, TorrentCheckerComponent, TunnelComponent,
-                               VersioningComponent]:
+                               VersioningComponent, WatchFolderComponent]:
             instance = launcher_class()
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)

@@ -383,3 +383,19 @@ class VersioningComponent(ComponentLauncher):
         from tribler.core.versioning.restapi.versioning_endpoint import VersioningEndpoint
 
         return [*super().get_endpoints(), VersioningEndpoint()]
+
+
+@precondition('session.config.get("watch_folder/enabled")')
+class WatchFolderComponent(ComponentLauncher):
+    """
+    Launch instructions for the watch folder.
+    """
+
+    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
+        """
+        When we are done launching, register our REST API.
+        """
+        from tribler.core.watch_folder.manager import WatchFolderManager
+
+        manager = WatchFolderManager(session, community)
+        manager.start()

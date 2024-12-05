@@ -153,53 +153,47 @@ export default function General() {
                 </label>
             </div>
 
-            <div className="pt-5 py-2 font-semibold">{t('FamilyFilter')}</div>
+            <div className="pt-5 py-2 font-semibold">{t('WatchFolder')}</div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.ui?.family_filter}
+                    checked={settings?.watch_folder?.enabled}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
                                 ...settings,
-                                ui: {
-                                    ...settings?.ui,
-                                    family_filter: !!value
+                                watch_folder: {
+                                    ...settings.watch_folder,
+                                    enabled: !!value
                                 }
                             });
                         }
                     }}
-                    id="family_filter" />
+                    id="watch_folder" />
                 <label
-                    htmlFor="family_filter"
+                    htmlFor="watch_folder"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    {t('EnableFamilyFilter')}
+                    {t('EnableWatchFolder')}
                 </label>
             </div>
-
-
-            <div className="pt-5 py-2 font-semibold">{t('Tags')}</div>
-            <div className="flex items-center space-x-2 py-2">
-                <Checkbox
-                    checked={settings?.ui?.disable_tags}
-                    onCheckedChange={(value) => {
+            <div className="py-2 flex items-center">
+                <Label htmlFor="saveas" className="whitespace-nowrap pr-5">
+                    {t('TorrentWatchFolder')}
+                </Label>
+                <PathInput
+                    path={settings?.watch_folder?.directory}
+                    onPathChange={(path) => {
                         if (settings) {
                             setSettings({
                                 ...settings,
-                                ui: {
-                                    ...settings?.ui,
-                                    disable_tags: !!value
+                                watch_folder: {
+                                    ...settings.watch_folder,
+                                    directory: path
                                 }
                             });
                         }
                     }}
-                    id="disable_tags" />
-                <label
-                    htmlFor="disable_tags"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('HideTags')}
-                </label>
+                />
             </div>
 
             <SaveButton

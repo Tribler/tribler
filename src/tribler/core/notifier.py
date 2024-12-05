@@ -32,7 +32,6 @@ class Notification(Enum):
     circuit_removed = Desc("circuit_removed", ["circuit", "additional_info"], [str, Circuit])
     tunnel_removed = Desc("tunnel_removed", ["circuit_id", "bytes_up", "bytes_down", "uptime", "additional_info"],
                           [int, int, int, float, str])
-    watch_folder_corrupt_file = Desc("watch_folder_corrupt_file", ["file_name"], [str])
     torrent_health_updated = Desc("torrent_health_updated",
                                   ["infohash", "num_seeders", "num_leechers", "last_tracker_check", "health"],
                                   [str, int, int, int, str])

@@ -70,7 +70,7 @@ class SettingsEndpoint(RESTEndpoint):
         return RESTResponse({"modified": True})
 
     def _recursive_merge_settings(self, existing: dict, updates: dict, top: bool = True) -> None:
-        for key in existing:
+        for key in existing:  # noqa: PLC0206
             # Ignore top-level ui entry
             if top and key == "ui":
                 continue
@@ -78,6 +78,11 @@ class SettingsEndpoint(RESTEndpoint):
             if isinstance(value, dict):
                 self._recursive_merge_settings(existing[key], value, False)
             existing[key] = value
+        # It can also be that the updated entry does not exist (yet) in an old config.
+        for key in updates:  # noqa: PLC0206
+            if key in existing:
+                continue
+            existing[key] = updates[key]
 
         # Since the core doesn't need to be aware of the GUI settings, we just copy them.
         if top and "ui" in updates:
