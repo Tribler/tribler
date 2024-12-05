@@ -50,7 +50,13 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
         accessorKey: "created",
         header: getHeader('Created'),
         cell: ({ row }) => {
-            return <span className="whitespace-nowrap">{formatTimeAgo(row.original.created)}</span>
+            return (
+                <span className="whitespace-nowrap">
+                    {row.original.created > 24 * 3600 ?
+                        formatTimeAgo(row.original.created) :
+                        "unknown"}
+                </span>
+            )
         },
     },
     {
