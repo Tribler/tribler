@@ -1,6 +1,6 @@
 import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import SaveAs from "@/dialogs/SaveAs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { Torrent } from "@/models/torrent.model";
@@ -8,6 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useInterval } from '@/hooks/useInterval';
+import { SwarmHealth } from "@/components/swarm-health";
 
 
 const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }): ColumnDef<Torrent>[] => [
@@ -50,6 +51,13 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
         header: getHeader('Created'),
         cell: ({ row }) => {
             return <span className="whitespace-nowrap">{formatTimeAgo(row.original.created)}</span>
+        },
+    },
+    {
+        accessorKey: "num_seeders",
+        header: getHeader("Health"),
+        cell: ({ row }) => {
+            return <SwarmHealth torrent={row.original} />
         },
     },
 ]
