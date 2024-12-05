@@ -58,7 +58,6 @@ export default function Popular() {
     const [open, setOpen] = useState<boolean>(false)
     const [torrents, setTorrents] = useState<Torrent[]>([])
     const [torrentDoubleClicked, setTorrentDoubleClicked] = useState<Torrent | undefined>();
-    const [request, setRequest] = useState<string>("");
 
     useInterval(async () => {
         const popular = await triblerService.getPopularTorrents();
@@ -66,28 +65,12 @@ export default function Popular() {
             // Don't bother the user on error, just try again later.
             setTorrents(filterDuplicates(popular, 'infohash'));
         }
-        const remoteQuery = await triblerService.searchTorrentsRemote('', true);
-        if (!(remoteQuery === undefined) && !isErrorDict(remoteQuery)) {
-            setRequest(remoteQuery.request_uuid);
-        }
+
+        await triblerService.searchTorrentsRemote('', true);
+        // We're not processing incoming results from remote search, instead additional
+        // results will appear during the next run. This prevents issues with torrents
+        // quickly being added and removed.
     }, 5000, true);
-
-    useEffect(() => {
-        (async () => { triblerService.addEventListener("remote_query_results", OnSearchEvent) })();
-        return () => {
-            (async () => { triblerService.removeEventListener("remote_query_results", OnSearchEvent) })();
-        }
-    }, [request]);
-
-    const OnSearchEvent = (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        if (data.uuid !== request)
-            return;
-
-        for (const result of data.results) {
-            setTorrents((prevTorrents) => [...prevTorrents, result]);
-        }
-    }
 
     const handleDownload = useCallback((torrent: Torrent) => {
         setTorrentDoubleClicked(torrent);
