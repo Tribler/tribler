@@ -104,4 +104,5 @@ export interface GuiSettings {
     ask_download_settings?: boolean;
     dev_mode?: boolean;
     lang?: string;
+    theme?: string;
 }

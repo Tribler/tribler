@@ -1,3 +1,4 @@
+import { triblerService } from "@/services/tribler.service"
 import { createContext, useEffect, useState } from "react"
 
 type ThemeProviderProps = {
@@ -24,9 +25,7 @@ export function ThemeProvider({
     storageKey = "shadcn-ui-theme",
     ...props
 }: ThemeProviderProps) {
-    const [theme, setTheme] = useState(
-        () => localStorage.getItem(storageKey) ?? defaultTheme
-    )
+    const [theme, setTheme] = useState(triblerService.guiSettings.theme ?? defaultTheme);
 
     useEffect(() => {
         const root = window.document.documentElement
@@ -50,7 +49,7 @@ export function ThemeProvider({
         <ThemeProviderContext.Provider {...props} value={{
             theme,
             setTheme: (theme: string) => {
-                localStorage.setItem(storageKey, theme)
+                triblerService.setSettings({ ui: { theme: theme } });
                 setTheme(theme)
             },
         }}>
