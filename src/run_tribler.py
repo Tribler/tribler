@@ -175,6 +175,16 @@ async def mac_event_loop() -> None:
             await asyncio.sleep(0.01)
 
 
+def open_webbrowser_tab(url: str) -> None:
+    """
+    Open a webbrowser tab with the given URL.
+    """
+    if sys.platform == "darwin":
+        os.system(f"open {url}")  # noqa: S605
+    else:
+        webbrowser.open_new_tab(url)
+
+
 def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     """
     Create the tray icon.
@@ -184,10 +194,10 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     image = Image.open(image_path.resolve())
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
-    menu = (pystray.MenuItem('Open', lambda: webbrowser.open_new_tab(url)),
+    menu = (pystray.MenuItem('Open', lambda: open_webbrowser_tab(url)),
             pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
-    webbrowser.open_new_tab(url)
+    open_webbrowser_tab(url)
     if sys.platform == "darwin":
         icon.run_detached(None)
         asyncio.ensure_future(mac_event_loop())  # noqa: RUF006
@@ -217,7 +227,7 @@ async def main() -> None:
                 logger.info("Starting torrent using existing core")
                 await start_download(config, server_url, torrent_uri)
             if not headless:
-                webbrowser.open_new_tab(server_url + f"?key={config.get('api/key')}")
+                open_webbrowser_tab(server_url + f"?key={config.get('api/key')}")
             logger.info("Shutting down")
             return
 
