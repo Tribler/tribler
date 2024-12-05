@@ -90,7 +90,7 @@ def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:
     _copy_if_exists(old, "download_defaults/saveas", dst, "libtorrent/download_defaults/saveas", str)
     _copy_if_exists(old, "download_defaults/seeding_mode", dst, "libtorrent/download_defaults/seeding_mode", str)
     _copy_if_exists(old, "download_defaults/seeding_ratio", dst, "libtorrent/download_defaults/seeding_ratio", float)
-    _copy_if_exists(old, "download_defaults/seeding_time", dst, "libtorrent/download_defaults/seeding_time", int)
+    _copy_if_exists(old, "download_defaults/seeding_time", dst, "libtorrent/download_defaults/seeding_time", float)
     _copy_if_exists(old, "download_defaults/channel_download",
                     dst, "libtorrent/download_defaults/channel_download", bool)
     _copy_if_exists(old, "download_defaults/add_download_to_channel",

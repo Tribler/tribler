@@ -221,7 +221,7 @@ DEFAULT_CONFIG = {
             saveas=str(Path("~/Downloads").expanduser()),
             seeding_mode="forever",
             seeding_ratio=2.0,
-            seeding_time=60,
+            seeding_time=60.0,
             channel_download=False,
             add_download_to_channel=False)
         ),
