@@ -42,6 +42,11 @@ class WebUIEndpoint(RESTEndpoint):
             response = web.FileResponse(resource)
             if path.endswith(".tsx"):
                 response.content_type = "application/javascript"
+            elif path.endswith(".js"):
+                # https://github.com/Tribler/tribler/issues/8279
+                response.content_type = "application/javascript"
+            elif path.endswith(".html"):
+                response.content_type = "text/html"
             elif (guessed_type := mimetypes.guess_type(path)[0]) is not None:
                 response.content_type = guessed_type
             else:
