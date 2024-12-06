@@ -57,40 +57,40 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Name')}</div>
-                            <div className="basis-3/4 break-all line-clamp-1">{download?.name}</div>
+                            <div className="basis-3/4 break-all line-clamp-1">{download.name}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Status')}</div>
-                            <div className="basis-3/4">{capitalize(download?.status)}</div>
+                            <div className="basis-3/4">{capitalize(download.status)}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Filesize')}</div>
-                            <div className="basis-3/4">{formatBytes(download?.size)}</div>
+                            <div className="basis-3/4">{formatBytes(download.size)}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Health')}</div>
-                            <div className="basis-3/4">{t('SeedersLeechers', { seeders: download?.num_seeds, leechers: download?.num_peers })}</div>
+                            <div className="basis-3/4">{t('SeedersLeechers', { seeders: download.num_seeds, leechers: download.num_peers })}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Infohash')}</div>
-                            <div className="basis-3/4">{download?.infohash}</div>
+                            <div className="basis-3/4">{download.infohash}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Destination')}</div>
-                            <div className="basis-3/4 break-all line-clamp-1">{download?.destination}</div>
+                            <div className="basis-3/4 break-all line-clamp-1">{download.destination}</div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Ratio')}</div>
                             <div className="basis-3/4">{
                                 download.all_time_ratio < 0 ?
                                     String(`∞`) :
-                                    download?.all_time_ratio.toFixed(2)}
-                                &nbsp;({formatBytes(download?.all_time_upload)} upload; {formatBytes(download?.all_time_download)} dowload)
+                                    download.all_time_ratio.toFixed(2)}
+                                &nbsp;({formatBytes(download.all_time_upload)} / {formatBytes(download.size * download.progress)})
                             </div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Availability')}</div>
-                            <div className="basis-3/4">{download?.availability}</div>
+                            <div className="basis-3/4">{download.availability}</div>
                         </div>
                     </div>
                 </ScrollArea>
@@ -107,7 +107,7 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
             </TabsContent>
             <TabsContent value="peers" style={contentStyle}>
                 <ScrollArea className="h-full">
-                    <Peers download={download} height={contentStyle.height}/>
+                    <Peers download={download} height={contentStyle.height} />
                 </ScrollArea>
             </TabsContent>
         </Tabs>

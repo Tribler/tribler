@@ -47,17 +47,23 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
         },
     },
     {
+        accessorKey: "created",
+        header: getHeader("Created"),
+        cell: ({ row }) => {
+            return (
+                <span className="whitespace-nowrap">
+                    {row.original.created > 24 * 3600 ?
+                        formatTimeAgo(row.original.created) :
+                        "unknown"}
+                </span>
+            )
+        },
+    },
+    {
         accessorKey: "num_seeders",
         header: getHeader("Health"),
         cell: ({ row }) => {
             return <SwarmHealth torrent={row.original} />
-        },
-    },
-    {
-        accessorKey: "created",
-        header: getHeader("Created"),
-        cell: ({ row }) => {
-            return <span className="whitespace-nowrap">{formatTimeAgo(row.original.created)}</span>
         },
     },
 ]
