@@ -1,13 +1,28 @@
 |doi| |openhub|
 |python_3_10| |contributors| |pr_closed| |issues_closed|
 
+
+
+|
+|
+
+.. raw:: html
+
+   <p align="center">👉 <a href="https://github.com/Tribler/tribler/releases/latest">Download the Latest Release </a> 👈</p>
+
+|
+
+*Alternative downloads:*
+
+- `flathub <https://flathub.org/apps/org.tribler.Tribler>`_ |flathub|
+
+|
+
 *******
 Tribler
 *******
 
  Towards making Bittorrent anonymous and impossible to shut down.
-
-👉 `Download the Latest Release <https://github.com/Tribler/tribler/releases/latest>`__ 👈
 
 Tribler aims to give anonymous access to content. We are trying to make privacy, strong cryptography, and authentication the Internet norm.
 
@@ -139,3 +154,6 @@ This file is part of Tribler, Copyright 2004-2024. Tribler is licensed under the
 
 .. |python_3_10| image:: https://img.shields.io/badge/python-3.10-blue.svg
     :target: https://www.python.org/
+
+.. |flathub| image:: https://img.shields.io/flathub/downloads/org.tribler.Tribler
+   :alt: Flathub Downloads
