@@ -277,6 +277,8 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             pk_blob = b""
             if cls.exists(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
                 return None
+            if isinstance(metadata.get("tracker_info", ""), bytes):
+                metadata["tracker_info"] = metadata["tracker_info"].decode()
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
             return cls.from_dict(dict(metadata, public_key=b'', status=COMMITTED, id_=id_))
 

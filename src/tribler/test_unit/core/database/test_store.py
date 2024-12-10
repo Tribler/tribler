@@ -198,6 +198,15 @@ class TestMetadataStore(TestBase[MockCommunity]):
         self.assertEqual([], self.metadata_store.process_payload(ffa_payload))
 
     @db_session
+    def test_ffa_with_tracker_info(self) -> None:
+        """
+        Test if FFA entries are correctly added when they have tracker_info.
+        """
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"1" * 20,
+                                                               "title": "abcabc",
+                                                               "tracker_info": b"http://tracker/announce"})
+
+    @db_session
     def test_get_entries_query_sort_by_size(self) -> None:
         """
         Test if entries are properly sorted by size.
