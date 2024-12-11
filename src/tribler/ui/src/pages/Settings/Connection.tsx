@@ -185,7 +185,7 @@ export default function Connection() {
                     }}
                 />
                 <div></div>
-                <p className="text-xs p-0 pb-4 text-muted-foreground">{t('ZeroIsUnlimited')}</p>
+                <p className="text-xs p-0 pb-4 text-muted-foreground">{t('MinusOneIsUnlimited')}</p>
             </div>
 
             <SaveButton

@@ -56,6 +56,7 @@ export default function General() {
                     }}
                 />
             </div>
+            <p className="text-xs p-0 pb-4 text-muted-foreground">{t('ZeroIsRandomPort')}</p>
 
             <div className="pt-5 py-2 font-semibold">{t('DefaultDownloadSettings')}</div>
             <div className="py-2 flex items-center">
