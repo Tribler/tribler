@@ -4,7 +4,6 @@ lint.unfixable = []
 
 lint.ignore = [
     "ANN003",
-    "ANN101",
     "ARG001",
     "ARG002",
     "ARG005",
