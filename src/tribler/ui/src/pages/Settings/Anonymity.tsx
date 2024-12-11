@@ -26,8 +26,20 @@ export default function Anonimity() {
         return null;
     }
 
+    function hopsToString(hops: number | undefined) {
+        switch(hops){
+            case 3: {return t("ThreeHops");}
+            case 2: {return t("TwoHops");}
+            default: {return t("OneHop");}
+        }
+    }
+
     return (
-        <div className="p-6 w-full">
+        <div className="p-6 w-full max-w-[700px]">
+            <p>{t('HopInfo')}</p>
+            <br />
+            <p>{t('ForMoreInfoRead')} <a href="https://www.tribler.org/anonymity.html" className="font-semibold">https://www.tribler.org/anonymity.html</a>.</p>
+            <br />
             <div className="flex items-center py-4">
                 <div className="whitespace-pre-line text-xs text-center px-2">
                     {t('MinHops')}
@@ -56,7 +68,8 @@ export default function Anonimity() {
                     {t('MaxHops')}
                 </div>
             </div>
-
+            <div className="flex justify-center w-full"><span className="text-xl text-muted-foreground font-bold">{hopsToString(settings?.libtorrent?.download_defaults?.number_hops)}</span></div>
+            <br />
             <SaveButton
                 onClick={async () => {
                     if (settings){
