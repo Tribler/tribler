@@ -754,13 +754,14 @@ class DownloadManager(TaskManager):
             _ = self.replace_task(f"AddTorrent{infohash}", self._async_add_torrent, ltsession, infohash, atp,
                                   ignore=(Exception,))
 
-        self.notifier.notify(Notification.torrent_metadata_added, metadata={
-            "infohash": infohash,
-            "size": download.tdef.get_length(),
-            "title": download.tdef.get_name_utf8(),
-            "metadata_type": 300,
-            "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
-        })
+        if not isinstance(download.tdef, TorrentDefNoMetainfo):
+            self.notifier.notify(Notification.torrent_metadata_added, metadata={
+                "infohash": infohash,
+                "size": download.tdef.get_length(),
+                "title": download.tdef.get_name_utf8(),
+                "metadata_type": 300,
+                "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
+            })
 
     async def _async_add_torrent(self, ltsession: lt.session, infohash: bytes , atp: dict) -> None:
         self._logger.debug("Adding handle %s", hexlify(infohash))
