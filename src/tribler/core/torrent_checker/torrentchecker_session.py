@@ -6,7 +6,8 @@ import socket
 import struct
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import DatagramProtocol, Future, TimeoutError, ensure_future, get_event_loop
+from asyncio import DatagramProtocol, Future, Task, ensure_future, get_event_loop
+from asyncio import TimeoutError as AsyncTimeoutError
 from typing import TYPE_CHECKING, Any, List, NoReturn, cast
 
 import async_timeout
@@ -59,6 +60,7 @@ class TrackerSession(TaskManager):
         self.timeout = timeout
         self.infohash_list: list[bytes] = []
         self.last_contact = 0
+        self.cleanup_task: Task | None = None
 
         # some flags
         self.is_initiated = False  # you cannot add requests to a session if it has been initiated
@@ -102,8 +104,8 @@ class TrackerSession(TaskManager):
 
         :raises ValueError: always.
         """
-        if not self.is_failed:
-            self.register_anonymous_task("Cleanup", self.cleanup)
+        if not self.is_failed and not self.cleanup_task:
+            self.cleanup_task = ensure_future(self.cleanup())
         self.is_failed = True
         result_msg = f"{self.tracker_type} tracker failed for url {self.tracker_url}"
         if msg:
@@ -363,7 +365,7 @@ class UdpTrackerSession(TrackerSession):
                     self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
-        except TimeoutError:
+        except AsyncTimeoutError:
             self.failed(msg="request timed out")
         except socket.gaierror as e:
             self.failed(msg=str(e))
