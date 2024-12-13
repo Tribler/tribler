@@ -294,7 +294,7 @@ export class TriblerService {
 
     async setSettings(settings: Partial<Settings>): Promise<undefined | ErrorDict | boolean> {
         try {
-            this.guiSettings = {...settings?.ui, ...this.guiSettings};
+            this.guiSettings = {...this.guiSettings, ...settings?.ui};
             return (await this.http.post('/settings', settings)).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
