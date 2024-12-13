@@ -51,7 +51,14 @@ def is_bencoded(x: bytes) -> bool:
     """
     Returns True is x appears to be valid bencoded byte string.
     """
-    return bdecode(x) is not None
+    if not isinstance(x, bytes):
+        msg = f'Expected bytes, got {type(x).__name__}'
+        raise TypeError(msg)
+    try:
+        decoded = bdecode(x)
+    except RuntimeError:
+        decoded = None
+    return decoded is not None
 
 
 class TriblerTunnelSettings(HiddenTunnelSettings):
