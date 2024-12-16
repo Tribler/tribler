@@ -19,6 +19,7 @@ from tribler.core.libtorrent.download_manager.download_state import DownloadStat
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.notifier import Notifier
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class TestDownloadManager(TestBase):

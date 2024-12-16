@@ -2,11 +2,11 @@ from asyncio import Future, ensure_future, sleep
 
 from aiohttp.abc import AbstractStreamWriter
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import MockRequest
 from multidict import CIMultiDict
 
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.events_endpoint import EventsEndpoint
-from tribler.test_unit.base_restapi import MockRequest
 
 
 class GetEventsRequest(MockRequest):
@@ -20,7 +20,7 @@ class GetEventsRequest(MockRequest):
         """
         self.payload_writer = MockStreamWriter(endpoint, count=count)
         self._handler_waiter = Future()
-        super().__init__({}, "GET", "/api/events", payload_writer=self.payload_writer)
+        super().__init__("/api/events", payload_writer=self.payload_writer)
 
     def shutdown(self) -> None:
         """

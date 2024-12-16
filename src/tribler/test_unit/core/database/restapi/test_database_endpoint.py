@@ -1,83 +1,17 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 from unittest.mock import AsyncMock, Mock, call
 
-from aiohttp.web_urldispatcher import UrlMappingMatchInfo
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import MockRequest, response_to_json
 from multidict import MultiDict, MultiDictProxy
 
 from tribler.core.database.layers.knowledge import ResourceType, SimpleStatement
 from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint, parse_bool
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST
-from tribler.test_unit.base_restapi import MockRequest, response_to_json
-
-if TYPE_CHECKING:
-    from tribler.core.database.store import MetadataStore
-
-
-class TorrentHealthRequest(MockRequest):
-    """
-    A MockRequest that mimics TorrentHealthRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str, mds: MetadataStore | None) -> None:
-        """
-        Create a new TorrentHealthRequest.
-        """
-        super().__init__(query, "GET", f"/metadata/torrents/{infohash}/health")
-        self._infohash = infohash
-        self.context = (mds,)
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class PopularTorrentsRequest(MockRequest):
-    """
-    A MockRequest that mimics PopularTorrentsRequests.
-    """
-
-    def __init__(self, query: dict, mds: MetadataStore | None) -> None:
-        """
-        Create a new PopularTorrentsRequest.
-        """
-        super().__init__(query, "GET", "/metadata/torrents/popular")
-        self.context = (mds,)
-
-
-class SearchLocalRequest(MockRequest):
-    """
-    A MockRequest that mimics SearchLocalRequests.
-    """
-
-    def __init__(self, query: dict, mds: MetadataStore | None) -> None:
-        """
-        Create a new SearchLocalRequest.
-        """
-        default_query = {"fts_text": ""}
-        default_query.update(query)
-        super().__init__(default_query, "GET", "/metadata/search/local")
-        self.context = (mds,)
-
-
-class SearchCompletionsRequest(MockRequest):
-    """
-    A MockRequest that mimics SearchCompletionsRequests.
-    """
-
-    def __init__(self, query: dict, mds: MetadataStore | None) -> None:
-        """
-        Create a new SearchCompletionsRequest.
-        """
-        super().__init__(query, "GET", "/metadata/search/completions")
-        self.context = (mds, )
 
 
 class TestDatabaseEndpoint(TestBase):
@@ -144,8 +78,10 @@ class TestDatabaseEndpoint(TestBase):
         Test if a bad timeout value in get_torrent_health leads to a HTTP_BAD_REQUEST status.
         """
         endpoint = DatabaseEndpoint()
+        request = MockRequest("/metadata/torrents/AA/health", query={"timeout": "AA"}, match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.get_torrent_health(TorrentHealthRequest({"timeout": "AA"}, "AA", endpoint.mds))
+        response = await endpoint.get_torrent_health(request)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
@@ -154,8 +90,10 @@ class TestDatabaseEndpoint(TestBase):
         Test if calling get_torrent_health without a torrent checker leads to a false checking status.
         """
         endpoint = DatabaseEndpoint()
+        request = MockRequest("/metadata/torrents/AA/health", match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.get_torrent_health(TorrentHealthRequest({}, "AA", endpoint.mds))
+        response = await endpoint.get_torrent_health(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -168,8 +106,10 @@ class TestDatabaseEndpoint(TestBase):
         endpoint = DatabaseEndpoint()
         check_torrent_health = AsyncMock()
         endpoint.torrent_checker = Mock(check_torrent_health=check_torrent_health)
+        request = MockRequest("/metadata/torrents/AA/health", match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.get_torrent_health(TorrentHealthRequest({}, "AA", endpoint.mds))
+        response = await endpoint.get_torrent_health(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -228,8 +168,10 @@ class TestDatabaseEndpoint(TestBase):
                         tdef=Mock(infohash="AA"))
         endpoint.download_manager = Mock(get_download=Mock(return_value=download), metainfo_requests=[])
         endpoint.mds = Mock(get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value=metadata))]))
+        request = MockRequest("/api/metadata/torrents/popular")
+        request.context = [endpoint.mds]
 
-        response = await endpoint.get_popular_torrents(PopularTorrentsRequest(metadata, endpoint.mds))
+        response = await endpoint.get_popular_torrents(request)
         response_body_json = await response_to_json(response)
         response_results = response_body_json["results"][0]
 
@@ -249,8 +191,10 @@ class TestDatabaseEndpoint(TestBase):
         Test if a bad value leads to a bad request status.
         """
         endpoint = DatabaseEndpoint()
+        request = MockRequest("/api/metadata/search/local", query={"fts_text": "", "first": "bla"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.local_search(SearchLocalRequest({"first": "bla"}, endpoint.mds))
+        response = await endpoint.local_search(request)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
@@ -262,8 +206,10 @@ class TestDatabaseEndpoint(TestBase):
         """
         endpoint = DatabaseEndpoint()
         endpoint.tribler_db = Mock()
+        request = MockRequest("/api/metadata/search/local", query={"fts_text": ""})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.local_search(SearchLocalRequest({}, endpoint.mds))
+        response = await endpoint.local_search(request)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
@@ -276,8 +222,10 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(), get_max_rowid=Mock(),
                             get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test",
                                                                                                   "type": -1}))]))
+        request = MockRequest("/api/metadata/search/local", query={"fts_text": ""})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.local_search(SearchLocalRequest({}, endpoint.mds))
+        response = await endpoint.local_search(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -297,8 +245,11 @@ class TestDatabaseEndpoint(TestBase):
                             get_max_rowid=Mock(return_value=7),
                             get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value={"test": "test",
                                                                                                   "type": -1}))]))
+        request = MockRequest("/api/metadata/search/local", query={"fts_text": "",
+                                                                   "include_total": "I would like this"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.local_search(SearchLocalRequest({"include_total": "I would like this"}, endpoint.mds))
+        response = await endpoint.local_search(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -315,8 +266,10 @@ class TestDatabaseEndpoint(TestBase):
         Test if a missing query leads to a bad request status.
         """
         endpoint = DatabaseEndpoint()
+        request = MockRequest("/api/metadata/search/completions")
+        request.context = [endpoint.mds]
 
-        response = await endpoint.completions(SearchCompletionsRequest({}, endpoint.mds))
+        response = await endpoint.completions(request)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
@@ -326,8 +279,10 @@ class TestDatabaseEndpoint(TestBase):
         """
         endpoint = DatabaseEndpoint()
         endpoint.mds = Mock(get_auto_complete_terms=Mock(return_value=["test1", "test2"]))
+        request = MockRequest("/api/metadata/search/completions", query={"q": "test"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.completions(SearchCompletionsRequest({"q": "test"}, endpoint.mds))
+        response = await endpoint.completions(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -340,8 +295,10 @@ class TestDatabaseEndpoint(TestBase):
         """
         endpoint = DatabaseEndpoint()
         endpoint.mds = Mock(get_auto_complete_terms=Mock(return_value=["test1", "test2"]))
+        request = MockRequest("/api/metadata/search/completions", query={"q": "TeSt"})
+        request.context = [endpoint.mds]
 
-        response = await endpoint.completions(SearchCompletionsRequest({"q": "TeSt"}, endpoint.mds))
+        response = await endpoint.completions(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
