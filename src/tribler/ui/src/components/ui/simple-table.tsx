@@ -140,7 +140,13 @@ function SimpleTable<T extends object>({
         onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
         getRowId: rowId,
+        autoResetPageIndex: false,
     });
+
+    // If we're on an empty page, reset the pageIndex to 0
+    if (table.getRowModel().rows.length == 0 && table.getExpandedRowModel().rows.length != 0) {
+        setPagination(p => ({ ...p, pageIndex: 0 }));
+    }
 
     const { t } = useTranslation();
 
@@ -248,7 +254,7 @@ function SimpleTable<T extends object>({
 function Pagination<T>({ table }: React.PropsWithChildren<{ table: ReactTable<T> }>) {
     const pageIndex = table.getState().pagination.pageIndex;
     const pageSize = table.getState().pagination.pageSize;
-    const rowCount = table.getCoreRowModel().rows.length;
+    const rowCount = table.getExpandedRowModel().rows.length;
 
     const { t } = useTranslation();
 
@@ -257,7 +263,15 @@ function Pagination<T>({ table }: React.PropsWithChildren<{ table: ReactTable<T>
             <div className="flex items-center space-x-4">
                 <Select defaultValue="0"
                     value={`${pageSize}`}
-                    onValueChange={(value) => table.setPageSize(Number(value))}>
+                    onValueChange={(value) => {
+                        let size = Number(value);
+                        if (size === 0) {
+                            for (let row of table.getExpandedRowModel().rows) {
+                                size += row.getLeafRows().length;
+                            }
+                        }
+                        table.setPageSize(size);
+                    }}>
                     <SelectPrimitive.Trigger>
                         <div className="px-1 py-0 hover:bg-inherit text-muted-foreground text-xs">
                             {pageIndex * pageSize}&nbsp;-&nbsp;
@@ -265,13 +279,15 @@ function Pagination<T>({ table }: React.PropsWithChildren<{ table: ReactTable<T>
                             {rowCount}
                         </div>
                     </SelectPrimitive.Trigger>
-                    <SelectContent side="top"><SelectGroup>
-                        <SelectLabel>Rows per page</SelectLabel>
-                        {[10, 20, 30, 40, 50].map((pageSize) => (
-                            <SelectItem key={pageSize} value={`${pageSize}`}>
-                                {pageSize}
-                            </SelectItem>
-                        ))}</SelectGroup>
+                    <SelectContent side="top">
+                        <SelectGroup>
+                            <SelectLabel>Rows per page</SelectLabel>
+                            {[10, 20, 30, 40, 50, 0].map((pageSize) => (
+                                <SelectItem key={pageSize} value={`${pageSize}`}>
+                                    {pageSize > 0 ? pageSize : 'disable pagination'}
+                                </SelectItem>
+                            ))}
+                        </SelectGroup>
                     </SelectContent>
                 </Select>
                 <div className="flex items-center space-x-2">
