@@ -7,19 +7,8 @@ from packaging.version import Version
 
 import tribler
 from tribler.core.versioning.manager import VersioningManager
-from tribler.tribler_config import TriblerConfigManager
+from tribler.test_unit.mocks import MockTriblerConfigManager
 from tribler.upgrade_script import FROM, TO
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class TestVersioningManager(TestBase):

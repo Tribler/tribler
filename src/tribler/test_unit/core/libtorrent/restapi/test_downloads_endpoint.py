@@ -21,18 +21,7 @@ from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
 from tribler.test_unit.base_restapi import BodyCapture, MockRequest, response_to_bytes, response_to_json
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
-from tribler.tribler_config import TriblerConfigManager
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class GetDownloadsRequest(MockRequest):

@@ -12,18 +12,7 @@ from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorren
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
 from tribler.test_unit.base_restapi import MockRequest, response_to_json
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
-from tribler.tribler_config import TriblerConfigManager
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class CreateTorrentRequest(MockRequest):

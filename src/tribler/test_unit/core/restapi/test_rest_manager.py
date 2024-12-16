@@ -17,7 +17,7 @@ from tribler.core.restapi.rest_endpoint import (
 )
 from tribler.core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
 from tribler.test_unit.base_restapi import MockRequest, response_to_json
-from tribler.tribler_config import TriblerConfigManager
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -44,17 +44,6 @@ class GenericRequest(MockRequest):
         Pass this request.
         """
         return RESTResponse({"passed": True})
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class TestRESTManager(TestBase):

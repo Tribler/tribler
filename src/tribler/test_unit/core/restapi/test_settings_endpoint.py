@@ -4,7 +4,7 @@ from ipv8.test.base import TestBase
 
 from tribler.core.restapi.settings_endpoint import SettingsEndpoint
 from tribler.test_unit.base_restapi import MockRequest, response_to_json
-from tribler.tribler_config import TriblerConfigManager
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class GetSettingsRequest(MockRequest):
@@ -36,17 +36,6 @@ class UpdateSettingsRequest(MockRequest):
         Get the json contents of this request.
         """
         return self.raw_json_content
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class TestSettingsEndpoint(TestBase):
