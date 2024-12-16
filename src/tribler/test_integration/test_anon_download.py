@@ -21,7 +21,7 @@ from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
 from tribler.core.socks5.server import Socks5Server
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
-from tribler.tribler_config import TriblerConfigManager
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
     from tribler.core.libtorrent.download_manager.download import Download
@@ -37,17 +37,6 @@ class GlobalTestSettings(CommunitySettings):
     """
 
     node_id: int = 0
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class MockDownloadManager(DownloadManager):

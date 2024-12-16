@@ -9,18 +9,7 @@ from ipv8.test.base import TestBase
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.watch_folder.manager import WatchFolderManager
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
-from tribler.tribler_config import TriblerConfigManager
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class TestWatchFolderManager(TestBase):

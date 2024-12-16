@@ -3,7 +3,6 @@ Keep this text for the test_stream test.
 """
 from __future__ import annotations
 
-from binascii import hexlify
 from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call, patch
@@ -11,6 +10,7 @@ from unittest.mock import AsyncMock, Mock, call, patch
 from aiohttp.web_urldispatcher import UrlMappingMatchInfo
 from configobj import ConfigObj
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import BodyCapture, MockRequest, response_to_bytes, response_to_json
 from validate import Validator
 
 from tribler.core.libtorrent.download_manager.download import Download
@@ -19,248 +19,8 @@ from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
-from tribler.test_unit.base_restapi import BodyCapture, MockRequest, response_to_bytes, response_to_json
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
-from tribler.tribler_config import TriblerConfigManager
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
-
-
-class GetDownloadsRequest(MockRequest):
-    """
-    A MockRequest that mimics GetDownloadsRequests.
-    """
-
-    def __init__(self, query: dict) -> None:
-        """
-        Create a new GetDownloadsRequest.
-        """
-        super().__init__(query, "GET", "/downloads")
-
-
-class AddDownloadRequest(MockRequest):
-    """
-    A MockRequest that mimics AddDownloadRequests.
-    """
-
-    def __init__(self, query: dict) -> None:
-        """
-        Create a new AddDownloadRequest.
-        """
-        super().__init__(query, "PUT", "/downloads")
-
-    async def json(self) -> dict:
-        """
-        Get the json equivalent of the query (i.e., just the query).
-        """
-        return self._query
-
-
-class DeleteDownloadRequest(MockRequest):
-    """
-    A MockRequest that mimics DeleteDownloadRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new DeleteDownloadRequest.
-        """
-        super().__init__(query, "DELETE", f"/downloads/{infohash}")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-    async def json(self) -> dict:
-        """
-        Get the json equivalent of the query (i.e., just the query).
-        """
-        return self._query
-
-
-class UpdateDownloadRequest(MockRequest):
-    """
-    A MockRequest that mimics UpdateDownloadRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new UpdateDownloadRequest.
-        """
-        super().__init__(query, "PATCH", f"/downloads/{infohash}")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-    async def json(self) -> dict:
-        """
-        Get the json equivalent of the query (i.e., just the query).
-        """
-        return self._query
-
-
-class GetTorrentRequest(MockRequest):
-    """
-    A MockRequest that mimics GetTorrentRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new GetTorrentRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/torrent")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class GetFilesRequest(MockRequest):
-    """
-    A MockRequest that mimics GetFilesRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new GetFilesRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/files")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class ExpandTreeDirectoryRequest(MockRequest):
-    """
-    A MockRequest that mimics ExpandTreeDirectoryRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new ExpandTreeDirectoryRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/files/expand")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class CollapseTreeDirectoryRequest(MockRequest):
-    """
-    A MockRequest that mimics CollapseTreeDirectoryRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new CollapseTreeDirectoryRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/files/collapse")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class SelectTreePathRequest(MockRequest):
-    """
-    A MockRequest that mimics SelectTreePathRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new SelectTreePathRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/files/select")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class DeselectTreePathRequest(MockRequest):
-    """
-    A MockRequest that mimics DeselectTreePathRequests.
-    """
-
-    def __init__(self, query: dict, infohash: str) -> None:
-        """
-        Create a new DeselectTreePathRequest.
-        """
-        super().__init__(query, "GET", f"/downloads/{infohash}/files/deselect")
-        self._infohash = infohash
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
-
-
-class GenericTrackerRequest(MockRequest):
-    """
-    A MockRequest that mimics requests to add, remove or check trackers.
-    """
-
-    def __init__(self, infohash: str, url: str | None, method: str, sub_endpoint: str) -> None:
-        """
-        Create a new AddDownloadRequest.
-        """
-        super().__init__({"url": url}, method, f"/downloads/{infohash}/{sub_endpoint}")
-        self._infohash = infohash
-
-    async def json(self) -> dict:
-        """
-        Get the json equivalent of the query (i.e., just the query).
-        """
-        return self._query
-
-    @property
-    def match_info(self) -> UrlMappingMatchInfo:
-        """
-        Get the match info (the infohash in the url).
-        """
-        return UrlMappingMatchInfo({"infohash": self._infohash}, Mock())
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class StreamRequest(MockRequest):
@@ -274,7 +34,7 @@ class StreamRequest(MockRequest):
         """
         Create a new StreamRequest.
         """
-        super().__init__(query, "GET", f"/downloads/{infohash}/stream/{fileindex}")
+        super().__init__(f"/downloads/{infohash}/stream/{fileindex}", "GET", query)
         self._infohash = infohash
         self._fileindex = fileindex
         self._payload_writer = BodyCapture()
@@ -338,8 +98,9 @@ class TestDownloadsEndpoint(TestBase):
         self.download_manager.checkpoints_loaded = 0
         self.download_manager.all_checkpoints_are_loaded = False
         self.download_manager.get_downloads = Mock(return_value=[])
+        request = MockRequest("/api/downloads", query={})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -353,8 +114,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if an empty list is returned if there are no downloads.
         """
         self.set_loaded_downloads([])
+        request = MockRequest("/api/downloads", query={})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -369,8 +131,9 @@ class TestDownloadsEndpoint(TestBase):
         """
         self.set_loaded_downloads([Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), None, Mock(),
                                             hidden=True, checkpoint_disabled=True)])
+        request = MockRequest("/api/downloads", query={})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -384,8 +147,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if the information of a normal download is correctly presented.
         """
         self.set_loaded_downloads([self.create_mock_download()])
+        request = MockRequest("/api/downloads", query={})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -426,9 +190,10 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=False), status=Mock(return_value=Mock(pieces=[False])))
         self.set_loaded_downloads([download])
+        request = MockRequest("/api/downloads", query={"infohash": "01" * 20, "get_peers": "1",
+                                                       "get_pieces": "1", "get_availability": "1"})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({"infohash": "01" * 20, "get_peers": "1",
-                                                                          "get_pieces": "1", "get_availability": "1"}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -444,9 +209,10 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=False), status=Mock(return_value=Mock(pieces=[False])))
         self.set_loaded_downloads([download])
+        request = MockRequest("/api/downloads", query={"infohash": "02" * 20, "get_peers": "1",
+                                                       "get_pieces": "1", "get_availability": "1"})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({"infohash": "02" * 20, "get_peers": "1",
-                                                                          "get_pieces": "1", "get_availability": "1"}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -464,8 +230,9 @@ class TestDownloadsEndpoint(TestBase):
         download.stream = Stream(download)
         download.stream.close()
         self.set_loaded_downloads([download])
+        request = MockRequest("/api/downloads", query={})
 
-        response = await self.endpoint.get_downloads(GetDownloadsRequest({}))
+        response = await self.endpoint.get_downloads(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -479,7 +246,9 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if a graceful error is returned when no uri is given.
         """
-        response = await self.endpoint.add_download(AddDownloadRequest({}))
+        request = MockRequest("/api/downloads", "PUT", {})
+
+        response = await self.endpoint.add_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -490,10 +259,12 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when safe seeding is not enabled in anonymous mode.
         """
         download = self.create_mock_download()
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file",
+                                                        "anon_hops": 1, "safe_seeding": 0})
+
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: download.config):
-            response = await self.endpoint.add_download(AddDownloadRequest({"uri": "http://127.0.0.1/file",
-                                                                            "anon_hops": 1, "safe_seeding": 0}))
+            response = await self.endpoint.add_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -506,9 +277,11 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.start_download_from_uri = AsyncMock(return_value=download)
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file"})
+
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: download.config):
-            response = await self.endpoint.add_download(AddDownloadRequest({"uri": "http://127.0.0.1/file"}))
+            response = await self.endpoint.add_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -525,11 +298,12 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.start_download_from_uri = AsyncMock(return_value=download)
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file", "safe_seeding": 1,
+                                                        "selected_files": [0], "destination": "foo", "anon_hops": 1})
+
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: download.config):
-            response = await self.endpoint.add_download(AddDownloadRequest({"uri": "http://127.0.0.1/file",
-                                                                            "safe_seeding": 1, "selected_files": [0],
-                                                                            "destination": "foo", "anon_hops": 1}))
+            response = await self.endpoint.add_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -546,9 +320,11 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.start_download_from_uri = AsyncMock(side_effect=Exception("invalid uri"))
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file"})
+
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: download.config):
-            response = await self.endpoint.add_download(AddDownloadRequest({"uri": "http://127.0.0.1/file"}))
+            response = await self.endpoint.add_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
@@ -558,7 +334,9 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if a graceful error is returned when no remove data is supplied when deleting a download.
         """
-        response = await self.endpoint.delete_download(DeleteDownloadRequest({}, "01" * 20))
+        request = MockRequest("/api/downloads/" + "01" * 20, "DELETE", {}, {"infohash": "01" * 20})
+
+        response = await self.endpoint.delete_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -569,8 +347,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found for removal.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest("/api/downloads/" + "01" * 20, "DELETE", {"remove_data": False}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.delete_download(DeleteDownloadRequest({"remove_data": False}, "01" * 20))
+        response = await self.endpoint.delete_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -583,8 +362,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
         self.download_manager.remove_download = AsyncMock()
+        request = MockRequest("/api/downloads/" + "01" * 20, "DELETE", {"remove_data": False}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.delete_download(DeleteDownloadRequest({"remove_data": False}, "01" * 20))
+        response = await self.endpoint.delete_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -599,8 +379,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
         self.download_manager.remove_download = AsyncMock()
+        request = MockRequest("/api/downloads/" + "01" * 20, "DELETE", {"remove_data": True}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.delete_download(DeleteDownloadRequest({"remove_data": True}, "01" * 20))
+        response = await self.endpoint.delete_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -615,8 +396,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
         self.download_manager.remove_download = AsyncMock(side_effect=OSError)
+        request = MockRequest("/api/downloads/" + "01" * 20, "DELETE", {"remove_data": False}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.delete_download(DeleteDownloadRequest({"remove_data": False}, "01" * 20))
+        response = await self.endpoint.delete_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
@@ -628,8 +410,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found to update.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -639,8 +422,10 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if anon hops can only exist as the only parameter.
         """
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"anon_hops": 1, "foo": "bar"},
-                                                                             "01" * 20))
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"anon_hops": 1, "foo": "bar"},
+                              {"infohash": "01" * 20})
+
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -653,8 +438,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
         self.download_manager.update_hops = AsyncMock()
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"anon_hops": 1}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"anon_hops": 1}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -668,8 +454,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
         self.download_manager.update_hops = AsyncMock(side_effect=OSError)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"anon_hops": 1}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"anon_hops": 1}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
@@ -683,9 +470,10 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.tdef.metainfo = {b"info": {b"files": [{b"path": {b"hi.txt"}, b"length": 0}]}}
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"selected_files": [99999999999]},
+                              {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"selected_files": [99999999999]},
-                                                                             "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -698,9 +486,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.tdef.metainfo = {b"info": {b"files": [{b"path": {b"hi.txt"}, b"length": 0}]}}
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"selected_files": [0]}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"selected_files": [0]},
-                                                                             "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -713,8 +501,9 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"state": "foo"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "foo"}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -727,8 +516,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.config.set_user_stopped(True)
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"state": "resume"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "resume"}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -743,8 +533,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.config.set_user_stopped(False)
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"state": "stop"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "stop"}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -760,8 +551,9 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef = Mock(get_infohash=Mock(return_value=b"\x01" * 20))
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"state": "recheck"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "recheck"}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -775,10 +567,10 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH",
+                              {"state": "move_storage", "dest_dir": "I don't exist"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "move_storage",
-                                                                              "dest_dir": "I don't exist"},
-                                                                             "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
@@ -792,10 +584,11 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef = Mock(get_infohash=Mock(return_value=b"\x01" * 20))
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH",
+                              {"state": "move_storage", "dest_dir": str(Path(__file__).parent)},
+                              {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({"state": "move_storage",
-                                                                              "dest_dir": str(Path(__file__).parent)},
-                                                                             "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -809,8 +602,9 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.update_download(UpdateDownloadRequest({}, "01" * 20))
+        response = await self.endpoint.update_download(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -822,8 +616,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/torrent", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_torrent(GetTorrentRequest({}, "01" * 20))
+        response = await self.endpoint.get_torrent(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -834,8 +629,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no torrent data is found.
         """
         self.download_manager.get_download = Mock(return_value=Mock(get_torrent_data=Mock(return_value=None)))
+        request = MockRequest(f"/api/downloads/{'01' * 20}/torrent", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_torrent(GetTorrentRequest({}, "01" * 20))
+        response = await self.endpoint.get_torrent(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -848,8 +644,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True), torrent_file=Mock(return_value=TORRENT_WITH_DIRS))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/torrent", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_torrent(GetTorrentRequest({}, "01" * 20))
+        response = await self.endpoint.get_torrent(request)
         response_body_bytes = await response_to_bytes(response)
 
         self.assertEqual(200, response.status)
@@ -860,8 +657,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_files(GetFilesRequest({}, "01" * 20))
+        response = await self.endpoint.get_files(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -874,8 +672,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_files(GetFilesRequest({}, "01" * 20))
+        response = await self.endpoint.get_files(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -889,9 +688,10 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET",
+                              {"view_start_path": "def/file6.avi", "view_size": 2}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_files(GetFilesRequest({"view_start_path": "def/file6.avi", "view_size": 2},
-                                                                 "01" * 20))
+        response = await self.endpoint.get_files(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -912,9 +712,10 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef.load_torrent_info()
         download.tdef.torrent_file_tree.expand(Path("torrent_create/abc"))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET",
+                              {"view_start_path": "torrent_create", "view_size": 2}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.get_files(GetFilesRequest({"view_start_path": "torrent_create", "view_size": 2},
-                                                                 "01" * 20))
+        response = await self.endpoint.get_files(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -936,8 +737,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/collapse", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.collapse_tree_directory(CollapseTreeDirectoryRequest({}, "01" * 20))
+        response = await self.endpoint.collapse_tree_directory(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -952,10 +754,10 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef.load_torrent_info()
         download.tdef.torrent_file_tree.expand(Path("torrent_create/abc"))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/collapse", "GET",
+                              {"path": "torrent_create/abc"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.collapse_tree_directory(CollapseTreeDirectoryRequest(
-            {"path": "torrent_create/abc"}, "01" * 20
-        ))
+        response = await self.endpoint.collapse_tree_directory(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -967,8 +769,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/expand", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.expand_tree_directory(ExpandTreeDirectoryRequest({}, "01" * 20))
+        response = await self.endpoint.expand_tree_directory(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -982,10 +785,10 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/expand", "GET",
+                              {"path": "torrent_create/abc"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.expand_tree_directory(ExpandTreeDirectoryRequest(
-            {"path": "torrent_create/abc"}, "01" * 20
-        ))
+        response = await self.endpoint.expand_tree_directory(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -997,8 +800,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/select", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.select_tree_path(SelectTreePathRequest({}, "01" * 20))
+        response = await self.endpoint.select_tree_path(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -1013,10 +817,10 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/select", "GET",
+                              {"path": "torrent_create/def/file6.avi"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.select_tree_path(SelectTreePathRequest(
-            {"path": "torrent_create/def/file6.avi"}, "01" * 20
-        ))
+        response = await self.endpoint.select_tree_path(request)
 
         self.assertEqual(200, response.status)
         self.assertTrue(download.tdef.torrent_file_tree.find(Path("torrent_create/def/file6.avi")).selected)
@@ -1026,8 +830,9 @@ class TestDownloadsEndpoint(TestBase):
         Test if a graceful error is returned when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/deselect", "GET", {}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.deselect_tree_path(DeselectTreePathRequest({}, "01" * 20))
+        response = await self.endpoint.deselect_tree_path(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_NOT_FOUND, response.status)
@@ -1042,10 +847,10 @@ class TestDownloadsEndpoint(TestBase):
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}/files/deselect", "GET",
+                              {"path": "torrent_create/def/file6.avi"}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.deselect_tree_path(DeselectTreePathRequest(
-            {"path": "torrent_create/def/file6.avi"}, "01" * 20
-        ))
+        response = await self.endpoint.deselect_tree_path(request)
 
         self.assertEqual(200, response.status)
         self.assertFalse(download.tdef.torrent_file_tree.find(Path("torrent_create/def/file6.avi")).selected)
@@ -1124,10 +929,9 @@ class TestDownloadsEndpoint(TestBase):
                                add_tracker=lambda tracker_dict: trackers.append(tracker_dict["url"]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "PUT", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.add_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "trackers")
-        )
+        response = await self.endpoint.add_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1140,9 +944,10 @@ class TestDownloadsEndpoint(TestBase):
         Test if adding a tracker fails when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/trackers", "PUT", {"url": "http://127.0.0.1/announce"},
+                              {"infohash": "AA" * 20})
 
-        response = await self.endpoint.add_tracker(GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce",
-                                                                         "PUT", "trackers"))
+        response = await self.endpoint.add_tracker(request)
 
         self.assertEqual(404, response.status)
 
@@ -1153,8 +958,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/trackers", "PUT", {"url": None}, {"infohash": "AA" * 20})
 
-        response = await self.endpoint.add_tracker(GenericTrackerRequest("AA" * 20, None, "PUT", "trackers"))
+        response = await self.endpoint.add_tracker(request)
 
         self.assertEqual(400, response.status)
 
@@ -1168,10 +974,9 @@ class TestDownloadsEndpoint(TestBase):
                                add_tracker=Mock(side_effect=RuntimeError("invalid torrent handle used")))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "PUT", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.add_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "trackers")
-        )
+        response = await self.endpoint.add_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)
@@ -1189,10 +994,9 @@ class TestDownloadsEndpoint(TestBase):
                                                                       is trackers.extend(new_trackers)))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1209,10 +1013,9 @@ class TestDownloadsEndpoint(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1229,10 +1032,9 @@ class TestDownloadsEndpoint(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1251,10 +1053,9 @@ class TestDownloadsEndpoint(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1274,10 +1075,9 @@ class TestDownloadsEndpoint(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1291,9 +1091,10 @@ class TestDownloadsEndpoint(TestBase):
         Test if removing a tracker fails when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/trackers", "DELETE", {"url": "http://127.0.0.1/announce"},
+                              {"infohash": "AA" * 20})
 
-        response = await self.endpoint.remove_tracker(GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce",
-                                                                            "DELETE", "trackers"))
+        response = await self.endpoint.remove_tracker(request)
 
         self.assertEqual(404, response.status)
 
@@ -1304,8 +1105,9 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/trackers", "DELETE", {"url": None}, {"infohash": "AA" * 20})
 
-        response = await self.endpoint.remove_tracker(GenericTrackerRequest("AA" * 20, None, "DELETE", "trackers"))
+        response = await self.endpoint.remove_tracker(request)
 
         self.assertEqual(400, response.status)
 
@@ -1320,10 +1122,9 @@ class TestDownloadsEndpoint(TestBase):
                                replace_trackers=Mock(side_effect=RuntimeError("invalid torrent handle used")))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/trackers", "DELETE", {"url": url}, {"infohash": "01" * 20})
 
-        response = await self.endpoint.remove_tracker(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "DELETE", "trackers")
-        )
+        response = await self.endpoint.remove_tracker(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)
@@ -1339,10 +1140,10 @@ class TestDownloadsEndpoint(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=trackers))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/tracker_force_announce", "PUT", {"url": url},
+                              {"infohash": "01" * 20})
 
-        response = await self.endpoint.tracker_force_announce(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "tracker_force_announce")
-        )
+        response = await self.endpoint.tracker_force_announce(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)
@@ -1354,10 +1155,10 @@ class TestDownloadsEndpoint(TestBase):
         Test if force-announcing a tracker fails when no download is found.
         """
         self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/tracker_force_announce", "PUT",
+                              {"url": "http://127.0.0.1/announce"}, {"infohash": "AA" * 20})
 
-        response = await self.endpoint.tracker_force_announce(
-            GenericTrackerRequest("AA" * 20, "http://127.0.0.1/announce", "PUT", "tracker_force_announce")
-        )
+        response = await self.endpoint.tracker_force_announce(request)
 
         self.assertEqual(404, response.status)
 
@@ -1368,9 +1169,10 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'AA' * 20}/tracker_force_announce", "PUT", {"url": None},
+                              {"infohash": "AA" * 20})
 
-        response = await self.endpoint.tracker_force_announce(GenericTrackerRequest("AA" * 20, None, "PUT",
-                                                                                    "tracker_force_announce"))
+        response = await self.endpoint.tracker_force_announce(request)
 
         self.assertEqual(400, response.status)
 
@@ -1385,10 +1187,10 @@ class TestDownloadsEndpoint(TestBase):
                                force_reannounce=Mock(side_effect=RuntimeError("invalid torrent handle used")))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
+        request = MockRequest(f"/api/downloads/{'01' * 20}/tracker_force_announce", "PUT", {"url": url},
+                              {"infohash": "01" * 20})
 
-        response = await self.endpoint.tracker_force_announce(
-            GenericTrackerRequest(hexlify(download.tdef.infohash).decode(), url, "PUT", "tracker_force_announce")
-        )
+        response = await self.endpoint.tracker_force_announce(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(500, response.status)

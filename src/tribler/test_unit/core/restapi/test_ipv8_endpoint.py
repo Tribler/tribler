@@ -17,7 +17,6 @@ class TestIPv8RootEndpoint(TestBase):
 
         self.assertEqual("/api/ipv8", endpoint.path)
         self.assertIn("/asyncio", endpoint.endpoints)
-        self.assertIn("/attestation", endpoint.endpoints)
         self.assertIn("/dht", endpoint.endpoints)
         self.assertIn("/identity", endpoint.endpoints)
         self.assertIn("/isolation", endpoint.endpoints)

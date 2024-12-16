@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from aiohttp import hdrs, web
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import MockRequest, response_to_json
 
 from tribler.core.restapi.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
@@ -16,8 +17,7 @@ from tribler.core.restapi.rest_endpoint import (
     RESTResponse,
 )
 from tribler.core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, error_middleware
-from tribler.test_unit.base_restapi import MockRequest, response_to_json
-from tribler.tribler_config import TriblerConfigManager
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -33,7 +33,7 @@ class GenericRequest(MockRequest):
         """
         Create a new GenericRequest.
         """
-        super().__init__(query or {}, path=path)
+        super().__init__(path, "GET", query)
         self._headers = headers or {}
         if cookies is not None:
             self._headers[hdrs.COOKIE] = BaseCookie(cookies)
@@ -44,17 +44,6 @@ class GenericRequest(MockRequest):
         Pass this request.
         """
         return RESTResponse({"passed": True})
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class TestRESTManager(TestBase):

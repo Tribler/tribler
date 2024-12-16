@@ -1,4 +1,5 @@
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import response_to_bytes, response_to_json
 
 from tribler.core.restapi.rest_endpoint import (
     HTTP_INTERNAL_SERVER_ERROR,
@@ -8,7 +9,6 @@ from tribler.core.restapi.rest_endpoint import (
     return_handled_exception,
 )
 from tribler.core.restapi.rest_manager import error_middleware
-from tribler.test_unit.base_restapi import response_to_bytes, response_to_json
 
 
 class TestRESTEndpoint(TestBase):

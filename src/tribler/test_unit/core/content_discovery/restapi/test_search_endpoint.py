@@ -7,11 +7,11 @@ from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import AutoMockEndpoint
+from ipv8.test.REST.rest_base import MockRequest, response_to_json
 
 from tribler.core.content_discovery.community import ContentDiscoveryCommunity
 from tribler.core.content_discovery.restapi.search_endpoint import SearchEndpoint
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST
-from tribler.test_unit.base_restapi import MockRequest, response_to_json
 
 
 class MockContentDiscoveryCommunity(ContentDiscoveryCommunity):
@@ -33,19 +33,6 @@ class MockContentDiscoveryCommunity(ContentDiscoveryCommunity):
         return UUID(int=1), [self.my_peer]
 
 
-class SearchRequest(MockRequest):
-    """
-    A MockRequest that mimics SearchRequests.
-    """
-
-    def __init__(self, query: dict) -> None:
-        """
-        Create a new SearchRequest.
-        """
-        super().__init__(query, "PUT", "/search/remote")
-        self.context = [MockContentDiscoveryCommunity()]
-
-
 class TestSearchEndpoint(TestBase):
     """
     Tests for the SearchEndpoint REST endpoint.
@@ -56,8 +43,10 @@ class TestSearchEndpoint(TestBase):
         Test if a bad request returns the bad request status.
         """
         endpoint = SearchEndpoint()
+        request = MockRequest("/api/search/remote", "PUT", {"channel_pk": "GG"})
+        request.context = [MockContentDiscoveryCommunity()]
 
-        response = await endpoint.remote_search(SearchRequest({"channel_pk": "GG"}))
+        response = await endpoint.remote_search(request)
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
@@ -66,8 +55,10 @@ class TestSearchEndpoint(TestBase):
         Test if a good search request returns a dict with the UUID and serving peers.
         """
         endpoint = SearchEndpoint()
+        request = MockRequest("/api/search/remote", "PUT", {"channel_pk": "AA", "fts_text": ""})
+        request.context = [MockContentDiscoveryCommunity()]
 
-        response = await endpoint.remote_search(SearchRequest({"channel_pk": "AA", "fts_text": ""}))
+        response = await endpoint.remote_search(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)

@@ -18,8 +18,8 @@ jobs:
         uses: tj-actions/changed-files@v42
         with:
           files: |
-            *.py
-            **/*.py
+            src/*.py
+            src/**/*.py
       - name: Run ruff
         if: steps.changed-py-files.outputs.any_changed == 'true'
         run: ruff check ${{ steps.changed-py-files.outputs.all_changed_files }} --force-exclude

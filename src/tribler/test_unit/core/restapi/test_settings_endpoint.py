@@ -1,22 +1,10 @@
 from unittest.mock import Mock, call
 
 from ipv8.test.base import TestBase
+from ipv8.test.REST.rest_base import MockRequest, response_to_json
 
 from tribler.core.restapi.settings_endpoint import SettingsEndpoint
-from tribler.test_unit.base_restapi import MockRequest, response_to_json
-from tribler.tribler_config import TriblerConfigManager
-
-
-class GetSettingsRequest(MockRequest):
-    """
-    A MockRequest that mimics GetSettingsRequests.
-    """
-
-    def __init__(self) -> None:
-        """
-        Create a new GetSettingsRequest.
-        """
-        super().__init__({}, "GET", "/settings")
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class UpdateSettingsRequest(MockRequest):
@@ -28,7 +16,7 @@ class UpdateSettingsRequest(MockRequest):
         """
         Create a new UpdateSettingsRequest.
         """
-        super().__init__({}, "POST", "/settings")
+        super().__init__("/api/settings", "POST")
         self.raw_json_content = raw_json_content
 
     async def read(self) -> bytes:
@@ -36,17 +24,6 @@ class UpdateSettingsRequest(MockRequest):
         Get the json contents of this request.
         """
         return self.raw_json_content
-
-
-class MockTriblerConfigManager(TriblerConfigManager):
-    """
-    A memory-based TriblerConfigManager.
-    """
-
-    def write(self) -> None:
-        """
-        Don't actually write to any file.
-        """
 
 
 class TestSettingsEndpoint(TestBase):
@@ -61,8 +38,9 @@ class TestSettingsEndpoint(TestBase):
         config = MockTriblerConfigManager()
         config.set("api/http_port", 1337)
         endpoint = SettingsEndpoint(config)
+        request = MockRequest("/api/settings")
 
-        response = await endpoint.get_settings(GetSettingsRequest())
+        response = await endpoint.get_settings(request)
         response_body_json = await response_to_json(response)
 
         self.assertEqual(1337, response_body_json["settings"]["api"]["http_port"])
