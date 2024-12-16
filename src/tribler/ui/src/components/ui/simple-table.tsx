@@ -140,7 +140,13 @@ function SimpleTable<T extends object>({
         onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
         getRowId: rowId,
+        autoResetPageIndex: false,
     });
+
+    // If we're on an empty page, reset the pageIndex to 0
+    if (table.getRowModel().rows.length == 0 && table.getExpandedRowModel().rows.length != 0) {
+        setPagination(p => ({ ...p, pageIndex: 0 }));
+    }
 
     const { t } = useTranslation();
 
@@ -248,7 +254,7 @@ function SimpleTable<T extends object>({
 function Pagination<T>({ table }: React.PropsWithChildren<{ table: ReactTable<T> }>) {
     const pageIndex = table.getState().pagination.pageIndex;
     const pageSize = table.getState().pagination.pageSize;
-    const rowCount = table.getCoreRowModel().rows.length;
+    const rowCount = table.getExpandedRowModel().rows.length;
 
     const { t } = useTranslation();
 
