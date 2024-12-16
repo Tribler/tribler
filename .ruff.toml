@@ -82,6 +82,7 @@ exclude = [
     "build",
     "dist",
     "node_modules",
+    "pyipv8",
     "src/tribler/ui",
     "venv",
 ]
@@ -91,7 +92,7 @@ line-length = 120
 # Allow unused variables when underscore-prefixed.
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-target-version = "py37"
+target-version = "py39"
 
 [lint.pylint]
 max-args = 6
