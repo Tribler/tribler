@@ -27,7 +27,7 @@ export function getHeader<T>(name: string, translate: boolean = true, addSorting
             <div className='select-none flex'>
                 <span
                     className="cursor-pointer hover:text-black dark:hover:text-white flex flex-row items-center"
-                    onClick={() => column.toggleSorting()}>
+                    onClick={(e) => column.toggleSorting(undefined, e.shiftKey)}>
                     {translate ? t(name) : name}
                     {column.getIsSorted() === "desc" ? (
                         <ArrowDownIcon className="ml-2" />
