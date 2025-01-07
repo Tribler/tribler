@@ -1,4 +1,4 @@
-# libtorrent-1.2.19 does not support python 3.11 yet
+# libtorrent-2.0.9 does not support python 3.11 yet
 FROM python:3.10-slim
 
 RUN apt-get update \

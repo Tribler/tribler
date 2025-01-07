@@ -16,7 +16,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Dict, Iterable, List, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -33,6 +33,8 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Iterable
+
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
     from tribler.tribler_config import TriblerConfigManager
 
@@ -106,7 +108,7 @@ class DownloadManager(TaskManager):
         self.register_task("Set default upload rate limit", self.set_upload_rate_limit, 0)
         self.register_task("Set default download rate limit", self.set_download_rate_limit, 0)
 
-        self.downloads: Dict[bytes, Download] = {}
+        self.downloads: dict[bytes, Download] = {}
 
         self.checkpoint_directory = (self.state_dir / "dlcheckpoints")
         self.checkpoints_count = 0
@@ -287,7 +289,8 @@ class DownloadManager(TaskManager):
                                             "enable_upnp": int(self.config.get("libtorrent/upnp")),
                                             "enable_dht": int(self.config.get("libtorrent/dht")),
                                             "enable_lsd": int(self.config.get("libtorrent/lsd")),
-                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp"))}
+                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp")),
+                                            "allow_i2p_mixed": 1}
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
@@ -633,13 +636,8 @@ class DownloadManager(TaskManager):
         if scheme == "magnet":
             logger.info("Magnet scheme detected")
             params = lt.parse_magnet_uri(uri)
-            try:
-                # libtorrent 1.2.19
-                name, infohash = params["name"].encode(), params["info_hash"]  # type: ignore[index] # (checker is 2.X)
-            except TypeError:
-                # libtorrent 2.0.9
-                name = params.name.encode()
-                infohash = unhexlify(str(params.info_hash))
+            name = params.name.encode()
+            infohash = unhexlify(str(params.info_hash))
             logger.info("Name: %s. Infohash: %s", name, infohash)
             if infohash in self.metainfo_cache:
                 logger.info("Metainfo found in cache")
@@ -872,7 +870,7 @@ class DownloadManager(TaskManager):
         """
         return self.downloads.get(infohash, None)
 
-    def get_downloads(self) -> List[Download]:
+    def get_downloads(self) -> list[Download]:
         """
         Get a list of all known downloads.
         """

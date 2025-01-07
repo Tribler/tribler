@@ -6,7 +6,7 @@ from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from copy import deepcopy
 from ssl import SSLError
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 import libtorrent as lt
 from aiohttp import (
@@ -36,6 +36,8 @@ from tribler.core.restapi.rest_endpoint import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from aiohttp.abc import Request
     from aiohttp.typedefs import LooseHeaders
 
@@ -181,12 +183,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
             if response.startswith(b'magnet'):
                 try:
-                    try:
-                        # libtorrent 1.2.19
-                        infohash = lt.parse_magnet_uri(uri)["info_hash"]  # type: ignore[index] # (checker uses 2.X)
-                    except TypeError:
-                        # libtorrent 2.0.9
-                        infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
+                    infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
                 except RuntimeError as e:
                     return RESTResponse(
                         {"error": {
@@ -203,12 +200,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             self._logger.info("magnet scheme detected")
 
             try:
-                try:
-                    # libtorrent 1.2.19
-                    infohash = lt.parse_magnet_uri(uri)["info_hash"]  # type: ignore[index] # (checker uses 2.X)
-                except TypeError:
-                    # libtorrent 2.0.9
-                    infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
+                infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
             except RuntimeError as e:
                 return RESTResponse(
                     {"error": {

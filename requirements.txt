@@ -3,8 +3,9 @@
 bitarray
 configobj
 ipv8-rust-tunnels
-libtorrent==1.2.19
+libtorrent==2.0.9
 lz4
+marshmallow==3.23.3  # TODO: support 3.24.0 onward
 pillow
 pony
 pystray
