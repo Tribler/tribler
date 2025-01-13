@@ -4,6 +4,7 @@ from binascii import unhexlify
 from ssl import SSLError
 from unittest.mock import AsyncMock, Mock, patch
 
+import libtorrent
 from aiohttp import ClientConnectorCertificateError, ClientConnectorError, ClientResponseError, ServerConnectionError
 from ipv8.test.base import TestBase
 from ipv8.test.REST.rest_base import MockRequest, response_to_json
@@ -167,9 +168,10 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=None)
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet://"})
+        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
-                        {"lt": Mock(parse_magnet_uri=Mock(return_value={"info_hash": b"\x01" * 20}))}):
+                        {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
@@ -436,13 +438,14 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=None)
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
                       AsyncMock(return_value=b"magnet://")), \
                 patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
-                           {"lt": Mock(parse_magnet_uri=Mock(return_value={"info_hash": b"\x01" * 20}))}):
+                           {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
@@ -459,13 +462,14 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=None)
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
                       AsyncMock(return_value=b"magnet://")), \
                 patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
-                           {"lt": Mock(parse_magnet_uri=Mock(return_value={"info_hash": b"\x01" * 20}))}):
+                           {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
