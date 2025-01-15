@@ -128,19 +128,35 @@ function SimpleTable<T extends object>({
     }
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(visibilityState);
 
-    useKeyboardShortcut(
-        ["Control", "A"],
-        keys => {
-            if (allowMultiSelect) {
-                table.toggleAllRowsSelected(true);
-            }
-        },
-        {
-            overrideSystem: true,
-            ignoreInputFields: true,
-            repeatOnHold: false
+    useKeyboardShortcut(["Control", "A"], () => {
+        if (allowMultiSelect) {
+            table.toggleAllRowsSelected(true);
         }
-    );
+    }, { overrideSystem: true, repeatOnHold: false });
+    useKeyboardShortcut(["ArrowUp"], () => {
+        let ids = Object.keys(rowSelection);
+        let rows = table.getSortedRowModel().rows;
+        let index = rows.findIndex((row) => ids.includes(row.id));
+        let next = rows[index - 1] || rows[0];
+
+        let selection: any = {};
+        selection[next.id.toString()] = true;
+        table.setRowSelection(selection);
+
+        document.querySelector("[data-state='selected']")?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    });
+    useKeyboardShortcut(["ArrowDown"], () => {
+        let ids = Object.keys(rowSelection);
+        let rows = table.getSortedRowModel().rows;
+        let index = rows.findLastIndex((row) => ids.includes(row.id));
+        let next = rows[index + 1] || rows[rows.length - 1];
+
+        let selection: any = {};
+        selection[next.id.toString()] = true;
+        table.setRowSelection(selection);
+
+        document.querySelector("[data-state='selected']")?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    });
 
     const table = useReactTable({
         data,
