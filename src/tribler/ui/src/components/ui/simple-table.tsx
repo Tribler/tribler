@@ -1,16 +1,25 @@
 import { SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
-import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DotsHorizontalIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
 import useKeyboardShortcut from 'use-keyboard-shortcut';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown-menu';
+import { triblerService } from '@/services/tribler.service';
+
+
+declare module '@tanstack/table-core/build/lib/types' {
+    export interface ColumnMeta<TData extends RowData, TValue> {
+        hide_by_default: boolean;
+    }
+}
 
 
 export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
@@ -42,13 +51,20 @@ export function getHeader<T>(name: string, translate: boolean = true, addSorting
     }
 }
 
-function getStoredSortingState(key?: string) {
-    if (key) {
-        let sortingString = localStorage.getItem(key);
-        if (sortingString) {
-            return JSON.parse(sortingString);
-        }
+function getState(type: "columns" | "sorting", name?: string) {
+    let stateString = triblerService.guiSettings[type];
+    if (stateString && name) {
+        return JSON.parse(stateString)[name];
     }
+}
+
+function setState(type: "columns" | "sorting", name: string, state: SortingState | VisibilityState) {
+    let stateString = triblerService.guiSettings[type];
+    let stateSettings = stateString ? JSON.parse(stateString) : {};
+    stateSettings[name] = state;
+
+    triblerService.guiSettings[type] = JSON.stringify(stateSettings);
+    triblerService.setSettings({ ui: triblerService.guiSettings });
 }
 
 interface ReactTableProps<T extends object> {
@@ -65,6 +81,7 @@ interface ReactTableProps<T extends object> {
     allowSelect?: boolean;
     allowSelectCheckbox?: boolean;
     allowMultiSelect?: boolean;
+    allowColumnToggle?: string;
     filters?: { id: string, value: string }[];
     maxHeight?: string | number;
     expandable?: boolean;
@@ -85,6 +102,7 @@ function SimpleTable<T extends object>({
     allowSelect,
     allowSelectCheckbox,
     allowMultiSelect,
+    allowColumnToggle,
     filters,
     maxHeight,
     expandable,
@@ -98,7 +116,17 @@ function SimpleTable<T extends object>({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
-    const [sorting, setSorting] = useState<SortingState>(getStoredSortingState(storeSortingState) || []);
+    const [sorting, setSorting] = useState<SortingState>(getState("sorting", storeSortingState) || []);
+
+    //Get stored column visibility and add missing visibilities with their defaults.
+    const visibilityState = getState("columns", allowColumnToggle) || {};
+    let col: any;
+    for (col of columns) {
+        if (col.accessorKey && col.accessorKey in visibilityState === false) {
+            visibilityState[col.accessorKey] = col.meta?.hide_by_default !== true;
+        }
+    }
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(visibilityState);
 
     useKeyboardShortcut(
         ["Control", "A"],
@@ -127,11 +155,13 @@ function SimpleTable<T extends object>({
             pagination,
             rowSelection,
             columnFilters,
+            columnVisibility,
             expanded,
             sorting
         },
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
+        onColumnVisibilityChange: setColumnVisibility,
         onPaginationChange: setPagination,
         onRowSelectionChange: (arg: SetStateAction<RowSelectionState>) => {
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
@@ -173,9 +203,15 @@ function SimpleTable<T extends object>({
 
     useEffect(() => {
         if (storeSortingState) {
-            localStorage.setItem(storeSortingState, JSON.stringify(sorting));
+            setState("sorting", storeSortingState, sorting);
         }
     }, [sorting]);
+
+    useEffect(() => {
+        if (allowColumnToggle) {
+            setState("columns", allowColumnToggle, columnVisibility);
+        }
+    }, [columnVisibility]);
 
     // For some reason the ScrollArea scrollbar is only shown when it's set to a specific height.
     // So, we wrap it in a parent div, monitor its size, and set the height of the table accordingly.
@@ -191,7 +227,11 @@ function SimpleTable<T extends object>({
                             <TableRow key={headerGroup.id} className="bg-neutral-100 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-900">
                                 {headerGroup.headers.map((header, index) => {
                                     return (
-                                        <TableHead key={header.id} className={cn({ 'pl-4': index === 0, 'pr-4': index + 1 === headerGroup.headers.length, })}>
+                                        <TableHead key={header.id} className={cn({
+                                            'pl-4': index === 0,
+                                            'pr-4': !allowColumnToggle && index + 1 === headerGroup.headers.length,
+                                            'pr-0': !!allowColumnToggle
+                                        })}>
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -201,6 +241,41 @@ function SimpleTable<T extends object>({
                                         </TableHead>
                                     )
                                 })}
+                                {allowColumnToggle && <TableHead key="toggleColumns" className="w-2 pl-1 pr-3 cursor-pointer hover:text-black dark:hover:text-white">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <DotsHorizontalIcon className="h-4 w-4" />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>{t('Toggle columns')}</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {table.getAllLeafColumns().map(column => {
+                                                const fakeColumn = {
+                                                    ...column,
+                                                    toggleSorting: () => { },
+                                                    getIsSorted: () => { },
+                                                } as Column<any, unknown>;
+                                                return (
+                                                    <DropdownMenuItem key={`toggleColumns-${column.id}`}>
+                                                        <label onClick={(evt) => evt.stopPropagation()} className='flex space-x-1'>
+                                                            <input
+                                                                {...{
+                                                                    type: 'checkbox',
+                                                                    checked: column.getIsVisible(),
+                                                                    onChange: column.getToggleVisibilityHandler(),
+                                                                }}
+                                                            />{flexRender(column.columnDef.header, {
+                                                                table,
+                                                                column: fakeColumn,
+                                                                header: { column: fakeColumn } as Header<any, unknown>,
+                                                            })}
+                                                        </label>
+                                                    </DropdownMenuItem>
+                                                )
+                                            })}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableHead>}
                             </TableRow>
                         ))}
                     </TableHeader>

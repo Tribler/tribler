@@ -194,6 +194,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                             allowMultiSelect={true}
                             onSelectedRowsChange={setSelectedDownloads}
                             maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
+                            allowColumnToggle="download-columns"
                             storeSortingState="download-sorting"
                             rowId={(row) => row.infohash}
                         />
