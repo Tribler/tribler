@@ -5,7 +5,7 @@ import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
 import { Task } from "@/models/task.model";
 import { useInterval } from '@/hooks/useInterval';
-import { formatTimeDiff } from "@/lib/utils";
+import { formatTimeRelativeISO } from "@/lib/utils";
 
 
 const taskColumns: ColumnDef<Task>[] = [
@@ -32,7 +32,7 @@ const taskColumns: ColumnDef<Task>[] = [
         accessorKey: "start_time",
         header: getHeader("Started", false),
         cell: ({ row }) => {
-            return row.original.start_time && <span>{formatTimeDiff(row.original.start_time)}</span>
+            return row.original.start_time && <span>{formatTimeRelativeISO(row.original.start_time)}</span>
         },
     },
 ]

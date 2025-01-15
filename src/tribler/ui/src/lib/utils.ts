@@ -1,25 +1,10 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { category } from "@/models/torrent.model";
-import TimeAgo from 'javascript-time-ago'
-import en from 'javascript-time-ago/locale/en'
-import es from 'javascript-time-ago/locale/es'
-import pt from 'javascript-time-ago/locale/pt'
-import ru from 'javascript-time-ago/locale/ru'
-import zh from 'javascript-time-ago/locale/zh'
-import { useTranslation } from "react-i18next";
-import { triblerService } from "@/services/tribler.service";
 import { FileLink, FileTreeItem } from "@/models/file.model";
 import { CheckedState } from "@radix-ui/react-checkbox";
 import JSZip from "jszip";
-
-TimeAgo.setDefaultLocale(en.locale)
-TimeAgo.addLocale(en)
-TimeAgo.addLocale(es)
-TimeAgo.addLocale(pt)
-TimeAgo.addLocale(ru)
-TimeAgo.addLocale(zh)
-
+import { triblerService } from "@/services/tribler.service";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
@@ -72,29 +57,39 @@ export function categoryIcon(name: category): string {
     return categoryEmojis[name] || '';
 }
 
-export function formatTimeAgo(ts: number) {
+export function formatDateTime(ts: number) {
+    const dtf = new Intl.DateTimeFormat(undefined, {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', hourCycle: "h24", minute: '2-digit', second: '2-digit'
+    });
+    return dtf.format(new Date(ts * 1000));
+}
+
+export function formatTimeRelative(ts: number, epochTime: boolean = true) {
+    // Returns passed/future time as human readable text
+    if (ts === 0) { return '-'; }
+    if (epochTime) { ts = ts - (Date.now() / 1000); }
+    const cutoffs = [60, 3600, 86400, 86400 * 7, 86400 * 30, 86400 * 365, Infinity];
+    const units: Intl.RelativeTimeFormatUnit[] = ["second", "minute", "hour", "day", "week", "month", "year"];
+    const index = cutoffs.findIndex(cutoff => cutoff > Math.abs(ts));
+    const divisor = index ? cutoffs[index - 1] : 1;
     let locale = triblerService.guiSettings.lang ?? 'en_US';
-    const timeAg = new TimeAgo(locale.slice(0, 2));
-    return timeAg.format(ts * 1000);
+    const rtf = new Intl.RelativeTimeFormat(locale.replace("_", "-"), { numeric: "auto" });
+    return divisor === Infinity ? "-" : rtf.format(Math.round(ts / divisor), units[index]);
+}
+
+export function formatTimeRelativeISO(ts: number) {
+    // Returns passed time as HH:mm:ss
+    if (ts === 0) { return '-'; }
+    const date = new Date(0);
+    date.setSeconds((Date.now() / 1000) - ts);
+    return date.toISOString().substr(11, 8);
 }
 
 export function formatBytes(bytes: number) {
     if (bytes === 0) { return '0.00 B'; }
     const e = Math.floor(Math.log(bytes) / Math.log(1024));
     return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + ' KMGTP'.charAt(e) + 'B';
-}
-
-export function formatTimeDiff(time: number) {
-    if (time === 0) { return '-'; }
-    const now = Date.now() / 1000;
-    return formatTime(now - time);
-}
-
-export function formatTime(time: number) {
-    if (time === 0) { return '-'; }
-    const date = new Date(0);
-    date.setSeconds(time);
-    return date.toISOString().substr(11, 8);
 }
 
 export function formatFlags(flags: number[]) {

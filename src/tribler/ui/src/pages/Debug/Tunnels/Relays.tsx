@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
 import { Relay } from "@/models/relay.model";
-import { formatBytes, formatTimeDiff } from "@/lib/utils";
+import { formatBytes, formatTimeRelativeISO } from "@/lib/utils";
 import { useInterval } from '@/hooks/useInterval';
 
 
@@ -39,7 +39,7 @@ const relayColumns: ColumnDef<Relay>[] = [
         accessorKey: "uptime",
         header: getHeader("Uptime", false),
         cell: ({ row }) => {
-            return <span>{formatTimeDiff(row.original.creation_time)}</span>
+            return <span>{formatTimeRelativeISO(row.original.creation_time)}</span>
         },
     },
 ]

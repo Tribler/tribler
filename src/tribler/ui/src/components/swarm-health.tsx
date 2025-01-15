@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import toast from 'react-hot-toast';
 import { Torrent } from "@/models/torrent.model";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
-import { formatTimeAgo } from "@/lib/utils";
+import { formatTimeRelative } from "@/lib/utils";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 
@@ -55,7 +55,7 @@ export function SwarmHealth({ torrent }: { torrent: Torrent }) {
                 </TooltipTrigger>
                 <TooltipContent>
                     <span>
-                        {torrent.last_tracker_check === 0 ? 'Not checked' : `Checked ${formatTimeAgo(torrent.last_tracker_check)}`}
+                        {torrent.last_tracker_check === 0 ? 'Not checked' : `Checked ${formatTimeRelative(torrent.last_tracker_check)}`}
                     </span>
                 </TooltipContent>
             </Tooltip>

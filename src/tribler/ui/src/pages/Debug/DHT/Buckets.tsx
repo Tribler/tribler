@@ -4,7 +4,7 @@ import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
 import { Bucket } from "@/models/bucket.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { formatTimeDiff } from "@/lib/utils";
+import { formatTimeRelativeISO } from "@/lib/utils";
 import { useInterval } from '@/hooks/useInterval';
 
 
@@ -17,7 +17,7 @@ const bucketColumns: ColumnDef<Bucket>[] = [
         accessorKey: "last_changed",
         header: getHeader("Last changed", false),
         cell: ({ row }) => {
-            return <span>{formatTimeDiff(row.original.last_changed)}</span>
+            return <span>{formatTimeRelativeISO(row.original.last_changed)}</span>
         },
     },
     {

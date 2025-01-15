@@ -4,7 +4,7 @@ import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
 import { Swarm } from "@/models/swarm.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { formatBytes, formatTimeDiff } from "@/lib/utils";
+import { formatBytes, formatTimeRelativeISO } from "@/lib/utils";
 import { useInterval } from '@/hooks/useInterval';
 
 
@@ -33,7 +33,7 @@ const swarmColumns: ColumnDef<Swarm>[] = [
         accessorKey: "last_lookup",
         header: getHeader("Last lookup", false),
         cell: ({ row }) => {
-            return <span>{formatTimeDiff(row.original.last_lookup)}</span>
+            return <span>{formatTimeRelativeISO(row.original.last_lookup)}</span>
         },
     },
     {
