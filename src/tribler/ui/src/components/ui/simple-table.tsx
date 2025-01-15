@@ -1,8 +1,8 @@
-import { SetStateAction, useEffect, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
 import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column } from '@tanstack/react-table';
-import { cn } from '@/lib/utils';
+import { cn, isMac } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DotsHorizontalIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
@@ -10,9 +10,9 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import { useResizeObserver } from '@/hooks/useResizeObserver';
-import useKeyboardShortcut from 'use-keyboard-shortcut';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown-menu';
 import { triblerService } from '@/services/tribler.service';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 
 declare module '@tanstack/table-core/build/lib/types' {
@@ -67,6 +67,55 @@ function setState(type: "columns" | "sorting", name: string, state: SortingState
     triblerService.setSettings({ ui: triblerService.guiSettings });
 }
 
+function updateRowSelection(
+    table: ReactTable<any>,
+    rowSelection: RowSelectionState,
+    setRowSelection: Dispatch<SetStateAction<RowSelectionState>>,
+    fromId: string | undefined,
+    change: number,
+    allowMulti?: boolean) {
+
+    if (fromId === undefined) return;
+
+    let rows = table.getSortedRowModel().rows;
+    let fromRow = rows.find((row) => row.id === fromId);
+    let fromIndex = fromRow?.index;
+    if (fromIndex === undefined) return;
+
+    let selectedRowIDs = Object.keys(rowSelection);
+    let selectedRowIndexes = rows.filter(row => selectedRowIDs.includes(row.id)).map((row) => row.index);
+    let maxIndex = Math.max(...selectedRowIndexes);
+    let minIndex = Math.min(...selectedRowIndexes);
+
+    // If there are gaps in the selection, ignore all but the most recently clicked item.
+    let gaps = false;
+    for (let i = minIndex; i <= maxIndex; i++) {
+        if (!selectedRowIndexes.includes(i)) gaps = true;
+    }
+    let toIndex = fromIndex === maxIndex ? minIndex : maxIndex;
+    if (gaps) toIndex = fromIndex
+
+    // Calculate new toIndex, depending on whether we're going up/down in the list
+    let newIndex = toIndex + change;
+    if (newIndex >= 0 && newIndex < rows.length) {
+        toIndex = newIndex;
+    }
+
+    if (!allowMulti) fromIndex = toIndex;
+
+    // Set fromIndex..toIndex as the new row selection
+    let selection: any = {};
+    for (let row of rows) {
+        if ((row.index >= fromIndex && row.index <= toIndex) ||
+            (row.index <= fromIndex && row.index >= toIndex)) {
+            selection[row.id] = true;
+        }
+    }
+    setRowSelection(selection);
+
+    document.querySelector("[data-state='selected']")?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+}
+
 interface ReactTableProps<T extends object> {
     data: T[];
     columns: ColumnDef<T>[];
@@ -117,6 +166,7 @@ function SimpleTable<T extends object>({
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
     const [sorting, setSorting] = useState<SortingState>(getState("sorting", storeSortingState) || []);
+    const [startId, setStartId] = useState<string | undefined>(undefined);
 
     //Get stored column visibility and add missing visibilities with their defaults.
     const visibilityState = getState("columns", allowColumnToggle) || {};
@@ -128,35 +178,25 @@ function SimpleTable<T extends object>({
     }
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(visibilityState);
 
-    useKeyboardShortcut(["Control", "A"], () => {
+
+    useHotkeys(isMac() ? 'meta+a' : 'ctrl+a', event => {
         if (allowMultiSelect) {
             table.toggleAllRowsSelected(true);
         }
-    }, { overrideSystem: true, repeatOnHold: false });
-    useKeyboardShortcut(["ArrowUp"], () => {
-        let ids = Object.keys(rowSelection);
-        let rows = table.getSortedRowModel().rows;
-        let index = rows.findIndex((row) => ids.includes(row.id));
-        let next = rows[index - 1] || rows[0];
-
-        let selection: any = {};
-        selection[next.id.toString()] = true;
-        table.setRowSelection(selection);
-
-        document.querySelector("[data-state='selected']")?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        event.preventDefault();
     });
-    useKeyboardShortcut(["ArrowDown"], () => {
-        let ids = Object.keys(rowSelection);
-        let rows = table.getSortedRowModel().rows;
-        let index = rows.findLastIndex((row) => ids.includes(row.id));
-        let next = rows[index + 1] || rows[rows.length - 1];
-
-        let selection: any = {};
-        selection[next.id.toString()] = true;
-        table.setRowSelection(selection);
-
-        document.querySelector("[data-state='selected']")?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    });
+    useHotkeys('shift+ArrowUp', () => {
+        updateRowSelection(table, rowSelection, setRowSelection, startId, -1, allowMultiSelect)
+    }, [rowSelection, startId]);
+    useHotkeys('shift+ArrowDown', () => {
+        updateRowSelection(table, rowSelection, setRowSelection, startId, 1, allowMultiSelect)
+    }, [rowSelection, startId]);
+    useHotkeys('ArrowUp', () => {
+        updateRowSelection(table, rowSelection, setRowSelection, startId, -1, false)
+    }, [rowSelection, startId]);
+    useHotkeys('ArrowDown', () => {
+        updateRowSelection(table, rowSelection, setRowSelection, startId, 1, false)
+    }, [rowSelection, startId]);
 
     const table = useReactTable({
         data,
@@ -207,6 +247,12 @@ function SimpleTable<T extends object>({
             onSelectedRowsChange(
                 table.getSelectedRowModel().flatRows.map((row) => row.original),
             )
+
+        const rowIds = Object.keys(rowSelection);
+        if (rowIds.length === 1) {
+            setStartId(rowIds[0]);
+        }
+
     }, [rowSelection, table, onSelectedRowsChange])
 
     useEffect(() => {
@@ -301,17 +347,31 @@ function SimpleTable<T extends object>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
-                                    className={`${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
+                                    className={`select-none ${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
                                     onClick={(event) => {
                                         if (!allowSelect && !allowMultiSelect)
-                                            return
+                                            return;
 
-                                        if (allowMultiSelect && (event.ctrlKey || event.shiftKey)) {
+                                        if (allowMultiSelect && (isMac() ? event.metaKey : event.ctrlKey)) {
                                             row.toggleSelected(!row.getIsSelected());
+                                            if (!row.getIsSelected()) setStartId(row.id)
+                                            return;
+                                        }
+
+                                        let rows = table.getSortedRowModel().rows;
+                                        let startRow = rows.find((row) => row.id === startId);
+
+                                        if (startRow && allowMultiSelect && event.shiftKey) {
+                                            let selection: any = {};
+                                            for (let i = Math.min(row.index, startRow.index); i <= Math.max(row.index, startRow.index); i++) {
+                                                selection[rows[i].id] = true;
+                                            }
+                                            setRowSelection(selection);
                                         } else {
                                             const selected = row.getIsSelected()
                                             table.resetRowSelection();
                                             row.toggleSelected(!selected);
+                                            if (!selected) setStartId(row.id)
                                         }
                                     }}
                                     onDoubleClick={() => {

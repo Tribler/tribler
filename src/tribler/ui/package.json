@@ -36,12 +36,12 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",
+    "react-hotkeys-hook": "^4.6.1",
     "react-i18next": "^14.1.1",
     "react-resizable-panels": "^2.0.16",
     "react-router-dom": "^6.16.0",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
-    "use-keyboard-shortcut": "^1.1.6",
     "zod": "^3.22.4"
   },
   "devDependencies": {

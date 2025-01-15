@@ -236,3 +236,7 @@ export async function downloadFilesAsZip(files: FileLink[], zipName: string) {
         }
     }
 }
+
+export function isMac() {
+    return navigator.userAgent.includes('Mac');
+}
