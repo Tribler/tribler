@@ -4,7 +4,7 @@ import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { Torrent } from "@/models/torrent.model";
 import { ColumnDef } from "@tanstack/react-table";
-import { categoryIcon, filterDuplicates, formatBytes, formatTimeAgo, getMagnetLink } from "@/lib/utils";
+import { categoryIcon, filterDuplicates, formatBytes, formatTimeRelative, getMagnetLink } from "@/lib/utils";
 import SaveAs from "@/dialogs/SaveAs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSearchParams } from "react-router-dom";
@@ -53,7 +53,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
             return (
                 <span className="whitespace-nowrap">
                     {row.original.created > 24 * 3600 ?
-                        formatTimeAgo(row.original.created) :
+                        formatTimeRelative(row.original.created) :
                         "unknown"}
                 </span>
             )

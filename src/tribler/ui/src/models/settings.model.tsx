@@ -105,4 +105,6 @@ export interface GuiSettings {
     dev_mode?: boolean;
     lang?: string;
     theme?: string;
+    sorting?: string;
+    columns?: string;
 }

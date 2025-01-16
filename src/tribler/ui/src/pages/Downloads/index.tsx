@@ -3,7 +3,7 @@ import DownloadDetails from "./Details";
 import SimpleTable, { getHeader } from "@/components/ui/simple-table"
 import { Download } from "@/models/download.model";
 import { Progress } from "@/components/ui/progress"
-import { capitalize, formatBytes } from "@/lib/utils";
+import { capitalize, formatBytes, formatDateTime, formatTimeRelative } from "@/lib/utils";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
 import { ColumnDef } from "@tanstack/react-table"
@@ -91,6 +91,28 @@ const downloadColumns: ColumnDef<Download>[] = [
     {
         accessorKey: "hops",
         header: getHeader('Hops'),
+    },
+    {
+        accessorKey: "eta",
+        header: getHeader('ETA'),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({ row }) => {
+            if (row.original.progress === 1 || row.original.status_code !== 3)
+                return <span>-</span>
+            return <span>{formatTimeRelative(row.original.eta, false)}</span>
+        },
+    },
+    {
+        accessorKey: "time_added",
+        header: getHeader('AddedOn'),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({ row }) => {
+            return <span>{formatDateTime(row.original.time_added)}</span>
+        },
     },
 ]
 
@@ -194,6 +216,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                             allowMultiSelect={true}
                             onSelectedRowsChange={setSelectedDownloads}
                             maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
+                            allowColumnToggle="download-columns"
                             storeSortingState="download-sorting"
                             rowId={(row) => row.infohash}
                         />

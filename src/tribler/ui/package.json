@@ -30,7 +30,6 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "i18next": "^23.11.4",
-    "javascript-time-ago": "^2.5.10",
     "js-cookie": "^3.0.5",
     "jszip": "^3.10.1",
     "lucide-react": "^0.292.0",
