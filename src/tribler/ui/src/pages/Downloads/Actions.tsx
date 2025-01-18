@@ -90,18 +90,20 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
         else if (files.length > 1) downloadFilesAsZip(files, 'torrents.zip');
     }
     const onMoveDownload = () => {
-        if (selectedDownloads.length == 1) {
+        if (selectedDownloads.length > 0) {
             setStorageLocation(selectedDownloads[0].destination);
             setStorageDialogOpen(true);
         }
     }
     const onMoveDownloadConfirmed = () => {
-        triblerService.moveDownload(selectedDownloads[0].infohash, storageLocation).then(async (response) => {
-            if (response === undefined) {
-                toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if (isErrorDict(response)) {
-                toast.error(`${t("ToastErrorDownloadMove")} ${response.error.message}`);
-            }
+        selectedDownloads.forEach((download) => {
+            triblerService.moveDownload(download.infohash, storageLocation).then(async (response) => {
+                if (response === undefined) {
+                    toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
+                } else if (isErrorDict(response)) {
+                    toast.error(`${t("ToastErrorDownloadMove")} ${response.error.message}`);
+                }
+            });
         });
         setStorageDialogOpen(false);
     }
@@ -189,7 +191,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                         <Button
                             variant="outline"
                             type="submit"
-                            disabled={selectedDownloads[0]?.destination === storageLocation}
+                            disabled={selectedDownloads.every((d) => d.destination === storageLocation)}
                             onClick={() => { onMoveDownloadConfirmed() }}>
                             {t('ChangeStorageButton')}
                         </Button>
@@ -219,7 +221,7 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                         <ExternalLinkIcon className="mr-2 h-4 w-4" />
                         {t('ExportTorrent')}
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { onMoveDownload() }} disabled={selectedDownloads.length !== 1}>
+                    <DropdownMenuItem onClick={() => { onMoveDownload() }} disabled={selectedDownloads.length < 1}>
                         <MoveIcon className="mr-2 h-4 w-4" />
                         {t('MoveStorage')}
                     </DropdownMenuItem>
