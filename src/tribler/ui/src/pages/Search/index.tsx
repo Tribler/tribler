@@ -127,9 +127,7 @@ export default function Search() {
         if (data.uuid !== request)
             return;
 
-        for (const result of data.results) {
-            setTorrents((prevTorrents) => [...prevTorrents, result]);
-        }
+        setTorrents((prevTorrents) => filterDuplicates([...prevTorrents, ...data.results], "infohash"));
     }
 
     const handleDownload = useCallback((torrent: Torrent) => {
