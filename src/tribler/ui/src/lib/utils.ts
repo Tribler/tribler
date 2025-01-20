@@ -95,7 +95,7 @@ export function formatBytes(bytes: number) {
 export function formatFlags(flags: number[]) {
     const flagToString: Record<number, string> = {
         1: 'RELAY',
-        2: 'EXIT_ANY',
+        2: 'EXIT_BT',
         4: 'EXIT_IPV8',
         8: 'SPEEDTEST',
         32768: 'EXIT_HTTP'
