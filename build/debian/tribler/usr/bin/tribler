@@ -4,5 +4,5 @@
 echo "Starting Tribler..."
 
 pushd "/usr/share/tribler"
-exec /usr/share/tribler/tribler "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
+exec /usr/share/tribler/tribler "$@" > `mktemp "/tmp/$USER-tribler-XXXXXX.log"` 2>&1
 popd
