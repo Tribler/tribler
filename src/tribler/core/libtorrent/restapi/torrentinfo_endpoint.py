@@ -195,7 +195,15 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
                                                                     url=response.decode())
             else:
-                metainfo = lt.bdecode(response)
+                try:
+                    metainfo = lt.bdecode(response)
+                except RuntimeError:
+                    return RESTResponse(
+                        {"error": {
+                            "handled": True,
+                            "message": f"Could not read torrent from {uri}"
+                        }}, status=HTTP_INTERNAL_SERVER_ERROR
+                    )
         elif scheme == "magnet":
             self._logger.info("magnet scheme detected")
 

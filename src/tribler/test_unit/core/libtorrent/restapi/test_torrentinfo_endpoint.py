@@ -279,6 +279,22 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("test", response_body_json["error"]["message"])
 
+    async def test_get_torrent_info_http_no_torrent(self) -> None:
+        """
+        Test if a graceful error is returned when a valid HTTP address does not return a torrent.
+        """
+        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+
+        with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
+                        {"unshorten": mock_unshorten}), \
+                patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
+                      AsyncMock(return_value=b"<html><body>404: Page not found.</body></html>")):
+            response = await self.endpoint.get_torrent_info(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
+        self.assertEqual("Could not read torrent from http://127.0.0.1/file", response_body_json["error"]["message"])
+
     async def test_get_torrent_info_https_serverconnectionerror(self) -> None:
         """
         Test if a graceful error is returned when a ServerConnectionError occurs when loading from an HTTPS link.
@@ -375,6 +391,22 @@ class TestTorrentInfoEndpoint(TestBase):
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
         self.assertEqual("test", response_body_json["error"]["message"])
+
+    async def test_get_torrent_info_https_no_torrent(self) -> None:
+        """
+        Test if a graceful error is returned when a valid HTTP address does not return a torrent.
+        """
+        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+
+        with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
+                        {"unshorten": mock_unshorten}), \
+                patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
+                      AsyncMock(return_value=b"<html><body>404: Page not found.</body></html>")):
+            response = await self.endpoint.get_torrent_info(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
+        self.assertEqual("Could not read torrent from https://127.0.0.1/file", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_certificate_error(self) -> None:
         """
