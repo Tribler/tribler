@@ -89,7 +89,16 @@ export function AddTorrent() {
                                 if (uriInput) {
                                     setTorrent(undefined);
                                     setUrlDialogOpen(false);
-                                    setSaveAsDialogOpen(true);
+                                    (async () => {
+                                        const response = await triblerService.getMetainfo(uriInput);
+                                        if (response === undefined) {
+                                            toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
+                                        } else if (isErrorDict(response)){
+                                            toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
+                                        } else {
+                                            setSaveAsDialogOpen(true);
+                                        }
+                                    })();
                                 }
                             }}>
                             {t('Add')}
@@ -136,9 +145,9 @@ export function AddTorrent() {
                             (async () => {
                                 const response = await triblerService.startDownloadFromFile(file);
                                 if (response === undefined) {
-                                    toast.error(`${t("ToastErrorStartDownload")} ${t("ToastErrorGenNetworkErr")}`);
+                                    toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
                                 } else if (isErrorDict(response)){
-                                    toast.error(`${t("ToastErrorStartDownload")} ${response.error.message}`);
+                                    toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
                                 }
                              })();
                         }
