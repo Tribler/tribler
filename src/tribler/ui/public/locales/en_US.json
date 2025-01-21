@@ -168,5 +168,7 @@
     "ToastErrorRemoveVersion": "Failed to remove version {{version}}!",
     "ToastErrorTrackerAdd": "Failed to add tracker!",
     "ToastErrorTrackerRemove": "Failed to remove tracker!",
-    "ToastErrorTrackerCheck": "Failed to check tracker!"
+    "ToastErrorTrackerCheck": "Failed to check tracker!",
+    "MoveAfterCompletion": "Move after completion",
+    "MoveAfterCompletionInfo": "Once completed, files will move to"
 }

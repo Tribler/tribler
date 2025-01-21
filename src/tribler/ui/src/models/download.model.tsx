@@ -31,6 +31,7 @@ export interface Download {
     max_upload_speed: number;
     max_download_speed: number;
     destination: string;
+    completed_dir: string;
     total_pieces: number;
     error: string;
     time_added: number;

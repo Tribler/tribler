@@ -18,6 +18,7 @@ import { TFunction } from 'i18next';
 import { PathInput } from "@/components/path-input";
 import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { FileTreeItem } from "@/models/file.model";
+import { DownloadConfig } from "@/models/downloadconfig.model";
 
 
 function startDownloadCallback(response: any, t: TFunction) {
@@ -67,13 +68,6 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
     },
 ]
 
-interface Params {
-    destination: string
-    anon_hops: number
-    selected_files: number[],
-    safe_seeding: boolean,
-};
-
 interface SaveAsProps {
     uri?: string;
     torrent?: File;
@@ -94,6 +88,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const { t } = useTranslation();
 
     const [settings, setSettings] = useState<Settings | undefined>();
+    const [moveCompleted, setMoveCompleted] = useState<boolean>(false);
     const [error, setError] = useState<string | undefined>();
     const [warning, setWarning] = useState<string | undefined>();
     const [exists, setExists] = useState<boolean>(false);
@@ -111,7 +106,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     }
 
     const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), [OnSelectedFilesChange]);
-    const [params, setParams] = useState<Params>({
+    const [params, setParams] = useState<DownloadConfig>({
         destination: '',
         anon_hops: 0,
         selected_files: [],
@@ -123,6 +118,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     useEffect(() => {
         async function reload() {
             // Reset state
+            setMoveCompleted(false);
             setError(undefined);
             setExists(false);
             setFiles([])
@@ -140,9 +136,11 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             setParams({
                 ...params,
                 destination: newSettings?.libtorrent.download_defaults.saveas ?? '',
+                completed_dir: newSettings?.libtorrent.download_defaults.completed_dir ?? '',
                 anon_hops: safeDownloading ? newSettings.libtorrent.download_defaults.number_hops : 0,
                 safe_seeding: safeSeeding,
             });
+            setMoveCompleted((newSettings?.libtorrent?.download_defaults.completed_dir ?? '').length > 0);
 
             // Retrieve metainfo
             let response;
@@ -174,11 +172,13 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     function OnDownloadClicked() {
         if (!settings) return;
 
+        const completed_dir = moveCompleted ? params.completed_dir : '';
+
         if (torrent) {
-            triblerService.startDownloadFromFile(torrent, params).then((response) => { startDownloadCallback(response, t) });
+            triblerService.startDownloadFromFile(torrent, { ...params, completed_dir }).then((response) => { startDownloadCallback(response, t) });
         }
         else if (uri) {
-            triblerService.startDownload(uri, params).then((response) => { startDownloadCallback(response, t) });
+            triblerService.startDownload(uri, { ...params, completed_dir }).then((response) => { startDownloadCallback(response, t) });
         }
 
         if (props.onOpenChange) {
@@ -203,12 +203,32 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 </DialogHeader>
 
                 <div className="flex items-center">
-                    <Label htmlFor="dest_dir" className="whitespace-nowrap pr-5">
+                    <Label htmlFor="dest_dir" className="w-64 whitespace-nowrap">
                         {t('Destination')}
                     </Label>
                     <PathInput
                         path={params.destination || settings?.libtorrent?.download_defaults?.saveas || ''}
                         onPathChange={(path) => setParams({ ...params, destination: path })}
+                    />
+                </div>
+
+                <div className="flex items-center">
+                    <div className="w-64 flex items-center">
+                        <Checkbox
+                            checked={moveCompleted}
+                            id="move_completed"
+                            onCheckedChange={(value) => setMoveCompleted(value === true)} />
+                        <label
+                            htmlFor="move_completed"
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2"
+                        >
+                            {t('MoveAfterCompletion')}
+                        </label>
+                    </div>
+                    <PathInput
+                        disabled={!moveCompleted}
+                        path={params.completed_dir || ''}
+                        onPathChange={(path) => setParams({ ...params, completed_dir: path })}
                     />
                 </div>
 
@@ -280,7 +300,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         variant="outline"
                         type="submit"
                         onClick={() => OnDownloadClicked()}
-                        disabled={exists || (files.length !== 0 && params.selected_files.length === 0)}>
+                        disabled={exists || (files.length !== 0 && (params.selected_files || []).length === 0)}>
                         {t('Download')}
                     </Button>
                     <DialogClose asChild>

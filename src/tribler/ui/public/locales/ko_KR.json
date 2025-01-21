@@ -165,5 +165,7 @@
     "ToastErrorRemoveVersion": "{{version}} 버전을 제거하지 못했습니다!",
     "ToastErrorTrackerAdd": "트래커를 추가하지 못했습니다!",
     "ToastErrorTrackerRemove": "트래커를 제거하지 못했습니다!",
-    "ToastErrorTrackerCheck": "트래커 확인에 실패했습니다!"
+    "ToastErrorTrackerCheck": "트래커 확인에 실패했습니다!",
+    "MoveAfterCompletion": "완료 후 이동",
+    "MoveAfterCompletionInfo": "완료되면 파일이 이동됩니다."
 }

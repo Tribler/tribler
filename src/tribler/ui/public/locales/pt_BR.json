@@ -162,5 +162,7 @@
     "ToastErrorRemoveVersion": "Falha ao remover a versão {{version}}!",
     "ToastErrorTrackerAdd": "Falha ao adicionar rastreador!",
     "ToastErrorTrackerRemove": "Falha ao remover o rastreador!",
-    "ToastErrorTrackerCheck": "Falha ao verificar o rastreador!"
+    "ToastErrorTrackerCheck": "Falha ao verificar o rastreador!",
+    "MoveAfterCompletion": "Mover após a conclusão",
+    "MoveAfterCompletionInfo": "Uma vez concluído, os arquivos serão movidos para"
 }

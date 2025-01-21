@@ -169,5 +169,7 @@
     "ToastErrorRemoveVersion": "Не удалось удалить версию {{version}}!",
     "ToastErrorTrackerAdd": "Не удалось добавить трекер!",
     "ToastErrorTrackerRemove": "Не удалось удалить трекер!",
-    "ToastErrorTrackerCheck": "Не удалось проверить трекер!"
+    "ToastErrorTrackerCheck": "Не удалось проверить трекер!",
+    "MoveAfterCompletion": "Переезд после завершения",
+    "MoveAfterCompletionInfo": "После завершения файлы будут перемещены в"
 }
