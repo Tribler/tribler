@@ -35,6 +35,7 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.events_endpoint import EventsEndpoint
 from tribler.core.restapi.file_endpoint import FileEndpoint
 from tribler.core.restapi.ipv8_endpoint import IPv8RootEndpoint
+from tribler.core.restapi.logging_endpoint import LoggingEndpoint
 from tribler.core.restapi.rest_manager import RESTManager
 from tribler.core.restapi.settings_endpoint import SettingsEndpoint
 from tribler.core.restapi.shutdown_endpoint import ShutdownEndpoint
@@ -166,6 +167,7 @@ class Session:
         """
         Register all core REST endpoints without initializing them.
         """
+        self.rest_manager.add_endpoint(LoggingEndpoint())  # Do this first to register logging for the other endpoints.
         self.rest_manager.add_endpoint(WebUIEndpoint())
         self.rest_manager.add_endpoint(FileEndpoint())
         self.rest_manager.add_endpoint(CreateTorrentEndpoint(self.download_manager))

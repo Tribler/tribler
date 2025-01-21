@@ -218,6 +218,14 @@ export class TriblerService {
         }
     }
 
+    async getLogs(): Promise<undefined | ErrorDict | string> {
+        try {
+            return (await this.http.get('/logging')).data;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     // Torrents / search
 
     async getMetainfo(uri: string): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean, valid_certificate: boolean}> {
