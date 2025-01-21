@@ -7,7 +7,7 @@ from asyncio import AbstractEventLoop, Event
 from contextlib import contextmanager
 from os.path import isfile
 from traceback import format_exception
-from typing import TYPE_CHECKING, Any, Generator, Type, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import aiohttp
 from ipv8.keyvault.crypto import default_eccrypto
@@ -43,6 +43,7 @@ from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 from tribler.core.socks5.server import Socks5Server
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from types import TracebackType
 
     from tribler.core.database.store import MetadataStore
@@ -177,7 +178,7 @@ class Session:
         self.rest_manager.add_endpoint(StatisticsEndpoint())
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))
 
-    def _except_hook(self, typ: Type[BaseException], value: BaseException, traceback: TracebackType | None) -> None:
+    def _except_hook(self, typ: type[BaseException], value: BaseException, traceback: TracebackType | None) -> None:
         """
         Handle an uncaught exception.
 
@@ -196,7 +197,10 @@ class Session:
         Note2: ignored BaseExceptions are BaseExceptionGroup, GeneratorExit, KeyboardInterrupt and SystemExit
         """
         exc = context.get("exception")
-        if isinstance(exc, Exception):
+        if isinstance(exc, ConnectionResetError):
+            logger.exception("Network unreachable: %s",
+                             "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
+        elif isinstance(exc, Exception):
             logger.exception("Uncaught async exception: %s",
                              "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
             cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
