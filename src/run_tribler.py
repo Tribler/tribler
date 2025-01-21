@@ -2,13 +2,25 @@ from __future__ import annotations
 
 import sys
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
+    from typing import Literal, NoReturn
+
     from pystray import Icon
 
 
-def show_error(exc: Exception, shutdown: bool = True) -> None:
+@overload
+def show_error(exc: Exception, shutdown: Literal[True] = True) -> NoReturn:
+    ...
+
+
+@overload
+def show_error(exc: Exception, shutdown: Literal[False] = True) -> None:
+    ...
+
+
+def show_error(exc: Exception, shutdown: bool = True) -> NoReturn:
     """
     Create a native pop-up without any third party dependency.
 
@@ -51,7 +63,6 @@ try:
     import encodings.idna  # noqa: F401 (https://github.com/pyinstaller/pyinstaller/issues/1113)
     import logging.config
     import os
-    import sys
     import threading
     import typing
     import webbrowser
@@ -65,7 +76,7 @@ try:
     from tribler.tribler_config import VERSION_SUBDIR, TriblerConfigManager
 
 except Exception as e:
-    show_error(e)
+    show_error(e, True)
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +88,7 @@ class Arguments(typing.TypedDict):
 
     torrent: str
     log_level: str
+    server: bool
 
 
 def parse_args() -> Arguments:
@@ -220,7 +232,7 @@ async def main() -> None:
         torrent_uri = load_torrent_uri(parsed_args)
         server_url = await session.find_api_server()
 
-        headless = parsed_args.get('server')
+        headless = parsed_args.get("server")
         if server_url:
             logger.info("Core already running at %s", server_url)
             if torrent_uri:
@@ -233,17 +245,16 @@ async def main() -> None:
 
         await session.start()
     except Exception as exc:
-        show_error(exc)
+        show_error(exc, True)
 
     server_url = await session.find_api_server()
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
-    if not headless:
-        icon = spawn_tray_icon(session, config)
+    icon = None if headless else spawn_tray_icon(session, config)
 
     await session.shutdown_event.wait()
     await session.shutdown()
-    if not headless:
+    if icon:
         icon.stop()
     logger.info("Tribler shutdown completed")
 
