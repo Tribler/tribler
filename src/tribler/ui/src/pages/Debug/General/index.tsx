@@ -4,7 +4,7 @@ import { KeyValue } from "@/models/keyvalue.model";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useInterval } from '@/hooks/useInterval';
 
 
@@ -20,7 +20,20 @@ const generalColumns: ColumnDef<KeyValue>[] = [
 ]
 
 export default function General() {
-    const [stats, setStats] = useState<KeyValue[]>([])
+    const [stats, setStats] = useState<KeyValue[]>([]);
+    const [logs, setLogs] = useState<string>("");
+
+    // The following three definitions are for the fancy scrolling-when-at-the-bottom effect of the logs
+    const [shouldScrollDown, setShouldScrollDown] = useState<boolean>(true);
+    const [logContainer, setLogContainer] = useState<HTMLElement | null>(null);
+    const logContainerRef = useCallback((node: HTMLElement | null) => {
+        if (shouldScrollDown && (node !== null)){
+            if (logContainer !== null)
+                setShouldScrollDown(false);
+            setLogContainer(node);
+            node.scrollTop = node.scrollHeight;
+        }
+    }, [logs]);
 
     useInterval(async () => {
         const newStats = new Array<KeyValue>();
@@ -54,7 +67,18 @@ export default function General() {
         }
 
         setStats(newStats);
+
+        const logOutput = await triblerService.getLogs();
+        if (logOutput !== undefined && !isErrorDict(logOutput)){
+            if (logContainer !== null)
+                setShouldScrollDown(logContainer.scrollTop >= (logContainer.scrollHeight - logContainer.clientHeight));
+            setLogs(logOutput);
+        }
     }, 5000, true);
 
-    return <SimpleTable data={stats} columns={generalColumns} />
+    return (<div className="w-full h-full flex flex-col">
+                <SimpleTable data={stats} columns={generalColumns} />
+                <div className="flex-none bg-neutral-100 dark:bg-neutral-900 text-muted-foreground border-y pl-3 py-2 text-sm font-medium">Logs</div>
+                <div className="whitespace-pre text-xs pl-1 h-96 flex-grow overflow-scroll overflow-hidden scroll-smooth" ref={logContainerRef}>{logs}</div>
+            </div>);
 }
