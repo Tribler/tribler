@@ -40,6 +40,8 @@
     "MaxConnections": "Max connections per download",
     "ZeroIsUnlimited": "0 = unlimited",
     "MinusOneIsUnlimited": "-1 = unlimited",
+    "EnableAnnounceAll": "Announce to all torrent trackers",
+    "MaxTrackerConnections": "Max concurrent tracker connections",
     "Password": "Password",
     "UploadRate": "Upload rate limit",
     "DownloadRate": "Download rate limit",

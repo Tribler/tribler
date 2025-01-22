@@ -66,6 +66,9 @@ export interface Settings {
         upnp: boolean;
         natpmp: boolean;
         lsd: boolean;
+        announce_to_all_tiers: boolean;
+        announce_to_all_trackers: boolean;
+        max_concurrent_http_announces: number;
         download_defaults: {
             anonymity_enabled: boolean;
             number_hops: number;
