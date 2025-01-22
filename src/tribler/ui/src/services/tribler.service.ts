@@ -404,7 +404,7 @@ export class TriblerService {
 
     // Misc
 
-    async browseFiles(path: string, showFiles: boolean): Promise<undefined | ErrorDict | { current: string, paths: Path[] }> {
+    async browseFiles(path: string, showFiles: boolean): Promise<undefined | ErrorDict | { current: string, paths: Path[], separator: string }> {
         try {
             return (await this.http.get(`/files/browse?path=${path}&files=${+showFiles}`)).data;
         } catch (error) {
@@ -415,6 +415,14 @@ export class TriblerService {
     async listFiles(path: string, recursively: boolean): Promise<undefined | ErrorDict | { paths: Path[] }> {
         try {
             return (await this.http.get(`/files/list?path=${path}&recursively=${+recursively}`)).data;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async createDirectory(path: string, recursively: boolean): Promise<undefined | ErrorDict | { paths: Path[] }> {
+        try {
+            return (await this.http.get(`/files/create?path=${path}&recursively=${+recursively}`)).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
