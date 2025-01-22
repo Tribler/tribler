@@ -168,5 +168,7 @@
     "ToastErrorRemoveVersion": "删除版本失败 {{version}}！",
     "ToastErrorTrackerAdd": "添加追踪器失败！",
     "ToastErrorTrackerRemove": "删除跟踪器失败！",
-    "ToastErrorTrackerCheck": "检查追踪器失败！"
+    "ToastErrorTrackerCheck": "检查追踪器失败！",
+    "MoveAfterCompletion": "完成后搬移",
+    "MoveAfterCompletionInfo": "完成后，文件将移至"
 }

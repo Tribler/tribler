@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Literal, TypedDict, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast, overload
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
         channel_download: bool
         add_download_to_channel: bool
         saveas: str | None
+        completed_dir: str | None
 
 
     class StateConfigSection(TypedDict):
@@ -76,6 +77,7 @@ bootstrap_download = boolean(default=False)
 channel_download = boolean(default=False)
 add_download_to_channel = boolean(default=False)
 saveas = string(default=None)
+completed_dir = string(default=None)
 
 [state]
 metainfo = string(default='ZGU=')
@@ -83,7 +85,7 @@ engineresumedata = string(default='ZGU=')
 """
 
 
-def _from_dict(value: Dict) -> str:
+def _from_dict(value: dict) -> str:
     binary = lt.bencode(value)
     base64_bytes = base64.b64encode(binary)
     return base64_bytes.decode()
@@ -140,6 +142,7 @@ class DownloadConfig:
             config.set_hops(0)
         config.set_safe_seeding(settings.get("libtorrent/download_defaults/safeseeding_enabled"))
         config.set_dest_dir(settings.get("libtorrent/download_defaults/saveas"))
+        config.set_completed_dir(settings.get("libtorrent/download_defaults/completed_dir"))
 
         return config
 
@@ -171,6 +174,20 @@ class DownloadConfig:
         """
         dest_dir = self.config["download_defaults"]["saveas"] or ""
         return Path(dest_dir)
+
+    def set_completed_dir(self, path: Path | str) -> None:
+        """
+        Sets the directory where to move this Download upon completion.
+
+        :param path: A path of a directory.
+        """
+        self.config["download_defaults"]["completed_dir"] = str(path)
+
+    def get_completed_dir(self) -> str | None:
+        """
+        Gets the directory where to move this Download upon completed.
+        """
+        return self.config["download_defaults"].get("completed_dir")
 
     def set_hops(self, hops: int) -> None:
         """

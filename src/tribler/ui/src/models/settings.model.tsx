@@ -71,6 +71,7 @@ export interface Settings {
             number_hops: number;
             safeseeding_enabled: boolean;
             saveas: string;
+            completed_dir: string;
             seeding_mode: string;
             seeding_ratio: number;
             seeding_time: number;

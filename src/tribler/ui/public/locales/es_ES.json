@@ -168,5 +168,7 @@
     "ToastErrorRemoveVersion": "No se pudo eliminar la versión {{version}}!",
     "ToastErrorTrackerAdd": "¡No se pudo agregar el rastreador!",
     "ToastErrorTrackerRemove": "¡No se pudo eliminar el rastreador!",
-    "ToastErrorTrackerCheck": "¡No se pudo verificar el rastreador!"
+    "ToastErrorTrackerCheck": "¡No se pudo verificar el rastreador!",
+    "MoveAfterCompletion": "Muévete después de completarlo",
+    "MoveAfterCompletionInfo": "Una vez completado, los archivos se moverán a"
 }

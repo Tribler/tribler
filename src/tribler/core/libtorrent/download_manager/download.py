@@ -15,7 +15,7 @@ from collections import defaultdict
 from contextlib import suppress
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, List, Tuple, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Callable, TypedDict, cast
 
 import libtorrent as lt
 from bitarray import bitarray
@@ -32,6 +32,8 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import TriblerConfigManager
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
+
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 Getter = Callable[[Any], Any]
@@ -161,8 +163,9 @@ class Download(TaskManager):
         """
         Convert this download to a human-readable string.
         """
-        return "Download(name=%s, hops=%d, checkpoint_disabled=%d)" % \
-            (self.tdef.get_name(), self.config.get_hops(), self.checkpoint_disabled)
+        return (f"Download(name={self.tdef.get_name()}, "
+                f"hops={self.config.get_hops():d}, "
+                f"checkpoint_disabled={self.checkpoint_disabled:d})")
 
     def __repr__(self) -> str:
         """
@@ -438,7 +441,7 @@ class Download(TaskManager):
         if alert.msg:
             status = "Error: " + alert.msg
         elif alert.status_code > 0:
-            status = "HTTP status code %d" % alert.status_code
+            status = f"HTTP status code {alert.status_code:d}"
         elif alert.status_code == 0:
             status = "Timeout"
         else:
@@ -569,6 +572,9 @@ class Download(TaskManager):
             infohash = self.tdef.get_infohash().hex()
             self.notifier.notify(Notification.torrent_finished, infohash=infohash, name=name, hidden=self.hidden)
 
+        if self.config.get_completed_dir() and self.config.get_completed_dir() != self.config.get_dest_dir():
+            self.move_storage(Path(self.config.get_completed_dir()))
+
     def update_lt_status(self, lt_status: lt.torrent_status) -> None:
         """
         Update libtorrent stats and check if the download should be stopped.
@@ -633,6 +639,7 @@ class Download(TaskManager):
             self.handle = cast(lt.torrent_handle, self.handle)
             self.handle.move_storage(str(new_dir))
         self.config.set_dest_dir(new_dir)
+        self.config.set_completed_dir(new_dir)
         return True
 
     @check_handle(None)
@@ -671,7 +678,7 @@ class Download(TaskManager):
         except (CancelledError, SaveResumeDataError, TimeoutError, asyncio.exceptions.TimeoutError) as e:
             self._logger.exception("Resume data failed to save: %s", e)
 
-    def get_peer_list(self, include_have: bool = True) -> List[PeerDict | PeerDictHave]:
+    def get_peer_list(self, include_have: bool = True) -> list[PeerDict | PeerDictHave]:
         """
         Returns a list of dictionaries, one for each connected peer containing the statistics for that peer.
         In particular, the dictionary contains the keys.
@@ -714,7 +721,7 @@ class Download(TaskManager):
             peers.append(peer_dict)
         return peers
 
-    def get_num_connected_seeds_peers(self) -> Tuple[int, int]:
+    def get_num_connected_seeds_peers(self) -> tuple[int, int]:
         """
         Return the number of connected seeders and leechers.
         """

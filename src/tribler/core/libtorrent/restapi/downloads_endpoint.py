@@ -123,6 +123,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if 'destination' in parameters:
             download_config.set_dest_dir(parameters['destination'])
 
+        if 'completed_dir' in parameters:
+            download_config.set_completed_dir(parameters['completed_dir'])
+
         if 'selected_files' in parameters:
             download_config.set_selected_files(parameters['selected_files'])
 
@@ -330,6 +333,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.download_manager.config),
                 "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
                 "destination": str(download.config.get_dest_dir()),
+                "completed_dir": download.config.get_completed_dir(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added()
@@ -518,7 +522,7 @@ class DownloadsEndpoint(RESTEndpoint):
         "anon_hops": (Integer, "The anonymity of a download can be changed at runtime by passing the anon_hops "
                                "parameter, however, this must be the only parameter in this request.")
     }))
-    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
+    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0911
         """
         Update a specific download.
         """
@@ -551,6 +555,15 @@ class DownloadsEndpoint(RESTEndpoint):
                                         "message": "index out of range"
                                     }}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
+
+        if parameters.get("completed_dir"):
+            completed_dir = Path(parameters["completed_dir"])
+            if not completed_dir.exists():
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": f"Directory ({completed_dir}) does not exist"
+                                    }}, status=HTTP_BAD_REQUEST)
+            download.config.set_completed_dir(completed_dir)
 
         if state := parameters.get("state"):
             if state == "resume":

@@ -10,6 +10,7 @@ interface PathInputProps {
     onPathChange?: (value: string) => void;
     directory?: boolean;
     className?: string;
+    disabled?: boolean;
 }
 
 export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
@@ -30,6 +31,7 @@ export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
             />
             <Input
                 value={props.path}
+                disabled={props.disabled}
                 onChange={(event) => {
                     if (props.onPathChange)
                         props.onPathChange(event.target.value)
@@ -39,6 +41,7 @@ export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
                 className="ml-1"
                 variant="outline"
                 type="submit"
+                disabled={props.disabled}
                 onClick={() => {
                     setOpenPathDialog(true);
                 }}

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Settings } from "@/models/settings.model";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from 'react-hot-toast';
 import SaveButton from "./SaveButton";
@@ -14,16 +14,18 @@ import { Input } from "@/components/ui/input";
 export default function General() {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<Settings>();
+    const [moveCompleted, setMoveCompleted] = useState<boolean>(false);
 
     if (!settings) {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
                 toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if (isErrorDict(response)){
+            } else if (isErrorDict(response)) {
                 toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
             } else {
                 setSettings(response);
+                setMoveCompleted((response?.libtorrent?.download_defaults?.completed_dir || '').length > 0)
             }
         })();
         return null;
@@ -81,6 +83,39 @@ export default function General() {
                     }}
                 />
             </div>
+            <div className="flex items-center">
+                <div className="w-64 flex items-center">
+                    <Checkbox
+                        checked={moveCompleted}
+                        id="move_completed"
+                        onCheckedChange={(value) => setMoveCompleted(value === true)} />
+                    <label
+                        htmlFor="move_completed"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2"
+                    >
+                        {t('MoveAfterCompletion')}
+                    </label>
+                </div>
+                <PathInput
+                    disabled={!moveCompleted}
+                    path={settings?.libtorrent?.download_defaults?.completed_dir}
+                    onPathChange={(path) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    download_defaults: {
+                                        ...settings.libtorrent.download_defaults,
+                                        completed_dir: path
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+            </div>
+
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
                     checked={settings?.ui?.ask_download_settings}
@@ -199,11 +234,20 @@ export default function General() {
 
             <SaveButton
                 onClick={async () => {
-                    if (settings){
-                        const response = await triblerService.setSettings(settings);
+                    if (settings) {
+                        const response = await triblerService.setSettings({
+                            ...settings,
+                            libtorrent: {
+                                ...settings.libtorrent,
+                                download_defaults: {
+                                    ...settings.libtorrent.download_defaults,
+                                    completed_dir: moveCompleted ? settings.libtorrent.download_defaults.completed_dir : ''
+                                }
+                            }
+                        });
                         if (response === undefined) {
                             toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-                        } else if (isErrorDict(response)){
+                        } else if (isErrorDict(response)) {
                             toast.error(`${t("ToastErrorSetSettings")} ${response.error.message}`);
                         }
                     }

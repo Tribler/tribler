@@ -9,10 +9,12 @@ import Files from "./Files";
 import Peers from "./Peers";
 import Trackers from "./Trackers";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download } from "@/models/download.model";
 import Pieces from "./Pieces";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InfoIcon } from "lucide-react";
 
 
 export default function DownloadDetails({ selectedDownloads }: { selectedDownloads: Download[] }) {
@@ -77,7 +79,23 @@ export default function DownloadDetails({ selectedDownloads }: { selectedDownloa
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Destination')}</div>
-                            <div className="basis-3/4 break-all line-clamp-1">{download.destination}</div>
+                            <div className="basis-3/4 break-all line-clamp-1 flex flex-nowrap items-center">
+                                {download.destination}
+                                {download.completed_dir && download.completed_dir !== download.destination && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <InfoIcon className="w-4 ml-2"/>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <span>
+                                                    {t('MoveAfterCompletionInfo')} <div className="font-semibold">{download.completed_dir}</div>
+                                                </span>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </div>
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Ratio')}</div>
