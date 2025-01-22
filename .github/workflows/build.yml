@@ -71,7 +71,6 @@ jobs:
           rm pyipv8/.ruff.toml
           rm pyipv8/*.md
           rm pyipv8/*.ini
-          rm pyipv8/create_setup_taskmanager.py
           rm pyipv8/create_test_coverage_report.py
           rm pyipv8/github_increment_version.py
           rm pyipv8/run_all_tests.py
