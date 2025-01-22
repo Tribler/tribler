@@ -106,6 +106,9 @@ class LibtorrentConfig(TypedDict):
     upnp: bool
     natpmp: bool
     lsd: bool
+    announce_to_all_tiers: bool
+    announce_to_all_trackers: bool
+    max_concurrent_http_announces: int
 
     download_defaults: DownloadDefaultsConfig
 
@@ -214,6 +217,9 @@ DEFAULT_CONFIG = {
         upnp=True,
         natpmp=True,
         lsd=True,
+        announce_to_all_tiers=False,
+        announce_to_all_trackers=False,
+        max_concurrent_http_announces=50,
         download_defaults=DownloadDefaultsConfig(
             anonymity_enabled=True,
             number_hops=1,

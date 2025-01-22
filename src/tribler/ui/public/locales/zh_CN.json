@@ -39,6 +39,8 @@
     "MaxConnections": "每个下载任务的最大连接数",
     "ZeroIsUnlimited": "0 = 无限制",
     "MinusOneIsUnlimited": "-1 = 无限制",
+    "EnableAnnounceAll": "向所有种子追踪者宣布",
+    "MaxTrackerConnections": "最大并发跟踪器连接数",
     "Password": "密码",
     "UploadRate": "上传速率限制",
     "DownloadRate": "下载速率限制",

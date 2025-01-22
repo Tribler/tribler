@@ -40,6 +40,8 @@
     "MaxConnections": "내려받기당 최대 연결 수",
     "ZeroIsUnlimited": "0 = 무제한",
     "MinusOneIsUnlimited": "-1 = 무제한",
+    "EnableAnnounceAll": "모든 토렌트 추적자에게 공지",
+    "MaxTrackerConnections": "최대 동시 추적기 연결",
     "Password": "비밀번호",
     "UploadRate": "올리기 속도 제한",
     "DownloadRate": "내려받기 속도 제한",

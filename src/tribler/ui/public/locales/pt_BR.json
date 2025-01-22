@@ -38,6 +38,8 @@
     "MaxConnections": "Máximo de conexões por download",
     "ZeroIsUnlimited": "0 = sem limites",
     "MinusOneIsUnlimited": "-1 = sem limites",
+    "EnableAnnounceAll": "Anuncie a todos os rastreadores de torrent",
+    "MaxTrackerConnections": "Máximo de conexões simultâneas do rastreador",
     "Password": "Senha",
     "UploadRate": "Limite de upload",
     "DownloadRate": "Limite de upload",

@@ -178,7 +178,7 @@ export default function Connection() {
                                 ...settings,
                                 libtorrent: {
                                     ...settings.libtorrent,
-                                    max_connections_download: Math.max(0, +event.target.value)
+                                    max_connections_download: Math.max(-1, +event.target.value)
                                 }
                             });
                         }
@@ -186,6 +186,47 @@ export default function Connection() {
                 />
                 <div></div>
                 <p className="text-xs p-0 pb-4 text-muted-foreground">{t('MinusOneIsUnlimited')}</p>
+
+                <Label htmlFor="announce_to_all" className="whitespace-nowrap pr-5">
+                    {t('EnableAnnounceAll')}
+                </Label>
+                <Checkbox
+                    id="announce_to_all"
+                    className="my-2"
+                    checked={(settings?.libtorrent.announce_to_all_tiers !== settings?.libtorrent.announce_to_all_trackers) ? "indeterminate" : settings?.libtorrent.announce_to_all_tiers}
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    announce_to_all_tiers: !!value,
+                                    announce_to_all_trackers: !!value
+                                }
+                            });
+                        }
+                    }}
+                />
+
+                <Label htmlFor="max_concurrent_http_announces" className="whitespace-nowrap pr-5">
+                    {t('MaxTrackerConnections')}
+                </Label>
+                <Input
+                    id="max_concurrent_http_announces"
+                    type="number"
+                    value={settings?.libtorrent?.max_concurrent_http_announces === undefined ? 50 : settings?.libtorrent?.max_concurrent_http_announces}
+                    onChange={(event) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    max_concurrent_http_announces: Math.max(1, +event.target.value)
+                                }
+                            });
+                        }
+                    }}
+                />
             </div>
 
             <SaveButton

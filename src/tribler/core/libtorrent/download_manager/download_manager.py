@@ -283,14 +283,19 @@ class DownloadManager(TaskManager):
         # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
         # the settings dictionary
         logger.info("Creating a session")
-        settings: dict[str, str | float] = {"outgoing_port": 0,
-                                            "num_outgoing_ports": 1,
-                                            "allow_multiple_connections_per_ip": 0,
-                                            "enable_upnp": int(self.config.get("libtorrent/upnp")),
-                                            "enable_dht": int(self.config.get("libtorrent/dht")),
-                                            "enable_lsd": int(self.config.get("libtorrent/lsd")),
-                                            "enable_natpmp": int(self.config.get("libtorrent/natpmp")),
-                                            "allow_i2p_mixed": 1}
+        settings: dict[str, str | float] = {
+            "outgoing_port": 0,
+            "num_outgoing_ports": 1,
+            "allow_multiple_connections_per_ip": 0,
+            "enable_upnp": int(self.config.get("libtorrent/upnp")),
+            "enable_dht": int(self.config.get("libtorrent/dht")),
+            "enable_lsd": int(self.config.get("libtorrent/lsd")),
+            "enable_natpmp": int(self.config.get("libtorrent/natpmp")),
+            "allow_i2p_mixed": 1,
+            "announce_to_all_tiers": int(self.config.get("libtorrent/announce_to_all_tiers")),
+            "announce_to_all_trackers": int(self.config.get("libtorrent/announce_to_all_trackers")),
+            "max_concurrent_http_announces": int(self.config.get("libtorrent/max_concurrent_http_announces"))
+        }
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
@@ -800,10 +805,7 @@ class DownloadManager(TaskManager):
         self.ltsettings[lt_session].update(new_settings)
 
         try:
-            if hasattr(lt_session, "apply_settings"):
-                lt_session.apply_settings(new_settings)
-            else:
-                lt_session.set_settings(new_settings)  # type: ignore[attr-defined] # (checker uses 2.X)
+            lt_session.apply_settings(new_settings)
         except OverflowError as e:
             msg = f"Overflow error when setting libtorrent sessions with settings: {new_settings}"
             raise OverflowError(msg) from e

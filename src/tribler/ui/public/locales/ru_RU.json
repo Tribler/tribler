@@ -41,6 +41,8 @@
     "MaxConnections": "Макс. число соединений",
     "ZeroIsUnlimited": "0 = без ограничения",
     "MinusOneIsUnlimited": "-1 = без ограничения",
+    "EnableAnnounceAll": "Анонсируйте на всех торрент-трекерах",
+    "MaxTrackerConnections": "Максимальное количество одновременных подключений к трекеру",
     "Password": "Пароль",
     "UploadRate": "Исходящий трафик",
     "DownloadRate": "Входящий трафик",
