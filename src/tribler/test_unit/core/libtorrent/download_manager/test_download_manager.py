@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
+import libtorrent
 from configobj import ConfigObj
 from configobj.validate import Validator, VdtParamError
 from ipv8.test.base import TestBase
@@ -185,6 +186,28 @@ class TestDownloadManager(TestBase):
         await task
 
         self.assertTrue(task.done())
+
+    async def test_start_handle_empty_save_path(self) -> None:
+        """
+        Test if the "save_path" is always set in the resume_data, otherwise we SEGFAULT on win32!
+        """
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        self.manager.get_session = AsyncMock(return_value=Mock(get_torrents=Mock(return_value=[])))
+        self.manager._async_add_torrent = AsyncMock()  # noqa: SLF001
+
+        await self.manager.start_handle(download, {
+            "save_path": "/test_path/",
+            "resume_data": libtorrent.bencode({b"file-format": b"libtorrent resume file", b"file-version": 1})
+        })  # Schedule async_add_torrent
+        await sleep(0)  # Run async_add_torrent
+
+        session, infohash, atp = self.manager._async_add_torrent.call_args[0]  # noqa: SLF001
+
+        self.assertIn("resume_data", atp)
+        self.assertIn(b"save_path", libtorrent.bdecode(atp["resume_data"]))
+        self.assertEqual(b"/test_path/", libtorrent.bdecode(atp["resume_data"])[b"save_path"])
 
     async def test_start_download_existing_handle(self) -> None:
         """
