@@ -878,9 +878,9 @@ class Download(TaskManager):
         Add the given trackers to the handle.
         """
         self.handle = cast(lt.torrent_handle, self.handle)
-        if hasattr(self.handle, "add_tracker"):
-            for tracker in trackers:
-                self.handle.add_tracker({"url": tracker, "verified": False})
+        for tracker in trackers:
+            self.handle.add_tracker({"url": tracker, "verified": False})
+        self.handle.force_reannounce()
 
     @check_handle(None)
     def get_magnet_link(self) -> str:
@@ -898,6 +898,16 @@ class Download(TaskManager):
         """
         self.handle = cast(lt.torrent_handle, self.handle)
         self.handle.connect_peer(addr, 0)
+
+    @require_handle
+    def add_url_seed(self, addr: str) -> None:
+        """
+        Add a URL seed to this download.
+
+        :param addr: The URL address to connect to
+        """
+        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle.add_url_seed(addr)
 
     @require_handle
     def set_priority(self, priority: int) -> None:

@@ -643,6 +643,9 @@ class DownloadManager(TaskManager):
             params = lt.parse_magnet_uri(uri)
             name = params.name.encode()
             infohash = unhexlify(str(params.info_hash))
+            if config:
+                config.set_selected_files([i for i in range(len(params.file_priorities))
+                                           if params.file_priorities[i] > 0])
             logger.info("Name: %s. Infohash: %s", name, infohash)
             if infohash in self.metainfo_cache:
                 logger.info("Metainfo found in cache")
@@ -650,7 +653,16 @@ class DownloadManager(TaskManager):
             else:
                 logger.info("Metainfo not found in cache")
                 tdef = TorrentDefNoMetainfo(infohash, name if name else b"Unknown name", url=uri)
-            return await self.start_download(tdef=tdef, config=config)
+            download = await self.start_download(tdef=tdef, config=config)
+            async def add_helpers_later() -> None:
+                await download.get_handle()
+                download.add_trackers([t.encode() for t in params.trackers])
+                for peer in params.peers:
+                    download.add_peer(peer)
+                for url in params.url_seeds:
+                    download.add_url_seed(url)
+            self.register_anonymous_task(f"Add helpers to {params.info_hash!s}", add_helpers_later)
+            return download
         if scheme == "file":
             logger.info("File scheme detected")
             file = url_to_path(uri)

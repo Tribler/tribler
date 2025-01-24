@@ -437,7 +437,6 @@ class TestDownloadManager(TestBase):
 
         self.assertEqual(b'Unknown name', start_download.call_args.kwargs["tdef"].get_name())
 
-
     async def test_start_download_from_magnet_with_name(self) -> None:
         """
         Test if a download is started with `Unknown name` name when the magnet has no name.
@@ -448,6 +447,37 @@ class TestDownloadManager(TestBase):
             await self.manager.start_download_from_uri(magnet)
 
         self.assertEqual(b'AwesomeTorrent', start_download.call_args.kwargs["tdef"].get_name())
+
+    async def test_start_download_from_magnet_with_all_extras(self) -> None:
+        """
+        Test if a download is started with all six supported extras in the URI.
+
+        NOTE: libtorrent only uses the first (x.pe) peer and ignores additional initial peers.
+        """
+        magnet = (f'magnet:?xt=urn:btih:{"A" * 40}'  # 1. [required] infohash
+                  "&dn=AwesomeTorrent"  # 2. name
+                  "&tr=tracker1&tr=tracker2"  # 3. tracker list
+                  "&ws=http%3A%2F%2Flocalhost%2Ffile&ws=http%3A%2F%2Flocalhost%2Fcdn"  # 4. initial URL seeds
+                  "&so=0,2,4,6-8"  # 5. selected files
+                  "&x.pe=1.2.3.4:5&x.pe=6.7.8.9:0")  # 6. initial peers (see NOTE)
+        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        handle = Mock(is_valid=Mock(return_value=True))
+        download = Download(Mock(get_infohash=Mock(return_value=b"a" * 20)), self.manager, config,
+                            checkpoint_disabled=True)
+        download.handle = handle
+
+        with patch.object(self.manager, "start_download", AsyncMock(return_value=download)) as start_download:
+            await self.manager.start_download_from_uri(magnet, config)
+        await sleep(0)  # Schedule handler awaiter.
+        await sleep(0)  # Run callback after handle is available.
+
+        self.assertEqual(b"AwesomeTorrent", start_download.call_args.kwargs["tdef"].get_name())
+        self.assertEqual([call({"url": b"tracker1", "verified": False}),
+                          call({"url": b"tracker2", "verified": False})], handle.add_tracker.call_args_list)
+        self.assertEqual([call("http://localhost/file"), call("http://localhost/cdn")],
+                         handle.add_url_seed.call_args_list)
+        self.assertEqual([0, 2, 4, 6, 7, 8], config.get_selected_files())
+        self.assertEqual([call(('1.2.3.4', 5), 0)], handle.connect_peer.call_args_list)  # See NOTE
 
     def test_update_trackers(self) -> None:
         """
