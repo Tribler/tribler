@@ -166,5 +166,11 @@
     "ToastErrorTrackerRemove": "Falha ao remover o rastreador!",
     "ToastErrorTrackerCheck": "Falha ao verificar o rastreador!",
     "MoveAfterCompletion": "Mover após a conclusão",
-    "MoveAfterCompletionInfo": "Uma vez concluído, os arquivos serão movidos para"
+    "MoveAfterCompletionInfo": "Uma vez concluído, os arquivos serão movidos para",
+    "Create": "Criar",
+    "Select": "Selecione",
+    "PleaseSelectDirectory": "Selecione um diretório",
+    "PleaseSelectFile": "Selecione um arquivo",
+    "NewFolder": "Nova pasta",
+    "Browse": "Navegar"
 }

@@ -8,8 +8,11 @@ import { DialogProps } from "@radix-ui/react-dialog";
 import { JSX } from "react/jsx-runtime";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, File as FileIcon } from "lucide-react";
+import { Folder, File as FileIcon, FolderPlus } from "lucide-react";
 import { Path } from "@/models/path.model";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 
 interface SelectRemotePathProps {
@@ -27,8 +30,13 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
     }
 
     const [paths, setPaths] = useState<Path[]>([]);
+    const [separator, setSeparator] = useState<string>("\\");
     const [currentPath, setCurrentPath] = useState<string>(initialPath);
     const [lastClicked, setLastClicked] = useState<Path | undefined>();
+
+    const [newDialogOpen, setNewDialogOpen] = useState(false);
+    const [newFolderName, setNewFolderName] = useState<string>("");
+    const [newFolderError, setNewFolderError] = useState<string>();
 
     const { t } = useTranslation();
 
@@ -41,12 +49,13 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         const response = await triblerService.browseFiles(dir, showFiles || false);
         if (response === undefined) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${t("ToastErrorGenNetworkErr")}`);
-        } else if (isErrorDict(response)){
+        } else if (isErrorDict(response)) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${response.error.message}`);
         } else {
             setPaths(response.paths);
             setCurrentPath(response.current);
             setLastClicked((selectDir) ? { name: '', path: response.current, dir: true } : undefined);
+            setSeparator(response.separator);
         }
     }
 
@@ -54,29 +63,111 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         <Dialog {...props}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>Please select a {selectDir ? 'directory' : 'file'}</DialogTitle>
-                    <DialogDescription className="text-base break-all line-clamp-1">{currentPath || initialPath}</DialogDescription>
+                    <DialogTitle>{selectDir ? t('PleaseSelectDirectory') : t('PleaseSelectFile')}</DialogTitle>
+                    <DialogDescription className="text-base break-all">
+                        {(currentPath || initialPath).split(separator).map((dir, index, array) => {
+                            if (dir.length == 0 && index == 0) return <>{separator}</>
+                            else if (dir.length == 0) return
+                            return (
+                                <>
+                                    <a className="cursor-pointer hover:text-black dark:hover:text-white"
+                                        onClick={(event) => {
+                                            let path = array.slice(0, index + 1).join(separator) + separator;
+                                            reloadPaths(path)
+                                            setLastClicked({
+                                                name: dir,
+                                                path,
+                                                dir: true
+                                            });
+                                        }}>
+                                        {dir}
+                                    </a>
+                                    {dir.endsWith(separator) ? "" : separator}
+                                </>
+                            )
+                        })}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <ScrollArea className="max-h-[380px] border">
-                    <div className="flex-col">
-                        {paths.map((item, index) => (
-                            <div
-                                className="p-2 shadow hover:bg-accent border border-input flex"
-                                key={index}
-                                onClick={(event) => {
-                                    if (item.dir)
-                                        reloadPaths(item.path)
-                                    setLastClicked(item);
-                                }}
-                            >
-                                {item.dir && <Folder className="pr-2" />}
-                                {!item.dir && <FileIcon className="pr-2" />}
-                                <span className="break-all line-clamp-1">{item.name}</span>
+                    <ContextMenu>
+                        <ContextMenuTrigger>
+                            <div className="flex-col">
+                                {paths.map((item, index) => (
+                                    <div
+                                        className="p-2 hover:bg-accent border-x-1 [&:not(:first-child)]:border-t border-input flex cursor-pointer"
+                                        key={index}
+                                        onClick={(event) => {
+                                            if (item.dir)
+                                                reloadPaths(item.path)
+                                            setLastClicked(item);
+                                        }}
+                                    >
+                                        {item.dir && <Folder className="pr-2" />}
+                                        {!item.dir && <FileIcon className="pr-2" />}
+                                        <span className="break-all line-clamp-1">{item.name}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </ContextMenuTrigger>
+                        <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
+                            <ContextMenuItem
+                                className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                                onClick={() => {
+                                    setNewFolderName("");
+                                    setNewFolderError(undefined);
+                                    setNewDialogOpen(true);
+                                }}>
+                                <FolderPlus className="w-5 mx-2" />
+                                {t('NewFolder')}..
+                            </ContextMenuItem>
+                        </ContextMenuContent>
+                    </ContextMenu>
                 </ScrollArea>
+
+                <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader></DialogHeader>
+                        <div className="py-2 flex items-center">
+                            <Label htmlFor="new_folder" className="whitespace-nowrap pr-5">
+                                {t('NewFolder')}
+                            </Label>
+                            <Input
+                                id="new_folder"
+                                className="col-span-5"
+                                value={newFolderName}
+                                onChange={(event) => setNewFolderName(event.target.value)}
+                            />
+                        </div>
+                        {newFolderError !== undefined &&
+                            <span className="text-center text-tribler text-sm">Error: {newFolderError}</span>
+                        }
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                type="submit"
+                                disabled={newFolderName.length < 1 || newFolderName.includes(separator)}
+                                onClick={async () => {
+                                    const newPath = [currentPath, newFolderName].join(separator);
+                                    const response = await triblerService.createDirectory(newPath, true);
+                                    if (!response || isErrorDict(response)) {
+                                        setNewFolderError(!response ? "Unknown error" : response.error.message);
+                                        return;
+                                    }
+                                    setNewFolderError(undefined);
+                                    setNewDialogOpen(false);
+                                    reloadPaths(currentPath);
+                                }}>
+                                {t('Create')}
+                            </Button>
+                            <DialogClose asChild>
+                                <Button variant="outline" type="button">
+                                    {t('Cancel')}
+                                </Button>
+                            </DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 <DialogFooter className="items-baseline">
                     {!selectDir && <p className="grow text-base break-all line-clamp-1">{lastClicked?.path || initialPath}</p>}
@@ -90,7 +181,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                                 props.onSelect(lastClicked.path, lastClicked?.dir === true);
                         }}
                         disabled={!lastClicked || lastClicked.dir != selectDir}>
-                        Accept
+                        {t('Select')}
                     </Button>
                     <DialogClose asChild>
                         <Button variant="outline" type="button">

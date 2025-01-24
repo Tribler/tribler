@@ -95,7 +95,7 @@
     "Flags": "Flags",
     "Client": "Client",
     "SeedersLeechers": "{{seeders, number}} seeders, {{leechers, number}} leechers",
-	"NoResults": "No results.",
+    "NoResults": "No results.",
     "GotoFirst": "Go to first page",
     "GotoPrev": "Go to previous page",
     "GotoNext": "Go to next page",
@@ -110,7 +110,7 @@
     "directly": "directly",
     "MagnetDialogInputLabel": "Please enter the URL/magnet link in the field below:",
     "MagnetDialogHeader": "Add torrent from URL/magnet link",
-	"MagnetDialogError": "Could not process URL/magnet link",
+    "MagnetDialogError": "Could not process URL/magnet link",
     "TrackerDialogInputLabel": "Please enter the tracker URL in the field below:",
     "TrackerDialogHeader": "Add torrent from tracker URL",
     "Add": "Add",
@@ -172,5 +172,11 @@
     "ToastErrorTrackerRemove": "Failed to remove tracker!",
     "ToastErrorTrackerCheck": "Failed to check tracker!",
     "MoveAfterCompletion": "Move after completion",
-    "MoveAfterCompletionInfo": "Once completed, files will move to"
+    "MoveAfterCompletionInfo": "Once completed, files will move to",
+    "Create": "Create",
+    "Select": "Select",
+    "PleaseSelectDirectory": "Please select a directory",
+    "PleaseSelectFile": "Please select a file",
+    "NewFolder": "New folder",
+    "Browse": "Browse"
 }

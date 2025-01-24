@@ -172,5 +172,11 @@
     "ToastErrorTrackerRemove": "删除跟踪器失败！",
     "ToastErrorTrackerCheck": "检查追踪器失败！",
     "MoveAfterCompletion": "完成后搬移",
-    "MoveAfterCompletionInfo": "完成后，文件将移至"
+    "MoveAfterCompletionInfo": "完成后，文件将移至",
+    "Create": "创造",
+    "Select": "选择",
+    "PleaseSelectDirectory": "请选择一个目录",
+    "PleaseSelectFile": "请选择一个文件",
+    "NewFolder": "新建文件夹",
+    "Browse": "浏览"
 }

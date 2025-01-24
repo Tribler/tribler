@@ -173,5 +173,11 @@
     "ToastErrorTrackerRemove": "Не удалось удалить трекер!",
     "ToastErrorTrackerCheck": "Не удалось проверить трекер!",
     "MoveAfterCompletion": "Переезд после завершения",
-    "MoveAfterCompletionInfo": "После завершения файлы будут перемещены в"
+    "MoveAfterCompletionInfo": "После завершения файлы будут перемещены в",
+    "Create": "Создавать",
+    "Select": "Выбирать",
+    "PleaseSelectDirectory": "Пожалуйста, выберите каталог",
+    "PleaseSelectFile": "Пожалуйста, выберите файл",
+    "NewFolder": "Новая папка",
+    "Browse": "Просматривать"
 }

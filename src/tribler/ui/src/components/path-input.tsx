@@ -38,7 +38,7 @@ export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
                 }}
             />
             <Button
-                className="ml-1"
+                className="ml-1 whitespace-nowrap"
                 variant="outline"
                 type="submit"
                 disabled={props.disabled}
@@ -46,7 +46,7 @@ export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
                     setOpenPathDialog(true);
                 }}
             >
-                Browse
+                {t('Browse')}
             </Button>
         </div>
     )
