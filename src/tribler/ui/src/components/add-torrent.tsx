@@ -16,7 +16,8 @@ import { useTranslation } from "react-i18next";
 export function AddTorrent() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const uriInputRef = useRef<HTMLInputElement | null>(null);
 
     const [urlDialogOpen, setUrlDialogOpen] = useState<boolean>(false);
     const [uriInput, setUriInput] = useState('');
@@ -47,8 +48,8 @@ export function AddTorrent() {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => {
-                            if (inputRef && inputRef.current) {
-                                inputRef.current.click();
+                            if (fileInputRef && fileInputRef.current) {
+                                fileInputRef.current.click();
                             }
                         }}>
                         <FileIcon className="mr-2 h-4 w-4" />
@@ -74,10 +75,9 @@ export function AddTorrent() {
                         {t('MagnetDialogInputLabel')}
                         <div className="grid grid-cols-6 items-center gap-4">
                             <Input
+                                ref={uriInputRef}
                                 id="uri"
                                 className="col-span-5 pt-0"
-                                value={uriInput}
-                                onChange={(event) => setUriInput(event.target.value)}
                             />
                         </div>
                     </div>
@@ -86,7 +86,8 @@ export function AddTorrent() {
                             variant="outline"
                             type="submit"
                             onClick={() => {
-                                if (uriInput) {
+                                if (uriInputRef.current?.value) {
+                                    setUriInput(uriInputRef.current.value);
                                     setTorrent(undefined);
                                     setUrlDialogOpen(false);
                                     (async () => {
@@ -126,7 +127,7 @@ export function AddTorrent() {
 
             <input
                 style={{ display: 'none' }}
-                ref={inputRef}
+                ref={fileInputRef}
                 type="file"
                 accept=".torrent"
                 onChange={(event) => {
