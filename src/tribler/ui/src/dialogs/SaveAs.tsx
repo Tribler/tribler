@@ -121,7 +121,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             setMoveCompleted(false);
             setError(undefined);
             setExists(false);
-            setFiles([])
+            setFiles([]);
             const newSettings = await triblerService.getSettings();
             if (newSettings === undefined) {
                 setError(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
@@ -133,13 +133,14 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             const safeSeeding = !!newSettings?.libtorrent?.download_defaults?.safeseeding_enabled;
             const safeDownloading = !!newSettings?.libtorrent?.download_defaults?.anonymity_enabled;
             setSettings(newSettings);
-            setParams({
-                ...params,
+            setParams(prev => ({
+                ...prev,
                 destination: newSettings?.libtorrent.download_defaults.saveas ?? '',
                 completed_dir: newSettings?.libtorrent.download_defaults.completed_dir ?? '',
                 anon_hops: safeDownloading ? newSettings.libtorrent.download_defaults.number_hops : 0,
                 safe_seeding: safeSeeding,
-            });
+                selected_files: []
+            }));
             setMoveCompleted((newSettings?.libtorrent?.download_defaults.completed_dir ?? '').length > 0);
 
             // Retrieve metainfo

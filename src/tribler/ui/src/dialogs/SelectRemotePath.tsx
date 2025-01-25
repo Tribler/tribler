@@ -66,10 +66,10 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                     <DialogTitle>{selectDir ? t('PleaseSelectDirectory') : t('PleaseSelectFile')}</DialogTitle>
                     <DialogDescription className="text-base break-all">
                         {(currentPath || initialPath).split(separator).map((dir, index, array) => {
-                            if (dir.length == 0 && index == 0) return <>{separator}</>
+                            if (dir.length == 0 && index == 0) return <span key={index}>{separator}</span>
                             else if (dir.length == 0) return
                             return (
-                                <>
+                                <span key={index}>
                                     <a className="cursor-pointer hover:text-black dark:hover:text-white"
                                         onClick={(event) => {
                                             let path = array.slice(0, index + 1).join(separator) + separator;
@@ -83,7 +83,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                                         {dir}
                                     </a>
                                     {dir.endsWith(separator) ? "" : separator}
-                                </>
+                                </span>
                             )
                         })}
                     </DialogDescription>
