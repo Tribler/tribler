@@ -91,13 +91,15 @@ export function AddTorrent() {
                                     setTorrent(undefined);
                                     setUrlDialogOpen(false);
                                     (async () => {
-                                        const response = await triblerService.getMetainfo(uriInput);
-                                        if (response === undefined) {
-                                            toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
-                                        } else if (isErrorDict(response)){
-                                            toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
-                                        } else {
-                                            setSaveAsDialogOpen(true);
+                                        if (uriInputRef.current !== null) {
+                                            const response = await triblerService.getMetainfo(uriInputRef.current.value, true);
+                                            if (response === undefined) {
+                                                toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
+                                            } else if (isErrorDict(response)){
+                                                toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
+                                            } else {
+                                                setSaveAsDialogOpen(true);
+                                            }
                                         }
                                     })();
                                 }

@@ -228,9 +228,9 @@ export class TriblerService {
 
     // Torrents / search
 
-    async getMetainfo(uri: string): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean, valid_certificate: boolean}> {
+    async getMetainfo(uri: string, skipMagnet: boolean): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean, valid_certificate: boolean}> {
         try {
-            return (await this.http.get(`/torrentinfo?uri=${uri}`)).data;
+            return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`)).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
