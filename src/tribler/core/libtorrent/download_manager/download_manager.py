@@ -732,9 +732,16 @@ class DownloadManager(TaskManager):
         resume_data = atp.get("resume_data")
         if resume_data:
             atp_resume_data_skipped["resume_data"] = "<skipped in log>"
-        logger.info("Start handle. Download: %s. Atp: %s", str(download), str(atp_resume_data_skipped))
-        if resume_data:
+            try:
+                resume_data_dict = cast(dict[bytes, Any], lt.bdecode(resume_data))
+                # If the save_path is None or "" win32 SEGFAULTS, see https://github.com/Tribler/tribler/issues/8353
+                if not resume_data_dict.get(b"save_path"):
+                    resume_data_dict[b"save_path"] = atp.get("save_path", ".").encode()
+                atp["resume_data"] = lt.bencode(resume_data_dict)
+            except RuntimeError:
+                atp.pop("resume_data")
             logger.debug("Download resume data: %s", str(atp["resume_data"]))
+        logger.info("Start handle. Download: %s. Atp: %s", str(download), str(atp_resume_data_skipped))
 
         ltsession = await self.get_session(download.config.get_hops())
         infohash = download.get_def().get_infohash()
