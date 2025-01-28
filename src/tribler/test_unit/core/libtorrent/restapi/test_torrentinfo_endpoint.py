@@ -182,6 +182,24 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
         self.assertEqual("magnet://", self.download_manager.get_metainfo.call_args.kwargs["url"])
 
+    async def test_get_torrent_info_magnet_skip_metainfo(self) -> None:
+        """
+        Test if an empty response is returned when no metainfo is available for a magnet and it is skipped.
+        """
+        self.download_manager.get_metainfo = AsyncMock(side_effect=AssertionError)
+        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet:", "skipmagnet": "true"})
+        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
+
+        with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
+                        {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
+            response = await self.endpoint.get_torrent_info(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("", response_body_json["metainfo"])
+        self.assertFalse(response_body_json["download_exists"])
+        self.assertTrue(response_body_json["valid_certificate"])
+
     async def test_get_torrent_info_http_serverconnectionerror(self) -> None:
         """
         Test if a graceful error is returned when a ServerConnectionError occurs when loading from an HTTP link.

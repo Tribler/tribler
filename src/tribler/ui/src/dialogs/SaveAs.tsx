@@ -149,7 +149,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 response = await triblerService.getMetainfoFromFile(torrent);
             }
             else if (uri) {
-                response = await triblerService.getMetainfo(uri);
+                response = await triblerService.getMetainfo(uri, false);
             }
 
             if (response === undefined) {

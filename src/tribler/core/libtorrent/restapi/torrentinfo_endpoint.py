@@ -107,11 +107,23 @@ class TorrentInfoEndpoint(RESTEndpoint):
         summary="Return metainfo from a torrent found at a provided URI.",
         parameters=[{
             "in": "query",
-            "name": "torrent",
+            "name": "uri",
             "description": "URI for which to return torrent information. This URI can either represent "
                            "a file location, a magnet link or a HTTP(S) url.",
             "type": "string",
             "required": True
+        }, {
+            "in": "query",
+            "name": "hops",
+            "description": "The number of anonymization hops to use.",
+            "type": "number",
+            "required": False
+        }, {
+            "in": "query",
+            "name": "skipmagnet",
+            "description": "Don't resolve magnet link metainfo, if you want an immediate response.",
+            "type": "boolean",
+            "required": False
         }],
         responses={
             200: {
@@ -129,6 +141,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         hops = params.get("hops")
         i_hops = 0
         p_uri = params.get("uri")
+        skip_check_metainfo = params.get("skipmagnet", "false") in ["true", "1"]
         self._logger.info("URI: %s", p_uri)
         if hops:
             try:
@@ -154,6 +167,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             try:
                 tdef = await TorrentDef.load(file_path)
                 metainfo = tdef.metainfo
+                skip_check_metainfo = False
             except (OSError, TypeError, ValueError, RuntimeError):
                 return RESTResponse({"error": {
                                         "handled": True,
@@ -192,11 +206,15 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         }}, status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
-                                                                    url=response.decode())
+                if skip_check_metainfo:
+                    metainfo = None
+                else:
+                    metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
+                                                                        url=response.decode())
             else:
                 try:
                     metainfo = lt.bdecode(response)
+                    skip_check_metainfo = False
                 except RuntimeError:
                     return RESTResponse(
                         {"error": {
@@ -216,12 +234,18 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
                     }}, status=HTTP_BAD_REQUEST
                 )
-            metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
+            if skip_check_metainfo:
+                metainfo = None
+            else:
+                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
         else:
             return RESTResponse({"error": {
                                     "handled": True,
                                     "message": "invalid uri"
                                 }}, status=HTTP_BAD_REQUEST)
+
+        if skip_check_metainfo:
+            return RESTResponse({"metainfo": "", "download_exists": False, "valid_certificate": True})
 
         if not metainfo:
             return RESTResponse({"error": {
