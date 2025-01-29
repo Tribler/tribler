@@ -94,7 +94,8 @@ async def _is_url_available(url: str, timeout: int=1) -> bool:
         try:
             async with session.get(url, timeout=timeout):
                 return True
-        except (asyncio.TimeoutError, aiohttp.client_exceptions.ClientConnectorError):
+        except (asyncio.TimeoutError, aiohttp.client_exceptions.ClientConnectorError,
+                aiohttp.client_exceptions.ClientResponseError):
             return False
 
 
