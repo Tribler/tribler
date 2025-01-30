@@ -17,7 +17,7 @@ export interface Settings {
             interface: string;
             ip: string;
             port: number;
-            worker_threads: number;
+            worker_threads?: number;
         }[];
         keys: {
             alias: string;
@@ -50,6 +50,7 @@ export interface Settings {
     },
     libtorrent: {
         socks_listen_ports: number[];
+        listen_interface: string;
         port: number;
         proxy_type: number;
         proxy_server: string;

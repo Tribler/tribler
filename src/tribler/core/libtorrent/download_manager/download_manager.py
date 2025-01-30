@@ -305,15 +305,16 @@ class DownloadManager(TaskManager):
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
         ltsession = lt.session(lt.fingerprint("TL", 0, 0, 0, 0), flags=0) if hops == 0 else lt.session(flags=0)
 
+        libtorrent_if = self.config.get("libtorrent/listen_interface")
         libtorrent_port = self.config.get("libtorrent/port")
-        logger.info("Libtorrent port: %d", libtorrent_port)
+        logger.info("Libtorrent ip+port set to %s:%d", libtorrent_if, libtorrent_port)
         if hops == 0:
             settings["user_agent"] = 'Tribler/' + VERSION_SUBDIR
             enable_utp = self.config.get("libtorrent/utp")
             settings["enable_outgoing_utp"] = enable_utp
             settings["enable_incoming_utp"] = enable_utp
             settings["prefer_rc4"] = True
-            settings["listen_interfaces"] = f"0.0.0.0:{libtorrent_port or 6881}"
+            settings["listen_interfaces"] = f"{libtorrent_if}:{libtorrent_port or 6881}"
         else:
             settings["enable_outgoing_utp"] = True
             settings["enable_incoming_utp"] = True

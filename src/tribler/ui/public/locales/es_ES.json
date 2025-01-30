@@ -31,6 +31,8 @@
     "Save": "Guardar",
     "Tags": "Etiquetas",
     "ProxySettings": "Configuración del proxy torrent",
+    "P2PSettings": "Configuración de pares",
+    "LocalListeningInterface": "Interfaz de escucha local",
     "Type": "Tipo",
     "Server": "Servidor",
     "Port": "Puerto",

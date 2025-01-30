@@ -31,6 +31,8 @@
     "Save": "저장",
     "Tags": "태그",
     "ProxySettings": "토렌트 프록시 설정",
+    "P2PSettings": "피어 투 피어 설정",
+    "LocalListeningInterface": "로컬 청취 인터페이스",
     "Type": "형식",
     "Server": "서버",
     "Port": "포트",
