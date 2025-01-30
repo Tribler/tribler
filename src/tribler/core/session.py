@@ -18,7 +18,6 @@ from tribler.core.components import (
     ContentDiscoveryComponent,
     DatabaseComponent,
     DHTDiscoveryComponent,
-    KnowledgeComponent,
     RecommenderComponent,
     RendezvousComponent,
     TorrentCheckerComponent,
@@ -48,7 +47,6 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from tribler.core.database.store import MetadataStore
-    from tribler.core.database.tribler_database import TriblerDatabase
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
     from tribler.tribler_config import TriblerConfigManager
 
@@ -148,7 +146,6 @@ class Session:
         self.rest_manager = RESTManager(self.config)
 
         # Optional globals, set by components:
-        self.db: TriblerDatabase | None = None
         self.mds: MetadataStore | None = None
         self.torrent_checker: TorrentChecker | None = None
 
@@ -156,7 +153,7 @@ class Session:
         """
         Register all IPv8 launchers that allow communities to be loaded.
         """
-        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, KnowledgeComponent,
+        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent,
                                RecommenderComponent, RendezvousComponent, TorrentCheckerComponent, TunnelComponent,
                                VersioningComponent, WatchFolderComponent]:
             instance = launcher_class()
@@ -281,9 +278,6 @@ class Session:
             await server.stop()
 
         # Stop database activities
-        if self.db:
-            self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down general-purpose database.")
-            self.db.shutdown()
         if self.mds:
             self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down metadata database.")
             self.mds.shutdown()

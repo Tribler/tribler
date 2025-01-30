@@ -48,9 +48,6 @@ export interface Settings {
     dht_discovery: {
         enabled: boolean;
     },
-    knowledge_community: {
-        enabled: boolean;
-    },
     libtorrent: {
         socks_listen_ports: number[];
         port: number;

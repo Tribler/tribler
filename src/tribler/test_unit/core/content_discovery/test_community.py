@@ -20,7 +20,6 @@ from tribler.core.content_discovery.payload import (
     VersionRequest,
     VersionResponse,
 )
-from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.notifier import Notification, Notifier
@@ -221,36 +220,6 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         self.assertEqual(sys.platform, message.platform)
         self.assertEqual("Tribler 1.2.3", message.version)
 
-    def test_search_for_tags_no_db(self) -> None:
-        """
-        Test if search_for_tags returns None without tribler_db.
-        """
-        self.overlay(0).composition.tribler_db = None
-
-        self.assertIsNone(self.overlay(0).search_for_tags(tags=['tag']))
-
-    def test_search_for_tags_no_tags(self) -> None:
-        """
-        Test if search_for_tags returns None without tags.
-        """
-        self.overlay(0).composition.tribler_db = None
-
-        self.assertIsNone(self.overlay(0).search_for_tags(tags=[]))
-
-    def test_search_for_tags_only_valid_tags(self) -> None:
-        """
-        Test if search_for_tags filters valid tags.
-        """
-        args = {}
-        self.overlay(0).composition.tribler_db = Mock(knowledge=Mock(get_subjects_intersection=args.update))
-
-        self.overlay(0).search_for_tags(tags=['invalid_tag' * 50, 'valid_tag'])
-
-        self.assertEqual(ResourceType.TORRENT, args["subjects_type"])
-        self.assertEqual({'valid_tag'}, args["objects"])
-        self.assertEqual(ResourceType.TAG, args["predicate"])
-        self.assertEqual(False, args["case_sensitive"])
-
     async def test_process_rpc_query(self) -> None:
         """
         Test if process_rpc_query searches the TriblerDB and MetadataStore.
@@ -262,7 +231,6 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         await self.overlay(0).process_rpc_query({'first': 0, 'infohash_set': None, 'last': 100})
 
         self.assertEqual(0, async_mock.call_args.kwargs["first"])
-        self.assertEqual({b"\x01" * 20}, async_mock.call_args.kwargs["infohash_set"])
         self.assertEqual(100, async_mock.call_args.kwargs["last"])
 
     async def test_remote_select(self) -> None:

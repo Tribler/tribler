@@ -180,36 +180,6 @@ def _inject_StatementOp_inner(db: Database, batch: list) -> None:
                 globals(), locals())
 
 
-def _inject_StatementOp(abs_src_db: str, abs_dst_db: str) -> None:
-    """
-    Import old StatementOp entries.
-    """
-    src_con = sqlite3.connect(abs_src_db)
-    output = list(src_con.execute("""SELECT SubjectResource.name, SubjectResource.type, ObjectResource.name,
-ObjectResource.type, Statement.added_count, Statement.removed_count, Statement.local_operation, Peer.public_key,
-Peer.added_at, StatementOp.operation, StatementOp.clock, StatementOp.signature, StatementOp.updated_at,
-StatementOp.auto_generated
-FROM StatementOp
-INNER JOIN Peer ON StatementOp.peer=Peer.id
-INNER JOIN Statement ON StatementOp.statement=Statement.id
-INNER JOIN Resource AS SubjectResource ON Statement.subject=SubjectResource.id
-INNER JOIN Resource AS ObjectResource ON Statement.object=ObjectResource.id
-;"""))
-    src_con.close()
-
-    db = Database()
-    db.bind(provider="sqlite", filename=abs_dst_db)
-    for batch in batched(output, n=20):
-        try:
-            _inject_StatementOp_inner(db, batch)
-        except OperationalError as e:
-            logging.exception(e)
-    try:
-        db.disconnect()
-    except OperationalError as e:
-        logging.exception(e)
-
-
 @db_session(retry=3)
 def _inject_ChannelNode_inner(db: Database, batch: list) -> None:
     """
@@ -370,7 +340,7 @@ INNER JOIN TrackerState ON TorrentState_TrackerState.trackerstate=TrackerState.r
         logging.exception(e)
 
 
-def _inject_7_14_tables(src_db: str, dst_db: str, db_format: str) -> None:
+def _inject_7_14_tables(src_db: str, dst_db: str) -> None:
     """
     Fetch data from the old database and attempt to insert it into a new one.
     """
@@ -383,18 +353,12 @@ def _inject_7_14_tables(src_db: str, dst_db: str, db_format: str) -> None:
         shutil.copy(src_db, dst_db)
         return
 
-    # If they both exist, we have to inject data.
-    assert db_format in ["tribler.db", "metadata.db"]
-
     abs_src_db = os.path.abspath(src_db)
     abs_dst_db = os.path.abspath(dst_db)
 
-    if db_format == "tribler.db":
-        _inject_StatementOp(abs_src_db, abs_dst_db)
-    else:
-        _inject_ChannelNode(abs_src_db, abs_dst_db)
-        _inject_TrackerState(abs_src_db, abs_dst_db)
-        _inject_TorrentState_TrackerState(abs_src_db, abs_dst_db)
+    _inject_ChannelNode(abs_src_db, abs_dst_db)
+    _inject_TrackerState(abs_src_db, abs_dst_db)
+    _inject_TorrentState_TrackerState(abs_src_db, abs_dst_db)
 
 
 def upgrade(config: TriblerConfigManager, source: str, destination: str) -> None:
@@ -420,17 +384,10 @@ def upgrade(config: TriblerConfigManager, source: str, destination: str) -> None
         _copy_if_not_exist(os.path.join(source, "dlcheckpoints", checkpoint),
                            os.path.join(parent_directory, "dlcheckpoints", checkpoint))
 
-    # Step 3: Copy tribler db.
-    os.makedirs(os.path.join(destination, "sqlite"), exist_ok=True)
-    _inject_7_14_tables(os.path.join(source, "sqlite", "tribler.db"),
-                        os.path.join(destination, "sqlite", "tribler.db"),
-                        "tribler.db")
-
-    # Step 4: Copy metadata db.
+    # Step 3: Copy metadata db.
     _inject_7_14_tables(os.path.join(source, "sqlite", "metadata.db"),
-                        os.path.join(destination, "sqlite", "metadata.db"),
-                        "metadata.db")
+                        os.path.join(destination, "sqlite", "metadata.db"))
 
-    # Step 5: Signal that our upgrade is done.
+    # Step 4: Signal that our upgrade is done.
     with open(os.path.join(config.get_version_state_dir(), ".upgraded"), "a"):
         pass

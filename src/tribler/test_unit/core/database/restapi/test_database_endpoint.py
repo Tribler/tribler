@@ -8,7 +8,6 @@ from ipv8.test.base import TestBase
 from ipv8.test.REST.rest_base import MockRequest, response_to_json
 from multidict import MultiDict, MultiDictProxy
 
-from tribler.core.database.layers.knowledge import ResourceType, SimpleStatement
 from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint, parse_bool
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST
@@ -56,22 +55,6 @@ class TestDatabaseEndpoint(TestBase):
         self.assertTrue(parse_bool("1"))
         self.assertFalse(parse_bool("false"))
         self.assertFalse(parse_bool("0"))
-
-    def test_add_statements_to_metadata_list(self) -> None:
-        """
-        Test if statements can be added to an existing metadata dict.
-        """
-        metadata = {"type": REGULAR_TORRENT, "infohash": "AA"}
-        endpoint = DatabaseEndpoint()
-        endpoint.tribler_db = Mock(knowledge=Mock(get_simple_statements=Mock(return_value=[
-            SimpleStatement(ResourceType.TORRENT, "AA", ResourceType.TAG, "tag")
-        ])))
-        endpoint.add_statements_to_metadata_list([metadata])
-
-        self.assertEqual(ResourceType.TORRENT, metadata["statements"][0]["subject_type"])
-        self.assertEqual("AA", metadata["statements"][0]["subject"])
-        self.assertEqual(ResourceType.TAG, metadata["statements"][0]["predicate"])
-        self.assertEqual("tag", metadata["statements"][0]["object"])
 
     async def test_get_torrent_health_bad_timeout(self) -> None:
         """
@@ -153,39 +136,6 @@ class TestDatabaseEndpoint(TestBase):
 
         self.assertNotIn("progress", metadata)
 
-    async def test_get_popular_torrents(self) -> None:
-        """
-        Test if we can bring everything together into a popular torrents request.
-
-        Essentially, this combines ``add_download_progress_to_metadata_list`` and ``add_statements_to_metadata_list``.
-        """
-        metadata = {"type": REGULAR_TORRENT, "infohash": "AA"}
-        endpoint = DatabaseEndpoint()
-        endpoint.tribler_db = Mock(knowledge=Mock(get_simple_statements=Mock(return_value=[
-            SimpleStatement(ResourceType.TORRENT, "AA", ResourceType.TAG, "tag")
-        ])))
-        download = Mock(get_state=Mock(return_value=Mock(get_progress=Mock(return_value=1.0))),
-                        tdef=Mock(infohash="AA"))
-        endpoint.download_manager = Mock(get_download=Mock(return_value=download), metainfo_requests=[])
-        endpoint.mds = Mock(get_entries=Mock(return_value=[Mock(to_simple_dict=Mock(return_value=metadata))]))
-        request = MockRequest("/api/metadata/torrents/popular")
-        request.context = [endpoint.mds]
-
-        response = await endpoint.get_popular_torrents(request)
-        response_body_json = await response_to_json(response)
-        response_results = response_body_json["results"][0]
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(1, response_body_json["first"])
-        self.assertEqual(50, response_body_json["last"])
-        self.assertEqual(300, response_results["type"])
-        self.assertEqual("AA", response_results["infohash"])
-        self.assertEqual(1.0, response_results["progress"])
-        self.assertEqual(ResourceType.TORRENT.value, response_results["statements"][0]["subject_type"])
-        self.assertEqual("AA", response_results["statements"][0]["subject"])
-        self.assertEqual(ResourceType.TAG.value, response_results["statements"][0]["predicate"])
-        self.assertEqual("tag", response_results["statements"][0]["object"])
-
     async def test_local_search_bad_query(self) -> None:
         """
         Test if a bad value leads to a bad request status.
@@ -213,9 +163,9 @@ class TestDatabaseEndpoint(TestBase):
 
         self.assertEqual(HTTP_BAD_REQUEST, response.status)
 
-    async def test_local_search_no_knowledge(self) -> None:
+    async def test_local_search(self) -> None:
         """
-        Test if performing a local search without a tribler db set returns mds results.
+        Test if performing a local search returns mds results.
         """
         endpoint = DatabaseEndpoint()
         endpoint.tribler_db = Mock()
@@ -235,7 +185,7 @@ class TestDatabaseEndpoint(TestBase):
         self.assertEqual(None, response_body_json["sort_by"])
         self.assertEqual(True, response_body_json["sort_desc"])
 
-    async def test_local_search_no_knowledge_include_total(self) -> None:
+    async def test_local_search_include_total(self) -> None:
         """
         Test if performing a local search with requested total, includes a total.
         """
