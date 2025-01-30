@@ -30,6 +30,8 @@
     "EnableWatchFolder": "启用监视文件夹（需要重新启动）",
     "Save": "保存",
     "ProxySettings": "种子代理设置",
+    "P2PSettings": "点对点设置",
+    "LocalListeningInterface": "本地听力接口",
     "Type": "类型",
     "Server": "服务器",
     "Port": "端口",

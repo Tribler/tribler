@@ -59,7 +59,7 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
     Attempt to import the IPv8 Rust anonymization backend.
     """
     use_fallback = session.config.get("statistics")
-    if_specs = [ifc for ifc in session.config.configuration["ipv8"]["interfaces"] if ifc["interface"] == "UDPIPv4"]
+    if_specs = [ifc for ifc in session.config.get("ipv8/interfaces") if ifc["interface"] == "UDPIPv4"]
 
     if not use_fallback:
         try:

@@ -85,6 +85,7 @@ class LibtorrentConfig(TypedDict):
     """
 
     socks_listen_ports: list[int]
+    listen_interface: str
     port: int
     proxy_type: int
     proxy_server: str
@@ -194,6 +195,7 @@ DEFAULT_CONFIG = {
     "dht_discovery": DHTDiscoveryCommunityConfig(enabled=True),
     "libtorrent": LibtorrentConfig(
         socks_listen_ports=[0, 0, 0, 0, 0],
+        listen_interface="0.0.0.0",
         port=0,
         proxy_type=0,
         proxy_server="",

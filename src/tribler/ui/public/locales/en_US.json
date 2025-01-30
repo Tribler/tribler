@@ -31,6 +31,8 @@
     "Save": "Save",
     "Tags": "Tags",
     "ProxySettings": "Torrent proxy settings",
+    "P2PSettings": "Peer-to-Peer settings",
+    "LocalListeningInterface": "Local listening interface",
     "Type": "Type",
     "Server": "Server",
     "Port": "Port",

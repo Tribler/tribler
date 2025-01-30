@@ -11,6 +11,38 @@ import toast from 'react-hot-toast';
 import SaveButton from "./SaveButton";
 
 
+function injectOrUpdateIPv8If(entry: string, value: string, previous?: {interface: string, ip: string, port: number, worker_threads?: number}[]) {
+    let updatedOrRemoved = false;
+    let newIfs = [];
+    if (!!previous){
+        for (var e of previous){
+            if (e.interface == entry){
+                // If we had a previous entry:
+                //  a. And now we have a new value: update!
+                //  b. But now the entire interface is set to nothing: skip/remove!
+                if (!!value)
+                    newIfs.push({...e, ip: value});
+                updatedOrRemoved = true;
+            } else {
+                // This wasn't modified, keep it.
+                newIfs.push(e);
+            }
+        }
+    }
+    if ((!updatedOrRemoved) && (!!value)) {
+        // We didn't update or remove, but we have a value set: add new!
+        newIfs.push(
+            {
+                interface: entry,
+                ip: value,
+                port: (entry == "UDPIPv4") ? 8090 : 8091
+            }
+        );
+    }
+    return newIfs;
+}
+
+
 export default function Connection() {
     const { t } = useTranslation();
     const [settings, setSettings] = useState<Settings>();
@@ -32,6 +64,46 @@ export default function Connection() {
     return (
         <div className="px-6 w-full">
             <div className="grid grid-cols-2 gap-2 items-center">
+                <div className="pt-5 py-2 font-semibold col-span-2">{t('P2PSettings')}</div>
+
+                <Label htmlFor="ipv8_ipv4" className="whitespace-nowrap pr-5">
+                    {t('LocalListeningInterface') + " IPv4"}
+                </Label>
+                <Input
+                    id="ipv8_ipv4"
+                    value={settings?.ipv8?.interfaces.filter((e) => e.interface == "UDPIPv4")?.[0]?.ip}
+                    onChange={(event) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                ipv8: {
+                                    ...settings.ipv8,
+                                    interfaces: injectOrUpdateIPv8If("UDPIPv4", event.target.value, settings?.ipv8?.interfaces)
+                                }
+                            });
+                        }
+                    }}
+                />
+
+                <Label htmlFor="ipv8_ipv6" className="whitespace-nowrap pr-5">
+                    {t('LocalListeningInterface') + " IPv6"}
+                </Label>
+                <Input
+                    id="ipv8_ipv6"
+                    value={settings?.ipv8?.interfaces.filter((e) => e.interface == "UDPIPv6")?.[0]?.ip}
+                    onChange={(event) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                ipv8: {
+                                    ...settings.ipv8,
+                                    interfaces: injectOrUpdateIPv8If("UDPIPv6", event.target.value, settings?.ipv8?.interfaces)
+                                }
+                            });
+                        }
+                    }}
+                />
+
                 <div className="pt-5 py-2 font-semibold col-span-2">{t('ProxySettings')}</div>
 
                 <Label htmlFor="proxy_type" className="whitespace-nowrap pr-5">
@@ -145,6 +217,26 @@ export default function Connection() {
 
 
                 <div className="pt-5 py-2 font-semibold col-span-2">{t('BittorrentFeatures')}</div>
+
+                <Label htmlFor="libtorrent_ip" className="whitespace-nowrap pr-5">
+                    {t('LocalListeningInterface')}
+                </Label>
+                <Input
+                    id="libtorrent_ip"
+                    value={settings?.libtorrent?.listen_interface}
+                    onChange={(event) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    listen_interface: event.target.value
+                                }
+                            });
+                        }
+                    }}
+                />
+
                 <Label htmlFor="utp" className="whitespace-nowrap pr-5">
                     {t('EnableUTP')}
                 </Label>
