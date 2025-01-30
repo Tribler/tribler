@@ -8,7 +8,7 @@ import uuid
 from binascii import hexlify, unhexlify
 from importlib.metadata import PackageNotFoundError, version
 from itertools import count
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Callable
 
 from ipv8.community import Community, CommunitySettings
 from ipv8.lazy_community import lazy_wrapper
@@ -24,18 +24,17 @@ from tribler.core.content_discovery.payload import (
     VersionRequest,
     VersionResponse,
 )
-from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.database.store import MetadataStore, ObjState, ProcessingResult
-from tribler.core.knowledge.community import is_valid_resource
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.torrent_checker.dataclasses import HealthInfo
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from ipv8.types import Peer
 
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
-    from tribler.core.database.tribler_database import TriblerDatabase
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
 
@@ -55,7 +54,6 @@ class ContentDiscoverySettings(CommunitySettings):
 
     metadata_store: MetadataStore
     torrent_checker: TorrentChecker
-    tribler_db: TriblerDatabase | None = None
     notifier: Notifier | None = None
 
 
@@ -316,33 +314,8 @@ class ContentDiscoveryCommunity(Community):
         :raises ValueError: if no JSON could be decoded.
         :raises pony.orm.dbapiprovider.OperationalError: if an illegal query was performed.
         """
-        if self.composition.tribler_db:
-            # tags should be extracted because `get_entries_threaded` doesn't expect them as a parameter
-            tags = sanitized_parameters.pop("tags", None)
-
-            infohash_set = self.composition.tribler_db.instance(self.search_for_tags, tags)
-            if infohash_set:
-                sanitized_parameters["infohash_set"] = {bytes.fromhex(s) for s in infohash_set}
-
-            # exclude_deleted should be extracted because `get_entries_threaded` doesn't expect it as a parameter
-            sanitized_parameters.pop("exclude_deleted", None)
-
         return await self.composition.metadata_store.get_entries_threaded(**sanitized_parameters)
 
-    @db_session
-    def search_for_tags(self, tags: list[str] | None) -> set[str] | None:
-        """
-        Query our local database for the given tags.
-        """
-        if not tags or not self.composition.tribler_db:
-            return None
-        valid_tags = {tag for tag in tags if is_valid_resource(tag)}
-        return self.composition.tribler_db.knowledge.get_subjects_intersection(
-            subjects_type=ResourceType.TORRENT,
-            objects=valid_tags,
-            predicate=ResourceType.TAG,
-            case_sensitive=False
-        )
 
     def send_db_results(self, peer: Peer, request_payload_id: int, db_results: list[TorrentMetadata]) -> None:
         """

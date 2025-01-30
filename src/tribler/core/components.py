@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Type, cast
+from typing import TYPE_CHECKING, cast
 
 from ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from ipv8.community import Community
@@ -91,7 +91,7 @@ class ComponentLauncher(CommunityLauncherWEndpoints):
         """
         Create a fake Community.
         """
-        return cast(Type[Community], type(f"{self.__class__.__name__}", (Component,), {}))
+        return cast(type[Community], type(f"{self.__class__.__name__}", (Component,), {}))
 
     def get_my_peer(self, ipv8: IPv8, session: Session) -> Peer:
         """
@@ -138,16 +138,12 @@ class DatabaseComponent(ComponentLauncher):
         Create the database instances we need for Tribler.
         """
         from tribler.core.database.store import MetadataStore
-        from tribler.core.database.tribler_database import TriblerDatabase
         from tribler.core.notifier import Notification
 
-        db_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "tribler.db")
         mds_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "metadata.db")
         if session.config.get("memory_db"):
-            db_path = ":memory:"
             mds_path = ":memory:"
 
-        session.db = TriblerDatabase(db_path)
         session.mds = MetadataStore(
             mds_path,
             session.ipv8.keys["anonymous id"].key,
@@ -166,7 +162,6 @@ class DatabaseComponent(ComponentLauncher):
         db_endpoint = session.rest_manager.get_endpoint("/api/metadata")
         db_endpoint.download_manager = session.download_manager
         db_endpoint.mds = session.mds
-        db_endpoint.tribler_db = session.db
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """
@@ -175,34 +170,6 @@ class DatabaseComponent(ComponentLauncher):
         from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
 
         return [*super().get_endpoints(), DatabaseEndpoint()]
-
-
-@set_in_session("knowledge_community")
-@after("DatabaseComponent")
-@precondition('session.config.get("database/enabled")')
-@precondition('session.config.get("knowledge_community/enabled")')
-@overlay("tribler.core.knowledge.community", "KnowledgeCommunity")
-@kwargs(db="session.db", key='session.ipv8.keys["secondary"].key')
-class KnowledgeComponent(BaseLauncher):
-    """
-    Launch instructions for the knowledge community.
-    """
-
-    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
-        """
-        When we are done launching, register our REST API.
-        """
-        endpoint = session.rest_manager.get_endpoint("/api/knowledge")
-        endpoint.db = session.db
-        endpoint.community = community
-
-    def get_endpoints(self) -> list[RESTEndpoint]:
-        """
-        Add the knowledge endpoint.
-        """
-        from tribler.core.knowledge.restapi.knowledge_endpoint import KnowledgeEndpoint
-
-        return [*super().get_endpoints(), KnowledgeEndpoint()]
 
 
 @after("DatabaseComponent")

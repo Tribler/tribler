@@ -47,14 +47,6 @@ class DHTDiscoveryCommunityConfig(TypedDict):
     enabled: bool
 
 
-class KnowledgeCommunityConfig(TypedDict):
-    """
-    Settings for the knowledge component.
-    """
-
-    enabled: bool
-
-
 class DatabaseConfig(TypedDict):
     """
     Settings for the database component.
@@ -169,7 +161,6 @@ class TriblerConfig(TypedDict):
 
     content_discovery_community: ContentDiscoveryCommunityConfig
     database: DatabaseConfig
-    knowledge_community: KnowledgeCommunityConfig
     libtorrent: LibtorrentConfig
     recommender: RecommenderConfig
     rendezvous: RendezvousConfig
@@ -201,7 +192,6 @@ DEFAULT_CONFIG = {
     "content_discovery_community": ContentDiscoveryCommunityConfig(enabled=True),
     "database": DatabaseConfig(enabled=True),
     "dht_discovery": DHTDiscoveryCommunityConfig(enabled=True),
-    "knowledge_community": KnowledgeCommunityConfig(enabled=True),
     "libtorrent": LibtorrentConfig(
         socks_listen_ports=[0, 0, 0, 0, 0],
         port=0,

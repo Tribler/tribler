@@ -4,7 +4,6 @@ import asyncio
 import json
 import typing
 from binascii import unhexlify
-from dataclasses import asdict
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
@@ -13,14 +12,12 @@ from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
 from typing_extensions import Self, TypeAlias
 
-from tribler.core.database.layers.knowledge import ResourceType
 from tribler.core.database.queries import to_fts_query
 from tribler.core.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.notifier import Notification
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
-    HTTP_NOT_FOUND,
     MAX_REQUEST_SIZE,
     RESTEndpoint,
     RESTResponse,
@@ -30,7 +27,6 @@ if typing.TYPE_CHECKING:
     from multidict import MultiDictProxy, MultiMapping
 
     from tribler.core.database.store import MetadataStore
-    from tribler.core.database.tribler_database import TriblerDatabase
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
     from tribler.core.restapi.rest_manager import TriblerRequest
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
@@ -87,7 +83,6 @@ class DatabaseEndpoint(RESTEndpoint):
 
         self.download_manager: DownloadManager | None = None
         self.torrent_checker: TorrentChecker | None = None
-        self.tribler_db: TriblerDatabase | None = None
 
         self.app.add_routes(
             [
@@ -125,23 +120,6 @@ class DatabaseEndpoint(RESTEndpoint):
         if "popular" in parameters and parse_bool(parameters.get("popular", "false")):
             sanitized["sort_by"] = "HEALTH"
         return sanitized
-
-    @db_session
-    def add_statements_to_metadata_list(self, contents_list: list[dict]) -> None:
-        """
-        Load statements from the database and attach them to the torrent descriptions in the content list.
-        """
-        if self.tribler_db is None:
-            self._logger.error("Cannot add statements to metadata list: tribler_db is not set in %s",
-                               self.__class__.__name__)
-            return
-        for torrent in contents_list:
-            if torrent["type"] == REGULAR_TORRENT:
-                raw_statements = self.tribler_db.knowledge.get_simple_statements(
-                    subject_type=ResourceType.TORRENT,
-                    subject=torrent["infohash"]
-                )
-                torrent["statements"] = [asdict(stmt) for stmt in raw_statements]
 
     @docs(
         tags=["Metadata"],
@@ -237,7 +215,6 @@ class DatabaseEndpoint(RESTEndpoint):
             contents_list = [entry.to_simple_dict() for entry in request.context[0].get_entries(**sanitized)]
 
         self.add_download_progress_to_metadata_list(contents_list)
-        self.add_statements_to_metadata_list(contents_list)
         response_dict = {
             "results": contents_list,
             "first": sanitized["first"],
@@ -265,24 +242,17 @@ class DatabaseEndpoint(RESTEndpoint):
         },
     )
     @querystring_schema(SearchMetadataParameters)
-    async def local_search(self, request: RequestType) -> RESTResponse:  # noqa: C901
+    async def local_search(self, request: RequestType) -> RESTResponse:
         """
         Perform a search for a given query.
         """
         try:
             sanitized = self.sanitize_parameters(request.query)
-            tags = sanitized.pop("tags", None)
         except (ValueError, KeyError):
             return RESTResponse({"error": {
                                     "handled": True,
                                     "message": "Error processing request parameters"
                                 }}, status=HTTP_BAD_REQUEST)
-
-        if self.tribler_db is None:
-            return RESTResponse({"error": {
-                                    "handled": True,
-                                    "message": "Tribler DB not initialized"
-                                }}, status=HTTP_NOT_FOUND)
 
         include_total = request.query.get("include_total", "")
         query = request.query.get("fts_text")
@@ -315,22 +285,10 @@ class DatabaseEndpoint(RESTEndpoint):
             return search_results, total, max_rowid
 
         try:
-            with db_session:
-                if tags:
-                    infohash_set = self.tribler_db.knowledge.get_subjects_intersection(
-                        subjects_type=ResourceType.TORRENT,
-                        objects=set(typing.cast(list[str], tags)),
-                        predicate=ResourceType.TAG,
-                        case_sensitive=False)
-                    if infohash_set:
-                        sanitized["infohash_set"] = {bytes.fromhex(s) for s in infohash_set}
-
             search_results, total, max_rowid = await mds.run_threaded(search_db)
         except Exception as e:
             self._logger.exception("Error while performing DB search: %s: %s", type(e).__name__, e)
             return RESTResponse(status=HTTP_BAD_REQUEST)
-
-        self.add_statements_to_metadata_list(search_results)
 
         response_dict = {
             "results": search_results,

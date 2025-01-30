@@ -11,7 +11,6 @@ from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
 
-from tribler.core.knowledge.restapi.knowledge_endpoint import HandledErrorSchema
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.torrentdef import TorrentDef
@@ -74,7 +73,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 "examples": {"Success": {"success": True}}
             },
             HTTP_BAD_REQUEST: {
-                "schema": HandledErrorSchema,
+                "schema": schema(HandledErrorSchema={"error": "any failures that may have occurred"}),
                 "examples": {"Error": {"error": {"handled": True, "message": "files parameter missing"}}}
             }
         }
