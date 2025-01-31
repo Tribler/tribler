@@ -27,7 +27,6 @@
     "SeedAnon": "Encrypted anonymous seeding using proxies",
     "TorrentWatchFolder": "Torrent watch folder",
     "WatchFolder": "Watch Folder",
-    "EnableWatchFolder": "Enable watch folder (requires restart)",
     "Save": "Save",
     "Tags": "Tags",
     "ProxySettings": "Torrent proxy settings",

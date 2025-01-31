@@ -289,6 +289,34 @@ class RecommenderComponent(BaseLauncher):
         return [*super().get_endpoints(), RecommenderEndpoint()]
 
 
+@precondition('session.config.get("rss/enabled")')
+class RSSComponent(ComponentLauncher):
+    """
+    Launch instructions for the RSS component.
+    """
+
+    def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
+        """
+        When we are done launching, register our REST API.
+        """
+        from tribler.core.rss.rss import RSSWatcherManager
+
+        manager = RSSWatcherManager(community, session.notifier, session.config.get("rss/urls"))
+        manager.start()
+
+        endpoint = session.rest_manager.get_endpoint("/api/rss")
+        endpoint.manager = manager
+        endpoint.config = session.config
+
+    def get_endpoints(self) -> list[RESTEndpoint]:
+        """
+        Add the RSS endpoint.
+        """
+        from tribler.core.rss.restapi.endpoint import RSSEndpoint
+
+        return [*super().get_endpoints(), RSSEndpoint()]
+
+
 @set_in_session("tunnel_community")
 @precondition('session.config.get("tunnel_community/enabled")')
 @after("DHTDiscoveryComponent")

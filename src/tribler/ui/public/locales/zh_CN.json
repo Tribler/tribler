@@ -27,7 +27,6 @@
     "SeedAnon": "使用代理加密地匿名做种",
     "TorrentWatchFolder": "种子监视文件夹",
     "WatchFolder": "监视文件夹",
-    "EnableWatchFolder": "启用监视文件夹（需要重新启动）",
     "Save": "保存",
     "ProxySettings": "种子代理设置",
     "P2PSettings": "点对点设置",

@@ -122,6 +122,15 @@ class RendezvousConfig(TypedDict):
     enabled: bool
 
 
+class RSSConfig(TypedDict):
+    """
+    Settings for the rss component.
+    """
+
+    enabled: bool
+    urls: list[str]
+
+
 class TorrentCheckerConfig(TypedDict):
     """
     Settings for the torrent checker component.
@@ -165,6 +174,7 @@ class TriblerConfig(TypedDict):
     libtorrent: LibtorrentConfig
     recommender: RecommenderConfig
     rendezvous: RendezvousConfig
+    rss: RSSConfig
     torrent_checker: TorrentCheckerConfig
     tunnel_community: TunnelCommunityConfig
     versioning: VersioningConfig
@@ -225,6 +235,7 @@ DEFAULT_CONFIG = {
         ),
     "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),
+    "rss": RSSConfig(enabled=True, urls=[]),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
     "versioning": VersioningConfig(enabled=True),

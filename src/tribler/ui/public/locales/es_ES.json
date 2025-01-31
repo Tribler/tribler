@@ -27,7 +27,6 @@
     "SeedAnon": "Siembra anónima cifrada mediante proxies",
     "TorrentWatchFolder": "Carpeta de seguimiento de torrents",
     "WatchFolder": "Carpeta de seguimiento",
-    "EnableWatchFolder": "Habilitar carpeta de vigilancia (es necesario reiniciar)",
     "Save": "Guardar",
     "Tags": "Etiquetas",
     "ProxySettings": "Configuración del proxy torrent",

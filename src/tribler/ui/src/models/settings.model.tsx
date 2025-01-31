@@ -83,6 +83,10 @@ export interface Settings {
     rendezvous: {
         enabled: boolean;
     },
+    rss: {
+        enabled: boolean;
+        urls: string[];
+    },
     torrent_checker: {
         enabled: boolean;
     },

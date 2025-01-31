@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import toast from 'react-hot-toast';
 import SaveButton from "./SaveButton";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 
 export default function General() {
@@ -232,9 +233,32 @@ export default function General() {
                 />
             </div>
 
+            <div className="py-2 flex items-center">
+                <Label htmlFor="rss" className="whitespace-nowrap pr-5">
+                    {"RSS:"}
+                </Label>
+                <Textarea
+                    defaultValue={settings?.rss?.urls.join("\n")}
+                    onChange={(elem) => {
+                        var urls = elem.target.value.split("\n")
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                rss: {
+                                    ...settings.rss,
+                                    urls: urls,
+                                    enabled: !!urls
+                                }
+                            });
+                        }
+                    }}
+                />
+            </div>
+
             <SaveButton
                 onClick={async () => {
                     if (settings) {
+                        triblerService.updateRSS(settings.rss?.urls ? settings.rss.urls : []);
                         const response = await triblerService.setSettings({
                             ...settings,
                             libtorrent: {
