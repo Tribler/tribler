@@ -325,6 +325,14 @@ export class TriblerService {
         }
     }
 
+    async updateRSS(urls: string[]): Promise<undefined | ErrorDict | { modified: boolean; }> {
+        try {
+            return (await this.http.put(`/rss`, {urls: urls})).data;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     // Versions
     async getVersion(): Promise<undefined | ErrorDict | string> {
         try {
