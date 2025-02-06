@@ -109,7 +109,7 @@ class TestURIs(TestBase):
         """
         url = "udp://tracker.example.com/"
 
-        unshortened = await unshorten(url)
+        unshortened, _ = await unshorten(url)
 
         self.assertEqual(url, unshortened)
 
@@ -126,7 +126,7 @@ class TestURIs(TestBase):
                     __aenter__=AsyncMock(return_value=Mock(status=200, headers={istr("Location"): "test"}))
                 ))))
         ))}):
-            unshortened = await unshorten(url)
+            unshortened, _ = await unshorten(url)
 
         self.assertEqual(url, unshortened)
 
@@ -143,7 +143,7 @@ class TestURIs(TestBase):
                     __aenter__=AsyncMock(return_value=Mock(status=301, headers={}))
                 ))))
         ))}):
-            unshortened = await unshorten(url)
+            unshortened, _ = await unshorten(url)
 
         self.assertEqual(url, unshortened)
 
@@ -160,6 +160,6 @@ class TestURIs(TestBase):
                     __aenter__=AsyncMock(return_value=Mock(status=301, headers={istr("Location"): "test"}))
                 ))))
         ))}):
-            unshortened = await unshorten(url)
+            unshortened, _ = await unshorten(url)
 
         self.assertEqual("test", unshortened)

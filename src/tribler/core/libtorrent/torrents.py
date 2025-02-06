@@ -5,12 +5,13 @@ from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
 from os.path import getsize
-from typing import TYPE_CHECKING, Callable, Iterable, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Callable, TypedDict, TypeVar
 
 import libtorrent as lt
 from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
 
     from tribler.core.libtorrent.download_manager.download import Download
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 WrappedParams = ParamSpec("WrappedParams")
 WrappedReturn = TypeVar("WrappedReturn")
-Wrapped = Callable[WrappedParams, WrappedReturn]
+Wrapped = Callable[WrappedParams, WrappedReturn]  # We are forced to type ignore in Python 3.9, revisit in 3.10!
 
 
 def check_handle(default: WrappedReturn) -> Wrapped:
@@ -31,7 +32,9 @@ def check_handle(default: WrappedReturn) -> Wrapped:
     """
 
     def wrap(f: Wrapped) -> Wrapped:
-        def invoke_func(self: Download, *args: WrappedParams.args, **kwargs: WrappedParams.kwargs) -> WrappedReturn:
+        def invoke_func(self: Download,
+                        *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
+                        ) -> WrappedReturn:
             if self.handle and self.handle.is_valid():
                 return f(self, *args, **kwargs)
             return default
@@ -48,8 +51,9 @@ def require_handle(func: Wrapped) -> Wrapped:
     Author(s): Egbert Bouman
     """
 
-    def invoke_func(self: Download, *args: WrappedParams.args,
-                    **kwargs: WrappedParams.kwargs) -> Future[WrappedReturn | None]:
+    def invoke_func(self: Download,
+                    *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
+                    ) -> Future[WrappedReturn | None]:
         result_future: Future[WrappedReturn | None] = Future()
 
         def done_cb(fut: Future[lt.torrent_handle]) -> None:
@@ -86,7 +90,9 @@ def check_vod(default: WrappedReturn) -> Wrapped:
     """
 
     def wrap(f: Wrapped) -> Wrapped:
-        def invoke_func(self: Stream, *args: WrappedParams.args, **kwargs: WrappedParams.kwargs) -> WrappedReturn:
+        def invoke_func(self: Stream,
+                        *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
+                        ) -> WrappedReturn:
             if self.enabled:
                 return f(self, *args, **kwargs)
             return default

@@ -632,7 +632,7 @@ class DownloadManager(TaskManager):
         """
         logger.info("Start download from URI: %s", uri)
 
-        uri = await unshorten(uri)
+        uri, _ = await unshorten(uri)
         scheme = URL(uri).scheme
 
         if scheme in ("http", "https"):

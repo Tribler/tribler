@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from aiohttp import ClientSession
+from aiohttp import ClientConnectorCertificateError, ClientSession
 from aiohttp.hdrs import LOCATION
 from yarl import URL
 
@@ -37,26 +37,33 @@ def url_to_path(file_url: str) -> str:
     return str(Path(*path))
 
 
-async def unshorten(uri: str) -> str:
+async def unshorten(uri: str) -> tuple[str, bool]:
     """
     Unshorten a URI if it is a short URI. Return the original URI if it is not a short URI.
 
     :param uri: A string representing the shortened URL that needs to be unshortened.
-    :return: The unshortened URL. If the original URL does not redirect to another URL, the original URL is returned.
+    :return: The unshortened URL, or the URL if not redirected, and whether the certificate is valid.
     """
     scheme = URL(uri).scheme
+    cert_valid = True
     if scheme not in ("http", "https"):
-        return uri
+        return uri, cert_valid
 
     logger.info("Unshortening URI: %s", uri)
 
     async with ClientSession() as session:
         try:
-            async with await session.get(uri, allow_redirects=False) as response:
-                if response.status in (301, 302, 303, 307, 308):
-                    uri = response.headers.get(LOCATION, uri)
+            try:
+                async with await session.get(uri, allow_redirects=False) as response:
+                    if response.status in (301, 302, 303, 307, 308):
+                        uri = response.headers.get(LOCATION, uri)
+            except ClientConnectorCertificateError:
+                cert_valid = False
+                async with await session.get(uri, allow_redirects=False, ssl=False) as response:
+                    if response.status in (301, 302, 303, 307, 308):
+                        uri = response.headers.get(LOCATION, uri)
         except Exception as e:
             logger.warning("Error while unshortening a URI: %s: %s", e.__class__.__name__, str(e), exc_info=e)
 
     logger.info("Unshorted URI: %s", uri)
-    return uri
+    return uri, cert_valid

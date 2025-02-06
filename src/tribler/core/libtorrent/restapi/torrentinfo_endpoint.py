@@ -158,9 +158,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
                                     "message": "uri parameter missing"
                                 }}, status=HTTP_BAD_REQUEST)
 
-        uri = await unshorten(p_uri)
+        uri, valid_cert = await unshorten(p_uri)
         scheme = URL(uri).scheme
-        valid_cert = True
 
         if scheme == "file":
             file_path = url_to_path(uri)
