@@ -73,7 +73,7 @@ class RSSWatcher:
         """
         for url in urls:
             try:
-                uri = await unshorten(url)
+                uri, _ = await unshorten(url)
                 response = await query_uri(uri, valid_cert=False)
             except (ServerConnectionError, ClientResponseError, SSLError, ClientConnectorError,
                     AsyncTimeoutError, ValueError) as e:

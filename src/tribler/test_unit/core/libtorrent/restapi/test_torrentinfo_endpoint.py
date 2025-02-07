@@ -18,11 +18,11 @@ from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_S
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
 
 
-async def mock_unshorten(uri: str) -> str:
+async def mock_unshorten(uri: str) -> tuple[str, bool]:
     """
     Don't following links.
     """
-    return uri
+    return uri, True
 
 
 class TestTorrentInfoEndpoint(TestBase):
