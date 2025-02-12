@@ -25,12 +25,13 @@ export default function Pieces({ pieces64, numpieces }: { pieces64: string, nump
         if (ref.current) {
             const canvas = ref.current.getContext('2d');
             const pieces = convertPieces(pieces64, numpieces);
-            if (!canvas || !pieces || pieces.length === 0) { return; }
+            if (!canvas) { return; }
 
             // Get size from the HTML canvas element
             const width = canvas.canvas.width;
             const height = canvas.canvas.height;
             const numPieces = numpieces;
+            if (!pieces || pieces.length === 0) { return canvas.clearRect(0, 0, width, height); }
 
             if (numPieces <= width) {
                 const pieceWidth = width / numPieces;
