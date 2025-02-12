@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import SimpleTable, { getHeader } from "@/components/ui/simple-table";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Download } from "@/models/download.model";
-import { Tracker } from "@/models/tracker.model ";
+import { Tracker } from "@/models/tracker.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

@@ -15,14 +15,15 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { CheckCheckIcon, ExternalLinkIcon, MoreHorizontal, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
+import { CheckCheckIcon, Clapperboard, ExternalLinkIcon, MoreHorizontal, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
 import { MoveIcon } from "@radix-ui/react-icons";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
 import { PathInput } from "@/components/path-input";
 import { downloadFile, downloadFilesAsZip } from "@/lib/utils";
+import { VideoDialog } from "./Videoplayer";
 
 
 export default function Actions({ selectedDownloads }: { selectedDownloads: Download[] }) {
@@ -119,9 +120,26 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
             })();
         });
     }
+    const onStream = () => {
+        console.log("Streaming...", selectedDownloads[0]);
+        if (selectedDownloads.length == 1) {
+            setVideoDialogOpen(true);
+            setVideoDownload(selectedDownloads[0]);
+        }
+    }
+
+
+    const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
+    const [videoDownload, setVideoDownload] = useState<Download | null>(null);
 
     return (
         <>
+            <VideoDialog
+                open={videoDialogOpen}
+                onOpenChange={setVideoDialogOpen}
+                download={videoDownload}
+            />
+
             <p className="text-sm whitespace-nowrap pr-3">{t('WithSelected')}</p>
             <Button
                 variant="outline"
@@ -225,6 +243,17 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                         <MoveIcon className="mr-2 h-4 w-4" />
                         {t('MoveStorage')}
                     </DropdownMenuItem>
+                    {triblerService.guiSettings.dev_mode && navigator.userAgent.includes("Chrome") &&
+                        <DropdownMenuItem onClick={() => { onStream() }}
+                            disabled={
+                                selectedDownloads.length !== 1
+                                || selectedDownloads[0].streamable !== true
+                                || selectedDownloads[0].status === "CIRCUITS"
+                            }>
+                            <Clapperboard className="mr-2 h-4 w-4" />
+                            {"Play video"}
+                        </DropdownMenuItem>
+                    }
                     <DropdownMenuSub>
                         <DropdownMenuSubTrigger disabled={selectedDownloads.length < 1} className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
                             <VenetianMaskIcon className="mr-2 h-4 w-4" />

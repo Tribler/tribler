@@ -811,7 +811,7 @@ class Download(TaskManager):
         """
         self._logger.debug("Stopping %s", self.tdef.get_name())
         if self.stream is not None:
-            self.stream.disable()
+            self.stream.close()
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
         if self.handle and self.handle.is_valid():

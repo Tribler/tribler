@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from tribler.core.libtorrent.download_manager.download import Download
-    from tribler.core.libtorrent.download_manager.stream import Stream
     from tribler.core.libtorrent.torrentdef import InfoDict
 
 logger = logging.getLogger(__name__)
@@ -82,24 +81,6 @@ def require_handle(func: Wrapped) -> Wrapped:
         return result_future
 
     return invoke_func
-
-
-def check_vod(default: WrappedReturn) -> Wrapped:
-    """
-    Check if torrent is vod mode, else return default.
-    """
-
-    def wrap(f: Wrapped) -> Wrapped:
-        def invoke_func(self: Stream,
-                        *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
-                        ) -> WrappedReturn:
-            if self.enabled:
-                return f(self, *args, **kwargs)
-            return default
-
-        return invoke_func
-
-    return wrap
 
 
 def common_prefix(paths_list: list[Path]) -> Path:

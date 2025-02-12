@@ -221,27 +221,6 @@ class TestDownloadsEndpoint(TestBase):
         self.assertNotIn("pieces", response_body_json["downloads"][0])
         self.assertNotIn("availability", response_body_json["downloads"][0])
 
-    async def test_get_downloads_stream_download(self) -> None:
-        """
-        Test if the information of a steaming download is correctly presented.
-        """
-        download = self.create_mock_download()
-        download.handle = Mock(is_valid=Mock(return_value=False))
-        download.stream = Stream(download)
-        download.stream.close()
-        self.set_loaded_downloads([download])
-        request = MockRequest("/api/downloads", query={})
-
-        response = await self.endpoint.get_downloads(request)
-        response_body_json = await response_to_json(response)
-
-        self.assertEqual(200, response.status)
-        self.assertFalse(response_body_json["downloads"][0]["anon_download"])
-        self.assertEqual(0.0, response_body_json["downloads"][0]["vod_prebuffering_progress"])
-        self.assertEqual(0.0, response_body_json["downloads"][0]["vod_prebuffering_progress_consec"])
-        self.assertEqual(0.0, response_body_json["downloads"][0]["vod_header_progress"])
-        self.assertEqual(0.0, response_body_json["downloads"][0]["vod_footer_progress"])
-
     async def test_add_download_no_uri(self) -> None:
         """
         Test if a graceful error is returned when no uri is given.
@@ -876,7 +855,7 @@ class TestDownloadsEndpoint(TestBase):
         download.stream = Stream(download)
         download.stream.infohash = b"\x01" * 20
         download.stream.fileindex = 0
-        download.stream.filesize = 0
+        download.stream.file_size = 0
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
         self.download_manager.get_download = Mock(return_value=download)
 
@@ -897,16 +876,13 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=False))
         download.stream = Stream(download)
-        download.stream.close()
-        download.stream.infohash = b"\x01" * 20
-        download.stream.fileindex = 0
-        download.stream.filesize = 1
-        download.stream.filename = Path(__file__)
-        download.stream.mapfile = Mock(return_value=Mock(piece=0))
-        download.stream.firstpiece = 0
-        download.stream.lastpiece = 0
-        download.stream.prebuffsize = 0
+        download.stream.file_index = 0
+        download.stream.file_size = 1
+        download.stream.file_name = Path(__file__)
+        download.stream.buffer_size = 0
         download.stream.enable = AsyncMock()
+        download.stream.piece_length = 1
+        download.stream.byte_to_piece = lambda x: x + 1
         download.lt_status = Mock(pieces=[True])
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
         self.download_manager.get_download = Mock(return_value=download)
