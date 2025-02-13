@@ -872,7 +872,7 @@ class DownloadManager(TaskManager):
         if handle:
             if handle.is_valid():
                 if download.stream is not None:
-                    download.stream.disable()
+                    download.stream.close()
                 logger.debug("Removing handle %s", hexlify(infohash))
                 (await self.get_session(download.config.get_hops())).remove_torrent(handle, int(remove_content))
         else:

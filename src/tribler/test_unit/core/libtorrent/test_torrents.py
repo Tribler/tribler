@@ -8,17 +8,14 @@ from ipv8.test.base import TestBase
 
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
-from tribler.core.libtorrent.download_manager.stream import Stream
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDefNoMetainfo
 from tribler.core.libtorrent.torrents import (
     check_handle,
-    check_vod,
     common_prefix,
     create_torrent_file,
     get_info_from_handle,
     require_handle,
 )
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
 
 
 class TestTorrents(TestBase):
@@ -115,34 +112,6 @@ class TestTorrents(TestBase):
         future = require_handle(callback)(download)
         with self.assertRaises(ValueError):
             await future
-
-    async def test_check_vod_disabled(self) -> None:
-        """
-        Test if the default value is returned for disabled vod mode.
-        """
-        stream = Stream(Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
-                                 config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))))
-        stream.close()
-
-        result = check_vod("default")(Stream.enabled)(stream)
-
-        self.assertEqual("default", result)
-
-    async def test_check_vod_enabled(self) -> None:
-        """
-        Test if the function result is returned for enabled vod mode.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
-        download.handle = Mock(is_valid=Mock(return_value=True), file_priorities=Mock(return_value=[0]),
-                               torrent_file=Mock(return_value=Mock(map_file=Mock(return_value=Mock(piece=0)))))
-        stream = Stream(download)
-        download.lt_status = Mock(state=3, paused=False, pieces=[])
-        await stream.enable()
-
-        result = check_vod("default")(Stream.bytetopiece)(stream, 0)
-
-        self.assertEqual(0, result)
 
     def test_common_prefix_single(self) -> None:
         """

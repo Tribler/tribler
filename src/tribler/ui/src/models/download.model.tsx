@@ -1,7 +1,8 @@
 // For compile-time type checking and code completion
 
 import { Peer } from "./bittorrentpeer.model";
-import { Tracker } from "./tracker.model ";
+import { File } from "./file.model";
+import { Tracker } from "./tracker.model";
 
 
 type state = 'ALLOCATING_DISKSPACE' | 'WAITING_FOR_HASHCHECK' | 'HASHCHECKING' | 'DOWNLOADING'  |
@@ -38,4 +39,6 @@ export interface Download {
     availability?: number;
     pieces?: string;
     peers: Peer[];
+    files: File[] | undefined;
+    streamable?: boolean;
 }

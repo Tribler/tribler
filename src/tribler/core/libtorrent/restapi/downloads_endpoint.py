@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import mimetypes
-from asyncio import get_event_loop, shield, wait_for
+from asyncio import get_event_loop, shield
 from binascii import hexlify, unhexlify
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
@@ -19,7 +19,7 @@ from tribler.core.libtorrent.download_manager.download import Download, IllegalF
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
-from tribler.core.libtorrent.download_manager.stream import Stream, StreamChunk
+from tribler.core.libtorrent.download_manager.stream import Stream, StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
@@ -249,8 +249,6 @@ class DownloadsEndpoint(RESTEndpoint):
                         "availability": Float,
                         "peers": String,
                         "total_pieces": Integer,
-                        "vod_prebuffering_progress": Float,
-                        "vod_prebuffering_progress_consec": Float,
                         "error": String,
                         "time_added": Integer
                     }),
@@ -336,16 +334,9 @@ class DownloadsEndpoint(RESTEndpoint):
                 "completed_dir": download.config.get_completed_dir(),
                 "total_pieces": tdef.get_nr_pieces(),
                 "error": repr(state.get_error()) if state.get_error() else "",
-                "time_added": download.config.get_time_added()
+                "time_added": download.config.get_time_added(),
+                "streamable": bool(tdef and tdef.get_files_with_length({'mp4', 'm4v', 'mov', 'mkv'}))
             }
-            if download.stream:
-                info.update({
-                    "vod_prebuffering_progress": download.stream.prebuffprogress,
-                    "vod_prebuffering_progress_consec": download.stream.prebuffprogress_consec,
-                    "vod_header_progress": download.stream.headerprogress,
-                    "vod_footer_progress": download.stream.footerprogress,
-
-                })
 
             if unfiltered or params.get("infohash") == info["infohash"]:
                 # Add peers information if requested
@@ -1137,11 +1128,8 @@ class TorrentStreamResponse(StreamResponse):
         stream = self._download.stream
 
         start = start or 0
-        if not stream.enabled or stream.fileindex != self._file_index:
-            await wait_for(stream.enable(self._file_index, start), 10)
-            await stream.updateprios()
-
-        reader = StreamChunk(self._download.stream, start)
+        await stream.enable(self._file_index)
+        reader = StreamReader(stream, start)
         await reader.open()
         try:
             writer = await super().prepare(request)
@@ -1153,7 +1141,7 @@ class TorrentStreamResponse(StreamResponse):
             while data:
                 await writer.write(data[:todo])
                 todo -= len(data)
-                if todo <= 0:
+                if todo <= 0 or len(data) == 0:
                     break
                 data = await reader.read()
 

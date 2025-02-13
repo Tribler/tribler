@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { category } from "@/models/torrent.model";
-import { FileLink, FileTreeItem } from "@/models/file.model";
+import { File, FileLink, FileTreeItem } from "@/models/file.model";
 import { CheckedState } from "@radix-ui/react-checkbox";
 import JSZip from "jszip";
 import { triblerService } from "@/services/tribler.service";
@@ -239,4 +239,16 @@ export async function downloadFilesAsZip(files: FileLink[], zipName: string) {
 
 export function isMac() {
     return navigator.userAgent.includes('Mac');
+}
+
+var streamableExtensions = ['mp4', 'm4v', 'mov', 'mkv'];
+export function getStreamableFiles(files: File[]) {
+    const results: File[] = [];
+    for (const file of files) {
+        const extension = file.name.split('.').pop();
+        if (extension && streamableExtensions.includes(extension)) {
+            results.push(file);
+        }
+    }
+    return results;
 }
