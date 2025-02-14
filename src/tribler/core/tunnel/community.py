@@ -7,7 +7,7 @@ from asyncio import Future, open_connection
 from asyncio import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from collections import Counter
-from typing import TYPE_CHECKING, Awaitable
+from typing import TYPE_CHECKING
 
 import async_timeout
 from ipv8.messaging.anonymization.community import unpack_cell
@@ -32,6 +32,7 @@ from tribler.core.tunnel.dispatcher import TunnelDispatcher
 from tribler.core.tunnel.payload import HTTPRequestPayload, HTTPResponsePayload
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable
     from pathlib import Path
 
     from ipv8.messaging.anonymization.exit_socket import TunnelExitSocket
@@ -365,7 +366,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         download = self.get_download(info_hash)
         if download is not None:
-            lt_session = self.settings.download_manager.get_session(download.config.get_hops())
+            lt_session = self.settings.download_manager.get_session(download.config.get_hops()).result()
             ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
                             for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)]
             self.settings.download_manager.update_ip_filter(lt_session, ip_addresses)

@@ -48,7 +48,6 @@ class TestStreamChunk(TestBase):
         Set the value of the stream to certain content.
         """
         content_end = len(content) // piece_length
-        self.chunk.stream.update_priorities = AsyncMock()
         self.chunk.stream.iter_pieces = lambda have, start_from: list(range(start_from, content_end))
         self.chunk.stream.wait_for_pieces = AsyncMock()
         self.chunk.stream.byte_to_piece = lambda x: x // piece_length
@@ -84,7 +83,6 @@ class TestStreamChunk(TestBase):
         """
         Test if all bytes can be read from a chunk when it has no data.
         """
-        self.chunk.stream.update_priorities = AsyncMock()
         self.chunk.stream.iter_pieces = Mock(return_value=[])
         self.chunk.stream.buffer_size = self.chunk.stream.piece_length = 1
         self.chunk.stream.wait_for_pieces = AsyncMock()
