@@ -204,6 +204,7 @@ class RendezvousComponent(BaseLauncher):
 
 
 @precondition('session.config.get("torrent_checker/enabled")')
+@precondition('session.config.get("database/enabled")')
 class TorrentCheckerComponent(ComponentLauncher):
     """
     Launch instructions for the torrent checker.
