@@ -291,13 +291,13 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
                                                          get_downloads=Mock(return_value=[download]))
 
         self.overlay(0).update_ip_filter(0)
-        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session, [])
+        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session.result(), [])
 
         circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
         self.overlay(0).update_ip_filter(0)
         ips = [self.overlay(0).circuit_id_to_ip(circuit.circuit_id)]
 
-        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session, ips)
+        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session.result(), ips)
 
     def test_update_torrent(self) -> None:
         """
