@@ -432,7 +432,8 @@ class TestDownloadManager(TestBase):
         """
         magnet = f'magnet:?xt=urn:btih:{"A" * 40}'
 
-        with patch.object(self.manager, "start_download", AsyncMock()) as start_download:
+        with (patch.object(self.manager, "start_download", AsyncMock(return_value=Mock(get_handle=AsyncMock())))
+              as start_download):
             await self.manager.start_download_from_uri(magnet)
 
         self.assertEqual(b'Unknown name', start_download.call_args.kwargs["tdef"].get_name())
@@ -443,7 +444,8 @@ class TestDownloadManager(TestBase):
         """
         magnet = f'magnet:?xt=urn:btih:{"A" * 40}&dn=AwesomeTorrent'
 
-        with patch.object(self.manager, "start_download", AsyncMock()) as start_download:
+        with (patch.object(self.manager, "start_download", AsyncMock(return_value=Mock(get_handle=AsyncMock())))
+              as start_download):
             await self.manager.start_download_from_uri(magnet)
 
         self.assertEqual(b'AwesomeTorrent', start_download.call_args.kwargs["tdef"].get_name())
