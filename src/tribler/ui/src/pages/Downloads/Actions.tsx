@@ -1,159 +1,103 @@
 import { Download } from "@/models/download.model";
 import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
+import { ErrorDict, isErrorDict } from "@/services/reporting";
 import toast from 'react-hot-toast';
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { CheckCheckIcon, Clapperboard, ExternalLinkIcon, MoreHorizontal, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
+import { CheckCheckIcon, Clapperboard, ExternalLinkIcon, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
 import { MoveIcon } from "@radix-ui/react-icons";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
-import { Label } from "@/components/ui/label";
 import { useTranslation } from "react-i18next";
-import { PathInput } from "@/components/path-input";
 import { downloadFile, downloadFilesAsZip } from "@/lib/utils";
-import { VideoDialog } from "./Videoplayer";
+import { TFunction } from "i18next";
+import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
+import MoveStorage from "@/dialogs/MoveStorage";
+import ConfirmRemove from "@/dialogs/ConfirmRemove";
+import { VideoDialog } from "@/dialogs/Videoplayer";
+import { filterActive, filterInactive } from ".";
 
 
-export default function Actions({ selectedDownloads }: { selectedDownloads: Download[] }) {
+function handleError(response: undefined | ErrorDict | boolean, errorMsg: string, undefinedMsg: string) {
+    if (response === undefined) {
+        toast.error(`${errorMsg} ${undefinedMsg}`);
+    } else if (isErrorDict(response)) {
+        toast.error(`${errorMsg} ${response.error.message}`);
+    }
+}
+
+function resumeDownloads(selectedDownloads: Download[], t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.resumeDownload(download.infohash).then((response) =>
+            handleError(response, t("ToastErrorDownloadPlay"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function stopDownloads(selectedDownloads: Download[], t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.stopDownload(download.infohash).then((response) =>
+            handleError(response, t("ToastErrorDownloadStop"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function removeDownloads(selectedDownloads: Download[], removeData: boolean, t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.removeDownload(download.infohash, removeData).then((response) =>
+            handleError(response, t("ToastErrorDownloadRemove"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function recheckDownloads(selectedDownloads: Download[], t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.recheckDownload(download.infohash).then((response) =>
+            handleError(response, t("ToastErrorDownloadCheck"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function exportTorrents(selectedDownloads: Download[]) {
+    const files = selectedDownloads.map((download) => ({
+        uri: `/api/downloads/${download.infohash}/torrent`,
+        name: `${download.infohash}.torrent`
+    }));
+
+    if (files.length == 1) downloadFile(files[0]);
+    else if (files.length > 1) downloadFilesAsZip(files, 'torrents.zip');
+}
+
+function moveDownloads(selectedDownloads: Download[], storageLocation: string, t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.moveDownload(download.infohash, storageLocation).then((response) =>
+            handleError(response, t("ToastErrorDownloadMove"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function setHops(selectedDownloads: Download[], hops: number, t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.setDownloadHops(download.infohash, hops).then((response) =>
+            handleError(response, t("ToastErrorDownloadSetHops"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+export function ActionButtons({ selectedDownloads }: { selectedDownloads: Download[] }) {
     const { t } = useTranslation();
+
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
-    const [storageDialogOpen, setStorageDialogOpen] = useState(false);
-    const [storageLocation, setStorageLocation] = useState('');
-
-    const onPlay = () => {
-        selectedDownloads.forEach((download) => {
-            (async () => {
-                const response = await triblerService.resumeDownload(download.infohash);
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadPlay")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadPlay")} ${response.error.message}`);
-                }
-            })();
-        });
-    }
-    const onPause = () => {
-        selectedDownloads.forEach((download) => {
-            (async () => {
-                const response = await triblerService.stopDownload(download.infohash);
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadStop")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadStop")} ${response.error.message}`);
-                }
-            })();
-        });
-    }
-    const onRemove = (removeData: boolean) => {
-        selectedDownloads.forEach((download) => {
-            (async () => {
-                const response = await triblerService.removeDownload(download.infohash, removeData);
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadRemove")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadRemove")} ${response.error.message}`);
-                }
-            })();
-        });
-        setRemoveDialogOpen(false);
-    }
-    const onRecheck = () => {
-        selectedDownloads.forEach((download) => {
-            (async () => {
-                const response = await triblerService.recheckDownload(download.infohash);
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadCheck")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadCheck")} ${response.error.message}`);
-                }
-            })();
-        });
-    }
-    const onExportTorrent = () => {
-        const files = selectedDownloads.map((download) => ({
-            uri: `/api/downloads/${download.infohash}/torrent`,
-            name: `${download.infohash}.torrent`
-        }));
-
-        if (files.length == 1) downloadFile(files[0]);
-        else if (files.length > 1) downloadFilesAsZip(files, 'torrents.zip');
-    }
-    const onMoveDownload = () => {
-        if (selectedDownloads.length > 0) {
-            setStorageLocation(selectedDownloads[0].destination);
-            setStorageDialogOpen(true);
-        }
-    }
-    const onMoveDownloadConfirmed = () => {
-        selectedDownloads.forEach((download) => {
-            triblerService.moveDownload(download.infohash, storageLocation).then(async (response) => {
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadMove")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadMove")} ${response.error.message}`);
-                }
-            });
-        });
-        setStorageDialogOpen(false);
-    }
-    const onSetHops = (hops: number) => {
-        selectedDownloads.forEach((download) => {
-            (async () => {
-                const response = await triblerService.setDownloadHops(download.infohash, hops);
-                if (response === undefined) {
-                    toast.error(`${t("ToastErrorDownloadSetHops")} ${t("ToastErrorGenNetworkErr")}`);
-                } else if (isErrorDict(response)) {
-                    toast.error(`${t("ToastErrorDownloadSetHops")} ${response.error.message}`);
-                }
-            })();
-        });
-    }
-    const onStream = () => {
-        console.log("Streaming...", selectedDownloads[0]);
-        if (selectedDownloads.length == 1) {
-            setVideoDialogOpen(true);
-            setVideoDownload(selectedDownloads[0]);
-        }
-    }
-
-
-    const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
-    const [videoDownload, setVideoDownload] = useState<Download | null>(null);
 
     return (
         <>
-            <VideoDialog
-                open={videoDialogOpen}
-                onOpenChange={setVideoDialogOpen}
-                download={videoDownload}
-            />
-
             <p className="text-sm whitespace-nowrap pr-3">{t('WithSelected')}</p>
             <Button
                 variant="outline"
                 className="h-8 w-8 p-0"
-                onClick={onPlay} disabled={selectedDownloads.length < 1}
-            >
+                onClick={() => resumeDownloads(selectedDownloads, t)}
+                disabled={selectedDownloads.length < 1
+                    || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
                 <Play className="h-4 w-4" />
             </Button>
             <Button
                 variant="outline"
                 className="h-8 w-8 p-0"
-                onClick={onPause}
-                disabled={selectedDownloads.length < 1}
-            >
+                onClick={() => stopDownloads(selectedDownloads, t)}
+                disabled={selectedDownloads.length < 1
+                    || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
                 <Pause className="h-4 w-4" />
             </Button>
             <Button
@@ -165,120 +109,130 @@ export default function Actions({ selectedDownloads }: { selectedDownloads: Down
                 <Trash className="h-4 w-4" />
             </Button>
 
-            <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('RemoveDownload')}</DialogTitle>
-                        <DialogDescription>
-                            {t('RemoveDownloadConfirm', { downloads: selectedDownloads.length })}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" type="submit" onClick={() => { onRemove(false) }}>{t('RemoveDownload')}</Button>
-                        <Button variant="outline" type="submit" onClick={() => { onRemove(true) }}>{t('RemoveDownloadData')}</Button>
-                        <DialogClose asChild>
-                            <Button variant="outline" type="button">
-                                {t('Cancel')}
-                            </Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmRemove
+                open={removeDialogOpen}
+                onOpenChange={setRemoveDialogOpen}
+                selectedDownloads={selectedDownloads}
+                onRemove={removeDownloads} />
+        </>
+    )
+}
 
-            <Dialog open={storageDialogOpen} onOpenChange={setStorageDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('ChangeStorage')}</DialogTitle>
-                        <DialogDescription>
-                            {t('ChangeStorageDescription')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-6 py-4">
-                        <div className="grid grid-cols-6 items-center gap-4">
-                            <Label htmlFor="dest_dir" className="text-right">
-                                {t('ChangeStorageLocation')}
-                            </Label>
-                            <PathInput
-                                className="col-span-5"
-                                path={storageLocation}
-                                onPathChange={(path) => setStorageLocation(path)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            type="submit"
-                            disabled={selectedDownloads.every((d) => d.destination === storageLocation)}
-                            onClick={() => { onMoveDownloadConfirmed() }}>
-                            {t('ChangeStorageButton')}
-                        </Button>
-                        <DialogClose asChild>
-                            <Button variant="outline" type="button">
-                                {t('Cancel')}
-                            </Button>
-                        </DialogClose>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[] }) {
+    const { t } = useTranslation();
 
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('Actions')}</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={onRecheck} disabled={selectedDownloads.length < 1}>
-                        <CheckCheckIcon className="mr-2 h-4 w-4" />
-                        {t('ForceRecheck')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onExportTorrent()} disabled={selectedDownloads.length < 1}>
-                        <ExternalLinkIcon className="mr-2 h-4 w-4" />
-                        {t('ExportTorrent')}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { onMoveDownload() }} disabled={selectedDownloads.length < 1}>
-                        <MoveIcon className="mr-2 h-4 w-4" />
-                        {t('MoveStorage')}
-                    </DropdownMenuItem>
-                    {triblerService.guiSettings.dev_mode && navigator.userAgent.includes("Chrome") &&
-                        <DropdownMenuItem onClick={() => { onStream() }}
-                            disabled={
-                                selectedDownloads.length !== 1
-                                || selectedDownloads[0].streamable !== true
-                                || selectedDownloads[0].status === "CIRCUITS"
-                            }>
-                            <Clapperboard className="mr-2 h-4 w-4" />
-                            {"Play video"}
-                        </DropdownMenuItem>
-                    }
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger disabled={selectedDownloads.length < 1} className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
-                            <VenetianMaskIcon className="mr-2 h-4 w-4" />
-                            <span>{t('ChangeAnonymity')}</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuPortal>
-                            <DropdownMenuSubContent>
-                                <DropdownMenuItem onClick={() => { onSetHops(0) }}>
-                                    <span>{t('ZeroHops')}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => { onSetHops(1) }}>
-                                    <span>{t('OneHop')}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { onSetHops(2) }}>
-                                    <span>{t('TwoHops')}</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => { onSetHops(3) }}>
-                                    <span>{t('ThreeHops')}</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                        </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                </DropdownMenuContent>
-            </DropdownMenu>
+    const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+    const [storageDialogOpen, setStorageDialogOpen] = useState(false);
+    const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
+    const [videoDownload, setVideoDownload] = useState<Download | null>(null);
+
+    return (
+        <>
+            <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => resumeDownloads(selectedDownloads, t)}
+                    disabled={selectedDownloads.length < 1
+                        || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
+                    <Play className="w-4 ml-2 mr-3" />
+                    {t('Start')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => stopDownloads(selectedDownloads, t)}
+                    disabled={selectedDownloads.length < 1
+                        || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
+                    <Pause className="w-4 ml-2 mr-3" />
+                    {t('Stop')}
+                </ContextMenuItem>
+                {triblerService.guiSettings.dev_mode && navigator.userAgent.includes("Chrome") &&
+                    <ContextMenuItem
+                        className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                        onClick={() => {
+                            console.log("Streaming...", selectedDownloads[0]);
+                            if (selectedDownloads.length == 1) {
+                                setVideoDialogOpen(true);
+                                setVideoDownload(selectedDownloads[0]);
+                            }
+                        }}
+                        disabled={
+                            selectedDownloads.length !== 1
+                            || selectedDownloads[0].streamable !== true
+                            || selectedDownloads[0].status === "CIRCUITS"
+                        }>
+                        <Clapperboard className="w-4 ml-2 mr-3" />
+                        {"Stream"}
+                    </ContextMenuItem>
+                }
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => (selectedDownloads.length > 0) && setRemoveDialogOpen(true)}
+                    disabled={selectedDownloads.length < 1}>
+                    <Trash className="w-4 ml-2 mr-3" />
+                    {t('Remove')}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => (selectedDownloads.length > 0) && setStorageDialogOpen(true)}
+                    disabled={selectedDownloads.length < 1}>
+                    <MoveIcon className="w-4 ml-2 mr-3" />
+                    {t('MoveStorage')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => recheckDownloads(selectedDownloads, t)}
+                    disabled={selectedDownloads.length < 1}>
+                    <CheckCheckIcon className="w-4 ml-2 mr-3" />
+                    {t('ForceRecheck')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => exportTorrents(selectedDownloads)}
+                    disabled={selectedDownloads.length < 1}>
+                    <ExternalLinkIcon className="w-4 ml-2 mr-3" />
+                    {t('ExportTorrent')}
+                </ContextMenuItem>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger
+                        disabled={selectedDownloads.length < 1}
+                        className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
+                        <VenetianMaskIcon className="w-4 ml-2 mr-3" />
+                        {t('ChangeAnonymity')}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuItem onClick={() => { setHops(selectedDownloads, 0, t) }}>
+                            <span>{t('ZeroHops')}</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => { setHops(selectedDownloads, 1, t) }}>
+                            <span>{t('OneHop')}</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => { setHops(selectedDownloads, 2, t) }}>
+                            <span>{t('TwoHops')}</span>
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => { setHops(selectedDownloads, 3, t) }}>
+                            <span>{t('ThreeHops')}</span>
+                        </ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+            </ContextMenuContent>
+
+            <MoveStorage
+                open={storageDialogOpen}
+                onOpenChange={setStorageDialogOpen}
+                selectedDownloads={selectedDownloads}
+                onMove={moveDownloads} />
+            <ConfirmRemove
+                open={removeDialogOpen}
+                onOpenChange={setRemoveDialogOpen}
+                selectedDownloads={selectedDownloads}
+                onRemove={removeDownloads} />
+            <VideoDialog
+                open={videoDialogOpen}
+                onOpenChange={setVideoDialogOpen}
+                download={videoDownload}
+            />
         </>
     )
 }

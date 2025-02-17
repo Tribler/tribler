@@ -1,4 +1,4 @@
-import Actions from "./Actions";
+import { ActionButtons, ActionMenu } from "./Actions";
 import DownloadDetails from "./Details";
 import SimpleTable, { getHeader } from "@/components/ui/simple-table"
 import { Download } from "@/models/download.model";
@@ -20,6 +20,7 @@ import { useLocation } from "react-router-dom";
 import { useInterval } from "@/hooks/useInterval";
 import { usePrevious } from "@/hooks/usePrevious";
 import { useResizeObserver } from "@/hooks/useResizeObserver";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -197,7 +198,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                     <Card className="border-none shadow-none">
                         <CardHeader className="md:flex-row md:justify-between space-y-0 items-center px-4 py-1.5">
                             <div className="flex flex-nowrap items-center">
-                                <Actions selectedDownloads={selectedDownloads} />
+                                <ActionButtons selectedDownloads={selectedDownloads} />
                             </div>
                             <div>
                                 <div className="flex items-center">
@@ -209,17 +210,24 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                 </div>
                             </div>
                         </CardHeader>
-                        <SimpleTable
-                            data={downloads}
-                            columns={downloadColumns}
-                            filters={filters}
-                            allowMultiSelect={true}
-                            onSelectedRowsChange={setSelectedDownloads}
-                            maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
-                            allowColumnToggle="download-columns"
-                            storeSortingState="download-sorting"
-                            rowId={(row) => row.infohash}
-                        />
+
+                        <ContextMenu modal={false}>
+                            <ContextMenuTrigger>
+                                <SimpleTable
+                                    data={downloads}
+                                    columns={downloadColumns}
+                                    filters={filters}
+                                    allowMultiSelect={true}
+                                    onSelectedRowsChange={setSelectedDownloads}
+                                    maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
+                                    allowColumnToggle="download-columns"
+                                    storeSortingState="download-sorting"
+                                    rowId={(row) => row.infohash}
+                                />
+                            </ContextMenuTrigger>
+                            <ActionMenu selectedDownloads={selectedDownloads} />
+                        </ContextMenu>
+
                     </Card>
                 </div>
             </ResizablePanel>
