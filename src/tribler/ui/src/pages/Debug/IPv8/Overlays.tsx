@@ -40,46 +40,6 @@ const overlayColumns: ColumnDef<Overlay>[] = [
             )
         },
     },
-    {
-        accessorKey: "statistics.bytes_up",
-        header: getHeader("Upload (MB)", false),
-        cell: ({ row }) => {
-            if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
-            return <span>{(row.original.statistics.bytes_up / 1024 ** 2).toFixed(3)}</span>
-        },
-    },
-    {
-        accessorKey: "statistics.bytes_down",
-        header: getHeader("Download (MB)", false),
-        cell: ({ row }) => {
-            if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
-            return <span>{(row.original.statistics.bytes_down / 1024 ** 2).toFixed(3)}</span>
-        },
-    },
-    {
-        accessorKey: "statistics.num_up",
-        header: getHeader("# Msg sent", false),
-        cell: ({ row }) => {
-            if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
-            return <span>{row.original.statistics.num_up}</span>
-        },
-    },
-    {
-        accessorKey: "statistics.num_down",
-        header: getHeader("# Msg received", false),
-        cell: ({ row }) => {
-            if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
-            return <span>{row.original.statistics.num_down}</span>
-        },
-    },
-    {
-        accessorKey: "statistics.diff_time",
-        header: getHeader("Diff (sec)", false),
-        cell: ({ row }) => {
-            if (Object.keys(row.original.statistics).length === 0) { return 'N/A' }
-            return <span>{row.original.statistics.diff_time.toFixed(3)}</span>
-        },
-    },
 ]
 
 const peerColumns: ColumnDef<Peer>[] = [
@@ -108,7 +68,7 @@ export default function Overlays() {
         const response = await ipv8Service.getOverlays();
         if (!(response === undefined) && !isErrorDict(response)) {
             // We ignore errors and correct with the missing information on the next call
-            setOverlays(response);
+            setOverlays(response.filter((overlay) => overlay.overlay_name.endsWith("Community")));
         }
     }, 5000, true);
 

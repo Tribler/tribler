@@ -7,8 +7,8 @@ export default function IPv8() {
     return (
         <Tabs defaultValue="overlays" className="w-full flex flex-col flex-wrap">
             <TabsList className="flex-rows-3 border-b">
-                <TabsTrigger value="overlays">Overlays</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="overlays">Peers</TabsTrigger>
+                <TabsTrigger value="details">Traffic</TabsTrigger>
             </TabsList>
             <TabsContent value="overlays" className="w-full flex-grow flex-col focus-visible:ring-0">
                 <Overlays />

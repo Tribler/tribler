@@ -41,6 +41,7 @@ export interface Overlay {
 export interface OverlayMsgStats {
     name?: string;
     identifier: number;
+    handler?: string;
     num_up: number;
     num_down: number;
     bytes_up: number;
@@ -49,6 +50,7 @@ export interface OverlayMsgStats {
     first_measured_down: number;
     last_measured_up: number;
     last_measured_down: number;
+    subRows?: OverlayMsgStats[];
 }
 
 export type OverlayStats = Record<string, Record<string, OverlayMsgStats>>;

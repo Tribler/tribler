@@ -59,7 +59,7 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
     """
     Attempt to import the IPv8 Rust anonymization backend.
     """
-    use_fallback = session.config.get("statistics")
+    use_fallback = False
     if_specs = [ifc for ifc in session.config.get("ipv8/interfaces") if ifc["interface"] == "UDPIPv4"]
 
     if not use_fallback:
@@ -71,8 +71,9 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
                 ifc["worker_threads"] = ifc.get("worker_threads", session.config.get("tunnel_community/max_circuits"))
             yield
             if if_specs:
+                ipv4_endpoint = session.ipv8.endpoint.interfaces["UDPIPv4"]
+                session.ipv8.endpoint.get_statistics = ipv4_endpoint.get_statistics
                 for server in session.socks_servers:
-                    ipv4_endpoint = session.ipv8.endpoint.interfaces["UDPIPv4"]
                     server.rust_endpoint = ipv4_endpoint if isinstance(ipv4_endpoint, RustEndpoint) else None
         except ImportError:
             logger.info("Rust endpoint not found (pip install ipv8-rust-tunnels).")
@@ -140,7 +141,7 @@ class Session:
         # IPv8
         rescue_keys(self.config)
         with rust_enhancements(self):
-            self.ipv8 = IPv8(self.config.get("ipv8"), enable_statistics=self.config.get("statistics"))
+            self.ipv8 = IPv8(self.config.get("ipv8"))
         self.loader = IPv8CommunityLoader()
 
         # REST
@@ -239,9 +240,14 @@ class Session:
         # REST (2/2)
         self.rest_manager.get_endpoint("/api/ipv8").initialize(self.ipv8)
         self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
-        if self.config.get("statistics"):
-            self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None,
-                                                                                                         True)
+
+        overlays_endpoint = self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"]
+        # Enable statistics for IPv8 StatisticsEndpoint
+        if overlays_endpoint.statistics_supported:
+            overlays_endpoint.enable_overlay_statistics(True, None, True)
+        # When using RustEndpoint, statistics are also reported. However, since RustEndpoint
+        # does not inherit from StatisticsEndpoint, we need to manually set statistics_supported.
+        overlays_endpoint.statistics_supported = True
 
     async def find_api_server(self) -> tuple[str | None, bytes | None]:
         """

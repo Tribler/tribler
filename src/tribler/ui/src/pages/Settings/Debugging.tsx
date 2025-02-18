@@ -51,25 +51,6 @@ export default function Debugging() {
                     {t('EnableDevMode')}
                 </label>
             </div>
-            <div className="flex items-center space-x-2 p-2">
-                <Checkbox
-                    checked={settings?.statistics}
-                    onCheckedChange={(value) => {
-                        if (settings) {
-                            setSettings({
-                                ...settings,
-                                statistics: !!value,
-                            });
-                        }
-                    }}
-                    id="statistics" />
-                <label
-                    htmlFor="statistics"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('EnableStats')}
-                </label>
-            </div>
 
             <SaveButton
                 onClick={async () => {
