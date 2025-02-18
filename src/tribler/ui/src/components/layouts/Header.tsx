@@ -17,6 +17,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { Ban, Loader } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "../ui/scroll-area";
+import { EasyTooltip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
@@ -132,21 +133,23 @@ export function Header() {
                         <nav className="flex items-center space-x-2">
                             <LanguageSelect />
                             <ModeToggle />
-                            <Button
-                                variant="ghost"
-                                className="w-9 px-0"
-                                onClick={() => {
-                                    triblerService.shutdown().then((response) => {
-                                        if (response === undefined) {
-                                            toast.error(`${"ToastErrorShutdown"} ${"ToastErrorGenNetworkErr"}`);
-                                        } else if (isErrorDict(response)){
-                                            toast.error(`${"ToastErrorShutdown"} ${response.error.message}`);
-                                        }
-                                    })
-                                }}
-                            >
-                                <ExitIcon />
-                            </Button>
+                            <EasyTooltip content={t('Shutdown')}>
+                                <Button
+                                    variant="ghost"
+                                    className="w-9 px-0"
+                                    onClick={() => {
+                                        triblerService.shutdown().then((response) => {
+                                            if (response === undefined) {
+                                                toast.error(`${t("ToastErrorShutdown")} ${t("ToastErrorGenNetworkErr")}`);
+                                            } else if (isErrorDict(response)) {
+                                                toast.error(`${t("ToastErrorShutdown")} ${response.error.message}`);
+                                            }
+                                        })
+                                    }}
+                                >
+                                    <ExitIcon />
+                                </Button>
+                            </EasyTooltip>
                         </nav>
                     </div>
                 </div>

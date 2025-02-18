@@ -6,6 +6,7 @@ import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { useEffect } from "react";
 import toast from 'react-hot-toast';
+import { EasyTooltip } from "./ui/tooltip";
 
 
 const LanguageSelect = () => {
@@ -24,18 +25,20 @@ const LanguageSelect = () => {
         const response = await triblerService.setSettings({ ui: { lang: lng } });
         if (response === undefined) {
             toast.error(`${t("ToastErrorSetLanguage")} ${t("ToastErrorGenNetworkErr")}`);
-        } else if (isErrorDict(response)){
+        } else if (isErrorDict(response)) {
             toast.error(`${t("ToastErrorSetLanguage")} ${response.error.message}`);
         }
     };
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                    {language.slice(0, 2)}
-                </Button>
-            </DropdownMenuTrigger>
+            <EasyTooltip content={t('SelectLanguage')}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                        {language.slice(0, 2)}
+                    </Button>
+                </DropdownMenuTrigger>
+            </EasyTooltip>
             <DropdownMenuContent align="end" className="min-w-[6rem]">
                 <DropdownMenuItem onClick={() => changeLanguage('en_US')}>
                     en

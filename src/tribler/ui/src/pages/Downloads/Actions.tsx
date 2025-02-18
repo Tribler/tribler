@@ -14,6 +14,7 @@ import MoveStorage from "@/dialogs/MoveStorage";
 import ConfirmRemove from "@/dialogs/ConfirmRemove";
 import { VideoDialog } from "@/dialogs/Videoplayer";
 import { filterActive, filterInactive } from ".";
+import { EasyTooltip } from "@/components/ui/tooltip";
 
 
 function handleError(response: undefined | ErrorDict | boolean, errorMsg: string, undefinedMsg: string) {
@@ -27,7 +28,7 @@ function handleError(response: undefined | ErrorDict | boolean, errorMsg: string
 function resumeDownloads(selectedDownloads: Download[], t: TFunction) {
     selectedDownloads.forEach((download) => {
         triblerService.resumeDownload(download.infohash).then((response) =>
-            handleError(response, t("ToastErrorDownloadPlay"), t("ToastErrorGenNetworkErr")))
+            handleError(response, t("ToastErrorDownloadStart"), t("ToastErrorGenNetworkErr")))
     });
 }
 
@@ -84,30 +85,39 @@ export function ActionButtons({ selectedDownloads }: { selectedDownloads: Downlo
     return (
         <>
             <p className="text-sm whitespace-nowrap pr-3">{t('WithSelected')}</p>
-            <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                onClick={() => resumeDownloads(selectedDownloads, t)}
-                disabled={selectedDownloads.length < 1
-                    || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
-                <Play className="h-4 w-4" />
-            </Button>
-            <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                onClick={() => stopDownloads(selectedDownloads, t)}
-                disabled={selectedDownloads.length < 1
-                    || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
-                <Pause className="h-4 w-4" />
-            </Button>
-            <Button
-                variant="outline"
-                className="h-8 w-8 p-0"
-                onClick={() => setRemoveDialogOpen(true)}
-                disabled={selectedDownloads.length < 1}
-            >
-                <Trash className="h-4 w-4" />
-            </Button>
+
+            <EasyTooltip content={t('Start')}>
+                <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => resumeDownloads(selectedDownloads, t)}
+                    disabled={selectedDownloads.length < 1
+                        || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
+                    <Play className="h-4 w-4" />
+                </Button>
+            </EasyTooltip>
+
+            <EasyTooltip content={t('Stop')}>
+                <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => stopDownloads(selectedDownloads, t)}
+                    disabled={selectedDownloads.length < 1
+                        || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
+                    <Pause className="h-4 w-4" />
+                </Button>
+            </EasyTooltip>
+
+            <EasyTooltip content={t('Remove')}>
+                <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setRemoveDialogOpen(true)}
+                    disabled={selectedDownloads.length < 1}
+                >
+                    <Trash className="h-4 w-4" />
+                </Button>
+            </EasyTooltip>
 
             <ConfirmRemove
                 open={removeDialogOpen}
@@ -157,7 +167,7 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                         }}
                         disabled={selectedDownloads.length !== 1 || selectedDownloads[0].streamable !== true}>
                         <Clapperboard className="w-4 ml-2 mr-3" />
-                        {"Stream"}
+                        {t("Stream")}
                     </ContextMenuItem>
                 }
                 <ContextMenuSeparator />
