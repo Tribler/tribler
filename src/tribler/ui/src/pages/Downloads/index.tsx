@@ -223,6 +223,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                     allowColumnToggle="download-columns"
                                     storeSortingState="download-sorting"
                                     rowId={(row) => row.infohash}
+                                    selectOnRightClick={true}
                                 />
                             </ContextMenuTrigger>
                             <ActionMenu selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
