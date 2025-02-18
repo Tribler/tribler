@@ -233,7 +233,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
             </ResizablePanel>
             <ResizableHandle />
             <ResizablePanel defaultSize={25} className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`}>
-                <DownloadDetails selectedDownloads={selectedDownloads} />
+                <DownloadDetails download={selectedDownloads.length > 0 ? selectedDownloads[0] : undefined} />
             </ResizablePanel>
         </ResizablePanelGroup>
     )
