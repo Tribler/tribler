@@ -61,6 +61,7 @@ try:
     import argparse
     import asyncio
     import encodings.idna  # noqa: F401 (https://github.com/pyinstaller/pyinstaller/issues/1113)
+    import json
     import logging.config
     import os
     import threading
@@ -230,7 +231,7 @@ async def main() -> None:
         session = Session(config)
 
         torrent_uri = load_torrent_uri(parsed_args)
-        server_url = await session.find_api_server()
+        server_url, initial_message = await session.find_api_server()
 
         headless = parsed_args.get("server")
         if server_url:
@@ -238,7 +239,9 @@ async def main() -> None:
             if torrent_uri:
                 logger.info("Starting torrent using existing core")
                 await start_download(config, server_url, torrent_uri)
-            if not headless:
+            # Don't open a new tab if we're (a) only adding a torrent with a session open, or (b) running headless.
+            if not headless and (not torrent_uri or (initial_message is not None
+                                                     and json.loads(initial_message).get("sessions", "0") == "0")):
                 open_webbrowser_tab(server_url + f"?key={config.get('api/key')}")
             logger.info("Shutting down")
             return
@@ -247,7 +250,7 @@ async def main() -> None:
     except Exception as exc:
         show_error(exc, True)
 
-    server_url = await session.find_api_server()
+    server_url, _ = await session.find_api_server()
     if server_url and torrent_uri:
         await start_download(config, server_url, torrent_uri)
     icon = None if headless else spawn_tray_icon(session, config)

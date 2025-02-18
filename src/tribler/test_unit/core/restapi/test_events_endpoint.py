@@ -115,7 +115,7 @@ class TestEventsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertEqual((b'event: events_start\n'
-                          b'data: {"public_key": "", "version": "git"}'
+                          b'data: {"public_key": "", "version": "git", "sessions": "0"}'
                           b'\n\n'), request.payload_writer.captured[0])
 
     async def test_establish_connection_with_error(self) -> None:
