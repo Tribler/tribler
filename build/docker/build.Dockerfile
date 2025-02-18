@@ -1,37 +1,27 @@
-# libtorrent-2.0.9 does not support python 3.11 yet
-FROM python:3.10-slim
+# Build & run instructions:
+# 1. docker build -f build/docker/build.Dockerfile .
+# 2. docker run --security-opt "apparmor:unconfined" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTHORITY -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" --net="host" -v ~/.Tribler:/state -v ~/downloads/TriblerDownloads:/downloads --env DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" -e XDG_CACHE_HOME=$XDG_CACHE_HOME -v $XDG_CACHE_HOME/tmp/:$XDG_CACHE_HOME/tmp/ -v /run:/run --user $(id -u):$(id -g) -e BROWSER="x-www-browser" -it <<HASH>>
+#
+# Common issue: "permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock"
+#          fix: "sudo chmod 666 /var/run/docker.sock"
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libsodium23=1.0.18-1 \
-    && rm -rf /var/lib/apt/lists/*
+FROM ubuntu:latest
 
-# Install Xvfb for headless GUI
-RUN apt-get update -y \
-  && apt-get -y install \
-    xvfb nodejs npm git \
+RUN apt update -y \
+  && apt -y install curl dbus-x11 libgirepository-1.0-1 libcanberra-gtk-module libcanberra-gtk3-module libglib2.0-bin
+
+RUN tag=`basename $(curl -Ls -o /dev/null -w %{url_effective} https://github.com/Tribler/tribler/releases/latest)` \
+  && vlesstag=$(echo $tag | cut -c2-) \
+  && echo "Tag with v = ${tag}, tag without v = ${vlesstag}" \
+  && cd /home/ubuntu \
+  && curl -LO "https://github.com/Tribler/tribler/releases/download/${tag}/tribler_${vlesstag}_x64.deb" \
+  && apt install -y "./tribler_${vlesstag}_x64.deb" \
   && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-# Set up a user in the container
-RUN useradd -ms /bin/bash --home-dir /home/user user
-USER user
-
-# Clone the repository with arguments
-ARG GIT_REPO=${GIT_REPO:-"https://github.com/tribler/tribler.git"}
-ARG GIT_BRANCH=${GIT_BRANCH:-"main"}
-RUN echo "Cloning $GIT_REPO on branch $GIT_BRANCH"
-RUN git clone --recursive --branch "$GIT_BRANCH" "$GIT_REPO" /home/user/tribler
-
-# Install NPM dependencies
-WORKDIR /home/user/tribler/src/tribler/ui
-RUN npm install \
-    && npm run build
-
-# Install Python dependencies
-WORKDIR /home/user/tribler
-RUN pip3 install -r requirements.txt
-
-# Set IPv8 on pythonpath
-ENV PYTHONPATH=pyipv8
-
-# Run the application using Xvfb
-CMD xvfb-run python3 src/run_tribler.py
+SHELL ["/bin/bash", "-c"]
+CMD export TMPDIR="${XDG_CACHE_HOME}"/tmp/ \
+  && mkdir -p ~/custombin \
+  && echo '#!/bin/bash' > ~/custombin/x-www-browser \
+  && echo 'gdbus call --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.OpenURI.OpenURI "" "$1" "{}"' >> ~/custombin/x-www-browser \
+  && chmod u+x ~/custombin/x-www-browser \
+  && PATH=~/custombin:$PATH /usr/share/tribler/tribler
