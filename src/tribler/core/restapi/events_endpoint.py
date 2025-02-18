@@ -14,7 +14,7 @@ from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.restapi.rest_endpoint import RESTEndpoint
+from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
     from aiohttp.abc import Request
@@ -68,7 +68,8 @@ class EventsEndpoint(RESTEndpoint):
         notifier.add(Notification.circuit_removed, self.on_circuit_removed)
         notifier.delegates.add(self.on_notification)
 
-        self.app.add_routes([web.get("", self.get_events)])
+        self.app.add_routes([web.get("", self.get_events),
+                             web.get("/info", self.get_info)])
 
     @property
     def _shutdown(self) -> bool:
@@ -109,7 +110,7 @@ class EventsEndpoint(RESTEndpoint):
             v = "git"
         return {
             "topic": Notification.events_start.value.name,
-            "kwargs": {"public_key": self.public_key or "", "version": v}
+            "kwargs": {"public_key": self.public_key or "", "version": v, "sessions": str(len(self.events_responses))}
         }
 
     def error_message(self, reported_error: Exception) -> MessageDict:
@@ -212,6 +213,23 @@ class EventsEndpoint(RESTEndpoint):
         elif not self.undelivered_error:
             # If there are several undelivered errors, we store the first error as more important and skip other
             self.undelivered_error = reported_error
+
+    @docs(
+        tags=["General"],
+        summary="Get the general info of the events endpoint.",
+        responses={
+            200: {
+                "schema": schema(EventsInfoResponse={"public_key": marshmallow.fields.String,
+                                                     "version": marshmallow.fields.Integer,
+                                                     "sessions": marshmallow.fields.Integer})
+            }
+        }
+    )
+    async def get_info(self, request: Request) -> RESTResponse:
+        """
+        Get the general info of the events endpoint.
+        """
+        return RESTResponse(self.initial_message()["kwargs"])
 
     @docs(
         tags=["General"],

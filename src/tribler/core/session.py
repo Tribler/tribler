@@ -88,14 +88,14 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
                 if_specs[i]["worker_threads"] = previous_value
 
 
-async def _is_url_available(url: str, timeout: int=1) -> bool:
+async def _is_url_available(url: str, timeout: int=1) -> tuple[bool, bytes | None]:
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, timeout=timeout):
-                return True
+            async with session.get(url, timeout=timeout) as response:
+                return True, await response.read()
         except (asyncio.TimeoutError, aiohttp.client_exceptions.ClientConnectorError,
                 aiohttp.client_exceptions.ClientResponseError):
-            return False
+            return False, None
 
 
 def rescue_keys(config: TriblerConfigManager) -> None:
@@ -243,21 +243,25 @@ class Session:
             self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"].enable_overlay_statistics(True, None,
                                                                                                          True)
 
-    async def find_api_server(self) -> str | None:
+    async def find_api_server(self) -> tuple[str | None, bytes | None]:
         """
         Find the API server, if available.
         """
+        info_route = f'/api/events/info?key={self.config.get("api/key")}'
+
         if port := self.config.get("api/http_port_running"):
             http_url = f'http://{self.config.get("api/http_host")}:{port}'
-            if await _is_url_available(http_url):
-                return http_url
+            available, response = await _is_url_available(http_url + info_route)
+            if available:
+                return http_url, response
 
         if port := self.config.get("api/https_port_running"):
             https_url = f'https://{self.config.get("api/https_host")}:{port}'
-            if await _is_url_available(https_url):
-                return https_url
+            available, response = await _is_url_available(https_url + info_route)
+            if available:
+                return https_url, response
 
-        return None
+        return None, None
 
     async def shutdown(self) -> None:
         """
