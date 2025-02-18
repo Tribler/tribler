@@ -55,7 +55,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                         <Progress className="h-5 bg-primary" value={row.original.progress * 100} indicatorColor="bg-tribler" />
                     </div>
                     <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle z-10">
-                        {capitalize(row.original.status)} {(row.original.progress * 100).toFixed(0)}%
+                        {capitalize(row.original.status.replaceAll("_", " "))} {(row.original.progress * 100).toFixed(0)}%
                     </div>
                 </div>
             )
@@ -198,7 +198,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                     <Card className="border-none shadow-none">
                         <CardHeader className="md:flex-row md:justify-between space-y-0 items-center px-4 py-1.5">
                             <div className="flex flex-nowrap items-center">
-                                <ActionButtons selectedDownloads={selectedDownloads} />
+                                <ActionButtons selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
                             </div>
                             <div>
                                 <div className="flex items-center">
@@ -225,7 +225,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                     rowId={(row) => row.infohash}
                                 />
                             </ContextMenuTrigger>
-                            <ActionMenu selectedDownloads={selectedDownloads} />
+                            <ActionMenu selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
                         </ContextMenu>
 
                     </Card>

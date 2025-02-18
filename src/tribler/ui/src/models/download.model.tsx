@@ -6,7 +6,7 @@ import { Tracker } from "./tracker.model";
 
 
 type state = 'ALLOCATING_DISKSPACE' | 'WAITING_FOR_HASHCHECK' | 'HASHCHECKING' | 'DOWNLOADING'  |
-             'SEEDING' | 'STOPPED' | 'STOPPED_ON_ERROR' | 'METADATA'  | 'CIRCUITS' | 'EXIT_NODES';
+             'SEEDING' | 'STOPPED' | 'STOPPED_ON_ERROR' | 'METADATA'  | 'LOADING' | 'EXIT_NODES';
 
 export interface Download {
     name: string;

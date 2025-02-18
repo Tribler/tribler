@@ -155,11 +155,7 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                                 setVideoDownload(selectedDownloads[0]);
                             }
                         }}
-                        disabled={
-                            selectedDownloads.length !== 1
-                            || selectedDownloads[0].streamable !== true
-                            || selectedDownloads[0].status === "CIRCUITS"
-                        }>
+                        disabled={selectedDownloads.length !== 1 || selectedDownloads[0].streamable !== true}>
                         <Clapperboard className="w-4 ml-2 mr-3" />
                         {"Stream"}
                     </ContextMenuItem>

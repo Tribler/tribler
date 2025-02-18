@@ -1014,10 +1014,12 @@ class DownloadsEndpoint(RESTEndpoint):
             if download.config.get_hops() == 0:
                 return DownloadStatus.STOPPED
 
-            if self.tunnel_community and self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                return DownloadStatus.CIRCUITS
+            # Are we waiting for exit nodes?
+            if self.tunnel_community and not self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
+                return DownloadStatus.EXIT_NODES
 
-            return DownloadStatus.EXIT_NODES
+            # We're probably waiting for the DHT to be ready. See DownloadManager.dht_ready_task.
+            return DownloadStatus.LOADING
 
         return status
 

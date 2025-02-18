@@ -30,7 +30,7 @@ class DownloadStatus(Enum):
     STOPPED = 5
     STOPPED_ON_ERROR = 6
     METADATA = 7
-    CIRCUITS = 8
+    LOADING = 8
     EXIT_NODES = 9
 
 
