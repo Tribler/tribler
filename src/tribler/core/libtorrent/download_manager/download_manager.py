@@ -774,8 +774,8 @@ class DownloadManager(TaskManager):
             download.post_alert("add_torrent_alert", {"handle": existing_handle})
         else:
             # Otherwise, add it anew
-            _ = self.replace_task(f"AddTorrent{infohash}", self._async_add_torrent, ltsession, infohash, atp,
-                                  ignore=(Exception,))
+            _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent, ltsession,
+                                  infohash, atp, ignore=(Exception,))
 
         if not isinstance(download.tdef, TorrentDefNoMetainfo):
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
