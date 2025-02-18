@@ -136,6 +136,7 @@ interface ReactTableProps<T extends object> {
     expandable?: boolean;
     storeSortingState?: string;
     rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
+    selectOnRightClick?: boolean,
 }
 
 function SimpleTable<T extends object>({
@@ -156,7 +157,8 @@ function SimpleTable<T extends object>({
     maxHeight,
     expandable,
     storeSortingState,
-    rowId
+    rowId,
+    selectOnRightClick
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -348,6 +350,15 @@ function SimpleTable<T extends object>({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     className={`select-none ${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
+                                    onContextMenu={(event) => {
+                                        if (selectOnRightClick && !row.getIsSelected()) {
+                                            event.target.dispatchEvent(new MouseEvent("click", {
+                                                bubbles: true,
+                                                cancelable: true,
+                                                view: window,
+                                            }));
+                                        }
+                                    }}
                                     onClick={(event) => {
                                         if (!allowSelect && !allowMultiSelect)
                                             return;

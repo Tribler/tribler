@@ -12,22 +12,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Download } from "@/models/download.model";
 import Pieces from "./Pieces";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { InfoIcon } from "lucide-react";
 
 
-export default function DownloadDetails({ selectedDownloads }: { selectedDownloads: Download[] }) {
-    const [download, setDownload] = useState<Download | undefined>();
-    const tabsRef = useRef<HTMLTableElement>(null);
-    const [contentStyle, setContentStyle] = useState<{ height?: string }>({});
-
-    useEffect(() => {
-        setDownload((selectedDownloads.length == 1) ? selectedDownloads[0] : undefined);
-    }, [selectedDownloads]);
-
+export default function DownloadDetails({ download }: { download: Download | undefined }) {
     const { t } = useTranslation();
 
+    const [contentStyle, setContentStyle] = useState<{ height?: string }>({});
+    const tabsRef = useRef<HTMLTableElement>(null);
 
     useLayoutEffect(() => {
         if (tabsRef.current && contentStyle?.height !== (tabsRef.current.offsetHeight - 40 + "px")) {

@@ -1,4 +1,4 @@
-import Actions from "./Actions";
+import { ActionButtons, ActionMenu } from "./Actions";
 import DownloadDetails from "./Details";
 import SimpleTable, { getHeader } from "@/components/ui/simple-table"
 import { Download } from "@/models/download.model";
@@ -20,6 +20,7 @@ import { useLocation } from "react-router-dom";
 import { useInterval } from "@/hooks/useInterval";
 import { usePrevious } from "@/hooks/usePrevious";
 import { useResizeObserver } from "@/hooks/useResizeObserver";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -54,7 +55,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                         <Progress className="h-5 bg-primary" value={row.original.progress * 100} indicatorColor="bg-tribler" />
                     </div>
                     <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle z-10">
-                        {capitalize(row.original.status)} {(row.original.progress * 100).toFixed(0)}%
+                        {capitalize(row.original.status.replaceAll("_", " "))} {(row.original.progress * 100).toFixed(0)}%
                     </div>
                 </div>
             )
@@ -197,7 +198,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                     <Card className="border-none shadow-none">
                         <CardHeader className="md:flex-row md:justify-between space-y-0 items-center px-4 py-1.5">
                             <div className="flex flex-nowrap items-center">
-                                <Actions selectedDownloads={selectedDownloads} />
+                                <ActionButtons selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
                             </div>
                             <div>
                                 <div className="flex items-center">
@@ -209,23 +210,31 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                 </div>
                             </div>
                         </CardHeader>
-                        <SimpleTable
-                            data={downloads}
-                            columns={downloadColumns}
-                            filters={filters}
-                            allowMultiSelect={true}
-                            onSelectedRowsChange={setSelectedDownloads}
-                            maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
-                            allowColumnToggle="download-columns"
-                            storeSortingState="download-sorting"
-                            rowId={(row) => row.infohash}
-                        />
+
+                        <ContextMenu modal={false}>
+                            <ContextMenuTrigger>
+                                <SimpleTable
+                                    data={downloads}
+                                    columns={downloadColumns}
+                                    filters={filters}
+                                    allowMultiSelect={true}
+                                    onSelectedRowsChange={setSelectedDownloads}
+                                    maxHeight={Math.max((parentRect?.height ?? 50) - 50, 50)}
+                                    allowColumnToggle="download-columns"
+                                    storeSortingState="download-sorting"
+                                    rowId={(row) => row.infohash}
+                                    selectOnRightClick={true}
+                                />
+                            </ContextMenuTrigger>
+                            <ActionMenu selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
+                        </ContextMenu>
+
                     </Card>
                 </div>
             </ResizablePanel>
             <ResizableHandle />
             <ResizablePanel defaultSize={25} className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`}>
-                <DownloadDetails selectedDownloads={selectedDownloads} />
+                <DownloadDetails download={selectedDownloads.length > 0 ? selectedDownloads[0] : undefined} />
             </ResizablePanel>
         </ResizablePanelGroup>
     )

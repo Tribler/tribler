@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import { Button } from "./button";
 import { SearchIcon } from "lucide-react";
+import { EasyTooltip } from "./tooltip";
+import { useTranslation } from "react-i18next";
 
 
 export function Autocomplete({ placeholder, completions, onChange }: { placeholder: string, completions: (filter: string) => Promise<string[]>, onChange: (query: string) => void }) {
+    const { t } = useTranslation();
     const [inputValue, setInputValue] = useState<string>('');
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [selectedSuggestion, setSelectedSuggestion] = useState<number>(0);
@@ -63,22 +66,24 @@ export function Autocomplete({ placeholder, completions, onChange }: { placehold
                             value={inputValue}
                             ref={inputRef}
                         />
-                        <Button
-                            variant="ghost"
-                            className="h-6 py-0 px-0
+                        <EasyTooltip content={t('Search')}>
+                            <Button
+                                variant="ghost"
+                                className="h-6 py-0 px-0
                                        hover:outline hover:outline-neutral-500 outline-1 outline-offset-1
                                        active:outline active:outline-neutral-900 dark:active:outline-neutral-200"
-                            onClick={() => {
-                                const query = (selectedSuggestion > 0) ? suggestions[selectedSuggestion - 1] : inputValue;
-                                handleSuggestionClick(query);
-                                inputRef.current?.blur();
-                            }}
-                        >
-                            <SearchIcon className="h-5" />
-                        </Button>
+                                onClick={() => {
+                                    const query = (selectedSuggestion > 0) ? suggestions[selectedSuggestion - 1] : inputValue;
+                                    handleSuggestionClick(query);
+                                    inputRef.current?.blur();
+                                }}
+                            >
+                                <SearchIcon className="h-5" />
+                            </Button>
+                        </EasyTooltip>
                     </div>
                 </div>
-                {focus && suggestions.length > 0 &&(
+                {focus && suggestions.length > 0 && (
                     <div className="relative mt-2">
                         <div className="max-h-[300px] overflow-y-auto overflow-x-hidden absolute top-0 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
                             {suggestions.length > 0 && (suggestions.map((suggestion, index) => (
