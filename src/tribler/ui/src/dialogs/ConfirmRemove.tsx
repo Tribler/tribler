@@ -7,12 +7,12 @@ import { Download } from "@/models/download.model";
 import { TFunction } from "i18next";
 
 
-interface MoveStorageProps {
+interface ConfirmRemoveProps {
     selectedDownloads: Download[];
     onRemove: (selectedDownloads: Download[], removeData: boolean, t: TFunction) => void;
 }
 
-export default function ConfirmRemove(props: JSX.IntrinsicAttributes & DialogProps & MoveStorageProps) {
+export default function ConfirmRemove(props: JSX.IntrinsicAttributes & DialogProps & ConfirmRemoveProps) {
     const { t } = useTranslation();
 
     return (
@@ -28,13 +28,19 @@ export default function ConfirmRemove(props: JSX.IntrinsicAttributes & DialogPro
                     <Button
                         variant="outline"
                         type="submit"
-                        onClick={() => { props.onRemove(props.selectedDownloads, false, t) }}>
+                        onClick={() => {
+                            props.onRemove(props.selectedDownloads, false, t);
+                            props.onOpenChange?.(false);
+                        }}>
                         {t('RemoveDownload')}
                     </Button>
                     <Button
                         variant="outline"
                         type="submit"
-                        onClick={() => { props.onRemove(props.selectedDownloads, true, t) }}>
+                        onClick={() => {
+                            props.onRemove(props.selectedDownloads, true, t);
+                            props.onOpenChange?.(false);
+                        }}>
                         {t('RemoveDownloadData')}
                     </Button>
                     <DialogClose asChild>
