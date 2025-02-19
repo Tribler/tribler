@@ -4,7 +4,7 @@ import { File as BTFile } from "@/models/file.model";
 import { Path } from "@/models/path.model";
 import { GuiSettings, Settings } from "@/models/settings.model";
 import { Torrent } from "@/models/torrent.model";
-import axios, { AxiosError, AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
 
 
@@ -30,6 +30,14 @@ export class TriblerService {
         this.addEventListener("tribler_exception", OnError);
         // Gets the GuiSettings
         this.getSettings();
+    }
+
+    addRequestInterceptor(callback: ((value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>)) {
+        this.http.interceptors.request.use(callback);
+    }
+
+    addResponseInterceptor(callback: ((value: AxiosResponse<any, any>) => AxiosResponse<any, any>)) {
+        this.http.interceptors.response.use(callback);
     }
 
     isOnline() {

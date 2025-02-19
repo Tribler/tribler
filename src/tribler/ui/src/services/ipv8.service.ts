@@ -7,8 +7,8 @@ import { Relay } from "@/models/relay.model";
 import { Swarm } from "@/models/swarm.model";
 import { Task } from "@/models/task.model";
 import { Peer } from "@/models/tunnelpeer.model";
-import axios, { AxiosError, AxiosInstance } from "axios";
-import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { ErrorDict, formatAxiosError } from "./reporting";
 
 
 export class IPv8Service {
@@ -22,6 +22,13 @@ export class IPv8Service {
         });
     }
 
+    addRequestInterceptor(callback: ((value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>)) {
+        this.http.interceptors.request.use(callback);
+    }
+
+    addResponseInterceptor(callback: ((value: AxiosResponse<any, any>) => AxiosResponse<any, any>)) {
+        this.http.interceptors.response.use(callback);
+    }
 
     async enableDrift(enable: boolean): Promise<undefined | ErrorDict | boolean> {
         try {
