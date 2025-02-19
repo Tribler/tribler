@@ -22,6 +22,7 @@
     "CreateTorrent": "从文件创建种子",
     "DefaultDownloadSettings": "默认下载设置",
     "SaveFilesTo": "保存文件到：",
+    "DefaultTrackersFile": "默认跟踪器文件：",
     "AlwaysAsk": "总是询问下载设置",
     "DownloadAnon": "使用代理匿名下载",
     "SeedAnon": "使用代理加密地匿名做种",

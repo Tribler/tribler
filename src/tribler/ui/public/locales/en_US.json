@@ -22,6 +22,7 @@
     "CreateTorrent": "Create torrent from file(s)",
     "DefaultDownloadSettings": "Default download settings",
     "SaveFilesTo": "Save files to:",
+    "DefaultTrackersFile": "Default trackers file:",
     "AlwaysAsk": "Always ask download settings",
     "DownloadAnon": "Download anonymously using proxies",
     "SeedAnon": "Encrypted anonymous seeding using proxies",

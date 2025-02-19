@@ -78,6 +78,7 @@ export interface Settings {
             seeding_time: number;
             channel_download: boolean;
             add_download_to_channel: boolean;
+            trackers_file: string;
         },
     },
     rendezvous: {

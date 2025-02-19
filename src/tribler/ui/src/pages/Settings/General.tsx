@@ -84,6 +84,29 @@ export default function General() {
                     }}
                 />
             </div>
+            <div className="py-2 flex items-center">
+                <Label htmlFor="trackers_file" className="whitespace-nowrap pr-5">
+                    {t('DefaultTrackersFile')}
+                </Label>
+                <PathInput
+                    path={settings?.libtorrent?.download_defaults?.trackers_file}
+                    directory={false}
+                    onPathChange={(path) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    download_defaults: {
+                                        ...settings.libtorrent.download_defaults,
+                                        trackers_file: path
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+            </div>
             <div className="flex items-center">
                 <div className="w-64 flex items-center">
                     <Checkbox

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
 from asyncio import get_event_loop, shield
 from binascii import hexlify, unhexlify
+from functools import lru_cache
 from pathlib import Path, PurePosixPath
+from time import time
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 import libtorrent as lt
@@ -39,6 +42,7 @@ if TYPE_CHECKING:
 TOTAL = "total"
 LOADED = "loaded"
 ALL_LOADED = "all_loaded"
+logger = logging.getLogger(__name__)
 
 
 class JSONFilesInfo(TypedDict):
@@ -51,6 +55,21 @@ class JSONFilesInfo(TypedDict):
     size: int
     included: bool
     progress: float
+
+
+@lru_cache(maxsize=1)
+def cached_read(tracker_file: str, _: int) -> list[bytes]:
+    """
+    Keep one cache for one tracker file at a time (by default: for a max of 120 seconds, see caller).
+
+    When adding X torrents at once, this avoids reading the same file X times.
+    """
+    try:
+        with open(tracker_file, "rb") as f:
+            return [line.rstrip() for line in f if line.rstrip()]  # uTorrent format contains blank lines between URLs
+    except OSError:
+        logger.exception("Failed to read tracker file!")
+        return []
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -359,6 +378,17 @@ class DownloadsEndpoint(RESTEndpoint):
             result.append(info)
         return RESTResponse({"downloads": result, "checkpoints": checkpoints})
 
+    def _get_default_trackers(self) -> list[bytes]:
+        """
+        Get the default trackers from the configured tracker file.
+
+        Tracker file format is "(<TRACKER><NEWLINE><NEWLINE>)*". We assume "<TRACKER>" does not include newlines.
+        """
+        tracker_file = self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
+        if not tracker_file:
+            return []
+        return cached_read(tracker_file, int(time())//120)
+
     @docs(
         tags=["Libtorrent"],
         summary="Start a download from a provided URI.",
@@ -397,7 +427,7 @@ class DownloadsEndpoint(RESTEndpoint):
         "uri*": (String, "The URI of the torrent file that should be downloaded. This URI can either represent a file "
                          "location, a magnet link or a HTTP(S) url."),
     }))
-    async def add_download(self, request: Request) -> RESTResponse:  # noqa: C901
+    async def add_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
         """
         Start a download from a provided URI.
         """
@@ -436,8 +466,11 @@ class DownloadsEndpoint(RESTEndpoint):
         try:
             if tdef:
                 download = await self.download_manager.start_download(tdef=tdef, config=download_config)
-            elif uri:
+            else:  # guaranteed to have uri
                 download = await self.download_manager.start_download_from_uri(uri, config=download_config)
+            if self.download_manager.config.get("libtorrent/download_defaults/trackers_file"):
+                await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
+                download.add_trackers(self._get_default_trackers())
         except Exception as e:
             return RESTResponse({"error": {
                                     "handled": True,
