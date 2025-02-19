@@ -22,6 +22,7 @@
     "CreateTorrent": "Criar torrent de um arquivo(s)",
     "DefaultDownloadSettings": "Configuração de download padrão",
     "SaveFilesTo": "Salvar arquivos em:",
+    "DefaultTrackersFile": "Arquivo de rastreadores padrão:",
     "AlwaysAsk": "Sempre peça configurações de download",
     "DownloadAnon": "Baixe anonimamente usando proxies",
     "SeedAnon": "Semear anonimamente usando proxies",

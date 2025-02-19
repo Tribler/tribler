@@ -22,6 +22,7 @@
     "CreateTorrent": "파일에서 토렌트 만들기",
     "DefaultDownloadSettings": "기본 내려받기 설정",
     "SaveFilesTo": "파일을 저장할 위치 :",
+    "DefaultTrackersFile": "기본 추적기 파일 :",
     "AlwaysAsk": "항상 내려받기 설정 확인",
     "DownloadAnon": "프록시를 사용하여 익명으로 내려받기",
     "SeedAnon": "프록시를 사용하여 암호화된 익명 시딩",
