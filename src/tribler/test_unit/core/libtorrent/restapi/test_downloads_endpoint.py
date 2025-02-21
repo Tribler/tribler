@@ -87,7 +87,7 @@ class TestDownloadsEndpoint(TestBase):
         conf.validate(Validator())
         config = DownloadConfig(conf)
         config.set_dest_dir(Path(""))
-        return Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), None, config, hidden=False,
+        return Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), self.download_manager, config, hidden=False,
                         checkpoint_disabled=True)
 
     async def test_get_downloads_unloaded(self) -> None:
@@ -129,7 +129,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if an empty list is returned if there are only hidden downloads.
         """
-        self.set_loaded_downloads([Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), None, Mock(),
+        self.set_loaded_downloads([Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), self.download_manager, Mock(),
                                             hidden=True, checkpoint_disabled=True)])
         request = MockRequest("/api/downloads", query={})
 

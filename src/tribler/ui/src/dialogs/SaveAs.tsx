@@ -290,6 +290,20 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         {t('SeedAnon')}
                     </label>
                 </div>
+                <div className="flex items-center space-x-2">
+                    <Checkbox
+                        checked={params.only_metadata}
+                        hidden={files.length !== 0}
+                        onCheckedChange={(value) => setParams({ ...params, only_metadata: !!value })}
+                        id="only_metadata" />
+                    <label
+                        htmlFor="only_metadata"
+                        hidden={files.length !== 0}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        {t('StopAfterMetadata')}
+                    </label>
+                </div>
                 <DialogFooter>
                     {warning && (
                         <div className="flex flex-row text-muted-foreground space-x-2">

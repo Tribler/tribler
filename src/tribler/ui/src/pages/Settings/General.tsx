@@ -142,6 +142,29 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
+                    checked={settings?.libtorrent?.check_after_complete}
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    check_after_complete: !!value
+                                }
+                            });
+                        }
+                    }}
+                    id="check_after_complete" />
+                <label
+                    htmlFor="check_after_complete"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                    {t('CheckAfterCompletion')}
+                </label>
+            </div>
+
+            <div className="flex items-center space-x-2 py-2">
+                <Checkbox
                     checked={settings?.ui?.ask_download_settings}
                     onCheckedChange={(value) => {
                         if (settings) {
