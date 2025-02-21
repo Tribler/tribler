@@ -49,13 +49,23 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "progress",
         header: getHeader('Status'),
         cell: ({ row }) => {
+            let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${(row.original.progress * 100).toFixed(0)}%`
+            let progress = row.original.progress * 100;
+            let color = "bg-tribler";
+
+            if (row.original.status_code == 6) {
+                status = "Error";
+                progress = 100;
+                color = "bg-red-600";
+            }
+
             return (
                 <div className="grid">
                     <div className="col-start-1 row-start-1">
-                        <Progress className="h-5 bg-primary" value={row.original.progress * 100} indicatorColor="bg-tribler" />
+                        <Progress className="h-5 bg-primary" value={progress} indicatorColor={`${color}`} />
                     </div>
                     <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle z-10">
-                        {capitalize(row.original.status.replaceAll("_", " "))} {(row.original.progress * 100).toFixed(0)}%
+                        {status}
                     </div>
                 </div>
             )

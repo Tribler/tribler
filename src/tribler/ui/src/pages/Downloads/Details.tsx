@@ -57,7 +57,8 @@ export default function DownloadDetails({ download }: { download: Download | und
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Status')}</div>
-                            <div className="basis-3/4">{capitalize(download.status)}</div>
+                            {download.status_code == 6 && <div className="basis-3/4 text-red-600">Error: {download.error}</div>}
+                            {download.status_code != 6 && <div className="basis-3/4">{capitalize(download.status)}</div>}
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Filesize')}</div>
