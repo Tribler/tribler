@@ -398,7 +398,7 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
                             config=config)
         download.futures["save_resume_data"] = succeed(True)
-        download_state = DownloadState(download, Mock(state=4, paused=False), None)
+        download_state = DownloadState(download, Mock(state=4, paused=False, error=None), None)
         self.manager.downloads = {b"\x01" * 20: download}
         self.manager.config.set("libtorrent/download_defaults/number_hops", 42)
 

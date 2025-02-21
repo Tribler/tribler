@@ -152,7 +152,7 @@ class TestStream(TestBase):
                             checkpoint_disabled=True)
         download.handle = Mock(is_valid=Mock(return_value=True), file_priorities=Mock(return_value=[0] * 6),
                                torrent_file=Mock(return_value=download.tdef.torrent_info))
-        download.lt_status = Mock(state=3, paused=False, pieces=[])
+        download.lt_status = Mock(state=3, paused=False, error=None, pieces=[])
         if piece_size is not None:
             self.convert_to_piece_size(download, piece_size)
         if pieces is not None:

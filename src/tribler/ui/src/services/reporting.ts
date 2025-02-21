@@ -1,6 +1,9 @@
 import axios, { AxiosError } from "axios";
 
-export interface ErrorDict { [error: string]: {handled: boolean, message: string}; };
+export interface ErrorDict {
+    error: {handled: boolean, message: string},
+    errorCode?: number
+};
 
 export function isErrorDict(object: any): object is ErrorDict {
     return (typeof object === 'object') && ('error' in object);
@@ -38,7 +41,9 @@ export function formatAxiosError(error: Error | AxiosError): ErrorDict | undefin
             handleHTTPError(error);
          }
          // This is some (probably expected) REST API error
-         return error.response.data;
+         let errorDict = error.response.data;
+         errorDict.errorCode = error.status;
+         return errorDict;
      }
      // No idea what this is: make it someone else's problem
      throw error;

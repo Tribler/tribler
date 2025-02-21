@@ -99,12 +99,12 @@ class DownloadState:
         """
         Returns the status of the torrent.
         """
+        if self.get_error():
+            return DownloadStatus.STOPPED_ON_ERROR
         if self.lt_status:
             if self.lt_status.paused:
                 return DownloadStatus.STOPPED
             return DOWNLOAD_STATUS_MAP[self.lt_status.state]
-        if self.get_error():
-            return DownloadStatus.STOPPED_ON_ERROR
         return DownloadStatus.STOPPED
 
     def get_error(self) -> str | None:

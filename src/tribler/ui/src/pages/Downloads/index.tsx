@@ -1,7 +1,7 @@
 import { ActionButtons, ActionMenu } from "./Actions";
 import DownloadDetails from "./Details";
 import SimpleTable, { getHeader } from "@/components/ui/simple-table"
-import { Download } from "@/models/download.model";
+import { Download, StatusCode } from "@/models/download.model";
 import { Progress } from "@/components/ui/progress"
 import { capitalize, formatBytes, formatDateTime, formatTimeRelative } from "@/lib/utils";
 import { isErrorDict } from "@/services/reporting";
@@ -49,13 +49,23 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "progress",
         header: getHeader('Status'),
         cell: ({ row }) => {
+            let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${(row.original.progress * 100).toFixed(0)}%`
+            let progress = row.original.progress * 100;
+            let color = "bg-tribler";
+
+            if (row.original.status_code == StatusCode.STOPPED_ON_ERROR) {
+                status = "Error";
+                progress = 100;
+                color = "bg-red-600";
+            }
+
             return (
                 <div className="grid">
                     <div className="col-start-1 row-start-1">
-                        <Progress className="h-5 bg-primary" value={row.original.progress * 100} indicatorColor="bg-tribler" />
+                        <Progress className="h-5 bg-primary" value={progress} indicatorColor={`${color}`} />
                     </div>
                     <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle z-10">
-                        {capitalize(row.original.status.replaceAll("_", " "))} {(row.original.progress * 100).toFixed(0)}%
+                        {status}
                     </div>
                 </div>
             )
@@ -100,7 +110,7 @@ const downloadColumns: ColumnDef<Download>[] = [
             hide_by_default: true,
         },
         cell: ({ row }) => {
-            if (row.original.progress === 1 || row.original.status_code !== 3)
+            if (row.original.progress === 1 || row.original.status_code !== StatusCode.DOWNLOADING)
                 return <span>-</span>
             return <span>{formatTimeRelative(row.original.eta, false)}</span>
         },
@@ -198,7 +208,8 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                     <Card className="border-none shadow-none">
                         <CardHeader className="md:flex-row md:justify-between space-y-0 items-center px-4 py-1.5">
                             <div className="flex flex-nowrap items-center">
-                                <ActionButtons selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
+                                <ActionButtons selectedDownloads={
+                                    selectedDownloads.filter((d) => d.status_code !== StatusCode.LOADING)} />
                             </div>
                             <div>
                                 <div className="flex items-center">
@@ -226,7 +237,8 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                     selectOnRightClick={true}
                                 />
                             </ContextMenuTrigger>
-                            <ActionMenu selectedDownloads={selectedDownloads.filter((d) => d.status !== "LOADING")} />
+                            <ActionMenu selectedDownloads={
+                                selectedDownloads.filter((d) => d.status_code !== StatusCode.LOADING)} />
                         </ContextMenu>
 
                     </Card>
