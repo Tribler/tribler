@@ -129,6 +129,9 @@ class Download(TaskManager):
         self.future_finished = self.wait_for_alert("torrent_finished_alert")
         self.future_metainfo = self.wait_for_alert("metadata_received_alert", lambda a: self.tdef.get_metainfo())
 
+        if self.download_manager.config.get("libtorrent/check_after_complete"):
+            self.register_task("Recheck torrent after finish", self._recheck_after_finish)
+
         alert_handlers = {"tracker_reply_alert": self.on_tracker_reply_alert,
                           "tracker_error_alert": self.on_tracker_error_alert,
                           "tracker_warning_alert": self.on_tracker_warning_alert,
@@ -172,6 +175,15 @@ class Download(TaskManager):
         Convert this download to a print-safe human-readable string.
         """
         return self.__str__()
+
+    async def _recheck_after_finish(self) -> None:
+        """
+        Wait for the torrent to finish downloading, then recheck.
+
+        Note: a finished recheck causes a ``torrent_finished_alert``: hooking into that causes an infinite loop!
+        """
+        await self.future_finished
+        self.force_recheck()
 
     def add_stream(self) -> None:
         """

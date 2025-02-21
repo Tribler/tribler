@@ -185,6 +185,7 @@
     "ToastErrorTrackerCheck": "Не удалось проверить трекер!",
     "MoveAfterCompletion": "Переезд после завершения",
     "MoveAfterCompletionInfo": "После завершения файлы будут перемещены в",
+    "CheckAfterCompletion": "Проверьте торрент после завершения",
     "Create": "Создавать",
     "Select": "Выбирать",
     "PleaseSelectDirectory": "Пожалуйста, выберите каталог",

@@ -13,6 +13,7 @@ from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTEN
 from tribler.core.libtorrent.download_manager.stream import NoAvailableStreamError, Stream, StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class MockStreamReader(StreamReader):
@@ -138,6 +139,8 @@ class TestStream(TestBase):
     Tests for the Stream class.
     """
 
+    dlmngr = Mock(config=MockTriblerConfigManager())
+
     def create_mock_download(self, piece_size: int | None = None, pieces: list[bool] | None = None) -> Download:
         """
         Create a mocked DownloadConfig.
@@ -148,7 +151,7 @@ class TestStream(TestBase):
         conf.validate(Validator())
         config = DownloadConfig(conf)
         config.set_dest_dir(Path(""))
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None, config,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr, config,
                             checkpoint_disabled=True)
         download.handle = Mock(is_valid=Mock(return_value=True), file_priorities=Mock(return_value=[0] * 6),
                                torrent_file=Mock(return_value=download.tdef.torrent_info))

@@ -184,6 +184,7 @@
     "ToastErrorTrackerCheck": "检查追踪器失败！",
     "MoveAfterCompletion": "完成后搬移",
     "MoveAfterCompletionInfo": "完成后，文件将移至",
+    "CheckAfterCompletion": "完成后检查洪流",
     "Create": "创造",
     "Select": "选择",
     "PleaseSelectDirectory": "请选择一个目录",

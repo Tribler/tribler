@@ -63,7 +63,7 @@ class TestDownloadManager(TestBase):
         """
         Testing if the metainfo is retrieved when the handle has valid metadata immediately.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.get_state = Mock(return_value=Mock(get_num_seeds_peers=Mock(return_value=(42, 7))))
@@ -91,7 +91,7 @@ class TestDownloadManager(TestBase):
         """
         Test if the same request is returned when invoking get_metainfo twice with the same infohash.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
@@ -116,7 +116,7 @@ class TestDownloadManager(TestBase):
         """
         Test if metainfo can be fetched for a torrent which is already in session.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.downloads[download.tdef.infohash] = download
@@ -127,7 +127,7 @@ class TestDownloadManager(TestBase):
         """
         Test if a torrent can be added while a metainfo request is running.
         """
-        info_download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        info_download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                                  checkpoint_disabled=True, config=self.create_mock_download_config())
         info_download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.downloads[info_download.tdef.infohash] = info_download
@@ -163,7 +163,7 @@ class TestDownloadManager(TestBase):
         """
         Test if start handle waits no longer than the set timeout for the DHT to be ready.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.dht_ready_task = Future()
@@ -175,7 +175,7 @@ class TestDownloadManager(TestBase):
         """
         Test if start handle waits for the DHT to be ready.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.dht_ready_task = Future()
@@ -191,7 +191,7 @@ class TestDownloadManager(TestBase):
         """
         Test if the "save_path" is always set in the resume_data, otherwise we SEGFAULT on win32!
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.get_session = AsyncMock(return_value=Mock(get_torrents=Mock(return_value=[])))
@@ -248,7 +248,7 @@ class TestDownloadManager(TestBase):
         """
         Test if torrents can be added when there is a pre-existing download.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
@@ -395,7 +395,7 @@ class TestDownloadManager(TestBase):
         """
         config = self.create_mock_download_config()
         config.set_safe_seeding(True)
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.manager, checkpoint_disabled=True,
                             config=config)
         download.futures["save_resume_data"] = succeed(True)
         download_state = DownloadState(download, Mock(state=4, paused=False, error=None), None)
@@ -419,7 +419,7 @@ class TestDownloadManager(TestBase):
         """
         Test if downloads can be retrieved by name.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.manager, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         self.manager.downloads = {b"\x01" * 20: download}
 
@@ -485,8 +485,8 @@ class TestDownloadManager(TestBase):
         """
         Test if trackers can be updated for an existing download.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
         self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce1"])
@@ -498,8 +498,8 @@ class TestDownloadManager(TestBase):
         """
         Test if multiple trackers are correctly added as an announce list instead of a the singular announce.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
         self.manager.update_trackers(download.tdef.infohash, [f"127.0.0.1/test-announce{i}".encode() for i in range(2)])
@@ -512,8 +512,8 @@ class TestDownloadManager(TestBase):
         """
         Test if trackers can be updated in sequence.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), None, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
         self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce0"])

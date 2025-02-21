@@ -181,6 +181,7 @@
     "ToastErrorTrackerCheck": "트래커 확인에 실패했습니다!",
     "MoveAfterCompletion": "완료 후 이동",
     "MoveAfterCompletionInfo": "완료되면 파일이 이동됩니다.",
+    "CheckAfterCompletion": "완료 후 급류를 확인하십시오",
     "Create": "만들다",
     "Select": "선택하다",
     "PleaseSelectDirectory": "디렉토리를 선택해주세요",

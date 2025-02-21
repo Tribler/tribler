@@ -67,6 +67,7 @@ export interface Settings {
         announce_to_all_tiers: boolean;
         announce_to_all_trackers: boolean;
         max_concurrent_http_announces: number;
+        check_after_complete: boolean;
         download_defaults: {
             anonymity_enabled: boolean;
             number_hops: number;

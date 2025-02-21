@@ -16,6 +16,7 @@ from tribler.core.libtorrent.torrents import (
     get_info_from_handle,
     require_handle,
 )
+from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
 class TestTorrents(TestBase):
@@ -23,11 +24,13 @@ class TestTorrents(TestBase):
     Tests for the torrent-related functionality.
     """
 
+    dlmngr = Mock(config=MockTriblerConfigManager())
+
     def test_check_handle_default_missing_handle(self) -> None:
         """
         Test if the default value is returned for missing handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
 
         self.assertEqual("default", (check_handle("default")(Download.get_def)(download)))
@@ -36,7 +39,7 @@ class TestTorrents(TestBase):
         """
         Test if the default value is returned for invalid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
@@ -46,7 +49,7 @@ class TestTorrents(TestBase):
         """
         Test if the given method is called for valid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -56,7 +59,7 @@ class TestTorrents(TestBase):
         """
         Test if None is returned for invalid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
@@ -68,7 +71,7 @@ class TestTorrents(TestBase):
         """
         Test if the result of the given method is given for valid handles.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -86,7 +89,7 @@ class TestTorrents(TestBase):
             """
             raise RuntimeError
 
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -105,7 +108,7 @@ class TestTorrents(TestBase):
             """
             raise ValueError
 
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), None, checkpoint_disabled=True,
+        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
 

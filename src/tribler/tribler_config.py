@@ -103,6 +103,7 @@ class LibtorrentConfig(TypedDict):
     announce_to_all_tiers: bool
     announce_to_all_trackers: bool
     max_concurrent_http_announces: int
+    check_after_complete: bool
 
     download_defaults: DownloadDefaultsConfig
 
@@ -223,6 +224,7 @@ DEFAULT_CONFIG = {
         announce_to_all_tiers=False,
         announce_to_all_trackers=False,
         max_concurrent_http_announces=50,
+        check_after_complete=False,
         download_defaults=DownloadDefaultsConfig(
             anonymity_enabled=True,
             number_hops=1,

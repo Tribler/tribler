@@ -178,6 +178,7 @@
     "ToastErrorTrackerCheck": "Falha ao verificar o rastreador!",
     "MoveAfterCompletion": "Mover após a conclusão",
     "MoveAfterCompletionInfo": "Uma vez concluído, os arquivos serão movidos para",
+    "CheckAfterCompletion": "Verifique a torrent após a conclusão",
     "Create": "Criar",
     "Select": "Selecione",
     "PleaseSelectDirectory": "Selecione um diretório",

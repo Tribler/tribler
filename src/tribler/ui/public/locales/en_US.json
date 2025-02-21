@@ -184,6 +184,7 @@
     "ToastErrorTrackerCheck": "Failed to check tracker!",
     "MoveAfterCompletion": "Move after completion",
     "MoveAfterCompletionInfo": "Once completed, files will move to",
+    "CheckAfterCompletion": "Check torrent after completion",
     "Create": "Create",
     "Select": "Select",
     "PleaseSelectDirectory": "Please select a directory",
