@@ -10,7 +10,7 @@ import Peers from "./Peers";
 import Trackers from "./Trackers";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Download } from "@/models/download.model";
+import { Download, StatusCode } from "@/models/download.model";
 import Pieces from "./Pieces";
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -57,8 +57,10 @@ export default function DownloadDetails({ download }: { download: Download | und
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Status')}</div>
-                            {download.status_code == 6 && <div className="basis-3/4 text-red-600">Error: {download.error}</div>}
-                            {download.status_code != 6 && <div className="basis-3/4">{capitalize(download.status)}</div>}
+                            {download.status_code == StatusCode.STOPPED_ON_ERROR &&
+                                <div className="basis-3/4 text-red-600">Error: {download.error}</div>}
+                            {download.status_code != StatusCode.STOPPED_ON_ERROR &&
+                                <div className="basis-3/4">{capitalize(download.status)}</div>}
                         </div>
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t('Filesize')}</div>
@@ -80,7 +82,7 @@ export default function DownloadDetails({ download }: { download: Download | und
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger>
-                                                <InfoIcon className="w-4 ml-2"/>
+                                                <InfoIcon className="w-4 ml-2" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <span>

@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { ColumnDef, Row } from "@tanstack/react-table";
 import { FileTreeItem } from "@/models/file.model";
-import { Download } from "@/models/download.model";
+import { Download, StatusCode } from "@/models/download.model";
 import { Dispatch, MutableRefObject, SetStateAction, useEffect, useMemo, useRef, useState } from "react";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
@@ -103,7 +103,7 @@ export default function Files({ download }: { download: Download }) {
     }, []);
 
     useEffect(() => {
-        if (download.status_code === 3)
+        if (download.status_code === StatusCode.DOWNLOADING)
             updateFiles(setFiles, download, initialized);
     }, [download]);
 

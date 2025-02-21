@@ -5,8 +5,20 @@ import { File } from "./file.model";
 import { Tracker } from "./tracker.model";
 
 
-type state = 'ALLOCATING_DISKSPACE' | 'WAITING_FOR_HASHCHECK' | 'HASHCHECKING' | 'DOWNLOADING'  |
-             'SEEDING' | 'STOPPED' | 'STOPPED_ON_ERROR' | 'METADATA'  | 'LOADING' | 'EXIT_NODES';
+export enum StatusCode {
+    ALLOCATING_DISKSPACE = 0,
+    WAITING_FOR_HASHCHECK = 1,
+    HASHCHECKING = 2,
+    DOWNLOADING = 3,
+    SEEDING = 4,
+    STOPPED = 5,
+    STOPPED_ON_ERROR = 6,
+    METADATA = 7,
+    LOADING = 8,
+    EXIT_NODES = 9
+}
+
+export type Status = keyof typeof StatusCode;
 
 export interface Download {
     name: string;
@@ -14,8 +26,8 @@ export interface Download {
     infohash: string;
     speed_down: number;
     speed_up: number;
-    status: state;
-    status_code: number;
+    status: Status;
+    status_code: StatusCode;
     size: number;
     eta: number;
     num_peers: number;
