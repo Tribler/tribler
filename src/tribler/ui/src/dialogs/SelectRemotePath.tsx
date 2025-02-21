@@ -49,8 +49,17 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         const response = await triblerService.browseFiles(dir, showFiles || false);
         if (response === undefined) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${t("ToastErrorGenNetworkErr")}`);
-        } else if (isErrorDict(response)) {
+        } else if (isErrorDict(response) && response.errorCode != 404) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${response.error.message}`);
+        } else if (isErrorDict(response)) {
+            // If we couldn't get the requested path, browse the default path instead.
+            let settings = await triblerService.getSettings()
+            if (settings !== undefined && !isErrorDict(settings)) {
+                let nextDir = settings.libtorrent.download_defaults.saveas;
+                if (dir != nextDir) {
+                    reloadPaths(nextDir);
+                }
+            }
         } else {
             setPaths(response.paths);
             setCurrentPath(response.current);

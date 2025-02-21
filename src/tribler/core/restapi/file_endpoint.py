@@ -55,8 +55,15 @@ class FileEndpoint(RESTEndpoint):
 
         # Move up until we find a directory
         parent_path = Path(path).resolve()
-        while not parent_path.is_dir():
+        while not parent_path.is_dir() and parent_path != parent_path.parent:
             parent_path = parent_path.parent
+
+        # Did we find an existing directory?
+        if not parent_path.is_dir() or not parent_path.exists():
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": f"No directory named {parent_path} exists"
+            }}, status=HTTP_NOT_FOUND)
 
         # Get all files/subdirs
         results = []
