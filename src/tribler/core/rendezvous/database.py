@@ -38,7 +38,7 @@ class RendezvousDatabase:
         """
         Write a peer's session time to the database.
         """
-        with db_session(immediate=True):
+        with db_session():
             address = peer.address
             family = socket.AF_INET6 if isinstance(address, UDPv6Address) else socket.AF_INET
             self.Certificate(public_key=peer.public_key.key_to_bin(),

@@ -199,7 +199,7 @@ class RendezvousComponent(BaseLauncher):
         from tribler.core.rendezvous.community import RendezvousCommunity
         from tribler.core.rendezvous.rendezvous_hook import RendezvousHook
 
-        rendezvous_hook = RendezvousHook(cast(RendezvousCommunity, community).composition.database)
+        rendezvous_hook = RendezvousHook(cast(RendezvousCommunity, community).composition.database, community)
         ipv8.network.add_peer_observer(rendezvous_hook)
 
 
