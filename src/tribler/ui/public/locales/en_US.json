@@ -26,6 +26,7 @@
     "AlwaysAsk": "Always ask download settings",
     "DownloadAnon": "Download anonymously using proxies",
     "SeedAnon": "Encrypted anonymous seeding using proxies",
+    "StopAfterMetadata": "Stop download after metadata is received",
     "TorrentWatchFolder": "Torrent watch folder",
     "WatchFolder": "Watch Folder",
     "EnableWatchFolder": "Enable watch folder (requires restart)",

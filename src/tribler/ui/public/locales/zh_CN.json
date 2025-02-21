@@ -26,6 +26,7 @@
     "AlwaysAsk": "总是询问下载设置",
     "DownloadAnon": "使用代理匿名下载",
     "SeedAnon": "使用代理加密地匿名做种",
+    "StopAfterMetadata": "收到元数据后停止下载",
     "TorrentWatchFolder": "种子监视文件夹",
     "WatchFolder": "监视文件夹",
     "EnableWatchFolder": "启用监视文件夹（需要重新启动）",

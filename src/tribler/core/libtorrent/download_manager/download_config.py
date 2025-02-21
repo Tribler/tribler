@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         add_download_to_channel: bool
         saveas: str | None
         completed_dir: str | None
+        stop_after_metainfo: bool
 
 
     class StateConfigSection(TypedDict):
@@ -78,6 +79,7 @@ channel_download = boolean(default=False)
 add_download_to_channel = boolean(default=False)
 saveas = string(default=None)
 completed_dir = string(default=None)
+stop_after_metainfo = boolean(default=False)
 
 [state]
 metainfo = string(default='ZGU=')
@@ -312,3 +314,15 @@ class DownloadConfig:
         Get the engine resume data dict for this download or None if it cannot be decoded.
         """
         return _to_dict(self.config["state"]["engineresumedata"])
+
+    def set_stop_after_metainfo(self, value: bool) -> None:
+        """
+        Set the download to stop after receiving the metainfo.
+        """
+        self.config["download_defaults"]["stop_after_metainfo"] = value
+
+    def get_stop_after_metainfo(self) -> bool:
+        """
+        Get whether the download should stop after receiving the metainfo.
+        """
+        return self.config["download_defaults"].get("stop_after_metainfo", False)

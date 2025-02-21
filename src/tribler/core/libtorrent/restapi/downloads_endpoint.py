@@ -394,22 +394,29 @@ class DownloadsEndpoint(RESTEndpoint):
         summary="Start a download from a provided URI.",
         parameters=[{
             "in": "query",
-            "name": "get_peers",
-            "description": "Flag indicating whether or not to include peers",
-            "type": "boolean",
+            "name": "anon_hops",
+            "description": "Number of hops for the anonymous download. No hops is equivalent to a plain download",
+            "type": "integer",
             "required": False
         },
             {
                 "in": "query",
-                "name": "get_pieces",
-                "description": "Flag indicating whether or not to include pieces",
+                "name": "safe_seeding",
+                "description": "Whether the seeding of the download should be anonymous or not",
                 "type": "boolean",
                 "required": False
             },
             {
                 "in": "query",
-                "name": "get_files",
-                "description": "Flag indicating whether or not to include files",
+                "name": "destination",
+                "description": "The download destination path of the torrent",
+                "type": "string",
+                "required": False
+            },
+            {
+                "in": "query",
+                "name": "only_metadata",
+                "description": "Stop the download after the metadata has been received",
                 "type": "boolean",
                 "required": False
             }],
@@ -423,7 +430,7 @@ class DownloadsEndpoint(RESTEndpoint):
     @json_schema(schema(AddDownloadRequest={
         "anon_hops": (Integer, "Number of hops for the anonymous download. No hops is equivalent to a plain download"),
         "safe_seeding": (Boolean, "Whether the seeding of the download should be anonymous or not"),
-        "destination": (String, "the download destination path of the torrent"),
+        "destination": (String, "The download destination path of the torrent"),
         "uri*": (String, "The URI of the torrent file that should be downloaded. This URI can either represent a file "
                          "location, a magnet link or a HTTP(S) url."),
     }))
@@ -471,6 +478,8 @@ class DownloadsEndpoint(RESTEndpoint):
             if self.download_manager.config.get("libtorrent/download_defaults/trackers_file"):
                 await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
                 download.add_trackers(self._get_default_trackers())
+            if params.get("only_metadata", "false") != "false":
+                download.stop_after_metainfo()
         except Exception as e:
             return RESTResponse({"error": {
                                     "handled": True,

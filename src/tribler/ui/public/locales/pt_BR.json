@@ -26,6 +26,7 @@
     "AlwaysAsk": "Sempre peça configurações de download",
     "DownloadAnon": "Baixe anonimamente usando proxies",
     "SeedAnon": "Semear anonimamente usando proxies",
+    "StopAfterMetadata": "Parar do download após os metadados forem recebidos",
     "TorrentWatchFolder": "Observar pasta torrent",
     "WatchFolder": "Monitoramento de pasta",
     "EnableWatchFolder": "Ativar pasta monitorada (requer reinicialização)",

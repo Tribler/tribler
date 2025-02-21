@@ -132,6 +132,9 @@ class Download(TaskManager):
         if self.download_manager.config.get("libtorrent/check_after_complete"):
             self.register_task("Recheck torrent after finish", self._recheck_after_finish)
 
+        if config and config.get_stop_after_metainfo():
+            self.stop_after_metainfo()
+
         alert_handlers = {"tracker_reply_alert": self.on_tracker_reply_alert,
                           "tracker_error_alert": self.on_tracker_error_alert,
                           "tracker_warning_alert": self.on_tracker_warning_alert,
@@ -184,6 +187,16 @@ class Download(TaskManager):
         """
         await self.future_finished
         self.force_recheck()
+
+    @task
+    async def stop_after_metainfo(self) -> None:
+        """
+        Wait for the metadata to be received, then stop.
+        """
+        self.config.set_stop_after_metainfo(True)  # Persist between restarts
+        await self.future_metainfo
+        await self.stop()
+        self.config.set_stop_after_metainfo(False)  # We succeeded without shutdown: no longer persist
 
     def add_stream(self) -> None:
         """

@@ -26,6 +26,7 @@
     "AlwaysAsk": "항상 내려받기 설정 확인",
     "DownloadAnon": "프록시를 사용하여 익명으로 내려받기",
     "SeedAnon": "프록시를 사용하여 암호화된 익명 시딩",
+    "StopAfterMetadata": "메타 데이터를받은 후 다운로드 중지",
     "TorrentWatchFolder": "토렌트 폴더 보기",
     "WatchFolder": "폴더 보기",
     "EnableWatchFolder": "감시 폴더 활성화(다시 시작해야 함)",

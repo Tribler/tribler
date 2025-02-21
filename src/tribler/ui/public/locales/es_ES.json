@@ -26,6 +26,7 @@
     "AlwaysAsk": "¿Preguntar siempre donde guardar las descargas?",
     "DownloadAnon": "Descarga anónima mediante proxies",
     "SeedAnon": "Siembra anónima cifrada mediante proxies",
+    "StopAfterMetadata": "Detener la descarga después de que se reciba los metadatos",
     "TorrentWatchFolder": "Carpeta de seguimiento de torrents",
     "WatchFolder": "Carpeta de seguimiento",
     "EnableWatchFolder": "Habilitar carpeta de vigilancia (es necesario reiniciar)",
