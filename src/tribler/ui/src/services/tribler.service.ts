@@ -6,6 +6,7 @@ import { GuiSettings, Settings } from "@/models/settings.model";
 import { Torrent } from "@/models/torrent.model";
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
+import { TriblerStatistics } from "@/models/statistics.model";
 
 
 const OnError = (event: MessageEvent) => {
@@ -218,7 +219,7 @@ export class TriblerService {
         }
     }
 
-    async getTriblerStatistics(): Promise<undefined | ErrorDict | {db_size: number, num_torrents: number}> {
+    async getTriblerStatistics(): Promise<undefined | ErrorDict | TriblerStatistics> {
         try {
             return (await this.http.get('/statistics/tribler')).data.tribler_statistics;
         } catch (error) {

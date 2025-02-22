@@ -28,7 +28,8 @@ class TestStatisticsEndpoint(TestBase):
         Test if getting Tribler stats forwards MetadataStore statistics.
         """
         endpoint = StatisticsEndpoint()
-        endpoint.mds = Mock(get_db_file_size=Mock(return_value=42), get_num_torrents=Mock(return_value=7))
+        endpoint.session = Mock(download_manager=None)
+        endpoint.session.mds = Mock(get_db_file_size=Mock(return_value=42), get_num_torrents=Mock(return_value=7))
         request = MockRequest("/api/statistics/tribler")
 
         response = endpoint.get_tribler_stats(request)
@@ -54,7 +55,7 @@ class TestStatisticsEndpoint(TestBase):
         Test if getting IPv8 stats forwards the known IPv8 endpoint statistics.
         """
         endpoint = StatisticsEndpoint()
-        endpoint.ipv8 = Mock(endpoint=Mock(bytes_up=7, bytes_down=42))
+        endpoint.session = Mock(ipv8=Mock(endpoint=Mock(bytes_up=7, bytes_down=42)))
         request = MockRequest("/api/statistics/ipv8")
 
         response = endpoint.get_ipv8_stats(request)

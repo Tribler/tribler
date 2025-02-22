@@ -267,17 +267,6 @@ class TestDownloadManager(TestBase):
         self.assertEqual(call({"proxy_type": 0, "proxy_hostnames": True, "proxy_peer_connections": True,
                                "proxy_hostname": "a", "proxy_port": 1234, "proxy_username": "abc",
                                "proxy_password": "def"}), self.manager.ltsessions[0].result().apply_settings.call_args)
-
-    async def test_post_session_stats(self) -> None:
-        """
-        Test if post_session_stats actually updates the state of libtorrent readiness for clean shutdown.
-        """
-        self.manager.post_session_stats()
-
-        await sleep(0)
-
-        self.manager.ltsessions[0].result().post_session_stats.assert_called_once()
-
     async def test_load_checkpoint_no_metainfo(self) -> None:
         """
         Test if no checkpoint can be loaded from a file with no metainfo.

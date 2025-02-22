@@ -125,7 +125,6 @@ class DownloadManager(TaskManager):
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
                                   lt.alert.category_t.tracker_notification | lt.alert.category_t.debug_notification
-        self.session_stats_callback: Callable | None = None
         self.state_cb_count = 0
         self.queued_write_bytes = -1
 
@@ -134,6 +133,12 @@ class DownloadManager(TaskManager):
         self.dht_ready_tasks: dict[int, Future] = {}
         self.dht_readiness_timeout = config.get("libtorrent/dht_readiness_timeout")
         self._last_states_list: list[DownloadState] = []
+        self.session_stats: dict[int, dict] = {}
+
+    def _request_session_stats(self) -> None:
+        for session in self.ltsessions.values():
+            if session.done():
+                session.result().post_session_stats()
 
     def is_shutting_down(self) -> bool:
         """
@@ -191,6 +196,7 @@ class DownloadManager(TaskManager):
         self.register_task("process_alerts", self._task_process_alerts, interval=1, ignore=(Exception, ))
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task("task_cleanup_metacache", self._task_cleanup_metainfo_cache, interval=60, delay=0)
+        self.register_task("request_session_stats", self._request_session_stats, interval=5)
 
         self.set_download_states_callback(self.sesscb_states_callback)
 
@@ -238,7 +244,6 @@ class DownloadManager(TaskManager):
                 + (".." if self.queued_write_bytes == -1 else f" {self.queued_write_bytes} bytes left to write.")
                 + f" {force_quit:.2f} seconds left until forced shutdown."
             )
-            self.post_session_stats()
             await asyncio.sleep(max(1.0, not_ready * 0.01))  # 10 ms per download, up to 1 second
             force_quit = end_time - time.time()
 
@@ -505,8 +510,8 @@ class DownloadManager(TaskManager):
             if queued_disk_jobs == self.queued_write_bytes == num_write_jobs == 0:
                 self.lt_session_shutdown_ready[hops] = True
 
-            if self.session_stats_callback:
-                self.session_stats_callback(ss_alert)
+            self.session_stats[hops] = self.session_stats.get(hops, {})
+            self.session_stats[hops].update(ss_alert.values)
 
         elif alert_type == "dht_pkt_alert" and self.dht_health_manager is not None:
             # Unfortunately, the Python bindings don't have a direction attribute.
@@ -842,14 +847,6 @@ class DownloadManager(TaskManager):
                     "upload_rate_limit": rate}
         for lt_session in self.ltsessions.values():
             lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
-
-    def post_session_stats(self) -> None:
-        """
-        Gather statistics and cause a ``session_stats_alert``.
-        """
-        logger.info("Post session stats")
-        for session in self.ltsessions.values():
-            session.add_done_callback(lambda s: s.result().post_session_stats())
 
     async def remove_download(self, download: Download, remove_content: bool = False,
                               remove_checkpoint: bool = True) -> None:

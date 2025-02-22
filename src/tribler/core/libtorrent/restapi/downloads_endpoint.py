@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 
     from aiohttp.abc import AbstractStreamWriter, BaseRequest, Request
 
-    from tribler.core.database.store import MetadataStore
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 
@@ -82,14 +81,13 @@ class DownloadsEndpoint(RESTEndpoint):
 
     path = "/api/downloads"
 
-    def __init__(self, download_manager: DownloadManager, metadata_store: MetadataStore | None = None,
+    def __init__(self, download_manager: DownloadManager,
                  tunnel_community: TriblerTunnelCommunity | None = None) -> None:
         """
         Create a new endpoint to query the status of downloads.
         """
         super().__init__()
         self.download_manager = download_manager
-        self.mds = metadata_store
         self.tunnel_community = tunnel_community
         self.app.add_routes([
             web.get("", self.get_downloads),
