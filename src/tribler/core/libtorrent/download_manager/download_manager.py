@@ -987,7 +987,7 @@ class DownloadManager(TaskManager):
         """
         self.state_cb_count += 1
 
-        for ds in states_list:
+        for i, ds in enumerate(states_list):
             download = ds.get_download()
             infohash = download.get_def().get_infohash()
 
@@ -1004,6 +1004,11 @@ class DownloadManager(TaskManager):
                     if str(peer["extended_version"]).startswith("Tribler"):
                         self.notifier.notify(Notification.tribler_torrent_peer_update,
                                              peer_id=unhexlify(peer["id"]), infohash=infohash, balance=peer["dtotal"])
+
+            # Periodically checkpoint downloading torrents. We checkpoint each download once per minute, spaced out.
+            # If we have more than 60 downloads, we'll have to checkpoint more than one download at a time.
+            if (self.state_cb_count % 60 == i % 60) and ds.get_status() == DownloadStatus.DOWNLOADING:
+                download.checkpoint()
 
         if self.state_cb_count % 4 == 0:
             self._last_states_list = states_list
