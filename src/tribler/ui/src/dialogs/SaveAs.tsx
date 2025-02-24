@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree } from "@/lib/utils";
+import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree, unwrapMagnetSO } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -145,11 +145,13 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
             // Retrieve metainfo
             let response;
+            let magnet_selected_files = null;
             if (torrent) {
                 response = await triblerService.getMetainfoFromFile(torrent);
             }
             else if (uri) {
                 response = await triblerService.getMetainfo(uri, false);
+                magnet_selected_files = new URLSearchParams(uri).get("so");
             }
 
             if (response === undefined) {
@@ -160,7 +162,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 const info = getFilesFromMetainfo(response.metainfo);
                 var files = info.files;
                 files.sort((f1: any, f2: any) => f1.name > f2.name ? 1 : -1);
-                files = filesToTree(files, info.name);
+                files = filesToTree(files, info.name, (magnet_selected_files === null) ? new Set() : unwrapMagnetSO(magnet_selected_files));
                 setFiles(files);
                 setParams((prev) => ({ ...prev, selected_files: getSelectedFilesFromTree(files[0]) }));
                 setExists(!!response.download_exists);

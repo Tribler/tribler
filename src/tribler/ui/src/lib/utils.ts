@@ -37,6 +37,16 @@ export function getMagnetLink(infohash: string, name: string): string {
     return `magnet:?xt=urn:btih:${infohash}&dn=${encodeURIComponent(name)}`;
 }
 
+export function unwrapMagnetSO(selectedFiles: string): Set<number> {
+    const out = new Set<number>();
+    for (var indices of selectedFiles.split(',')){
+        for (var index of indices.split('-')) {
+            out.add(+index);
+        }
+    }
+    return out;
+}
+
 export function categoryIcon(name: category): string {
     const categoryEmojis: Record<string, string> = {
         Video: '🎦',
@@ -144,7 +154,7 @@ export function filterDuplicates(data: any[], key: string) {
     });
 }
 
-export const filesToTree = (files: FileTreeItem[], defaultName = "root", separator: string = '\\') => {
+export const filesToTree = (files: FileTreeItem[], defaultName = "root", preSelected: Set<number> = new Set(), separator: string = '\\') => {
     if (files.length <= 1) {
         if (files.length == 1 && files[0].included == undefined)
             files[0].included = true;
@@ -158,7 +168,7 @@ export const filesToTree = (files: FileTreeItem[], defaultName = "root", separat
         file.name.split(separator).reduce((r: any, name, i, a) => {
             if (!r[name]) {
                 r[name] = { result: [] };
-                r.result.push({ included: true, ...file, name, subRows: r[name].result })
+                r.result.push({ included: preSelected.has(result.length), ...file, name, subRows: r[name].result })
             }
             return r[name];
         }, level)

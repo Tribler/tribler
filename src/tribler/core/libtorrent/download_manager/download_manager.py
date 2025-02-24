@@ -644,7 +644,7 @@ class DownloadManager(TaskManager):
             params = lt.parse_magnet_uri(uri)
             name = params.name.encode()
             infohash = unhexlify(str(params.info_hash))
-            if config:
+            if config and not config.get_selected_files():
                 config.set_selected_files([i for i in range(len(params.file_priorities))
                                            if params.file_priorities[i] > 0])
             logger.info("Name: %s. Infohash: %s", name, infohash)
