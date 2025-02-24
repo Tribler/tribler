@@ -463,6 +463,7 @@ class TestDownloadManager(TestBase):
                   "&so=0,2,4,6-8"  # 5. selected files
                   "&x.pe=1.2.3.4:5&x.pe=6.7.8.9:0")  # 6. initial peers (see NOTE)
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config.set_selected_files([])
         handle = Mock(is_valid=Mock(return_value=True))
         download = Download(Mock(get_infohash=Mock(return_value=b"a" * 20)), self.manager, config,
                             checkpoint_disabled=True)
@@ -480,6 +481,25 @@ class TestDownloadManager(TestBase):
                          handle.add_url_seed.call_args_list)
         self.assertEqual([0, 2, 4, 6, 7, 8], config.get_selected_files())
         self.assertEqual([call(('1.2.3.4', 5), 0)], handle.connect_peer.call_args_list)  # See NOTE
+
+    async def test_start_download_from_magnet_keep_preselected(self) -> None:
+        """
+        Test if a magnet link's selected files do not overwrite the user's selected files.
+        """
+        magnet = f'magnet:?xt=urn:btih:{"A" * 40}&so=0-8'
+        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config.set_selected_files([0, 1, 2])
+        handle = Mock(is_valid=Mock(return_value=True))
+        download = Download(Mock(get_infohash=Mock(return_value=b"a" * 20)), self.manager, config,
+                            checkpoint_disabled=True)
+        download.handle = handle
+
+        with patch.object(self.manager, "start_download", AsyncMock(return_value=download)):
+            await self.manager.start_download_from_uri(magnet, config)
+        await sleep(0)  # Schedule handler awaiter.
+        await sleep(0)  # Run callback after handle is available.
+
+        self.assertEqual([0, 1, 2], config.get_selected_files())
 
     def test_update_trackers(self) -> None:
         """

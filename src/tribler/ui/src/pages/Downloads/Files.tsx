@@ -59,7 +59,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
 async function updateFiles(setFiles: Dispatch<SetStateAction<FileTreeItem[]>>, download: Download, initialized: MutableRefObject<boolean>) {
     const response = await triblerService.getDownloadFiles(download.infohash);
     if (response !== undefined && !isErrorDict(response)) {
-        const files = filesToTree(response, download.name, '/');
+        const files = filesToTree(response, download.name, undefined, '/');
         setFiles(files);
     } else {
         // Don't bother the user on error, just try again later.
