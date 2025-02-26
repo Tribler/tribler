@@ -490,6 +490,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         download.tdef.metainfo = {b"info": {b"files": [{b"path": {b"hi.txt"}, b"length": 0}]}}
+        download.tdef.get_file_indices = Mock(return_value=[0])
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"selected_files": [99999999999]},
                               {"infohash": "01" * 20})
@@ -506,6 +507,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         download.tdef.metainfo = {b"info": {b"files": [{b"path": {b"hi.txt"}, b"length": 0}]}}
+        download.tdef.get_file_indices = Mock(return_value=[0])
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"selected_files": [0]}, {"infohash": "01" * 20})
 

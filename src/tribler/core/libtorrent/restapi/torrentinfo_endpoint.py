@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 import logging
 from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
-from copy import deepcopy
 from ssl import SSLError
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 import libtorrent as lt
 from aiohttp import (
@@ -44,6 +42,16 @@ if TYPE_CHECKING:
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 logger = logging.getLogger(__name__)
+
+
+class JSONMiniFileInfo(TypedDict):
+    """
+    A minimal JSON dict to describe file info.
+    """
+
+    index: int
+    name: str
+    size: int
 
 
 def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
@@ -101,6 +109,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
         self.download_manager = download_manager
         self.app.add_routes([web.get("", self.get_torrent_info),
                              web.put("", self.get_torrent_info_from_file)])
+
+    def get_files(self, tdef: TorrentDef) -> list[JSONMiniFileInfo]:
+        """
+        Get a list of files from the given torrent definition.
+        """
+        remapped_indices = tdef.get_file_indices()
+        return [{"index": remapped_indices[i], "name": str(f[0]), "size": f[1]}
+                for i, f in enumerate(tdef.get_files_with_length())]
 
     @docs(
         tags=["Libtorrent"],
@@ -269,13 +285,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         metainfo_download = metainfo_lookup.download if metainfo_lookup else None
         download_is_metainfo_request = download == metainfo_download
 
-        # Check if the torrent is already in the downloads
-        encoded_metainfo = deepcopy(metainfo)
-
-        ready_for_unicode = recursive_unicode(encoded_metainfo, ignore_errors=True)
-        json_dump = json.dumps(ready_for_unicode, ensure_ascii=False)
-
-        return RESTResponse({"metainfo": hexlify(json_dump.encode()).decode(),
+        return RESTResponse({"files": self.get_files(torrent_def),
+                             "name": torrent_def.get_name_utf8(),
                              "download_exists": download and not download_is_metainfo_request,
                              "valid_certificate": valid_cert})
 
@@ -302,8 +313,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         metainfo_download = metainfo_lookup.download if metainfo_lookup else None
         requesting_metainfo = download == metainfo_download
 
-        metainfo_unicode = recursive_unicode(deepcopy(tdef.get_metainfo()), ignore_errors=True)
-        metainfo_json = json.dumps(metainfo_unicode, ensure_ascii=False)
         return RESTResponse({"infohash": hexlify(infohash).decode(),
-                             "metainfo": hexlify(metainfo_json.encode('utf-8')).decode(),
+                             "files": self.get_files(tdef),
+                             "name": tdef.get_name_utf8(),
                              "download_exists": download and not requesting_metainfo})

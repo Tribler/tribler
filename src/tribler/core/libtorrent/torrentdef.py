@@ -8,9 +8,9 @@ import logging
 from asyncio import get_running_loop
 from contextlib import suppress
 from functools import cached_property
-from hashlib import sha1
+from hashlib import sha1, sha256
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Iterable, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 import aiohttp
 import libtorrent as lt
@@ -19,8 +19,12 @@ from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.libtorrent.trackers import is_valid_url
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable
     from os import PathLike
 
+    ###############
+    # V1 torrents #
+    ###############
 
     class FileDict(dict):  # noqa: D101
 
@@ -131,10 +135,96 @@ if TYPE_CHECKING:
 
         def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
 
+    ###############
+    # V2 torrents #
+    ###############
+    class FileSpecV2(dict):  # noqa: D101
+
+        @overload
+        def __getitem__(self, key: Literal[b"length"]) -> int: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"pieces root"]) -> bytes | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
+    class FileV2(dict):  # noqa: D101
+
+        def __getitem__(self, key: Literal[b""]) -> FileSpecV2: ...  # noqa: D105
+
+
+    class DirectoryV2(dict):  # noqa: D101
+
+        def __getitem__(self, key: bytes) -> DirectoryV2 | FileV2: ...  # noqa: D105
+
+
+    class InfoDictV2(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"file tree"]) -> DirectoryV2: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"meta version"]) -> int: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name"]) -> bytes: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"piece length"]) -> int: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
+    class MetainfoV2Dict(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"info"]) -> InfoDictV2: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"piece layers"]) -> dict[bytes, bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+
+
 else:
-    FileDict = dict
-    InfoDict = dict
+    FileDict = dict[bytes, Any]
+    InfoDict = dict[bytes, Any]
     MetainfoDict = dict[bytes, Any]
+
+    FileSpecV2 = dict[bytes, Any]
+    InfoDictV2 = dict[bytes, Any]
+    FileV2 = dict[bytes, Any]
+    DirectoryV2 = dict[bytes, Any]
+    MetainfoV2Dict = dict[bytes, Any]
+
     TorrentParameters = dict
 
 
@@ -165,16 +255,41 @@ def pathlist2filename(pathlist: Iterable[bytes]) -> Path:
     return Path(*(x.decode() for x in pathlist))
 
 
-def get_length_from_metainfo(metainfo: MetainfoDict, selectedfiles: set[Path] | None) -> int:
+def yield_v2_files(directory: DirectoryV2 | FileV2, path: bytes = b"") -> Generator[tuple[bytes, FileSpecV2]]:
+    """
+    Get the full path and file spec for each file in a v2 subtree.
+    """
+    if b"" in directory:
+        yield path, cast(FileSpecV2, directory[b""])
+    else:
+        for name, subdir in directory.items():
+            if subdir not in [".", ".."]:  # BEP52-specified directory name filtering
+                yield from yield_v2_files(subdir, (path + b"/" + name) if path else name)
+
+
+def _get_length_from_v2_dir(directory: DirectoryV2 | FileV2) -> int:
+    return sum(fspec[b"length"] for _, fspec in yield_v2_files(directory))
+
+
+def _get_pieces_from_v2_dir(directory: DirectoryV2 | FileV2, piece_length: int) -> int:
+    return sum((fspec[b"length"] // piece_length) + (1 if fspec[b"length"] % piece_length > 0 else 0)
+               for _, fspec in yield_v2_files(directory))
+
+
+def get_length_from_metainfo(metainfo: MetainfoDict | MetainfoV2Dict, selectedfiles: set[Path] | None) -> int:
     """
     Loop through all files in a torrent and calculate the total size.
     """
-    if b"files" not in metainfo[b"info"]:
-        # single-file torrent
-        return metainfo[b"info"][b"length"]
-    # multi-file torrent
-    files = metainfo[b"info"][b"files"]
+    # v2 torrent
+    if b"file tree" in metainfo[b"info"]:
+        return _get_length_from_v2_dir(cast(InfoDictV2, metainfo[b"info"])[b"file tree"])
 
+    # single-file v1 torrent
+    if b"files" not in metainfo[b"info"]:
+        return cast(InfoDict, metainfo[b"info"])[b"length"]
+
+    # multi-file v1 torrent
+    files = cast(InfoDict, metainfo[b"info"])[b"files"]
     total = 0
     for i in range(len(files)):
         path = files[i][b"path"]
@@ -190,7 +305,7 @@ class TorrentDef:
     It can be used to create new torrents, or analyze existing ones.
     """
 
-    def __init__(self, metainfo: MetainfoDict | None = None,
+    def __init__(self, metainfo: MetainfoDict | MetainfoV2Dict | None = None,
                  torrent_parameters: TorrentParameters | None = None,
                  ignore_validation: bool = True) -> None:
         """
@@ -202,7 +317,7 @@ class TorrentDef:
         """
         self._logger = logging.getLogger(self.__class__.__name__)
         self.torrent_parameters: TorrentParameters = cast(TorrentParameters, {})
-        self.metainfo: MetainfoDict | None = metainfo
+        self.metainfo: MetainfoDict | MetainfoV2Dict | None = metainfo
         self.infohash: bytes | None = None
         self._torrent_info: lt.torrent_info | None = None
 
@@ -211,8 +326,7 @@ class TorrentDef:
             if not ignore_validation:
                 try:
                     self._torrent_info = lt.torrent_info(self.metainfo)
-                    raw_infohash = self._torrent_info.info_hash()  # LT1.X: bytes, LT2.X: sha1_hash
-                    self.infohash = raw_infohash if isinstance(raw_infohash, bytes) else raw_infohash.to_bytes()
+                    self.infohash = self._torrent_info.info_hash().to_bytes()
                 except RuntimeError as exc:
                     raise ValueError from exc
             else:
@@ -220,7 +334,10 @@ class TorrentDef:
                     if not self.metainfo[b'info']:
                         msg = "Empty metainfo!"
                         raise ValueError(msg)
-                    self.infohash = sha1(lt.bencode(self.metainfo[b'info'])).digest()
+                    if b"file tree" in self.metainfo[b"info"]:
+                        self.infohash = sha256(lt.bencode(self.metainfo[b"info"])).digest()[:20]
+                    else:
+                        self.infohash = sha1(lt.bencode(self.metainfo[b"info"])).digest()
                 except (KeyError, RuntimeError) as exc:
                     raise ValueError from exc
             self.copy_metainfo_to_torrent_parameters()
@@ -324,7 +441,7 @@ class TorrentDef:
         return TorrentDef.load_from_dict(cast(MetainfoDict, metainfo))
 
     @staticmethod
-    def load_from_dict(metainfo: MetainfoDict) -> TorrentDef:
+    def load_from_dict(metainfo: MetainfoDict | MetainfoV2Dict) -> TorrentDef:
         """
         Load a metainfo dictionary into a TorrentDef object.
 
@@ -387,8 +504,7 @@ class TorrentDef:
             msg = "Invalid URL"
             raise ValueError(msg)
 
-        if url.endswith("/"):  # Some tracker code can't deal with / at end
-            url = url[:-1]
+        url = url.removesuffix("/")
         self.torrent_parameters[b"announce"] = url
 
     def get_tracker(self) -> bytes | None:
@@ -443,7 +559,12 @@ class TorrentDef:
         """
         if not self.metainfo:
             return 0
-        return len(self.metainfo[b"info"][b"pieces"]) // 20
+        if self._torrent_info:
+            self._torrent_info.num_pieces()
+        if b"pieces" in self.metainfo[b"info"]:
+            return len(cast(InfoDict, self.metainfo[b"info"])[b"pieces"]) // 20
+        return _get_pieces_from_v2_dir(cast(InfoDictV2, self.metainfo[b"info"])[b"file tree"],
+                                       self.metainfo[b"info"][b"piece length"])
 
     def get_infohash(self) -> bytes | None:
         """
@@ -451,7 +572,7 @@ class TorrentDef:
         """
         return self.infohash
 
-    def get_metainfo(self) -> MetainfoDict | None:
+    def get_metainfo(self) -> MetainfoDict | MetainfoV2Dict | None:
         """
         Returns the metainfo of the torrent. Might be None if no metainfo is provided.
         """
@@ -493,7 +614,7 @@ class TorrentDef:
         if self.metainfo is not None:
             if b"name.utf-8" in self.metainfo[b"info"]:
                 with suppress(UnicodeError):
-                    return self.metainfo[b"info"][b"name.utf-8"].decode()
+                    return cast(InfoDict, self.metainfo[b"info"])[b"name.utf-8"].decode()
 
             if (name := self.metainfo[b"info"].get(b"name")) is not None:
                 if (encoding := self.metainfo.get(b"encoding")) is not None:
@@ -506,7 +627,7 @@ class TorrentDef:
 
         return ""
 
-    def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901
+    def _get_all_files_as_unicode_with_length(self) -> Generator[tuple[Path, int], None, None]:  # noqa: C901, PLR0912
         """
         Get a generator for files in the torrent def. No filtering is possible and all tricks are allowed to obtain
         a unicode list of filenames.
@@ -514,8 +635,9 @@ class TorrentDef:
         :return: A unicode filename generator.
         """
         if self.metainfo and b"files" in self.metainfo[b"info"]:
-            # Multi-file torrent
-            files = cast(FileDict, self.metainfo[b"info"][b"files"])
+            metainfo_v1 = cast(InfoDict, self.metainfo[b"info"])
+            # Multi-file v1 torrent
+            files = cast(FileDict, metainfo_v1[b"files"])
 
             for file_dict in files:
                 if b"path.utf-8" in file_dict:
@@ -530,7 +652,7 @@ class TorrentDef:
 
                 if b"path" in file_dict:
                     # Try to use the 'encoding' field. If it exists, it should contain something like 'utf-8'.
-                    if (encoding := self.metainfo.get(b"encoding")) is not None:
+                    if (encoding := metainfo_v1.get(b"encoding")) is not None:
                         try:
                             yield (Path(*(element.decode(encoding.decode()) for element in file_dict[b"path"])),
                                    file_dict[b"length"])
@@ -558,9 +680,28 @@ class TorrentDef:
                     except UnicodeError:
                         pass
 
+        elif self.metainfo and b"file tree" in self.metainfo[b"info"]:
+            # v2 torrent; all paths are supposed to be UTF-8 here, but still need to be checked
+            metainfo_v2 = cast(InfoDictV2, self.metainfo[b"info"])
+            for path, fspec in yield_v2_files(metainfo_v2[b"file tree"]):
+                # Try to convert the names in path to unicode, assuming that it was encoded as utf-8.
+                try:
+                    yield Path(path.decode()), fspec[b"length"]
+                    continue
+                except UnicodeError:
+                    pass
+
+                # Convert the names in path to unicode by replacing out all characters that may - even remotely -
+                # cause problems with the '?' character.
+                try:
+                    yield Path(self._filter_characters(path)), fspec[b"length"]
+                    continue
+                except UnicodeError:
+                    pass
+
         elif self.metainfo:
-            # Single-file torrent
-            yield Path(self.get_name_as_unicode()), self.metainfo[b"info"][b"length"]
+            # Single-file v1 torrent
+            yield Path(self.get_name_as_unicode()), cast(InfoDict, self.metainfo[b"info"])[b"length"]
 
     def get_files_with_length(self, exts: set[str] | None = None) -> list[tuple[Path, int]]:
         """
@@ -583,6 +724,15 @@ class TorrentDef:
         Return the list of file paths in this torrent.
         """
         return [filename for filename, _ in self.get_files_with_length(exts)]
+
+    def get_file_indices(self) -> list[int]:
+        """
+        Get the actual torrent file indices of our files.
+        """
+        if self.torrent_info is None:
+            return []
+        storage = self.torrent_info.files()
+        return [i for i in range(storage.num_files()) if storage.file_flags(i) == 0]
 
     def get_length(self, selectedfiles: set[Path] | None = None) -> int:
         """
@@ -629,9 +779,9 @@ class TorrentDef:
         if not self.metainfo:
             msg = "TorrentDef does not have metainfo"
             raise ValueError(msg)
-        info = self.metainfo[b"info"]
 
-        if file is not None and b"files" in info:
+        if file is not None and b"files" in self.metainfo[b"info"]:
+            info = cast(InfoDict, self.metainfo[b"info"])
             for i in range(len(info[b"files"])):
                 file_dict = info[b"files"][i]
 
@@ -639,6 +789,17 @@ class TorrentDef:
 
                 if intorrentpath == Path(file):
                     return i
+            msg = "File not found in torrent"
+            raise ValueError(msg)
+
+        if file is not None and b"file tree" in self.metainfo[b"info"]:
+            infov2 = cast(InfoDictV2, self.metainfo[b"info"])
+            i = 0
+            fbytes = file.encode()
+            for path, _ in yield_v2_files(infov2[b"file tree"]):
+                if path == fbytes:
+                    return i
+                i += 1
             msg = "File not found in torrent"
             raise ValueError(msg)
 

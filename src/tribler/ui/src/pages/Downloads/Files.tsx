@@ -77,11 +77,11 @@ export default function Files({ download }: { download: Download }) {
         const shouldInclude = row.original.included == false;
         // Get all indices that need toggling
         const toggleIndices = getSelectedFilesFromTree(row.original, !shouldInclude);
-        const currentIndcices = getSelectedFilesFromTree(files[0]);
+        const currentIndices = getSelectedFilesFromTree(files[0]);
         if (shouldInclude)
-            var selectedIndices = [...new Set(currentIndcices).union(new Set(toggleIndices))];
+            var selectedIndices = [...new Set(currentIndices).union(new Set(toggleIndices))];
         else
-            var selectedIndices = [...new Set(currentIndcices).difference(new Set(toggleIndices))];
+            var selectedIndices = [...new Set(currentIndices).difference(new Set(toggleIndices))];
 
         triblerService.setDownloadFiles(download.infohash, selectedIndices).then((response) => {
             if (response === undefined) {

@@ -434,7 +434,8 @@ class Download(TaskManager):
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
-        basename = hexlify(resume_data[b"info-hash"]).decode() + ".conf"
+        # Note resume_data[b"info-hash"] can be b"\x00" * 32, so we use the tdef.
+        basename = hexlify(self.tdef.get_infohash()).decode() + ".conf"
         Path(self.download_manager.get_checkpoint_dir()).mkdir(parents=True, exist_ok=True)
         filename = self.download_manager.get_checkpoint_dir() / basename
         self.config.config["download_defaults"]["name"] = self.tdef.get_name_as_unicode()  # store name (for debugging)
@@ -523,7 +524,7 @@ class Download(TaskManager):
             metadata[b"announce"] = tracker_urls[0]
 
         try:
-            self.tdef = TorrentDef.load_from_dict(metadata)
+            self.set_def(TorrentDef.load_from_dict(metadata))
             with suppress(RuntimeError):
                 # Try to load the torrent info in the background if we have a loop.
                 get_running_loop().run_in_executor(None, self.tdef.load_torrent_info)
@@ -895,6 +896,11 @@ class Download(TaskManager):
         """
         Set the torrent definition for this download.
         """
+        if (isinstance(self.tdef, TorrentDefNoMetainfo) and not isinstance(tdef, TorrentDefNoMetainfo)
+                and len(self.tdef.infohash) != 20):
+            # We store SHA-1 conf files. v2 torrents start with SHA-256 infohashes.
+            basename = hexlify(self.tdef.get_infohash()).decode() + ".conf"
+            Path(self.download_manager.get_checkpoint_dir() / basename).unlink(missing_ok=True)
         self.tdef = tdef
 
     @check_handle(None)

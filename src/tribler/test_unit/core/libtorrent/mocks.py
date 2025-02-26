@@ -63,7 +63,7 @@ TORRENT_WITH_VIDEO = (
             b'6:lengthi10e'
             b'4:name13:somevideo.mp4'
             b'12:piece lengthi524288e'
-            b'6:pieces10:\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'
+            b'6:pieces20:\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01'
         b'e'
     b'e'
 )
