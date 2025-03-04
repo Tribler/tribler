@@ -1024,7 +1024,7 @@ class DownloadManager(TaskManager):
         Load the checkpoint files in the checkpoint directory.
         """
         self._logger.info("Load checkpoints...")
-        checkpoint_filenames = list(self.get_checkpoint_dir().glob("*.conf"))
+        checkpoint_filenames = sorted(self.get_checkpoint_dir().glob("*.conf"), key=lambda p: len(p.parts[-1]))
         self.checkpoints_count = len(checkpoint_filenames)
         for i, filename in enumerate(checkpoint_filenames, start=1):
             await self.load_checkpoint(filename)

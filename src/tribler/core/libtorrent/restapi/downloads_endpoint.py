@@ -158,13 +158,14 @@ class DownloadsEndpoint(RESTEndpoint):
         files_json = []
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
+        index_mapping = download.get_def().get_file_indices()
         for file_index, (fn, size) in enumerate(download.get_def().get_files_with_length()):
             files_json.append(cast(JSONFilesInfo, {
-                "index": file_index,
+                "index": index_mapping[file_index],
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
                 "name": str(PurePosixPath(fn)),
                 "size": size,
-                "included": (file_index in selected_files or not selected_files),
+                "included": (index_mapping[file_index] in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
             }))
         return files_json
@@ -581,8 +582,8 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if "selected_files" in parameters:
             selected_files_list = parameters["selected_files"]
-            num_files = len(download.tdef.get_files())
-            if not all(0 <= index < num_files for index in selected_files_list):
+            max_index = max(download.tdef.get_file_indices())
+            if not all(0 <= index <= max_index for index in selected_files_list):
                 return RESTResponse({"error": {
                                         "handled": True,
                                         "message": "index out of range"
@@ -1115,7 +1116,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadsEndpoint.return_404()
 
         file_index = int(request.match_info["fileindex"])
-        if not 0 <= file_index < len(download.get_def().get_files()):
+        if not 0 <= file_index <= max(download.get_def().get_file_indices()):
             return DownloadsEndpoint.return_404()
 
         return TorrentStreamResponse(download, file_index)

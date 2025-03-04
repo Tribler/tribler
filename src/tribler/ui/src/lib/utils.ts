@@ -19,20 +19,6 @@ export function unhexlify(input: string) {
     return new TextDecoder().decode(new Uint8Array([...input.matchAll(/[0-9a-f]{2}/g)].map(a => parseInt(a[0], 16))));
 };
 
-export function getFilesFromMetainfo(metainfo: string) {
-    const info = JSON.parse(unhexlify(metainfo))?.info || {};
-    if (!info?.files) {
-        return {
-            files: [{ size: info.length, name: info.name, index: 0 }],
-            name: info.name
-        };
-    }
-    return {
-        files: info.files.map((file: any, i: number) => ({ size: file.length, name: file.path.join('\\'), index: i })),
-        name: info.name
-    };
-}
-
 export function getMagnetLink(infohash: string, name: string): string {
     return `magnet:?xt=urn:btih:${infohash}&dn=${encodeURIComponent(name)}`;
 }
@@ -168,7 +154,7 @@ export const filesToTree = (files: FileTreeItem[], defaultName = "root", preSele
         file.name.split(separator).reduce((r: any, name, i, a) => {
             if (!r[name]) {
                 r[name] = { result: [] };
-                r.result.push({ included: preSelected.has(result.length), ...file, name, subRows: r[name].result })
+                r.result.push({ included: (preSelected.size == 0) || preSelected.has(file.index), ...file, name, subRows: r[name].result })
             }
             return r[name];
         }, level)
@@ -213,7 +199,7 @@ export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean =
     if (tree.subRows && tree.subRows.length) {
         for (const item of tree.subRows) {
             for (const i of getSelectedFilesFromTree(item, included))
-                selectedFiles.push(i);
+                selectedFiles.push(item.index);
         }
     }
     else if (tree.included === included)

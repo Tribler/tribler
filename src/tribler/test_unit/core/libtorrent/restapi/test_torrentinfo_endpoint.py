@@ -1,6 +1,5 @@
-import json
 from asyncio import TimeoutError as AsyncTimeoutError
-from binascii import unhexlify
+from pathlib import Path
 from ssl import SSLError
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -15,7 +14,7 @@ from tribler.core.libtorrent.download_manager.download_manager import MetainfoLo
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint, recursive_unicode
 from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
+from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
 
 
 async def mock_unshorten(uri: str) -> tuple[str, bool]:
@@ -436,7 +435,7 @@ class TestTorrentInfoEndpoint(TestBase):
             """
             if valid_cert:
                 raise ClientConnectorCertificateError(None, RuntimeError("Invalid certificate test error!"))
-            return await succeed(b"d4:infod6:lengthi0eee")
+            return await succeed(TORRENT_WITH_VIDEO)
 
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
 
@@ -571,15 +570,12 @@ class TestTorrentInfoEndpoint(TestBase):
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
-        response_info_json = json.loads(unhexlify(response_body_json["metainfo"]))
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["download_exists"])
-        self.assertEqual(tdef.metainfo[b"comment"].decode(), response_info_json["comment"])
-        self.assertEqual(tdef.metainfo[b"created by"].decode(), response_info_json["created by"])
-        self.assertEqual(tdef.metainfo[b"creation date"], response_info_json["creation date"])
-        self.assertEqual(tdef.metainfo[b"info"][b"name"].decode(), response_info_json["info"]["name"])
-        self.assertEqual(tdef.metainfo[b"info"][b"piece length"], response_info_json["info"]["piece length"])
+        self.assertTrue(response_body_json["valid_certificate"])
+        self.assertEqual("torrent_create", response_body_json["name"])
+        self.assertIn({"index": 0, "name": str(Path("abc") / "file2.txt"), "size": 6}, response_body_json["files"])
 
     async def test_get_torrent_info_valid_metainfo_request(self) -> None:
         """
@@ -593,15 +589,12 @@ class TestTorrentInfoEndpoint(TestBase):
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
-        response_info_json = json.loads(unhexlify(response_body_json["metainfo"]))
 
         self.assertEqual(200, response.status)
         self.assertFalse(response_body_json["download_exists"])
-        self.assertEqual(tdef.metainfo[b"comment"].decode(), response_info_json["comment"])
-        self.assertEqual(tdef.metainfo[b"created by"].decode(), response_info_json["created by"])
-        self.assertEqual(tdef.metainfo[b"creation date"], response_info_json["creation date"])
-        self.assertEqual(tdef.metainfo[b"info"][b"name"].decode(), response_info_json["info"]["name"])
-        self.assertEqual(tdef.metainfo[b"info"][b"piece length"], response_info_json["info"]["piece length"])
+        self.assertTrue(response_body_json["valid_certificate"])
+        self.assertEqual("torrent_create", response_body_json["name"])
+        self.assertIn({"index": 0, "name": str(Path("abc") / "file2.txt"), "size": 6}, response_body_json["files"])
 
     def test_recursive_unicode_empty(self) -> None:
         """

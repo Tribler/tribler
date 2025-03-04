@@ -228,7 +228,7 @@ export class TriblerService {
 
     // Torrents / search
 
-    async getMetainfo(uri: string, skipMagnet: boolean): Promise<undefined | ErrorDict | {metainfo: string, download_exists: boolean, valid_certificate: boolean}> {
+    async getMetainfo(uri: string, skipMagnet: boolean): Promise<undefined | ErrorDict | {files: {index: number, name: string, size: number}[], name: string, download_exists: boolean, valid_certificate: boolean}> {
         try {
             return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`)).data;
         } catch (error) {
@@ -236,7 +236,7 @@ export class TriblerService {
         }
     }
 
-    async getMetainfoFromFile(torrent: File): Promise<undefined | ErrorDict | {infohash: string, metainfo: string, download_exists: boolean}> {
+    async getMetainfoFromFile(torrent: File): Promise<undefined | ErrorDict | {infohash: string, files: {index: number, name: string, size: number}[], name: string, download_exists: boolean}> {
         try {
             return (await this.http.put('/torrentinfo', torrent, {
                 headers: {

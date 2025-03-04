@@ -287,6 +287,12 @@ class DownloadState:
                 for index, (path, size) in enumerate(files):
                     completion_frac = (float(progress[index]) / size) if size > 0 else 1
                     completion.append((path, completion_frac))
+            elif progress and len(progress) > len(files) and self.download.tdef.torrent_info_loaded():
+                # We need to remap
+                remapping = self.download.tdef.get_file_indices()
+                for index, (path, size) in enumerate(files):
+                    completion_frac = (float(progress[remapping[index]]) / size) if size > 0 else 1
+                    completion.append((path, completion_frac))
 
         return completion
 

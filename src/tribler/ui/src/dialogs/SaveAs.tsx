@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { filesToTree, fixTreeProps, formatBytes, getFilesFromMetainfo, getRowSelection, getSelectedFilesFromTree, unwrapMagnetSO } from "@/lib/utils";
+import { filesToTree, fixTreeProps, formatBytes, getRowSelection, getSelectedFilesFromTree, unwrapMagnetSO } from "@/lib/utils";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -159,10 +159,9 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             } else if (isErrorDict(response)) {
                 setError(`${t("ToastErrorGetMetainfo")} ${response.error.message}`);
             } else if (response) {
-                const info = getFilesFromMetainfo(response.metainfo);
-                var files = info.files;
+                var files = response.files;
                 files.sort((f1: any, f2: any) => f1.name > f2.name ? 1 : -1);
-                files = filesToTree(files, info.name, (magnet_selected_files === null) ? new Set() : unwrapMagnetSO(magnet_selected_files));
+                files = filesToTree(files, response.name, (magnet_selected_files === null) ? new Set() : unwrapMagnetSO(magnet_selected_files));
                 setFiles(files);
                 setParams((prev) => ({ ...prev, selected_files: getSelectedFilesFromTree(files[0]) }));
                 setExists(!!response.download_exists);
