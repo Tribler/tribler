@@ -36,6 +36,14 @@ To run the docker image:
                --user $(id -u):$(id -g) -e BROWSER="x-www-browser" \
                -it ghcr.io/tribler/tribler:latest
 
+*Alternatively*, if you want to run *without opening the web GUI* and *without a tray icon*:
+
+.. code-block::
+
+    docker run -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" \
+               -v ~/.Tribler:/state -v ~/downloads/TriblerDownloads:/downloads \
+               --net="host" -it ghcr.io/tribler/tribler:latest -s
+
 You can then open Tribler in your web browser at the URL:
 
 .. code-block::
