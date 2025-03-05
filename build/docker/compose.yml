@@ -19,7 +19,7 @@ services:
     network_mode: host
     volumes:
       # Tray icons
-      - $XDG_CACHE_HOME/tmp/:$XDG_CACHE_HOME/tmp/
+      - $XDG_CACHE_HOME/tmp/:/tmp
       # Xorg stuff
       - /run:/run
       # Tribler directories
