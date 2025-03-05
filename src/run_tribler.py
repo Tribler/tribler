@@ -147,7 +147,7 @@ def init_config(parsed_args: Arguments) -> TriblerConfigManager:
         config.write()
 
     if "CORE_API_KEY" in os.environ:
-        config.set("api/key", os.environ.get("CORE_API_KEY"))
+        config.set("api/key", os.environ.get("CORE_API_KEY")))
         config.write()
 
     if config.get("api/key") is None:
@@ -247,6 +247,12 @@ async def main() -> None:
             return
 
         await session.start()
+
+        # Check for magnet link argument and start download if provided
+        if torrent_uri and torrent_uri.startswith("magnet:"):
+            logger.info("Starting download from magnet link argument")
+            await session.download_manager.start_download_from_uri(torrent_uri)
+
     except Exception as exc:
         show_error(exc, True)
 
