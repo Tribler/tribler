@@ -41,3 +41,14 @@ class TestTriblerConfigManager(TestBase):
         config.set("libtorrent/download_defaults/seeding_time", 42)
 
         self.assertEqual(42, config.get("libtorrent/download_defaults/seeding_time"))
+
+    def test_set_on_old(self) -> None:
+        """
+        Test if we can set a key on an old dict that is missing it.
+        """
+        config = TriblerConfigManager()
+        config.configuration = {k: v for k, v in config.configuration.items() if k != "rss"}
+
+        config.set("rss/enabled", True)
+
+        self.assertTrue(config.get("rss/enabled"))
