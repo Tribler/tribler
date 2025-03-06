@@ -332,5 +332,15 @@ class TriblerConfigManager:
         """
         current = self.configuration
         for part in Path(option).parts[:-1]:
-            current = current[part]
+            if part in current:
+                current = current[part]
+            else:
+                # Fetch from defaults instead. Same as ``get()``, but now we inject defaults before overwriting.
+                out = DEFAULT_CONFIG
+                for df_part in Path(option).parts:
+                    out = out.get(df_part)
+                    if df_part == part:
+                        # We found the missing section, inject the defaults here and continue traversing the dict.
+                        current[part] = out
+                        break
         current[Path(option).parts[-1]] = value
