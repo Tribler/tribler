@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from ipv8.test.base import TestBase
 
 from tribler.core.restapi.ipv8_endpoint import IPv8RootEndpoint
@@ -12,8 +14,9 @@ class TestIPv8RootEndpoint(TestBase):
         """
         Test if all the IPv8 endpoint paths exist.
         """
-        endpoint = IPv8RootEndpoint()
-        endpoint.setup_routes()
+        with patch('asyncio.get_running_loop', lambda: None):
+            endpoint = IPv8RootEndpoint()
+            endpoint.setup_routes()
 
         self.assertEqual("/api/ipv8", endpoint.path)
         self.assertIn("/asyncio", endpoint.endpoints)

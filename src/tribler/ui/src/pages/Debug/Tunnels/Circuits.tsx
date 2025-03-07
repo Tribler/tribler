@@ -1,11 +1,16 @@
 import SimpleTable, { getHeader } from "@/components/ui/simple-table";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ipv8Service } from "@/services/ipv8.service";
 import { isErrorDict } from "@/services/reporting";
 import { Circuit } from "@/models/circuit.model";
 import { ColumnDef } from "@tanstack/react-table";
 import { formatBytes, formatFlags, formatTimeRelativeISO } from "@/lib/utils";
 import { useInterval } from '@/hooks/useInterval';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useResizeObserver } from "@/hooks/useResizeObserver";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
+import { usePrevious } from "@/hooks/usePrevious";
 
 
 const circuitColumns: ColumnDef<Circuit>[] = [
@@ -60,6 +65,9 @@ const circuitColumns: ColumnDef<Circuit>[] = [
 
 export default function Circuits() {
     const [circuits, setCircuits] = useState<Circuit[]>([])
+    const [selectedCircuit, setSelectedCircuit] = useState<Circuit | undefined>()
+    const prevSelectedCircuit = usePrevious(selectedCircuit);
+    const [speeds, setSpeeds] = useState<{ speed: any; }[]>([]);
 
     useInterval(async () => {
         const response = await ipv8Service.getCircuits();
@@ -69,5 +77,58 @@ export default function Circuits() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={circuits} columns={circuitColumns} />
+    useEffect(() => {
+        if (selectedCircuit?.circuit_id != prevSelectedCircuit?.circuit_id) {
+            setSpeeds([]);
+        }
+    }, [selectedCircuit])
+
+    // We're not getting resize event for elements within ResizeablePanel, so we track the ResizablePanel itself.
+    const parentRect = useResizeObserver({ element: document.querySelector('#circuit-list') });
+
+    return (
+        <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={50} id="circuit-list">
+                <SimpleTable
+                    data={circuits}
+                    columns={circuitColumns}
+                    onSelectedRowsChange={(rows) => setSelectedCircuit(rows[0])}
+                    allowSelect={true}
+                    maxHeight={Math.max((parentRect?.height ?? 50) - 0, 50)}
+                />
+            </ResizablePanel>
+            <ResizableHandle className={`border-2 border-gray-300 dark:border-gray-600 ${selectedCircuit ? "flex" : "hidden"}`} />
+            <ResizablePanel defaultSize={50} className={`${selectedCircuit ? "flex" : "hidden"}`}>
+                <ResponsiveContainer width="95%" height="95%">
+                    <LineChart data={speeds}
+                        margin={{ top: 20, right: 10, left: 20, bottom: 5 }}>
+                        <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke={`${window.document.documentElement.classList.contains("dark") ? "#404040" : "#d4d4d4"}`} />
+                        <YAxis />
+                        <Legend />
+                        <Line
+                            type="monotone"
+                            name="Throughput MB/s"
+                            dataKey="speed"
+                            isAnimationActive={false} stroke={`${window.document.documentElement.classList.contains("dark") ? "#38bdf8" : "#0369a1"}`} />
+                    </LineChart>
+                </ResponsiveContainer>
+                <div className="p-5 flex flex-col items-center">
+                    <Button
+                        className="whitespace-nowrap"
+                        onClick={() => {
+                            setSpeeds([]);
+                            if (selectedCircuit) {
+                                ipv8Service.testCircuit(selectedCircuit?.circuit_id, (event) => {
+                                    setSpeeds((prevState) => [...prevState, { speed: event.down.toFixed(2) }])
+                                });
+                            }
+                        }}>Run test
+                    </Button>
+                </div>
+            </ResizablePanel>
+        </ResizablePanelGroup>
+    )
+
 }

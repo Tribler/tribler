@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column, InitialTableState } from '@tanstack/react-table';
 import { cn, isMac } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
@@ -137,6 +137,7 @@ interface ReactTableProps<T extends object> {
     storeSortingState?: string;
     rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
     selectOnRightClick?: boolean,
+    initialState?: InitialTableState
 }
 
 function SimpleTable<T extends object>({
@@ -158,7 +159,8 @@ function SimpleTable<T extends object>({
     expandable,
     storeSortingState,
     rowId,
-    selectOnRightClick
+    selectOnRightClick,
+    initialState
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -166,7 +168,6 @@ function SimpleTable<T extends object>({
     });
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
-    const [expanded, setExpanded] = useState<ExpandedState>({});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [startId, setStartId] = useState<string | undefined>(undefined);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -204,7 +205,6 @@ function SimpleTable<T extends object>({
             rowSelection,
             columnFilters,
             columnVisibility,
-            expanded,
             sorting
         },
         getFilteredRowModel: getFilteredRowModel(),
@@ -214,11 +214,11 @@ function SimpleTable<T extends object>({
         onRowSelectionChange: (arg: SetStateAction<RowSelectionState>) => {
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
         },
-        onExpandedChange: setExpanded,
         onSortingChange: setSorting,
         getSubRows: (row: any) => row?.subRows,
         getRowId: rowId,
         autoResetPageIndex: false,
+        initialState: initialState
     });
 
     // If we're on an empty page, reset the pageIndex to 0

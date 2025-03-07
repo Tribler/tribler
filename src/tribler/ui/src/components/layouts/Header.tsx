@@ -17,7 +17,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { Ban, Loader } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ScrollArea } from "../ui/scroll-area";
-import { EasyTooltip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { EasyTooltip } from "../ui/tooltip";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
