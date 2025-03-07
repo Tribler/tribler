@@ -397,7 +397,8 @@ class TestTorrentDef(TestBase):
         name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
         name_unicode = name_bytes.decode()
         tdef = TorrentDef(metainfo={b"info": {b"files": [{b"path.utf-8": [name_bytes], b"length": 123},
-                                                         {b"path.utf-8": [b"file.txt"], b"length": 456}]}})
+                                                         {b"path.utf-8": [b"file.txt"], b"length": 456}],
+                                              b"name": b"", b"piece length": 128, b"pieces": b"\x00" * 100}})
 
         self.assertEqual([(Path(name_unicode), 123), (Path('file.txt'), 456)], tdef.get_files_with_length())
 
@@ -408,7 +409,8 @@ class TestTorrentDef(TestBase):
         name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
         name_unicode = name_bytes.decode()
         tdef = TorrentDef(metainfo={b"info": {b"files": [{b"path": [name_bytes], b"length": 123},
-                                                         {b"path": [b"file.txt"], b"length": 456}]}})
+                                                         {b"path": [b"file.txt"], b"length": 456}],
+                                              b"name": b"", b"piece length": 128, b"pieces": b"\x00" * 100}})
 
         self.assertEqual([(Path(name_unicode), 123), (Path('file.txt'), 456)], tdef.get_files_with_length())
 
@@ -418,7 +420,8 @@ class TestTorrentDef(TestBase):
         """
         name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
         tdef = TorrentDef(metainfo={b"info": {b"files": [{b"path": [b"test\xff" + name_bytes], b"length": 123},
-                                                         {b"path": [b"file.txt"], b"length": 456}]}})
+                                                         {b"path": [b"file.txt"], b"length": 456}],
+                                              b"name": b"", b"piece length": 128, b"pieces": b"\x00" * 100}})
 
         self.assertEqual([(Path("test?????????????"), 123), (Path("file.txt"), 456)], tdef.get_files_with_length())
 
@@ -428,9 +431,26 @@ class TestTorrentDef(TestBase):
         """
         name_bytes = b"\xe8\xaf\xad\xe8\xa8\x80\xe5\xa4\x84\xe7\x90\x86"
         tdef = TorrentDef(metainfo={b"info": {b"files": [{b"path.utf-8": [b"test\xff" + name_bytes], b"length": 123},
-                                                         {b"path": [b"file.txt"], b"length": 456}]}})
+                                                         {b"path": [b"file.txt"], b"length": 456}],
+                                              b"name": b"", b"piece length": 128, b"pieces": b"\x00" * 100}})
 
         self.assertEqual([(Path("file.txt"), 456)], tdef.get_files_with_length())
+
+    def test_get_files_with_length_ignore_padding(self) -> None:
+        """
+        Test if get_files_with_length ignores padding files.
+        """
+        tdef = TorrentDef(metainfo={
+            b"info": {
+                b"name": b"torrent name",
+                b"files": [{b"path": [b".pad"], b"length": 123, b"attr": b"p"},
+                           {b"path": [b"file.txt"], b"length": 456}],
+                b"piece length": 128,
+                b"pieces": b"\x00" * 100
+            }
+        })
+
+        self.assertEqual([(Path('file.txt'), 456)], tdef.get_files_with_length())
 
     def test_load_torrent_info(self) -> None:
         """

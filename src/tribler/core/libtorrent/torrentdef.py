@@ -638,8 +638,12 @@ class TorrentDef:
             metainfo_v1 = cast(InfoDict, self.metainfo[b"info"])
             # Multi-file v1 torrent
             files = cast(FileDict, metainfo_v1[b"files"])
+            storage = cast(lt.torrent_info, self.torrent_info).files()  # If we have metainfo, we have torrent_info
 
-            for file_dict in files:
+            for index, file_dict in enumerate(files):
+                # Ignore padding files, to align with v2 metainfo
+                if storage.file_flags(index) != 0:
+                    continue
                 if b"path.utf-8" in file_dict:
                     # This file has an utf-8 encoded list of elements.
                     # We assume that it is correctly encoded and use it normally.
