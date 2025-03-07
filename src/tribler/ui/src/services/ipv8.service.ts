@@ -49,7 +49,7 @@ export class IPv8Service {
 
     async setAsyncioDebug(enable: boolean, slownessThreshold: number): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put('/asyncio/debug', {enable: enable, slow_callback_duration: slownessThreshold})).data.success;
+            return (await this.http.put('/asyncio/debug', { enable: enable, slow_callback_duration: slownessThreshold })).data.success;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -114,6 +114,30 @@ export class IPv8Service {
     async getSwarms(): Promise<undefined | ErrorDict | Swarm[]> {
         try {
             return (await this.http.get('/tunnel/swarms')).data.swarms;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async testCircuit(circuitId: number, callback: (data: any) => void): Promise<undefined | ErrorDict> {
+        try {
+            await this.http.get(`/tunnel/circuits/${circuitId}/test`, {
+                headers: {
+                    'Accept': 'text/event-stream',
+                },
+                responseType: 'stream',
+                adapter: 'fetch',
+            })
+                .then(async (response) => {
+                    const reader = response.data.pipeThrough(new TextDecoderStream()).getReader();
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        var i = value.indexOf(':');
+                        callback(JSON.parse(value.slice(i + 1)));
+                    }
+                })
+
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

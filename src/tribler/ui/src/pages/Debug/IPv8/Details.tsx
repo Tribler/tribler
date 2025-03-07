@@ -63,7 +63,6 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
         accessorKey: "num_up",
         header: getHeader("# Msgs sent", false),
         cell: ({ row }) => {
-            // if (row.original.identifier < 0) { return }
             return <span>{row.original.num_up}</span>
         },
     },
@@ -71,7 +70,6 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
         accessorKey: "num_down",
         header: getHeader("# Msgs received", false),
         cell: ({ row }) => {
-            // if (row.original.identifier < 0) { return }
             return <span>{row.original.num_down}</span>
         },
     },
