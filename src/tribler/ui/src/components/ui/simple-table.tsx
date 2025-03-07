@@ -261,10 +261,10 @@ function SimpleTable<T extends object>({
             await triblerService.getSettings();
 
             // Init sorting and column visibility
-            const sortingState = getState("sorting", storeSortingState);
+            const sortingState = getState("sorting", storeSortingState) || [];
             setSorting(sortingState)
 
-            const visibilityState = getState("columns", allowColumnToggle);
+            const visibilityState = getState("columns", allowColumnToggle) || {};
             let col: any;
             for (col of columns) {
                 if (col.accessorKey && col.accessorKey in visibilityState === false) {
@@ -276,7 +276,7 @@ function SimpleTable<T extends object>({
     }, []);
 
     useEffect(() => {
-        if (storeSortingState && sorting) {
+        if (storeSortingState && sorting.length > 0) {
             setState("sorting", storeSortingState, sorting);
         }
     }, [sorting]);
