@@ -167,19 +167,9 @@ function SimpleTable<T extends object>({
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || [])
     const [expanded, setExpanded] = useState<ExpandedState>({});
-    const [sorting, setSorting] = useState<SortingState>(getState("sorting", storeSortingState) || []);
+    const [sorting, setSorting] = useState<SortingState>([]);
     const [startId, setStartId] = useState<string | undefined>(undefined);
-
-    //Get stored column visibility and add missing visibilities with their defaults.
-    const visibilityState = getState("columns", allowColumnToggle) || {};
-    let col: any;
-    for (col of columns) {
-        if (col.accessorKey && col.accessorKey in visibilityState === false) {
-            visibilityState[col.accessorKey] = col.meta?.hide_by_default !== true;
-        }
-    }
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(visibilityState);
-
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
     useHotkeys(isMac() ? 'meta+a' : 'ctrl+a', event => {
         if (allowMultiSelect) {
@@ -266,13 +256,33 @@ function SimpleTable<T extends object>({
     }, [filters])
 
     useEffect(() => {
-        if (storeSortingState) {
+        (async () => {
+            // Ensure GUI settings are loaded
+            await triblerService.getSettings();
+
+            // Init sorting and column visibility
+            const sortingState = getState("sorting", storeSortingState);
+            setSorting(sortingState)
+
+            const visibilityState = getState("columns", allowColumnToggle);
+            let col: any;
+            for (col of columns) {
+                if (col.accessorKey && col.accessorKey in visibilityState === false) {
+                    visibilityState[col.accessorKey] = col.meta?.hide_by_default !== true;
+                }
+            }
+            setColumnVisibility(visibilityState);
+        })()
+    }, []);
+
+    useEffect(() => {
+        if (storeSortingState && sorting) {
             setState("sorting", storeSortingState, sorting);
         }
     }, [sorting]);
 
     useEffect(() => {
-        if (allowColumnToggle) {
+        if (allowColumnToggle && Object.keys(columnVisibility).length > 0) {
             setState("columns", allowColumnToggle, columnVisibility);
         }
     }, [columnVisibility]);
