@@ -155,11 +155,11 @@ class TestDownloadState(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
-        for file_spec in download.tdef.metainfo[b"info"][b"files"]:
-            file_spec[b"length"] = 0
-        download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]))
+        download.tdef.metainfo[b"info"][b"files"][0][b"length"] = 0  # Other five files have length of 6
+        download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[0, 6, 6, 6, 6, 6]))
         download_state = DownloadState(download, Mock(), None)
 
+        self.assertEqual(6, len(download_state.get_files_completion()))
         for _, progress in download_state.get_files_completion():
             self.assertEqual(1.0, progress)
 
