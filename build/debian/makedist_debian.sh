@@ -7,7 +7,7 @@ rm -rf dist/tribler
 rm -rf build/debian/tribler/usr/share/tribler
 
 # ----- Install dependencies before the build
-python3 -m pip install --upgrade PyGObject
+python3 -m pip install --upgrade PyGObject==3.50.0
 
 # ----- Update version
 python3 ./build/debian/update_metainfo.py
