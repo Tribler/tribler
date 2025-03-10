@@ -1089,8 +1089,7 @@ class DownloadManager(TaskManager):
                 basename = hexlify(infohash).decode() + ".conf"
                 filename = self.get_checkpoint_dir() / basename
                 self._logger.debug("Removing download checkpoint %s", filename)
-                if os.access(filename, os.F_OK):
-                    os.remove(filename)
+                filename.unlink(missing_ok=True)
             except:
                 # Show must go on
                 self._logger.exception("Could not remove state")
