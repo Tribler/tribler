@@ -294,7 +294,8 @@ class DownloadManager(TaskManager):
             "allow_i2p_mixed": 1,
             "announce_to_all_tiers": int(self.config.get("libtorrent/announce_to_all_tiers")),
             "announce_to_all_trackers": int(self.config.get("libtorrent/announce_to_all_trackers")),
-            "max_concurrent_http_announces": int(self.config.get("libtorrent/max_concurrent_http_announces"))
+            "max_concurrent_http_announces": int(self.config.get("libtorrent/max_concurrent_http_announces")),
+            "disk_write_mode": 0  # always_pwrite
         }
 
         # Copy construct so we don't modify the default list
@@ -1089,8 +1090,7 @@ class DownloadManager(TaskManager):
                 basename = hexlify(infohash).decode() + ".conf"
                 filename = self.get_checkpoint_dir() / basename
                 self._logger.debug("Removing download checkpoint %s", filename)
-                if os.access(filename, os.F_OK):
-                    os.remove(filename)
+                filename.unlink(missing_ok=True)
             except:
                 # Show must go on
                 self._logger.exception("Could not remove state")
