@@ -295,7 +295,8 @@ class DownloadManager(TaskManager):
             "announce_to_all_tiers": int(self.config.get("libtorrent/announce_to_all_tiers")),
             "announce_to_all_trackers": int(self.config.get("libtorrent/announce_to_all_trackers")),
             "max_concurrent_http_announces": int(self.config.get("libtorrent/max_concurrent_http_announces")),
-            "disk_write_mode": 0  # always_pwrite
+            "disk_write_mode": 0,  # always_pwrite
+            "mmap_file_size_cutoff": 2147483647  # use pwrite for files up to maxint * 16kB ("always")
         }
 
         # Copy construct so we don't modify the default list
