@@ -185,7 +185,12 @@ class Download(TaskManager):
 
         Note: a finished recheck causes a ``torrent_finished_alert``: hooking into that causes an infinite loop!
         """
+        await self.future_added
+        if self.get_state().get_progress() == 1.0:
+            self._logger.info("Skipping recheck of %s, already finished when added!", str(self))
+            return
         await self.future_finished
+        self._logger.info("Force rechecking %s after completion!", str(self))
         self.force_recheck()
 
     @task
