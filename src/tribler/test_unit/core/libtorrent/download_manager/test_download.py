@@ -940,3 +940,38 @@ class TestDownload(TestBase):
 
         self.assertEqual(call(infohash=hexlify(download.tdef.infohash).decode(), name="torrent_create", hidden=False),
                          callback.call_args)
+
+    async def test_recheck_after_finish(self) -> None:
+        """
+        Test if a recheck is triggered after finishing.
+        """
+        config = MockTriblerConfigManager()
+        config.set("libtorrent/check_after_complete", True)
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock()
+
+        download.future_added.set_result(None)
+        await sleep(0)
+        download.future_finished.set_result(None)
+        await sleep(0)
+
+        self.assertEqual(call(), download.handle.force_recheck.call_args)
+
+    async def test_recheck_after_finish_no_startup(self) -> None:
+        """
+        Test if a recheck is not triggered after loading a torrent on startup.
+        """
+        config = MockTriblerConfigManager()
+        config.set("libtorrent/check_after_complete", True)
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock()
+        download.lt_status = Mock(progress=1.0)  # Start completed
+
+        download.future_added.set_result(None)
+        await sleep(0)
+        download.future_finished.set_result(None)
+        await sleep(0)
+
+        self.assertEqual(None, download.handle.force_recheck.call_args)
