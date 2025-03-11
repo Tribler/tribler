@@ -26,7 +26,8 @@ To run the docker image:
 .. code-block::
 
     docker run -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" \
-               -v ~/.Tribler:/state -v ~/downloads/TriblerDownloads:/downloads \
+               -v ~/.Tribler:/home/ubuntu/.Tribler \
+               -v ~/downloads/TriblerDownloads:/home/ubuntu/Downloads \
                -v $XDG_CACHE_HOME/tmp/:$XDG_CACHE_HOME/tmp/ -v /run:/run \
                --security-opt "apparmor:unconfined" \
                --net="host" \
@@ -41,7 +42,8 @@ To run the docker image:
 .. code-block::
 
     docker run -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" \
-               -v ~/.Tribler:/state -v ~/downloads/TriblerDownloads:/downloads \
+               -v ~/.Tribler:/home/ubuntu/.Tribler \
+               -v ~/downloads/TriblerDownloads:/home/ubuntu/Downloads \
                --net="host" -it ghcr.io/tribler/tribler:latest -s
 
 You can then open Tribler in your web browser at the URL:
