@@ -26,8 +26,13 @@ class RendezvousDatabase:
         """
         Create a new database.
         """
-        create_db = db_path == ":memory:" or not Path(db_path).exists()
-        db_path_string = ":memory:" if db_path == ":memory:" else str(db_path)
+        if db_path == ":memory:":
+            create_db = True
+            db_path_string = ":memory:"
+        else:
+            Path(db_path).parent.mkdir(exist_ok=True)
+            create_db = not Path(db_path).exists()
+            db_path_string = str(db_path)
 
         self.database = Database()
         self.Certificate = certificate.define_binding(self.database)
