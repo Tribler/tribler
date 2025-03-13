@@ -27,6 +27,7 @@ class Manager:
             create_db = True
             db_path_string = ":memory:"
         else:
+            Path(db_filename).parent.mkdir(exist_ok=True)
             create_db = not Path(db_filename).exists()
             db_path_string = str(db_filename)
 
