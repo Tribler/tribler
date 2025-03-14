@@ -129,7 +129,7 @@ jobs:
 
       - name: Build Executables (Ubuntu aarch64)
         if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'aarch64'
-        uses: uraimo/run-on-arch-action@v2
+        uses: uraimo/run-on-arch-action@v3
         id: run_ubuntu_aarch64
         with:
           arch: ${{ matrix.architecture }}
