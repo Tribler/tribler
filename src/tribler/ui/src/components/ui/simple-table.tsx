@@ -384,7 +384,9 @@ function SimpleTable<T extends object>({
 
                                         if (startRow && allowMultiSelect && event.shiftKey) {
                                             let selection: any = {};
-                                            for (let i = Math.min(row.index, startRow.index); i <= Math.max(row.index, startRow.index); i++) {
+                                            let startIndex = rows.findIndex((r) => r.id == startRow.id);
+                                            let stopIndex = rows.findIndex((r) => r.id == row.id);
+                                            for (let i = Math.min(startIndex, stopIndex); i <= Math.max(startIndex, stopIndex); i++) {
                                                 selection[rows[i].id] = true;
                                             }
                                             setRowSelection(selection);
