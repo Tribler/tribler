@@ -15,7 +15,7 @@ jobs:
         run: pip install ruff
       - name: Get changed Python files
         id: changed-py-files
-        uses: tj-actions/changed-files@v42
+        uses: tj-actions/changed-files@v46.0.1
         with:
           files: |
             src/*.py
