@@ -21,6 +21,8 @@ import { useInterval } from "@/hooks/useInterval";
 import { usePrevious } from "@/hooks/usePrevious";
 import { useResizeObserver } from "@/hooks/useResizeObserver";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -212,12 +214,24 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                     selectedDownloads.filter((d) => d.status_code !== StatusCode.LOADING)} />
                             </div>
                             <div>
-                                <div className="flex items-center">
+                                <div className="relative w-full max-w-sm">
                                     <Input
+                                        value={filters.find((filter) => filter.id == "name")?.value}
                                         placeholder={t('FilterByName')}
                                         onChange={(event) => setFilters([{ id: 'name', value: event.target.value }])}
                                         className="max-w-sm"
                                     />
+                                    {filters.find((filter) => filter.id == "name")?.value && <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-500
+                                                   hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                                        onClick={() => setFilters([{ id: 'name', value: "" }])}
+                                    >
+                                        <XIcon className="h-4 w-4" />
+                                        <span className="sr-only">Clear</span>
+                                    </Button>}
                                 </div>
                             </div>
                         </CardHeader>
