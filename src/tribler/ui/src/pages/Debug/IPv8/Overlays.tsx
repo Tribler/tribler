@@ -86,7 +86,7 @@ export default function Overlays() {
                     maxHeight={Math.max((parentRect?.height ?? 50) - 0, 50)}
                 />
             </ResizablePanel>
-            <ResizableHandle className="border-2 border-gray-300 dark:border-gray-600" />
+            <ResizableHandle className={`border-2 border-gray-300 dark:border-gray-600 ${selectedOverlay ? "flex" : "hidden"}`} />
             <ResizablePanel defaultSize={50} className={`${selectedOverlay ? "flex" : "hidden"}`}>
                 <SimpleTable
                     data={selectedOverlay?.peers || []}

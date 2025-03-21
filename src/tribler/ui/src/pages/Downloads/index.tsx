@@ -258,7 +258,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                     </Card>
                 </div>
             </ResizablePanel>
-            <ResizableHandle />
+            <ResizableHandle className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`} />
             <ResizablePanel defaultSize={25} className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`}>
                 <DownloadDetails download={selectedDownloads.length > 0 ? selectedDownloads[0] : undefined} />
             </ResizablePanel>
