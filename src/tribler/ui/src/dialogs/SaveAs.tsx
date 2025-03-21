@@ -19,6 +19,7 @@ import { PathInput } from "@/components/path-input";
 import { ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { FileTreeItem } from "@/models/file.model";
 import { DownloadConfig } from "@/models/downloadconfig.model";
+import { Icons } from "@/components/icons";
 
 
 function startDownloadCallback(response: any, t: TFunction) {
@@ -250,10 +251,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 {error === undefined && files.length === 0 &&
                     <div className="flex justify-center p-5">
                         {t('LoadingTorrent', { method: params.anon_hops !== 0 ? t('anonymously') : t('directly') })}
-                        <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-black dark:text-white ml-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                        <Icons.spinner className="h-6 w-6 mx-3" />
                     </div>
                 }
                 {error !== undefined &&

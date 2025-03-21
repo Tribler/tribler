@@ -5,13 +5,14 @@ import { ScrollArea } from "./scroll-area"
 
 interface ExtendedTableProps extends React.HTMLAttributes<HTMLTableElement> {
     maxHeight?: string | number;
+    scrollClassName?: string;
 }
 
 const Table = React.forwardRef<
     HTMLTableElement,
     ExtendedTableProps
->(({ className, maxHeight, ...props }, ref) => (
-    <ScrollArea className={cn("relative w-full overflow-auto")} style={{ maxHeight: maxHeight }}>
+>(({ className, scrollClassName, maxHeight, ...props }, ref) => (
+    <ScrollArea className={cn("relative w-full overflow-auto", scrollClassName)} style={{ maxHeight: maxHeight }}>
         <table
             ref={ref}
             className={cn("w-full caption-bottom text-sm", className)}

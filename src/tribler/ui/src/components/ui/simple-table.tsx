@@ -133,6 +133,7 @@ interface ReactTableProps<T extends object> {
     allowColumnToggle?: string;
     filters?: { id: string, value: string }[];
     maxHeight?: string | number;
+    scrollClassName?: string;
     expandable?: boolean;
     storeSortingState?: string;
     rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
@@ -156,6 +157,7 @@ function SimpleTable<T extends object>({
     allowColumnToggle,
     filters,
     maxHeight,
+    scrollClassName,
     expandable,
     storeSortingState,
     rowId,
@@ -295,7 +297,7 @@ function SimpleTable<T extends object>({
     return (
         <>
             <div ref={parentRef} className='flex-grow flex'>
-                <Table maxHeight={maxHeight ?? (parentRect?.height ?? 200)}>
+                <Table maxHeight={maxHeight ?? (parentRect?.height ?? 200)} scrollClassName={scrollClassName}>
                     <TableHeader className='z-10'>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id} className="bg-neutral-100 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-900">
