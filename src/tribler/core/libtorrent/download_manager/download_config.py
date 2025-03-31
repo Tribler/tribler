@@ -102,7 +102,7 @@ def _to_dict(value: str) -> dict[bytes, Any]:
     binary = value.encode()
     # b'==' is added to avoid incorrect padding
     base64_bytes = base64.b64decode(binary + b"==")
-    return cast(dict[bytes, Any], lt.bdecode(base64_bytes))
+    return cast("dict[bytes, Any]", lt.bdecode(base64_bytes))
 
 
 class DownloadConfig:
@@ -114,7 +114,7 @@ class DownloadConfig:
         """
         Create a download config from the given ConfigObj.
         """
-        self.config: DownloadConfigDict = cast(DownloadConfigDict, config)
+        self.config: DownloadConfigDict = cast("DownloadConfigDict", config)
 
     @staticmethod
     def get_spec_file_name(settings: TriblerConfigManager) -> str:
@@ -144,7 +144,8 @@ class DownloadConfig:
             config.set_hops(0)
         config.set_safe_seeding(settings.get("libtorrent/download_defaults/safeseeding_enabled"))
         config.set_dest_dir(settings.get("libtorrent/download_defaults/saveas"))
-        config.set_completed_dir(settings.get("libtorrent/download_defaults/completed_dir"))
+        if settings.get("libtorrent/download_defaults/completed_dir"):
+            config.set_completed_dir(settings.get("libtorrent/download_defaults/completed_dir"))
 
         return config
 
@@ -158,7 +159,7 @@ class DownloadConfig:
         """
         Write the contents of this config to a file.
         """
-        config_obj = cast(ConfigObj, self.config)
+        config_obj = cast("ConfigObj", self.config)
         config_obj.filename = str(filename)
         config_obj.write()
 
