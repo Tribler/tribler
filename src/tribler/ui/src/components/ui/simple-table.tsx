@@ -78,12 +78,16 @@ function updateRowSelection(
     if (fromId === undefined) return;
 
     let rows = table.getSortedRowModel().rows;
-    let fromRow = rows.find((row) => row.id === fromId);
-    let fromIndex = fromRow?.index;
-    if (fromIndex === undefined) return;
+    let fromIndex = rows.findIndex((row) => row.id === fromId);
+    if (fromIndex < 0) return;
 
-    let selectedRowIDs = Object.keys(rowSelection);
-    let selectedRowIndexes = rows.filter(row => selectedRowIDs.includes(row.id)).map((row) => row.index);
+    let selectedRowIndexes = [];
+    for (let rowID of Object.keys(rowSelection)) {
+        const index = rows.findIndex((row) => row.id === rowID);
+        if (index >= 0) {
+            selectedRowIndexes.push(index);
+        }
+    }
     let maxIndex = Math.max(...selectedRowIndexes);
     let minIndex = Math.min(...selectedRowIndexes);
 
@@ -104,12 +108,12 @@ function updateRowSelection(
     if (!allowMulti) fromIndex = toIndex;
 
     // Set fromIndex..toIndex as the new row selection
+    if (fromIndex > toIndex) {
+        [fromIndex, toIndex] = [toIndex, fromIndex];
+    }
     let selection: any = {};
-    for (let row of rows) {
-        if ((row.index >= fromIndex && row.index <= toIndex) ||
-            (row.index <= fromIndex && row.index >= toIndex)) {
-            selection[row.id] = true;
-        }
+    for (let i = fromIndex; i <= toIndex; i += 1) {
+        selection[rows[i].id] = true;
     }
     setRowSelection(selection);
 
