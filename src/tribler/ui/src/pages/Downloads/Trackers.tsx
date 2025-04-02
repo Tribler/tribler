@@ -11,6 +11,7 @@ import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { useTranslation } from "react-i18next";
 import { Icons } from "@/components/icons";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 interface TrackerRow extends Tracker {
@@ -18,7 +19,7 @@ interface TrackerRow extends Tracker {
     removeButton: typeof Button;
 }
 
-export default function Trackers({ download }: { download: Download }) {
+export default function Trackers({ download, style }: { download: Download, style?: React.CSSProperties }) {
     const { t } = useTranslation();
 
     const [trackerDialogOpen, setTrackerDialogOpen] = useState<boolean>(false);
@@ -41,38 +42,38 @@ export default function Trackers({ download }: { download: Download }) {
             header: "",
             accessorKey: "recheckButton",
             cell: (props) => {
-                    return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
-                        <Button variant="secondary" className="max-h-6" onClick={(event) => {
-                            triblerService.forceCheckDownloadTracker(download.infohash, props.row.original.url).then((response) => {
-                                if (response === undefined) {
-                                    toast.error(`${"ToastErrorTrackerCheck"} ${"ToastErrorGenNetworkErr"}`);
-                                } else if (isErrorDict(response)){
-                                    toast.error(`${"ToastErrorTrackerCheck"} ${response.error.message}`);
-                                }
-                            });
-                        }}>{t("ForceRecheck")}</Button>)
+                return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
+                    <Button variant="secondary" className="max-h-6" onClick={(event) => {
+                        triblerService.forceCheckDownloadTracker(download.infohash, props.row.original.url).then((response) => {
+                            if (response === undefined) {
+                                toast.error(`${"ToastErrorTrackerCheck"} ${"ToastErrorGenNetworkErr"}`);
+                            } else if (isErrorDict(response)) {
+                                toast.error(`${"ToastErrorTrackerCheck"} ${response.error.message}`);
+                            }
+                        });
+                    }}>{t("ForceRecheck")}</Button>)
             }
         },
         {
             header: "",
             accessorKey: "removeButton",
             cell: (props) => {
-                    return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
-                        <Button variant="secondary" className="max-h-6" onClick={(event) => {
-                            triblerService.removeDownloadTracker(download.infohash, props.row.original.url).then((response) => {
-                                if (response === undefined) {
-                                    toast.error(`${"ToastErrorTrackerRemove"} ${"ToastErrorGenNetworkErr"}`);
-                                } else if (isErrorDict(response)){
-                                    toast.error(`${"ToastErrorTrackerRemove"} ${response.error.message}`);
-                                } else {
-                                    download.trackers = download.trackers.filter(tracker => {return tracker.url != props.row.original.url});
-                                    var button = event.target as HTMLButtonElement;
-                                    button.disabled = true;
-                                    button.classList.add("cursor-not-allowed");
-                                    button.classList.add("opacity-50");
-                                }
-                            });
-                        }}>❌</Button>)
+                return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
+                    <Button variant="secondary" className="max-h-6" onClick={(event) => {
+                        triblerService.removeDownloadTracker(download.infohash, props.row.original.url).then((response) => {
+                            if (response === undefined) {
+                                toast.error(`${"ToastErrorTrackerRemove"} ${"ToastErrorGenNetworkErr"}`);
+                            } else if (isErrorDict(response)) {
+                                toast.error(`${"ToastErrorTrackerRemove"} ${response.error.message}`);
+                            } else {
+                                download.trackers = download.trackers.filter(tracker => { return tracker.url != props.row.original.url });
+                                var button = event.target as HTMLButtonElement;
+                                button.disabled = true;
+                                button.classList.add("cursor-not-allowed");
+                                button.classList.add("opacity-50");
+                            }
+                        });
+                    }}>❌</Button>)
             }
         }
     ]
@@ -81,11 +82,20 @@ export default function Trackers({ download }: { download: Download }) {
         return <Icons.spinner className="ml-4 mt-4" />;
 
     return (
-        <div>
-            <div className="border-b-4 border-muted">
-                <SimpleTable data={download.trackers as TrackerRow[]} columns={trackerColumns} maxHeight={''} />
+        <ScrollArea style={style} className="h=full">
+            <div style={style}>
+                <SimpleTable
+                    className="border-b-4 border-muted"
+                    data={download.trackers as TrackerRow[]}
+                    columns={trackerColumns}
+                />
+                <Button
+                    className="mx-4 my-2 min-w-24 max-h-8"
+                    variant="secondary"
+                    onClick={() => { setTrackerDialogOpen(true) }}>
+                    {t('Add')}
+                </Button>
             </div>
-            <Button className="mx-4 my-2 min-w-24 max-h-8" variant="secondary" onClick={() => { setTrackerDialogOpen(true) }}>{t('Add')}</Button>
 
             <Dialog open={trackerDialogOpen} onOpenChange={setTrackerDialogOpen}>
                 <DialogContent>
@@ -129,6 +139,6 @@ export default function Trackers({ download }: { download: Download }) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </ScrollArea>
     )
 }

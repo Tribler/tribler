@@ -243,7 +243,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             allowSelectCheckbox={true}
                             initialRowSelection={getRowSelection(files, () => true)}
                             expandable={true}
-                            maxHeight={200} />
+                            style={{maxHeight: 200}} />
                         {exists && <span className="text-center text-tribler text-sm">{t('DownloadExists')}</span>}
                     </>
                 }

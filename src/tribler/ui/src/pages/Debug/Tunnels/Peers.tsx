@@ -45,5 +45,8 @@ export default function Peers() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={peers} columns={peerColumns} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={peers}
+        columns={peerColumns} />
 }

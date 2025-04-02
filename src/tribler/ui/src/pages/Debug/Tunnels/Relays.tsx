@@ -55,5 +55,8 @@ export default function Relays() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={relays} columns={relayColumns} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={relays}
+        columns={relayColumns} />
 }

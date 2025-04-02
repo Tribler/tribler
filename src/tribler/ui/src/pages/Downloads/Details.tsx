@@ -20,14 +20,15 @@ import { InfoIcon } from "lucide-react";
 export default function DownloadDetails({ download }: { download: Download | undefined }) {
     const { t } = useTranslation();
 
-    const [contentStyle, setContentStyle] = useState<{ height?: string }>({});
+    const [contentStyle, setContentStyle] = useState<{ height?: number, maxHeight?: number }>({});
     const tabsRef = useRef<HTMLTableElement>(null);
 
     useLayoutEffect(() => {
-        if (tabsRef.current && contentStyle?.height !== (tabsRef.current.offsetHeight - 40 + "px")) {
+        if (tabsRef.current && contentStyle?.height !== (tabsRef.current.offsetHeight - 40)) {
             setContentStyle({
                 // The 40px (CSS class h-10) is to compensate for the height of the TabsList
-                height: tabsRef.current.offsetHeight - 40 + "px",
+                height: tabsRef.current.offsetHeight - 40,
+                maxHeight: tabsRef.current.offsetHeight - 40
             })
         }
     });
@@ -111,19 +112,13 @@ export default function DownloadDetails({ download }: { download: Download | und
                 </ScrollArea>
             </TabsContent>
             <TabsContent value="files" style={contentStyle}>
-                <ScrollArea className="h-full">
-                    <Files download={download} key={download.infohash} />
-                </ScrollArea>
+                <Files download={download} key={download.infohash} style={contentStyle} />
             </TabsContent>
             <TabsContent value="trackers" style={contentStyle}>
-                <ScrollArea className="h-full">
-                    <Trackers download={download} />
-                </ScrollArea>
+                <Trackers download={download} style={contentStyle} />
             </TabsContent>
             <TabsContent value="peers" style={contentStyle}>
-                <ScrollArea className="h-full">
-                    <Peers download={download} height={contentStyle.height} />
-                </ScrollArea>
+                <Peers download={download} style={contentStyle} />
             </TabsContent>
         </Tabs>
     )

@@ -40,5 +40,8 @@ export default function Buckets() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={buckets} columns={bucketColumns} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={buckets}
+        columns={bucketColumns} />
 }

@@ -34,7 +34,7 @@ const overlayColumns: ColumnDef<Overlay>[] = [
         cell: ({ row }) => {
             return (
                 <span className={`font-medium ${(row.original.peers.length < 20) ? `text-green-400` :
-                        ((row.original.peers.length < row.original.max_peers) ? 'text-yellow-400' : 'text-red-400')}`}>
+                    ((row.original.peers.length < row.original.max_peers) ? 'text-yellow-400' : 'text-red-400')}`}>
                     {row.original.peers.length}
                 </span>
             )
@@ -83,7 +83,10 @@ export default function Overlays() {
                     columns={overlayColumns}
                     allowSelect={true}
                     onSelectedRowsChange={(rows) => setSelectedOverlay(rows[0])}
-                    maxHeight={Math.max((parentRect?.height ?? 50) - 0, 50)}
+                    style={{
+                        height: parentRect?.height ?? 50,
+                        maxHeight: parentRect?.height ?? 50
+                    }}
                 />
             </ResizablePanel>
             <ResizableHandle className={`border-2 border-gray-300 dark:border-gray-600 ${selectedOverlay ? "flex" : "hidden"}`} />

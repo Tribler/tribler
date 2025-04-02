@@ -106,7 +106,7 @@ export default function Popular() {
                 />
             }
             <SimpleTable
-                scrollClassName="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-57px)]"
+                className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-57px)]"
                 data={torrents}
                 columns={torrentColumns}
                 storeSortingState="popular-sorting"
