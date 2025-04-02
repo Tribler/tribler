@@ -73,12 +73,14 @@ export default function Libtorrent() {
             </TabsList>
             <TabsContent value="settings" className="contents">
                 <SimpleTable
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
                     data={settings}
                     columns={libtorrentColumns}
                 />
             </TabsContent>
             <TabsContent value="session" className="contents">
                 <SimpleTable
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
                     data={session}
                     columns={libtorrentColumns}
                 />

@@ -94,7 +94,10 @@ export default function Circuits() {
                     columns={circuitColumns}
                     onSelectedRowsChange={(rows) => setSelectedCircuit(rows[0])}
                     allowSelect={true}
-                    maxHeight={Math.max((parentRect?.height ?? 50) - 0, 50)}
+                    style={{
+                        height: parentRect?.height ?? 50,
+                        maxHeight: parentRect?.height ?? 50
+                    }}
                 />
             </ResizablePanel>
             <ResizableHandle className={`border-2 border-gray-300 dark:border-gray-600 ${selectedCircuit ? "flex" : "hidden"}`} />

@@ -1,7 +1,7 @@
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
-import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ExpandedState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column, InitialTableState } from '@tanstack/react-table';
+import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column, InitialTableState } from '@tanstack/react-table';
 import { cn, isMac } from '@/lib/utils';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
 import { Button } from './button';
@@ -9,10 +9,11 @@ import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DotsHori
 import * as SelectPrimitive from "@radix-ui/react-select"
 import type { Table as ReactTable } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
-import { useResizeObserver } from '@/hooks/useResizeObserver';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './dropdown-menu';
 import { triblerService } from '@/services/tribler.service';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { notUndefined, useVirtualizer } from '@tanstack/react-virtual';
+import { ScrollArea } from './scroll-area';
 
 
 declare module '@tanstack/table-core/build/lib/types' {
@@ -136,13 +137,13 @@ interface ReactTableProps<T extends object> {
     allowMultiSelect?: boolean;
     allowColumnToggle?: string;
     filters?: { id: string, value: string }[];
-    maxHeight?: string | number;
-    scrollClassName?: string;
     expandable?: boolean;
     storeSortingState?: string;
     rowId?: (originalRow: T, index: number, parent?: Row<T>) => string,
     selectOnRightClick?: boolean,
-    initialState?: InitialTableState
+    initialState?: InitialTableState,
+    className?: string,
+    style?: React.CSSProperties
 }
 
 function SimpleTable<T extends object>({
@@ -160,13 +161,13 @@ function SimpleTable<T extends object>({
     allowMultiSelect,
     allowColumnToggle,
     filters,
-    maxHeight,
-    scrollClassName,
     expandable,
     storeSortingState,
     rowId,
     selectOnRightClick,
-    initialState
+    initialState,
+    className,
+    style
 }: ReactTableProps<T>) {
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: pageIndex ?? 0,
@@ -293,25 +294,46 @@ function SimpleTable<T extends object>({
         }
     }, [columnVisibility]);
 
-    // For some reason the ScrollArea scrollbar is only shown when it's set to a specific height.
-    // So, we wrap it in a parent div, monitor its size, and set the height of the table accordingly.
     const parentRef = useRef<HTMLTableElement>(null);
-    const parentRect = (!maxHeight) ? useResizeObserver({ ref: parentRef }) : undefined;
+    const columnCount = table.getAllColumns().length;
+    const { rows } = table.getRowModel();
+    const virtualizer = useVirtualizer({
+        count: rows.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 40, // if set too low the last row will start flickering
+        overscan: 20,
+    })
+
+    const items = virtualizer.getVirtualItems();
+    const [before, after] =
+        items.length > 0
+            ? [
+                notUndefined(items[0]).start - virtualizer.options.scrollMargin,
+                virtualizer.getTotalSize() - notUndefined(items[items.length - 1]).end
+            ]
+            : [0, 0];
 
     return (
         <>
-            <div ref={parentRef} className='flex-grow flex'>
-                <Table maxHeight={maxHeight ?? (parentRect?.height ?? 200)} scrollClassName={scrollClassName}>
+            <ScrollArea
+                className={cn("relative w-full overflow-auto", className)}
+                ref={parentRef}
+                style={style}
+            >
+                <Table>
                     <TableHeader className='z-10'>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id} className="bg-neutral-100 hover:bg-neutral-100 dark:bg-neutral-900 dark:hover:bg-neutral-900">
                                 {headerGroup.headers.map((header, index) => {
                                     return (
-                                        <TableHead key={header.id} className={cn({
-                                            'pl-4': index === 0,
-                                            'pr-4': !allowColumnToggle && index + 1 === headerGroup.headers.length,
-                                            'pr-0': !!allowColumnToggle
-                                        })}>
+                                        <TableHead
+                                            key={header.id}
+                                            className={cn({
+                                                'pl-4': index === 0,
+                                                'pr-4': !allowColumnToggle && index + 1 === headerGroup.headers.length,
+                                                'pr-0': !!allowColumnToggle
+                                            })}
+                                        >
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -360,61 +382,71 @@ function SimpleTable<T extends object>({
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getPaginationRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
-                                    className={`select-none ${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
-                                    onContextMenu={(event) => {
-                                        if (selectOnRightClick && !row.getIsSelected()) {
-                                            event.target.dispatchEvent(new MouseEvent("click", {
-                                                bubbles: true,
-                                                cancelable: true,
-                                                view: window,
-                                            }));
-                                        }
-                                    }}
-                                    onClick={(event) => {
-                                        if (!allowSelect && !allowMultiSelect)
-                                            return;
+                        {before > 0 && <TableRow><td colSpan={columnCount} style={{ height: before }} /></TableRow>}
 
-                                        if (allowMultiSelect && (isMac() ? event.metaKey : event.ctrlKey)) {
-                                            row.toggleSelected(!row.getIsSelected());
-                                            if (!row.getIsSelected()) setStartId(row.id)
-                                            return;
-                                        }
+                        {rows.length ? (
+                            items.map((item, rowIndex) => {
+                                const row = rows[item.index];
 
-                                        let rows = table.getSortedRowModel().rows;
-                                        let startRow = rows.find((row) => row.id === startId);
-
-                                        if (startRow && allowMultiSelect && event.shiftKey) {
-                                            let selection: any = {};
-                                            let startIndex = rows.findIndex((r) => r.id == startRow.id);
-                                            let stopIndex = rows.findIndex((r) => r.id == row.id);
-                                            for (let i = Math.min(startIndex, stopIndex); i <= Math.max(startIndex, stopIndex); i++) {
-                                                selection[rows[i].id] = true;
+                                return (
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                        className={`select-none ${allowSelect || allowMultiSelect ? "cursor-pointer" : ""}`}
+                                        onContextMenu={(event) => {
+                                            if (selectOnRightClick && !row.getIsSelected()) {
+                                                event.target.dispatchEvent(new MouseEvent("click", {
+                                                    bubbles: true,
+                                                    cancelable: true,
+                                                    view: window,
+                                                }));
                                             }
-                                            setRowSelection(selection);
-                                        } else {
-                                            const selected = row.getIsSelected()
-                                            table.resetRowSelection();
-                                            row.toggleSelected(!selected);
-                                            if (!selected) setStartId(row.id)
-                                        }
-                                    }}
-                                    onDoubleClick={() => {
-                                        if (onRowDoubleClick) {
-                                            onRowDoubleClick(row.original)
-                                        }
-                                    }}>
-                                    {row.getVisibleCells().map((cell, index) => (
-                                        <TableCell key={cell.id} className={cn({ 'pl-4': index === 0, 'pr-4': index + 1 === row.getVisibleCells().length, })}>
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
+                                        }}
+                                        onClick={(event) => {
+                                            if (!allowSelect && !allowMultiSelect)
+                                                return;
+
+                                            if (allowMultiSelect && (isMac() ? event.metaKey : event.ctrlKey)) {
+                                                row.toggleSelected(!row.getIsSelected());
+                                                if (!row.getIsSelected()) setStartId(row.id)
+                                                return;
+                                            }
+
+                                            let rows = table.getSortedRowModel().rows;
+                                            let startRow = rows.find((row) => row.id === startId);
+
+                                            if (startRow && allowMultiSelect && event.shiftKey) {
+                                                let selection: any = {};
+                                                let startIndex = rows.findIndex((r) => r.id == startRow.id);
+                                                let stopIndex = rows.findIndex((r) => r.id == row.id);
+                                                for (let i = Math.min(startIndex, stopIndex); i <= Math.max(startIndex, stopIndex); i++) {
+                                                    selection[rows[i].id] = true;
+                                                }
+                                                setRowSelection(selection);
+                                            } else {
+                                                const selected = row.getIsSelected()
+                                                table.resetRowSelection();
+                                                row.toggleSelected(!selected);
+                                                if (!selected) setStartId(row.id)
+                                            }
+                                        }}
+                                        onDoubleClick={() => {
+                                            if (onRowDoubleClick) {
+                                                onRowDoubleClick(row.original)
+                                            }
+                                        }}>
+
+                                        {row.getVisibleCells().map((cell, colIndex) => (
+                                            <TableCell
+                                                key={cell.id}
+                                                className={cn({ 'pl-4': colIndex === 0, 'pr-4': colIndex + 1 === row.getVisibleCells().length, })}
+                                            >
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                )
+                            })
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
@@ -422,9 +454,11 @@ function SimpleTable<T extends object>({
                                 </TableCell>
                             </TableRow>
                         )}
+
+                        {after > 0 && <TableRow><td colSpan={columnCount} style={{ height: after }} /></TableRow>}
                     </TableBody>
                 </Table>
-            </div>
+            </ScrollArea>
 
             {!!pageSize && table.getPageCount() > 1 && <Pagination table={table} />}
         </>

@@ -36,5 +36,8 @@ export default function Statistics() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={statistics} columns={statisticColumns} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={statistics}
+        columns={statisticColumns} />
 }

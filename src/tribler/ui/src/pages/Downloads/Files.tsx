@@ -67,7 +67,7 @@ async function updateFiles(setFiles: Dispatch<SetStateAction<FileTreeItem[]>>, d
     }
 }
 
-export default function Files({ download }: { download: Download }) {
+export default function Files({ download, style }: { download: Download, style?: React.CSSProperties }) {
     const { t } = useTranslation();
     const [files, setFiles] = useState<FileTreeItem[]>([]);
     const initialized = useRef(false)
@@ -115,9 +115,8 @@ export default function Files({ download }: { download: Download }) {
 
     return <SimpleTable
         data={files}
+        style={style}
         columns={fileColumns}
         expandable={true}
-        pageSize={50}
-        maxHeight={'none'}
     />
 }

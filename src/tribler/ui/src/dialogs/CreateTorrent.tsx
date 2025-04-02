@@ -120,7 +120,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                         data={files}
                         columns={filenameColumns}
                         allowSelect={false}
-                        maxHeight={200} />
+                        style={{maxHeight: 200}} />
 
                     <div>
                         <SelectRemotePath

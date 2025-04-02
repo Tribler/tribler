@@ -51,5 +51,8 @@ export default function Exits() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={exits} columns={exitColumns} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={exits}
+        columns={exitColumns} />
 }

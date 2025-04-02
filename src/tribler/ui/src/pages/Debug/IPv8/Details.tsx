@@ -112,5 +112,10 @@ export default function Details() {
         }
     }, 5000, true);
 
-    return <SimpleTable data={statistics} columns={statisticColumns} expandable={true} initialState={{expanded: true}} />
+    return <SimpleTable
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        data={statistics}
+        columns={statisticColumns}
+        expandable={true}
+        initialState={{ expanded: true }} />
 }

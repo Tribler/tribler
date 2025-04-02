@@ -76,7 +76,7 @@ export default function SlowTasks() {
                     </Button>
                 </div>
                 {debug.messages && debug.messages.map((msg, index) => (
-                    <Card className="m-4">
+                    <Card key={index} className="m-4">
                         <CardContent className="p-4">
                             <span key={index} className="line-clamp-2 text-xs font-mono">{msg.message}</span>
                         </CardContent>
