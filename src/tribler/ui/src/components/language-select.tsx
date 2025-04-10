@@ -46,6 +46,12 @@ const LanguageSelect = () => {
                 <DropdownMenuItem onClick={() => changeLanguage('es_ES')}>
                     es
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage('hi_IN')}>
+                    hi
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage('ko_KR')}>
+                    ko
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage('pt_BR')}>
                     pt
                 </DropdownMenuItem>
@@ -54,9 +60,6 @@ const LanguageSelect = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage('zh_CN')}>
                     zh
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => changeLanguage('ko_KR')}>
-                    ko
                 </DropdownMenuItem>
 
             </DropdownMenuContent>
