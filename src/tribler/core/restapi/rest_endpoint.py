@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from aiohttp import web
 from ipv8.taskmanager import TaskManager
@@ -48,7 +48,7 @@ class RootEndpoint(RESTEndpoint):
         Create a new root endpoint.
         """
         super().__init__(middlewares, client_max_size)
-        self.endpoints: Dict[str, RESTEndpoint] = {}
+        self.endpoints: dict[str, RESTEndpoint] = {}
 
     def add_endpoint(self, prefix: str, endpoint: RESTEndpoint | IPV8RootEndpoint) -> None:
         """
@@ -70,7 +70,7 @@ class RESTResponse(web.Response):
         """
         Create a new rest response.
         """
-        if isinstance(body, (dict, list)):
+        if isinstance(body, dict | list):
             body = json.dumps(body)
             content_type = "application/json"
         super().__init__(body=body, headers=headers, content_type=content_type, status=status, **kwargs)

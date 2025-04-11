@@ -5,9 +5,11 @@ import re
 from bisect import bisect
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generator, ItemsView, cast
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, ItemsView
+
     import libtorrent
 
 
@@ -33,7 +35,7 @@ class TorrentFileTree:
             """
             self.size = sum(d.size for d in self.directories.values()) + sum(f.size for f in self.files)
 
-        def iter_dirs(self) -> Generator[TorrentFileTree.Directory, None, None]:
+        def iter_dirs(self) -> Generator[TorrentFileTree.Directory]:
             """
             Iterate through the subdirectories in this directory and then this directory itself.
 
@@ -63,18 +65,19 @@ class TorrentFileTree:
 
             return "\n" + "\t" * depth + f"Directory({name!r},{pretty_directories},{pretty_files}, {self.size} bytes)"
 
-    @dataclass(unsafe_hash=True)
+    @dataclass(unsafe_hash=True, order=True)
     class File:
         """
         A File object that has a name (relative to its parent directory) and a file index in the torrent's file list.
         """
 
-        name: str
-        index: int
-        size: int = 0
-        selected: bool = True
+        name: str = field(compare=False)
+        index: int = field(compare=False)
+        size: int = field(compare=False, default=0)
+        selected: bool = field(compare=False, default=True)
+        sort_key: tuple[int | str, ...] = field(compare=True, default=())
 
-        _sort_pattern = re.compile('([0-9]+)')  # We use this for natural sorting (see sort_key())
+        _sort_pattern = re.compile('([0-9]+)')  # We use this for natural sorting
 
         def tostr(self, depth: int = 0) -> str:
             """
@@ -82,51 +85,11 @@ class TorrentFileTree:
             """
             return "\t" * depth + f"File({self.index}, {self.name}, {self.size} bytes)"
 
-        def sort_key(self) -> tuple[int | str, ...]:
+        def __post_init__(self) -> None:
             """
             Sort File instances using natural sort based on their names, which SHOULD be unique.
             """
-            return tuple(int(part) if part.isdigit() else part for part in self._sort_pattern.split(self.name))
-
-        def __lt__(self, other: TorrentFileTree.File) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            return self.sort_key() < other.sort_key()
-
-        def __le__(self, other: TorrentFileTree.File) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            return self.sort_key() <= other.sort_key()
-
-        def __gt__(self, other: TorrentFileTree.File) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            return self.sort_key() > other.sort_key()
-
-        def __ge__(self, other: TorrentFileTree.File) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            return self.sort_key() >= other.sort_key()
-
-        def __eq__(self, other: object) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            if isinstance(other, TorrentFileTree.File):
-                return self.sort_key() == other.sort_key()
-            return False
-
-        def __ne__(self, other: object) -> bool:
-            """
-            Python 3.8 quirk/shortcoming is that File needs to be a SupportsRichComparisonT (instead of using a key).
-            """
-            if isinstance(other, TorrentFileTree.File):
-                return self.sort_key() != other.sort_key()
-            return True
+            self.sort_key = tuple(int(part) if part.isdigit() else part for part in self._sort_pattern.split(self.name))
 
     def __init__(self, file_storage: libtorrent.file_storage) -> None:
         """
@@ -137,7 +100,7 @@ class TorrentFileTree:
         self.root = TorrentFileTree.Directory()
         self.root.collapsed = False
         self.file_storage = file_storage
-        self.paths: Dict[Path, TorrentFileTree.Directory | TorrentFileTree.File] = {}
+        self.paths: dict[Path, TorrentFileTree.Directory | TorrentFileTree.File] = {}
 
     def __str__(self) -> str:
         """
@@ -265,7 +228,7 @@ class TorrentFileTree:
         from_parts = from_path.parts
         for i in range(1, len(from_parts) + 1):
             parent_path = Path(os.sep.join(from_parts[:-i]))
-            parent = cast(TorrentFileTree.Directory, self.find(parent_path))
+            parent = cast("TorrentFileTree.Directory", self.find(parent_path))
             dir_in_parent = from_parts[-i]
             dir_indices = list(parent.directories.keys())  # Python 3 "quirk": dict keys() order is stable
             index_in_parent = dir_indices.index(dir_in_parent)
@@ -287,7 +250,7 @@ class TorrentFileTree:
         """
         if isinstance(start_path, Path):
             fetch_path = start_path if self.path_is_dir(start_path) else start_path.parent
-            fetch_directory = cast(TorrentFileTree.Directory, self.find(fetch_path))
+            fetch_directory = cast("TorrentFileTree.Directory", self.find(fetch_path))
             return fetch_directory, fetch_path, start_path
         fetch_directory, fetch_path = start_path
         requested_fetch_path = fetch_path

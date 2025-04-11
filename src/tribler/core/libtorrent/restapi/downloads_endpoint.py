@@ -7,7 +7,7 @@ from binascii import hexlify, unhexlify
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from time import time
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -160,7 +160,7 @@ class DownloadsEndpoint(RESTEndpoint):
         selected_files = download.config.get_selected_files()
         index_mapping = download.get_def().get_file_indices()
         for file_index, (fn, size) in enumerate(download.get_def().get_files_with_length()):
-            files_json.append(cast(JSONFilesInfo, {
+            files_json.append(cast("JSONFilesInfo", {
                 "index": index_mapping[file_index],
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
                 "name": str(PurePosixPath(fn)),
@@ -450,8 +450,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 else:
                     params[k] = v
             body = await request.read()
-            metainfo = cast(dict[bytes, Any], lt.bdecode(body))
-            packed_selected_files = cast(Optional[list[int]], metainfo.pop(b"selected_files", None))
+            metainfo = cast("dict[bytes, Any]", lt.bdecode(body))
+            packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
             if packed_selected_files is not None:
                 params["selected_files"] = packed_selected_files
             tdef = TorrentDef.load_from_dict(metainfo)
@@ -1169,7 +1169,7 @@ class TorrentStreamResponse(StreamResponse):
 
         if self._download.stream is None:
             self._download.add_stream()
-            self._download.stream = cast(Stream, self._download.stream)
+            self._download.stream = cast("Stream", self._download.stream)
         stream = self._download.stream
 
         start = start or 0

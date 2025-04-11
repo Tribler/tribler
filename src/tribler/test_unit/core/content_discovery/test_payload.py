@@ -11,7 +11,7 @@ from tribler.core.content_discovery.payload import (
     VersionRequest,
     VersionResponse,
 )
-from tribler.core.torrent_checker.dataclasses import HealthInfo, Source
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo, Source
 
 
 class TestContentDiscoveryPayloads(TestBase):

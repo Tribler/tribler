@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from os.path import getsize
 from pathlib import Path
 from time import sleep, time
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from lz4.frame import LZ4FrameDecompressor
 from pony import orm
@@ -30,9 +30,10 @@ from tribler.core.database.serialization import (
     TorrentMetadataPayload,
     read_payload_with_offset,
 )
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from sqlite3 import Connection
 
     from ipv8.types import PrivateKey
@@ -395,7 +396,7 @@ class MetadataStore:
 
         if health_info and len(health_info) == len(payload_list):
             with db_session:
-                for payload, (seeders, leechers, last_check) in zip(payload_list, health_info):
+                for payload, (seeders, leechers, last_check) in zip(payload_list, health_info, strict=False):
                     if hasattr(payload, "infohash"):
                         health = HealthInfo(payload.infohash, last_check=last_check,
                                             seeders=seeders, leechers=leechers)

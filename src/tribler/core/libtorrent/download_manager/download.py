@@ -12,10 +12,11 @@ import logging
 from asyncio import CancelledError, Future, get_running_loop, sleep, wait_for
 from binascii import hexlify
 from collections import defaultdict
+from collections.abc import Callable
 from contextlib import suppress
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import libtorrent as lt
 from bitarray import bitarray
@@ -276,9 +277,9 @@ class Download(TaskManager):
                         | lt.add_torrent_params_flags_t.flag_update_subscribe}
 
         if self.config.get_share_mode():
-            atp["flags"] = cast(int, atp["flags"]) | lt.add_torrent_params_flags_t.flag_share_mode
+            atp["flags"] = cast("int", atp["flags"]) | lt.add_torrent_params_flags_t.flag_share_mode
         if self.config.get_upload_mode():
-            atp["flags"] = cast(int, atp["flags"]) | lt.add_torrent_params_flags_t.flag_upload_mode
+            atp["flags"] = cast("int", atp["flags"]) | lt.add_torrent_params_flags_t.flag_upload_mode
 
         resume_data = self.config.get_engineresumedata()
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -350,7 +351,7 @@ class Download(TaskManager):
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
-        binary_gen = (int(boolean) for boolean in cast(lt.torrent_handle, self.handle).status().pieces)
+        binary_gen = (int(boolean) for boolean in cast("lt.torrent_handle", self.handle).status().pieces)
         try:
             bits = bitarray(binary_gen)
         except ValueError:
@@ -420,7 +421,7 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
-        resume_data = (cast(dict[bytes, Any], lt.bdecode(alert.resume_data))
+        resume_data = (cast("dict[bytes, Any]", lt.bdecode(alert.resume_data))
                        if isinstance(alert.resume_data, bytes)  # Libtorrent 2.X
                        else alert.resume_data)  # Libtorrent 1.X
         # Make save_path relative if the torrent is saved in the Tribler state directory
@@ -498,14 +499,14 @@ class Download(TaskManager):
         Handle a metadata received alert.
         """
         self._logger.info("On metadata received alert: %s", repr(alert))
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
 
         torrent_info = get_info_from_handle(self.handle)
         if not torrent_info:
             return
 
         try:
-            metadata = cast(MetainfoDict, {b"info": lt.bdecode(torrent_info.metadata())})
+            metadata = cast("MetainfoDict", {b"info": lt.bdecode(torrent_info.metadata())})
         except (RuntimeError, ValueError) as e:
             self._logger.warning(e)
             return
@@ -594,7 +595,7 @@ class Download(TaskManager):
         Handle a torrent finished alert.
         """
         self._logger.info("On torrent finished alert: %s", repr(alert))
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.update_lt_status(self.handle.status())
         self.checkpoint()
         downloaded = self.get_state().total_download
@@ -667,7 +668,7 @@ class Download(TaskManager):
         Move the output files to a different location.
         """
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            self.handle = cast(lt.torrent_handle, self.handle)
+            self.handle = cast("lt.torrent_handle", self.handle)
             self.handle.move_storage(str(new_dir))
         self.config.set_dest_dir(new_dir)
         self.config.set_completed_dir(new_dir)
@@ -679,7 +680,7 @@ class Download(TaskManager):
         Force libtorrent to validate the files.
         """
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            self.handle = cast(lt.torrent_handle, self.handle)
+            self.handle = cast("lt.torrent_handle", self.handle)
             if self.get_state().get_status() == DownloadStatus.STOPPED:
                 self.pause_after_next_hashcheck = True
             self.checkpoint_after_next_hashcheck = True
@@ -721,7 +722,7 @@ class Download(TaskManager):
                 extended_version = peer_info.client
             except UnicodeDecodeError:
                 extended_version = b"unknown"
-            peer_dict: PeerDict | PeerDictHave = cast(PeerDict, {
+            peer_dict: PeerDict | PeerDictHave = cast("PeerDict", {
                 "id": hexlify(peer_info.pid.to_bytes()).decode(),
                 "extended_version": extended_version,
                 "ip": peer_info.ip[0],
@@ -747,7 +748,7 @@ class Download(TaskManager):
                 "upload_only": bool(peer_info.flags & peer_info.upload_only)
             })
             if include_have:
-                peer_dict = cast(PeerDictHave, peer_dict)
+                peer_dict = cast("PeerDictHave", peer_dict)
                 peer_dict["have"] = peer_info.pieces
             peers.append(peer_dict)
         return peers
@@ -784,7 +785,7 @@ class Download(TaskManager):
         """
         Retrieve an overview of the trackers and their statuses.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         # Make sure all trackers are in the tracker_status dict
         try:
             tracker_urls = {tracker["url"] for tracker in self.handle.trackers()}
@@ -913,7 +914,7 @@ class Download(TaskManager):
         """
         Add the given trackers to the handle.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         for tracker in trackers:
             self.handle.add_tracker({"url": tracker, "verified": False})
         self.handle.force_reannounce()
@@ -923,7 +924,7 @@ class Download(TaskManager):
         """
         Generate a magnet link for our download.
         """
-        return lt.make_magnet_uri(cast(lt.torrent_handle, self.handle))  # Ensured by ``check_handle``
+        return lt.make_magnet_uri(cast("lt.torrent_handle", self.handle))  # Ensured by ``check_handle``
 
     @require_handle
     def add_peer(self, addr: tuple[str, int]) -> None:
@@ -932,7 +933,7 @@ class Download(TaskManager):
 
         :param addr: The (hostname_ip,port) tuple to connect to
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.connect_peer(addr, 0)
 
     @require_handle
@@ -942,7 +943,7 @@ class Download(TaskManager):
 
         :param addr: The URL address to connect to
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.add_url_seed(addr)
 
     @require_handle
@@ -950,7 +951,7 @@ class Download(TaskManager):
         """
         Set the priority of this download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.set_priority(priority)
 
     @require_handle
@@ -958,7 +959,7 @@ class Download(TaskManager):
         """
         Set the maximum upload rate of this download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.set_upload_limit(value * 1024)
 
     @require_handle
@@ -966,7 +967,7 @@ class Download(TaskManager):
         """
         Set the maximum download rate of this download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.set_download_limit(value * 1024)
 
     @require_handle
@@ -974,7 +975,7 @@ class Download(TaskManager):
         """
         Enable the IP filter on this download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.apply_ip_filter(enable)
 
     def get_share_mode(self) -> bool:
@@ -988,7 +989,7 @@ class Download(TaskManager):
         """
         Set whether this download is in sharing mode.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.config.set_share_mode(share_mode)
         self.handle.set_share_mode(share_mode)
 
@@ -1003,7 +1004,7 @@ class Download(TaskManager):
         """
         Set whether this download is in upload mode.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.config.set_upload_mode(upload_mode)
         self.handle.set_upload_mode(upload_mode)
 
@@ -1012,7 +1013,7 @@ class Download(TaskManager):
         """
         Force announce thid download on the DHT.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.force_dht_announce()
 
     @require_handle
@@ -1020,7 +1021,7 @@ class Download(TaskManager):
         """
         Set this download to sequential download mode.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.set_sequential_download(enable)
 
     @check_handle(None)
@@ -1028,7 +1029,7 @@ class Download(TaskManager):
         """
         Set the priority for all pieces in the download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.prioritize_pieces(piece_priorities)
 
     @check_handle([])
@@ -1036,7 +1037,7 @@ class Download(TaskManager):
         """
         Get the priorities of all pieces in the download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         return self.handle.piece_priorities()
 
     @check_handle(None)
@@ -1044,7 +1045,7 @@ class Download(TaskManager):
         """
         Set the priority for all files in the download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.prioritize_files(file_priorities)
 
     @check_handle(None)
@@ -1052,7 +1053,7 @@ class Download(TaskManager):
         """
         Set the priority for a particular file in the download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.file_priority(file_index, prio)
 
     @check_handle(None)
@@ -1060,7 +1061,7 @@ class Download(TaskManager):
         """
         Reset the deadline for the given piece.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.reset_piece_deadline(piece)
 
     @check_handle(None)
@@ -1068,7 +1069,7 @@ class Download(TaskManager):
         """
         Set the deadline for a given piece.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         self.handle.set_piece_deadline(piece, deadline, flags)
 
     @check_handle([])
@@ -1076,7 +1077,7 @@ class Download(TaskManager):
         """
         Get the priorities of all files in the download.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         return self.handle.file_priorities()
 
     def file_piece_range(self, file_path: Path) -> list[int]:
@@ -1107,7 +1108,7 @@ class Download(TaskManager):
         """
         Calculate the completion of a given file or directory.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         total = 0
         have = 0
         for piece_index in self.file_piece_range(path):
@@ -1149,7 +1150,7 @@ class Download(TaskManager):
         """
         Set a single file or directory to be selected or not.
         """
-        self.handle = cast(lt.torrent_handle, self.handle)
+        self.handle = cast("lt.torrent_handle", self.handle)
         tree = self.tdef.torrent_file_tree
         prio = 4 if selected else 0
         for index in tree.set_selected(Path(path), selected):

@@ -12,8 +12,7 @@ if TYPE_CHECKING:
     from io import BufferedReader
     from pathlib import Path
     from types import TracebackType
-
-    from typing_extensions import Self
+    from typing import Self
 
     from tribler.core.libtorrent.download_manager.download import Download
 
@@ -115,7 +114,7 @@ class Stream:
         # Wait until completed
         await self.wait_for_pieces(pieces_needed)
 
-    def iter_pieces(self, have: bool | None = None, start_from: int | None = None) -> Generator[int, None, None]:
+    def iter_pieces(self, have: bool | None = None, start_from: int | None = None) -> Generator[int]:
         """
         Generator function that yield the pieces for the active file index.
         """

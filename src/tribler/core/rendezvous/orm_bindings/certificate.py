@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Self
 
 from pony.orm import Database, Required
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     import dataclasses
+    from collections.abc import Iterator
 
 
     class IterRendezvousCertificate(type):  # noqa: D101
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
         start: float
         stop: float
 
-        def __init__(self, public_key: bytes, ip: bytes, port: int, ping: float,  # noqa: D107, PLR0913
+        def __init__(self, public_key: bytes, ip: bytes, port: int, ping: float,  # noqa: D107
                      start: float, stop: float) -> None: ...
 
         @classmethod

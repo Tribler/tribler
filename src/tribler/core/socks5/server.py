@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from asyncio import get_event_loop
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from tribler.core.socks5.connection import Socks5Connection
 
@@ -29,7 +29,7 @@ class Socks5Server:
         self.port = port
         self.output_stream = output_stream
         self.server: Server | None = None
-        self.sessions: List[Socks5Connection] = []
+        self.sessions: list[Socks5Connection] = []
         self.rust_endpoint = rust_endpoint
 
     async def start(self) -> None:

@@ -7,7 +7,7 @@ from ipv8.test.base import TestBase
 from ipv8.util import succeed
 from libtorrent import bencode
 
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 from tribler.core.torrent_checker.torrentchecker_session import (
     FakeBep33DHTSession,
     FakeDHTSession,

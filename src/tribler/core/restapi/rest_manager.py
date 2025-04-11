@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 import ssl
 import traceback
-from asyncio.base_events import Server
 from functools import wraps
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import TYPE_CHECKING, Awaitable, Callable, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, TypeVar, cast
 
 from aiohttp import tcp_helpers, web, web_protocol
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
@@ -26,6 +25,8 @@ from tribler.core.restapi.rest_endpoint import (
 
 if TYPE_CHECKING:
     import asyncio
+    from asyncio.base_events import Server
+    from collections.abc import Awaitable, Callable
 
     from aiohttp.abc import Request
 
@@ -205,7 +206,7 @@ class RESTManager:
         Get the API port of the currently running server.
         """
         if self.site:
-            return cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
+            return cast("Server", self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
         return None
 
     async def start(self) -> None:
@@ -268,7 +269,7 @@ class RESTManager:
                                    str(e))
             raise
 
-        current_port = api_port or cast(Server, self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
+        current_port = api_port or cast("Server", self.site._server).sockets[0].getsockname()[1]  # noqa: SLF001
         self.config.set("api/http_port_running", current_port)
         self.config.write()
 
@@ -287,7 +288,7 @@ class RESTManager:
         await self.site_https.start()
         self._logger.info("Started HTTPS REST API: %s", self.site_https.name)
 
-        current_port = port or cast(Server, self.site_https._server).sockets[0].getsockname()[1]  # noqa: SLF001
+        current_port = port or cast("Server", self.site_https._server).sockets[0].getsockname()[1]  # noqa: SLF001
         self.config.set("api/https_port_running", current_port)
         self.config.write()
 

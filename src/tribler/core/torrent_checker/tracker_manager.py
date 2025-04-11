@@ -42,7 +42,7 @@ class TrackerManager:
         if blacklist_file.exists():
             with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()
-                self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle.readlines()])
+                self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle])
         else:
             self._logger.info("No tracker blacklist file found at %s.", blacklist_file)
 

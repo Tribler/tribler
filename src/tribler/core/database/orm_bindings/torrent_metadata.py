@@ -4,12 +4,11 @@ import random
 from binascii import hexlify, unhexlify
 from datetime import datetime
 from struct import unpack
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from lz4.frame import LZ4FrameCompressor
 from pony import orm
 from pony.orm import Database, db_session
-from typing_extensions import Self
 
 from tribler.core.database.serialization import (
     EPOCH,

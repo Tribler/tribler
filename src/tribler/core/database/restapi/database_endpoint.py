@@ -4,13 +4,13 @@ import asyncio
 import json
 import typing
 from binascii import unhexlify
+from typing import Self
 
 from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Integer, String
 from pony.orm import db_session
-from typing_extensions import Self, TypeAlias
 
 from tribler.core.database.queries import to_fts_query
 from tribler.core.database.restapi.schema import MetadataSchema, SearchMetadataParameters, TorrentSchema
@@ -31,7 +31,7 @@ if typing.TYPE_CHECKING:
     from tribler.core.restapi.rest_manager import TriblerRequest
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
-    RequestType: TypeAlias = TriblerRequest[tuple[MetadataStore]]
+    type RequestType = TriblerRequest[tuple[MetadataStore]]
 
 TORRENT_CHECK_TIMEOUT = 20
 

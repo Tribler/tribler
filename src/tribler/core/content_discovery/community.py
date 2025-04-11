@@ -8,7 +8,7 @@ import uuid
 from binascii import hexlify, unhexlify
 from importlib.metadata import PackageNotFoundError, version
 from itertools import count
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from ipv8.community import Community, CommunitySettings
 from ipv8.lazy_community import lazy_wrapper
@@ -27,10 +27,10 @@ from tribler.core.content_discovery.payload import (
 from tribler.core.database.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.database.store import MetadataStore, ObjState, ProcessingResult
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from ipv8.types import Peer
 

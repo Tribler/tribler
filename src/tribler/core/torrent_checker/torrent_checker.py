@@ -7,7 +7,7 @@ import time
 from asyncio import CancelledError, DatagramTransport
 from binascii import hexlify
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
@@ -15,7 +15,7 @@ from pony.utils import between
 
 from tribler.core.libtorrent.trackers import MalformedTrackerURLException, is_valid_url
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.torrent_checker.dataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, TrackerResponse
+from tribler.core.torrent_checker.healthdataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, TrackerResponse
 from tribler.core.torrent_checker.torrentchecker_session import (
     FakeDHTSession,
     TrackerSession,
@@ -40,7 +40,7 @@ USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from 
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
 
-def aggregate_responses_for_infohash(infohash: bytes, responses: List[TrackerResponse]) -> HealthInfo:
+def aggregate_responses_for_infohash(infohash: bytes, responses: list[TrackerResponse]) -> HealthInfo:
     """
     Finds the "best" health info (with the max number of seeders) for a specified infohash.
     """
@@ -63,7 +63,7 @@ class TorrentChecker(TaskManager):
                  notifier: Notifier,
                  tracker_manager: TrackerManager,
                  metadata_store: MetadataStore,
-                 socks_listen_ports: List[int] | None = None) -> None:
+                 socks_listen_ports: list[int] | None = None) -> None:
         """
         Create a new TorrentChecker.
         """
@@ -84,7 +84,7 @@ class TorrentChecker(TaskManager):
 
         # We keep track of the results of popular torrents checked by you.
         # The content_discovery community gossips this information around.
-        self._torrents_checked: Dict[bytes, HealthInfo] | None = None
+        self._torrents_checked: dict[bytes, HealthInfo] | None = None
 
     async def initialize(self) -> None:
         """
@@ -213,7 +213,7 @@ class TorrentChecker(TaskManager):
         return result
 
     @property
-    def torrents_checked(self) -> Dict[bytes, HealthInfo]:
+    def torrents_checked(self) -> dict[bytes, HealthInfo]:
         """
         Get the checked torrents and their health information.
         """
@@ -225,7 +225,7 @@ class TorrentChecker(TaskManager):
         return self._torrents_checked
 
     @db_session
-    def load_torrents_checked_from_db(self) -> Dict[bytes, HealthInfo]:
+    def load_torrents_checked_from_db(self) -> dict[bytes, HealthInfo]:
         """
         Load the health information from the database.
         """
@@ -271,7 +271,7 @@ class TorrentChecker(TaskManager):
         selected_torrents = popular_torrents + old_torrents
         return random.sample(selected_torrents, min(TORRENT_SELECTION_POOL_SIZE, len(selected_torrents)))
 
-    async def check_local_torrents(self) -> Tuple[List, List]:
+    async def check_local_torrents(self) -> tuple[list, list]:
         """
         Perform a full health check on a few popular and old torrents in the database.
         """
@@ -353,7 +353,7 @@ class TorrentChecker(TaskManager):
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
         self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
-        health = aggregate_responses_for_infohash(infohash, cast(List[TrackerResponse], successful_responses))
+        health = aggregate_responses_for_infohash(infohash, cast("list[TrackerResponse]", successful_responses))
         if health.last_check == 0:
             self.notify(health)  # We don't need to store this in the db, but we still need to notify the GUI
         else:
@@ -372,7 +372,7 @@ class TorrentChecker(TaskManager):
             self._logger.warning("Dropping the request. Required amount of hops not reached. "
                                  "Required hops: %d. Actual hops: %d", required_hops, actual_hops)
             return None
-        listen_ports = cast(List[int], self.socks_listen_ports)  # Guaranteed by check above
+        listen_ports = cast("list[int]", self.socks_listen_ports)  # Guaranteed by check above
         proxy = ('127.0.0.1', listen_ports[required_hops - 1]) if required_hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
         self._logger.info("Tracker session has been created: %s", str(session))

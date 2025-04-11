@@ -8,7 +8,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from packaging.version import Version
 
 from tribler.tribler_config import TriblerConfigManager
@@ -70,11 +70,10 @@ class VersioningManager:
         for url in urls:
             try:
                 async with ClientSession(raise_for_status=True) as session:
-                    response = await session.get(url, headers=headers, timeout=5.0)
+                    response = await session.get(url, headers=headers, timeout=ClientTimeout(total=5.0))
                     response_dict = await response.json(content_type=None)
                     response_version = response_dict["name"]
-                    if response_version.startswith("v"):
-                        response_version = response_version[1:]
+                    response_version = response_version.removeprefix("v")
             except Exception as e:
                 logger.info(e)
                 continue  # Case 1: this failed, but we may still have another URL to check. Continue.

@@ -5,34 +5,35 @@ from asyncio import CancelledError, Future
 from contextlib import suppress
 from hashlib import sha1
 from os.path import getsize
-from typing import TYPE_CHECKING, Callable, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Concatenate, TypedDict
 
 import libtorrent as lt
-from typing_extensions import ParamSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from pathlib import Path
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.torrentdef import InfoDict
 
 logger = logging.getLogger(__name__)
-WrappedParams = ParamSpec("WrappedParams")
-WrappedReturn = TypeVar("WrappedReturn")
-Wrapped = Callable[WrappedParams, WrappedReturn]  # We are forced to type ignore in Python 3.9, revisit in 3.10!
 
 
-def check_handle(default: WrappedReturn) -> Wrapped:
+def check_handle[**WrappedParams, WrappedReturn](
+        default: WrappedReturn
+    ) -> Callable[[Callable[Concatenate[Download, WrappedParams], WrappedReturn]],
+                  Callable[Concatenate[Download, WrappedParams], WrappedReturn]]:
     """
     Return the libtorrent handle if it's available, else return the default value.
 
     Author(s): Egbert Bouman
     """
 
-    def wrap(f: Wrapped) -> Wrapped:
+    def wrap(
+            f: Callable[Concatenate[Download, WrappedParams], WrappedReturn]
+    ) -> Callable[Concatenate[Download, WrappedParams], WrappedReturn]:
         def invoke_func(self: Download,
-                        *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
+                        *args: WrappedParams.args, **kwargs: WrappedParams.kwargs
                         ) -> WrappedReturn:
             if self.handle and self.handle.is_valid():
                 return f(self, *args, **kwargs)
@@ -43,7 +44,9 @@ def check_handle(default: WrappedReturn) -> Wrapped:
     return wrap
 
 
-def require_handle(func: Wrapped) -> Wrapped:
+def require_handle[**WrappedParams, WrappedReturn](
+        func: Callable[Concatenate[Download, WrappedParams], WrappedReturn]
+    ) -> Callable[Concatenate[Download, WrappedParams], Future[WrappedReturn | None]]:
     """
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
 
@@ -51,7 +54,7 @@ def require_handle(func: Wrapped) -> Wrapped:
     """
 
     def invoke_func(self: Download,
-                    *args: WrappedParams.args, **kwargs: WrappedParams.kwargs  # type: ignore[valid-type]
+                    *args: WrappedParams.args, **kwargs: WrappedParams.kwargs
                     ) -> Future[WrappedReturn | None]:
         result_future: Future[WrappedReturn | None] = Future()
 

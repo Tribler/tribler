@@ -7,7 +7,6 @@ from aiohttp import web
 from aiohttp_apispec import docs, querystring_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import Integer, List, String
-from typing_extensions import TypeAlias
 
 from tribler.core.database.queries import to_fts_query
 from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.restapi.rest_manager import TriblerRequest
 
-    RequestType: TypeAlias = TriblerRequest[tuple[ContentDiscoveryCommunity]]
+    type RequestType = TriblerRequest[tuple[ContentDiscoveryCommunity]]
 
 
 class RemoteQueryParameters(MetadataParameters):

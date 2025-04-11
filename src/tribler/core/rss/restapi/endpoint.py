@@ -10,13 +10,12 @@ from marshmallow.fields import Boolean, String
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     from tribler.core.restapi.rest_manager import TriblerRequest
     from tribler.core.rss.rss import RSSWatcherManager
     from tribler.tribler_config import TriblerConfigManager
 
-    RequestType: TypeAlias = TriblerRequest[tuple[RSSWatcherManager, TriblerConfigManager]]
+    type RequestType = TriblerRequest[tuple[RSSWatcherManager, TriblerConfigManager]]
 
 
 class RSSEndpoint(RESTEndpoint):

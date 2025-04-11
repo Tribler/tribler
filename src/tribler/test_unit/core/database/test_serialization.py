@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -26,8 +26,8 @@ class TestSerialization(TestBase):
         """
         Test if time2int normalizes timestamps based on the supplied epoch.
         """
-        date = datetime.fromtimestamp(1234, tz=timezone.utc)
-        epoch = datetime.fromtimestamp(1000, tz=timezone.utc)
+        date = datetime.fromtimestamp(1234, tz=UTC)
+        epoch = datetime.fromtimestamp(1000, tz=UTC)
 
         self.assertEqual(234, time2int(date, epoch))
 
@@ -35,9 +35,9 @@ class TestSerialization(TestBase):
         """
         Test if int2time normalizes timestamps based on the supplied epoch.
         """
-        epoch = datetime.fromtimestamp(1000, tz=timezone.utc)
+        epoch = datetime.fromtimestamp(1000, tz=UTC)
 
-        self.assertEqual(datetime.fromtimestamp(1234, tz=timezone.utc), int2time(234, epoch))
+        self.assertEqual(datetime.fromtimestamp(1234, tz=UTC), int2time(234, epoch))
 
     def test_read_payload_with_offset_unknown(self) -> None:
         """

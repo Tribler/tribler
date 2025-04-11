@@ -11,7 +11,7 @@ build:
   os: ubuntu-22.04
   tools:
     # Check https://docs.readthedocs.io/en/stable/config-file/v2.html#build-tools-python
-    python: "3.10"
+    python: "3.12"
   apt_packages:
     - graphviz
   jobs:

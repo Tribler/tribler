@@ -3,9 +3,11 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from enum import Enum
-from typing import Callable
 
 from ipv8.messaging.anonymization.tunnel import Circuit
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class Desc(typing.NamedTuple):

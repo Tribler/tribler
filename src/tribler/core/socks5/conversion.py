@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import socket
 import struct
-from typing import Any, Union
+from typing import Any
 
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
@@ -107,7 +107,7 @@ class UdpPacket(VariablePayload):
     data: bytes
 
 
-class Socks5Address(Packer[Union[DomainAddress, tuple], Any]):
+class Socks5Address(Packer[DomainAddress | tuple, Any]):
     """
     A socks5 address data packer.
     """

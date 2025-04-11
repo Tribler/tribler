@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from pony import orm
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from dataclasses import dataclass
-    from typing import Iterator
 
     from pony.orm import Database
     from pony.orm.core import Entity

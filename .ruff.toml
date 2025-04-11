@@ -55,7 +55,6 @@ lint.ignore = [
     "TRY300",
     "TRY301",
     "TRY401",
-    "UP006",  # Backward compatibility, remove after Python >= 3.9
 ]
 
 exclude = [
@@ -92,7 +91,7 @@ line-length = 120
 # Allow unused variables when underscore-prefixed.
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-target-version = "py39"
+target-version = "py312"
 
 [lint.pylint]
 max-args = 6

@@ -6,11 +6,9 @@ import socket
 import struct
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import DatagramProtocol, Future, Task, ensure_future, get_event_loop
-from asyncio import TimeoutError as AsyncTimeoutError
-from typing import TYPE_CHECKING, Any, List, NoReturn, cast
+from asyncio import DatagramProtocol, Future, Task, ensure_future, get_event_loop, timeout
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 
-import async_timeout
 import libtorrent as lt
 from aiohttp import ClientResponseError, ClientSession, ClientTimeout
 from ipv8.taskmanager import TaskManager
@@ -18,7 +16,7 @@ from ipv8.taskmanager import TaskManager
 from tribler.core.libtorrent.trackers import add_url_params, parse_tracker_url
 from tribler.core.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.socks5.client import Socks5Client
-from tribler.core.torrent_checker.dataclasses import HealthInfo, TrackerResponse
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo, TrackerResponse
 
 if TYPE_CHECKING:
     from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
@@ -170,11 +168,11 @@ class HttpTrackerSession(TrackerSession):
         if body is None:
             self.failed(msg="no response body")
 
-        response_dict = cast(dict[bytes, Any], lt.bdecode(body))
+        response_dict = cast("dict[bytes, Any]", lt.bdecode(body))
         if not response_dict:
             self.failed(msg="no valid response")
 
-        health_list: List[HealthInfo] = []
+        health_list: list[HealthInfo] = []
         now = int(time.time())
 
         unprocessed_infohashes = set(self.infohash_list)
@@ -352,7 +350,7 @@ class UdpTrackerSession(TrackerSession):
         await self.cancel_pending_task("resolve")
 
         try:
-            async with async_timeout.timeout(self.timeout):
+            async with timeout(self.timeout):
                 # We only resolve the hostname if we're not using a proxy.
                 # If a proxy is used, the TunnelCommunity will resolve the hostname at the exit nodes.
                 if not self.proxy:
@@ -365,7 +363,7 @@ class UdpTrackerSession(TrackerSession):
                     self.ip_address = infos[0][-1][0]
                 await self.connect()
                 return await self.scrape()
-        except AsyncTimeoutError:
+        except TimeoutError:
             self.failed(msg="request timed out")
         except socket.gaierror as e:
             self.failed(msg=str(e))
@@ -383,7 +381,7 @@ class UdpTrackerSession(TrackerSession):
 
         if isinstance(raw_response, Exception):
             self.failed(msg=str(raw_response))
-        response = cast(bytes, raw_response)
+        response = cast("bytes", raw_response)
 
         # check message size
         if len(response) < 16:
@@ -418,7 +416,7 @@ class UdpTrackerSession(TrackerSession):
         raw_response = await self.socket_mgr.send_request(message, self)
         if isinstance(raw_response, Exception):
             self.failed(msg=str(raw_response))
-        response = cast(bytes, raw_response)
+        response = cast("bytes", raw_response)
 
         # check message size
         if len(response) < 8:
