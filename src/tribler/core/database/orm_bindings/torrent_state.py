@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from pony import orm
-from typing_extensions import Self
 
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
     from dataclasses import dataclass

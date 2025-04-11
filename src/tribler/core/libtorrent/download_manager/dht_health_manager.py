@@ -3,12 +3,15 @@ from __future__ import annotations
 import math
 from asyncio import Future
 from binascii import hexlify
-from typing import Awaitable
+from typing import TYPE_CHECKING
 
 import libtorrent as lt
 from ipv8.taskmanager import TaskManager
 
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable
 
 
 class DHTHealthManager(TaskManager):

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.serialization import default_serializer
-from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from tribler.core.torrent_checker.dataclasses import HealthInfo
+    from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 
 @vp_compile

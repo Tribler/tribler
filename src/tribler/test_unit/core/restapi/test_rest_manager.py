@@ -20,7 +20,7 @@ from tribler.core.restapi.rest_manager import ApiKeyMiddleware, RESTManager, err
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    from typing import Self
 
 
 class GenericRequest(MockRequest):

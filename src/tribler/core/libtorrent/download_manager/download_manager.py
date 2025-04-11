@@ -16,7 +16,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -33,7 +33,7 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Iterable
+    from collections.abc import Awaitable, Callable, Iterable
 
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
     from tribler.tribler_config import TriblerConfigManager
@@ -455,7 +455,7 @@ class DownloadManager(TaskManager):
         # Periodically, libtorrent will send us a state_update_alert, which contains the torrent status of
         # all torrents changed since the last time we received this alert.
         if alert_type == "state_update_alert":
-            for status in cast(lt.state_update_alert, alert).status:
+            for status in cast("lt.state_update_alert", alert).status:
                 infohash = status.info_hash.to_bytes()
                 if infohash not in self.downloads:
                     logger.debug("Got state_update for unknown torrent %s", hexlify(infohash))
@@ -463,7 +463,7 @@ class DownloadManager(TaskManager):
                 self.downloads[infohash].update_lt_status(status)
 
         if alert_type == "state_changed_alert":
-            handle = cast(lt.state_changed_alert, alert).handle
+            handle = cast("lt.state_changed_alert", alert).handle
             infohash = handle.info_hash().to_bytes()
             if infohash not in self.downloads:
                 logger.debug("Got state_change for unknown torrent %s", hexlify(infohash))
@@ -478,22 +478,22 @@ class DownloadManager(TaskManager):
                                or (not download.handle and alert_type == "add_torrent_alert") \
                                or (download.handle and alert_type == "torrent_removed_alert")
             if is_process_alert:
-                download.process_alert(cast(lt.torrent_alert, alert), alert_type)
+                download.process_alert(cast("lt.torrent_alert", alert), alert_type)
             else:
                 logger.debug("Got alert for download without handle %s: %s", infohash, alert)
         elif infohash:
             logger.debug("Got alert for unknown download %s: %s", infohash, alert)
 
         if alert_type == "listen_succeeded_alert":
-            ls_alert = cast(lt.listen_succeeded_alert, alert)
+            ls_alert = cast("lt.listen_succeeded_alert", alert)
             self.listen_ports[hops][ls_alert.address] = ls_alert.port
 
         elif alert_type == "peer_disconnected_alert":
             self.notifier.notify(Notification.peer_disconnected,
-                                 peer_id=cast(lt.peer_disconnected_alert, alert).pid.to_bytes())
+                                 peer_id=cast("lt.peer_disconnected_alert", alert).pid.to_bytes())
 
         elif alert_type == "session_stats_alert":
-            ss_alert = cast(lt.session_stats_alert, alert)
+            ss_alert = cast("lt.session_stats_alert", alert)
             queued_disk_jobs = ss_alert.values["disk.queued_disk_jobs"]
             self.queued_write_bytes = ss_alert.values["disk.queued_write_bytes"]
             num_write_jobs = ss_alert.values["disk.num_write_jobs"]
@@ -507,7 +507,7 @@ class DownloadManager(TaskManager):
             # Unfortunately, the Python bindings don't have a direction attribute.
             # So, we'll have to resort to using the string representation of the alert instead.
             incoming = str(alert).startswith("<==")
-            decoded = cast(dict[bytes, Any], lt.bdecode(cast(lt.dht_pkt_alert, alert).pkt_buf))
+            decoded = cast("dict[bytes, Any]", lt.bdecode(cast("lt.dht_pkt_alert", alert).pkt_buf))
             if not decoded:
                 return
 
@@ -575,7 +575,7 @@ class DownloadManager(TaskManager):
 
         try:
             metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
-        except (CancelledError, asyncio.TimeoutError) as e:
+        except (CancelledError, TimeoutError) as e:
             logger.warning("%s: %s (timeout=%f)", type(e).__name__, str(e), timeout)
             logger.info("Failed to retrieve metainfo for %s", infohash_hex)
             if raise_errors:
@@ -748,7 +748,7 @@ class DownloadManager(TaskManager):
         if resume_data:
             atp_resume_data_skipped["resume_data"] = "<skipped in log>"
             try:
-                resume_data_dict = cast(dict[bytes, Any], lt.bdecode(resume_data))
+                resume_data_dict = cast("dict[bytes, Any]", lt.bdecode(resume_data))
                 # If the save_path is None or "" win32 SEGFAULTS, see https://github.com/Tribler/tribler/issues/8353
                 if not resume_data_dict.get(b"save_path"):
                     resume_data_dict[b"save_path"] = atp.get("save_path", ".").encode()
@@ -800,7 +800,7 @@ class DownloadManager(TaskManager):
         if self.dht_readiness_timeout > 0 and self.dht_ready_task is not None:
             try:
                 await wait_for(shield(self.dht_ready_task), timeout=self.dht_readiness_timeout)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
         ltsession.async_add_torrent(encode_atp(atp))
 

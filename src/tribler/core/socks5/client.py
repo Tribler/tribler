@@ -4,7 +4,7 @@ import ipaddress
 import logging
 import socket
 from asyncio import BaseTransport, DatagramProtocol, DatagramTransport, Protocol, Queue, WriteTransport, get_event_loop
-from typing import Callable, cast
+from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 from ipv8.messaging.serialization import PackError
@@ -21,6 +21,9 @@ from tribler.core.socks5.conversion import (
     UdpPacket,
     socks5_serializer,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class Socks5Error(Exception):
@@ -47,7 +50,7 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         """
         Callback for when a transport is available.
         """
-        self.transport = cast(DatagramTransport, transport)
+        self.transport = cast("DatagramTransport", transport)
 
     def datagram_received(self, data: bytes, _: tuple) -> None:
         """
@@ -109,7 +112,7 @@ class Socks5Client(Protocol):
         """
         Send data to the remote and wait for an answer.
         """
-        cast(WriteTransport, self.transport).write(data)
+        cast("WriteTransport", self.transport).write(data)
         return await self.queue.get()
 
     async def _login(self) -> None:
@@ -194,7 +197,7 @@ class Socks5Client(Protocol):
         Login and associate with the proxy.
         """
         if self.connected:
-            connection = cast(tuple, self.connected_to)
+            connection = cast("tuple", self.connected_to)
             msg = f"Client already used for connecting to {connection[0]}:{connection[1]}"
             raise Socks5Error(msg)
 
@@ -211,7 +214,7 @@ class Socks5Client(Protocol):
         if not self.associated:
             msg = "Not associated yet. First call associate_udp."
             raise Socks5Error(msg)
-        cast(Socks5ClientUDPConnection, self.connection).sendto(data, target_addr)
+        cast("Socks5ClientUDPConnection", self.connection).sendto(data, target_addr)
 
     async def connect_tcp(self, target_addr: tuple) -> None:
         """
@@ -234,4 +237,4 @@ class Socks5Client(Protocol):
         if not self.connected:
             msg = "Not connected yet. First call connect_tcp."
             raise Socks5Error(msg)
-        cast(WriteTransport, self.transport).write(data)
+        cast("WriteTransport", self.transport).write(data)

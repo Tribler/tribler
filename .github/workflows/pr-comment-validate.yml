@@ -11,8 +11,8 @@ jobs:
     needs: set_pending_status
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # macos-latest not tested due to crashing.
-        version: ["3.9", "3.10"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        version: ["3.12"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +29,10 @@ jobs:
         with:
           path: src/libsodium.dll
           key: cache_libsodium_dll
+      - shell: bash
+        if: matrix.os == 'macos-latest'
+        run: |
+          cp /opt/homebrew/opt/libsodium/lib/libsodium.dylib /Library/Frameworks/Python.framework/Versions/3.12/lib/libsodium.dylib
       - run: python -m pip install -r requirements.txt
       - run: |
           cd src

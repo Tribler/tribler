@@ -3,12 +3,11 @@ from __future__ import annotations
 import struct
 from binascii import hexlify
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.serialization import VarLenUtf8, default_serializer
-from typing_extensions import Self
 
 if TYPE_CHECKING:
     from ipv8.types import PrivateKey

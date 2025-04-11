@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from typing import Callable
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, call
 
 from ipv8.test.base import TestBase
@@ -11,6 +11,9 @@ from multidict import MultiDict, MultiDictProxy
 from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint, parse_bool
 from tribler.core.database.serialization import REGULAR_TORRENT
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class TestDatabaseEndpoint(TestBase):

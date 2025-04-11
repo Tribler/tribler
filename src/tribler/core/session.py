@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def rust_enhancements(session: Session) -> Generator[None, None, None]:
+def rust_enhancements(session: Session) -> Generator[None]:
     """
     Attempt to import the IPv8 Rust anonymization backend.
     """
@@ -92,10 +92,9 @@ def rust_enhancements(session: Session) -> Generator[None, None, None]:
 async def _is_url_available(url: str, timeout: int=1) -> tuple[bool, bytes | None]:
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, timeout=timeout) as response:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                 return True, await response.read()
-        except (asyncio.TimeoutError, aiohttp.client_exceptions.ClientConnectorError,
-                aiohttp.client_exceptions.ClientResponseError):
+        except (TimeoutError, aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientResponseError):
             return False, None
 
 
@@ -189,7 +188,7 @@ class Session:
         """
         logger.exception("Uncaught exception: %s", "".join(format_exception(typ, value, traceback)))
         if isinstance(value, Exception):
-            cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(value)
+            cast("EventsEndpoint", self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(value)
 
     def _asyncio_except_hook(self, loop: AbstractEventLoop, context: dict[str, Any]) -> None:
         """
@@ -205,7 +204,7 @@ class Session:
         elif isinstance(exc, Exception):
             logger.exception("Uncaught async exception: %s",
                              "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
-            cast(EventsEndpoint, self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
+            cast("EventsEndpoint", self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
             raise exc
 
     def attach_exception_handler(self) -> None:

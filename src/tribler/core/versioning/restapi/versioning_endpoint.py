@@ -11,11 +11,10 @@ from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, MAX_REQUEST_SIZ
 from tribler.tribler_config import VERSION_SUBDIR
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     from tribler.core.restapi.rest_manager import TriblerRequest
     from tribler.core.versioning.manager import VersioningManager
-    RequestType: TypeAlias = TriblerRequest[tuple[VersioningManager]]
+    type RequestType = TriblerRequest[tuple[VersioningManager]]
 
 
 class VersioningEndpoint(RESTEndpoint):

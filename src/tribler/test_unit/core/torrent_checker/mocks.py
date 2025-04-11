@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Iterator, Set
+from typing import TYPE_CHECKING
 
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
+    from collections.abc import Callable, Iterator
+    from typing import Self
 
 
 class DBResult(list):
@@ -100,7 +101,7 @@ class MockTrackerState(MockEntity):
 
     instances = []
 
-    def __init__(self, url: str = "", last_check: int = 0, alive: bool = True, torrents: Set | None = None,
+    def __init__(self, url: str = "", last_check: int = 0, alive: bool = True, torrents: set | None = None,
                  failures: int = 0) -> None:
         """
         Create a new MockTrackerState and add it to our known instances.
@@ -123,8 +124,8 @@ class MockTorrentState(MockEntity):
     instances = []
 
     def __init__(self, infohash: bytes = b"", seeders: int = 0, leechers: int = 0, last_check: int = 0,  # noqa: PLR0913
-                 self_checked: bool = False, has_data: bool = True, metadata: Set | None = None,
-                 trackers: Set | None = None) -> None:
+                 self_checked: bool = False, has_data: bool = True, metadata: set | None = None,
+                 trackers: set | None = None) -> None:
         """
         Create a new MockTrackerState and add it to our known instances.
         """

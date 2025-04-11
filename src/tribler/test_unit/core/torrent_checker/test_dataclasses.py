@@ -2,7 +2,7 @@ import sys
 
 from ipv8.test.base import TestBase
 
-from tribler.core.torrent_checker.dataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 
 class TestHealthInfo(TestBase):

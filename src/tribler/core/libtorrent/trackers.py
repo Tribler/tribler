@@ -171,7 +171,7 @@ def add_url_params(url: str, params: dict) -> str:
     # you may throw this part away if you don't like it :)
     parsed_get_args.update(
         {k: dumps(v) for k, v in parsed_get_args.items()
-         if isinstance(v, (bool, dict))}
+         if isinstance(v, bool | dict)}
     )
 
     # Converting URL argument to proper query string

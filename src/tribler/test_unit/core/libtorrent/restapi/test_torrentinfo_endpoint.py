@@ -1,4 +1,3 @@
-from asyncio import TimeoutError as AsyncTimeoutError
 from pathlib import Path
 from ssl import SSLError
 from unittest.mock import AsyncMock, Mock, patch
@@ -273,7 +272,7 @@ class TestTorrentInfoEndpoint(TestBase):
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
-                      AsyncMock(side_effect=AsyncTimeoutError("test"))):
+                      AsyncMock(side_effect=TimeoutError("test"))):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
@@ -386,7 +385,7 @@ class TestTorrentInfoEndpoint(TestBase):
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
-                      AsyncMock(side_effect=AsyncTimeoutError("test"))):
+                      AsyncMock(side_effect=TimeoutError("test"))):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 

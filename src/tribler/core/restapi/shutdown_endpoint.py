@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from aiohttp import web
 from aiohttp_apispec import docs

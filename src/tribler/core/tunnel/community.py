@@ -3,13 +3,11 @@ from __future__ import annotations
 import hashlib
 import math
 import time
-from asyncio import Future, open_connection
-from asyncio import TimeoutError as AsyncTimeoutError
+from asyncio import Future, open_connection, timeout
 from binascii import hexlify, unhexlify
 from collections import Counter
 from typing import TYPE_CHECKING
 
-import async_timeout
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
 from ipv8.messaging.anonymization.tunnel import (
@@ -441,7 +439,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         writer = None
         try:
-            async with async_timeout.timeout(10):
+            async with timeout(10):
                 self.logger.debug("Opening TCP connection to %s", payload.target)
                 reader, writer = await open_connection(*payload.target)
                 writer.write(payload.request)
@@ -456,7 +454,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         except OSError:
             self.logger.warning("Tunnel HTTP request failed")
             return
-        except AsyncTimeoutError:
+        except TimeoutError:
             self.logger.warning("Tunnel HTTP request timed out")
             return
         finally:

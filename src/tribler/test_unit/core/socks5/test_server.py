@@ -3,7 +3,7 @@ from __future__ import annotations
 import socket
 from asyncio import Transport, get_event_loop, sleep
 from asyncio.base_events import Server
-from typing import Callable
+from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 from ipv8.test.base import TestBase
@@ -11,6 +11,9 @@ from ipv8.test.base import TestBase
 from tribler.core.socks5.client import Socks5Client, Socks5Error
 from tribler.core.socks5.conversion import UdpPacket, socks5_serializer
 from tribler.core.socks5.server import Socks5Server
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class MockTransport(Transport):

@@ -3,7 +3,7 @@
 bitarray
 configobj
 ipv8-rust-tunnels
-libtorrent==2.0.9
+libtorrent==2.0.11
 lz4
 pillow
 pony

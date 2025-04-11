@@ -10,12 +10,11 @@ from marshmallow.fields import Boolean, Integer, List, Nested, String
 from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
 
     from tribler.core.recommender.manager import Manager
     from tribler.core.restapi.rest_manager import TriblerRequest
 
-    RequestType: TypeAlias = TriblerRequest[tuple[Manager]]
+    type RequestType = TriblerRequest[tuple[Manager]]
 
 
 class RecommenderEndpoint(RESTEndpoint):

@@ -9,7 +9,7 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
           cache: 'pip'
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests
@@ -24,7 +24,7 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
           cache: 'pip'
       - uses: actions/cache/restore@v4
         id: restore_cache
@@ -45,12 +45,11 @@ jobs:
           submodules: 'true'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.12'
           cache: 'pip'
       - shell: bash
         run: |
-          cp /opt/homebrew/opt/libsodium/lib/libsodium.dylib /Library/Frameworks/Python.framework/Versions/3.9/lib/libsodium.dylib
-          sed -i".backup" 's|libtorrent==2.0.9|https://tribler.org/libtorrent-2.0.11-cp39-cp39-macosx_14_0_arm64.whl|' requirements.txt
+          cp /opt/homebrew/opt/libsodium/lib/libsodium.dylib /Library/Frameworks/Python.framework/Versions/3.12/lib/libsodium.dylib
       - run: python -m pip install -r requirements.txt
       - name: Run unit tests
         run: |

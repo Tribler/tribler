@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from binascii import hexlify
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Self
 
 from ipv8.requestcache import RandomNumberCache, RequestCache
-from typing_extensions import Self
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from ipv8.types import Peer
 
     from tribler.core.database.store import ProcessingResult

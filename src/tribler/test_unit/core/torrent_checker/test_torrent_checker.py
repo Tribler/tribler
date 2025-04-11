@@ -12,7 +12,7 @@ from ipv8.util import succeed
 
 import tribler
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.torrent_checker.dataclasses import (
+from tribler.core.torrent_checker.healthdataclasses import (
     TOLERABLE_TIME_DRIFT,
     HealthInfo,
     TrackerResponse,

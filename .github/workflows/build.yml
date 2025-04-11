@@ -84,7 +84,7 @@ jobs:
         if: matrix.architecture != 'aarch64'
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
           architecture: ${{ matrix.architecture }}
           cache: 'pip'
           cache-dependency-path: |

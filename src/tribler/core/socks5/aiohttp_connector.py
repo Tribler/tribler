@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import socket
 from asyncio import BaseTransport, wait_for
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from aiohttp import TCPConnector
 from aiohttp.abc import AbstractResolver
@@ -10,6 +10,8 @@ from aiohttp.abc import AbstractResolver
 from tribler.core.socks5.client import Socks5Client, Socks5ClientUDPConnection
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from aiohttp.abc import ResolveResult
 
 

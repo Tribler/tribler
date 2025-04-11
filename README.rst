@@ -156,7 +156,7 @@ This file is part of Tribler, Copyright 2004-2024. Tribler is licensed under the
     :target: https://discord.gg/UpPUcVGESe
     :alt: Join Discord chat
 
-.. |python_3_10| image:: https://img.shields.io/badge/python-3.10-blue.svg
+.. |python_3_12| image:: https://img.shields.io/badge/python-3.12-blue.svg
     :target: https://www.python.org/
 
 .. |flathub| image:: https://img.shields.io/flathub/downloads/org.tribler.Tribler
