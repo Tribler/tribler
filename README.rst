@@ -1,5 +1,5 @@
 |doi| |openhub|
-|python_3_10| |contributors| |pr_closed| |issues_closed|
+|python_3_12| |contributors| |pr_closed| |issues_closed|
 
 
 
