@@ -2,15 +2,12 @@
 from packaging.version import Version
 
 block_cipher = None
-import imp
 import os
 import re
 import shutil
 import sys
 
 import aiohttp_apispec
-
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root_dir = os.path.abspath(os.path.dirname(__name__))
 src_dir = os.path.join(root_dir, "src")
@@ -54,13 +51,6 @@ data_to_copy = [
     (os.path.dirname(aiohttp_apispec.__file__), 'aiohttp_apispec')
 ]
 
-# Importing lib2to3 as hidden import does not import all the necessary files for some reason so had to import as data.
-try:
-    lib2to3_dir = imp.find_module('lib2to3')[1]
-    data_to_copy += [(lib2to3_dir, 'lib2to3')]
-except ImportError:
-    pass
-
 if sys.platform.startswith('darwin'):
     # Create the right version info in the Info.plist file
     with open('build/mac/resources/Info.plist', 'r') as f:
@@ -69,11 +59,6 @@ if sys.platform.startswith('darwin'):
     os.unlink('build/mac/resources/Info.plist')
     with open('build/mac/resources/Info.plist', 'w') as f:
         f.write(content)
-
-# Embed the "Noto Color Emoji" font on Linux
-ttf_path = os.path.join("/usr", "share", "fonts", "truetype", "noto", "NotoColorEmoji.ttf")
-if sys.platform.startswith('linux') and os.path.exists(ttf_path):
-    data_to_copy += [(ttf_path, 'fonts')]
 
 excluded_libs = ['wx', 'PyQt4', 'FixTk', 'tcl', 'tk', '_tkinter', 'tkinter', 'Tkinter', 'matplotlib']
 
@@ -90,7 +75,6 @@ hiddenimports = [
     'pkg_resources',
     # 'pkg_resources.py2_warn', # Workaround PyInstaller & SetupTools, https://github.com/pypa/setuptools/issues/1963
     'pyaes',
-    'pydantic',
     'requests',
     'scrypt', '_scrypt',
     'sqlalchemy', 'sqlalchemy.ext.baked', 'sqlalchemy.ext.declarative',
@@ -105,9 +89,6 @@ hiddenimports += [x for member in known_components.__dict__.values() for x in ge
 # See: https://github.com/Tribler/tribler/issues/7457
 if sys.platform.startswith('linux'):
     hiddenimports += ['gi', 'gi.repository.GdkPixbuf']
-
-# https://github.com/pyinstaller/pyinstaller/issues/5359
-hiddenimports += collect_submodules('pydantic')
 
 sys.modules['FixTk'] = None
 a = Analysis(['src/run_tribler.py'],
