@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 from lz4.frame import LZ4FrameDecompressor
 from pony import orm
-from pony.orm import Database, db_session, desc, left_join, raw_sql, select
+from pony.orm import Database, db_session, desc, left_join, raw_sql, select  # noqa: F401 (desc is used by pony!)
 from pony.orm.dbproviders.sqlite import keep_exception
 
 from tribler.core.database.orm_bindings import misc, torrent_metadata, tracker_state
@@ -569,16 +569,20 @@ class MetadataStore:
                 msg = "With `popular=True`, only `metadata_type=REGULAR_TORRENT` is allowed"
                 raise TypeError(msg)
 
-            t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD
-            return select(
-                    g for g in self.TorrentMetadata
-                    for health in self.TorrentState
-                    if health.has_data == 1  # The condition had to be written this way for the partial index to work
-                    and health.last_check >= t and (health.seeders > 0 or health.leechers > 0)
-                    and g.health == health
-                ).order_by(
-                    lambda g: (desc(g.health.seeders), desc(g.health.leechers), desc(g.health.last_check))
-                ).limit(POPULAR_TORRENTS_COUNT)
+            t = time() - POPULAR_TORRENTS_FRESHNESS_PERIOD  # noqa: F841 (this is used in the following query)
+            return self.TorrentMetadata.select_by_sql("""
+                           SELECT ChannelNode.* FROM
+                             (SELECT * FROM TorrentState
+                              WHERE TorrentState.has_data == 1
+                                AND TorrentState.last_check >= $t
+                                AND (TorrentState.seeders > 0 OR TorrentState.leechers > 0)
+                              ORDER BY TorrentState.seeders DESC, TorrentState.leechers DESC, TorrentState.last_check DESC
+                              LIMIT $POPULAR_TORRENTS_COUNT) results
+                           LEFT JOIN
+                             ChannelNode WHERE ChannelNode.health == results.rowid
+                           GROUP BY ChannelNode.infohash
+                           ;
+                           """)
         else:
             pony_query = left_join(g for g in self.TorrentMetadata)
 
