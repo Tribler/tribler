@@ -6,7 +6,6 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
-import libtorrent
 from configobj import ConfigObj
 from configobj.validate import Validator, VdtParamError
 from ipv8.test.base import TestBase
@@ -17,7 +16,7 @@ from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager, MetainfoLookup
 from tribler.core.libtorrent.download_manager.download_state import DownloadState
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.notifier import Notifier
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
 from tribler.test_unit.mocks import MockTriblerConfigManager
@@ -73,9 +72,9 @@ class TestDownloadManager(TestBase):
                  patch.object(self.manager, "remove_download", AsyncMock()), \
                  patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
             metainfo = await self.manager.get_metainfo(download.tdef.infohash)
-            self.assertEqual(7, metainfo[b"leechers"])
-            self.assertEqual(42, metainfo[b"seeders"])
-            self.assertEqual(download.tdef.metainfo, metainfo)
+            self.assertEqual(7, metainfo.pop(b"leechers"))
+            self.assertEqual(42, metainfo.pop(b"seeders"))
+            self.assertEqual(download.tdef.get_metainfo(), metainfo)
 
     async def test_get_metainfo_add_fail(self) -> None:
         """
@@ -121,7 +120,10 @@ class TestDownloadManager(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.downloads[download.tdef.infohash] = download
 
-        self.assertEqual(download.tdef.metainfo, await self.manager.get_metainfo(download.tdef.infohash))
+        metainfo = await self.manager.get_metainfo(download.tdef.infohash)
+        metainfo.pop(b"seeders")
+        metainfo.pop(b"leechers")
+        self.assertEqual(download.tdef.get_metainfo(), metainfo)
 
     async def test_start_download_while_getting_metainfo(self) -> None:
         """
@@ -132,8 +134,8 @@ class TestDownloadManager(TestBase):
         info_download.handle = Mock(is_valid=Mock(return_value=True))
         self.manager.downloads[info_download.tdef.infohash] = info_download
         self.manager.metainfo_requests[info_download.tdef.infohash] = MetainfoLookup(info_download, 1)
-        tdef = TorrentDefNoMetainfo(info_download.tdef.infohash, b"name",
-                                    f"magnet:?xt=urn:btih:{hexlify(info_download.tdef.infohash).decode()}&")
+        tdef = TorrentDef.load_only_sha1(info_download.tdef.infohash, "name",
+                                         f"magnet:?xt=urn:btih:{hexlify(info_download.tdef.infohash).decode()}&")
 
         with patch.object(self.manager, "remove_download", AsyncMock()):
             download = await self.manager.start_download(tdef=tdef, config=info_download.config,
@@ -153,7 +155,7 @@ class TestDownloadManager(TestBase):
         self.manager.ltsessions[0].result().async_add_torrent = lambda _: self.manager.process_alert(mock_alert())
 
         with patch.object(self.manager, "remove_download", AsyncMock()):
-            download = await self.manager.start_download(tdef=TorrentDefNoMetainfo(b"\x01" * 20, b""),
+            download = await self.manager.start_download(tdef=TorrentDef.load_only_sha1(b"\x01" * 20, "", ""),
                                                          config=self.create_mock_download_config(),
                                                          checkpoint_disabled=True)
 
@@ -169,7 +171,7 @@ class TestDownloadManager(TestBase):
         self.manager.dht_ready_task = Future()
         self.manager.dht_readiness_timeout = 0.001
 
-        self.assertIsNone(await self.manager.start_handle(download, {}))
+        self.assertIsNone(await self.manager.start_handle(download, Mock(save_path="")))
 
     async def test_start_handle_wait_for_dht(self) -> None:
         """
@@ -181,33 +183,11 @@ class TestDownloadManager(TestBase):
         self.manager.dht_ready_task = Future()
         self.manager.dht_readiness_timeout = 10
 
-        task = ensure_future(self.manager.start_handle(download, {}))
+        task = ensure_future(self.manager.start_handle(download, Mock(save_path="")))
         self.manager.dht_ready_task.set_result(None)
         await task
 
         self.assertTrue(task.done())
-
-    async def test_start_handle_empty_save_path(self) -> None:
-        """
-        Test if the "save_path" is always set in the resume_data, otherwise we SEGFAULT on win32!
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(is_valid=Mock(return_value=True))
-        self.manager.get_session = AsyncMock(return_value=Mock(get_torrents=Mock(return_value=[])))
-        self.manager._async_add_torrent = AsyncMock()  # noqa: SLF001
-
-        await self.manager.start_handle(download, {
-            "save_path": "/test_path/",
-            "resume_data": libtorrent.bencode({b"file-format": b"libtorrent resume file", b"file-version": 1})
-        })  # Schedule async_add_torrent
-        await sleep(0)  # Run async_add_torrent
-
-        session, infohash, atp = self.manager._async_add_torrent.call_args[0]  # noqa: SLF001
-
-        self.assertIn("resume_data", atp)
-        self.assertIn(b"save_path", libtorrent.bdecode(atp["resume_data"]))
-        self.assertEqual(b"/test_path/", libtorrent.bdecode(atp["resume_data"])[b"save_path"])
 
     async def test_start_download_existing_handle(self) -> None:
         """
@@ -216,7 +196,7 @@ class TestDownloadManager(TestBase):
         mock_handle = Mock(info_hash=Mock(return_value=Mock(to_bytes=Mock(return_value=b"\x01" * 20))),
                            is_valid=Mock(return_value=True))
         self.manager.ltsessions[0].result().get_torrents = Mock(return_value=[mock_handle])
-        download = await self.manager.start_download(tdef=TorrentDefNoMetainfo(b"\x01" * 20, b"name"),
+        download = await self.manager.start_download(tdef=TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""),
                                                      config=self.create_mock_download_config(),
                                                      checkpoint_disabled=True)
 
@@ -252,7 +232,7 @@ class TestDownloadManager(TestBase):
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
-        value = await self.manager.start_download(tdef=TorrentDefNoMetainfo(download.tdef.infohash, b"name"),
+        value = await self.manager.start_download(tdef=TorrentDef.load_only_sha1(download.tdef.infohash, "name", ""),
                                                   config=self.create_mock_download_config(),
                                                   checkpoint_disabled=True)
 
@@ -395,7 +375,7 @@ class TestDownloadManager(TestBase):
         """
         config = self.create_mock_download_config()
         config.set_safe_seeding(True)
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.manager, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.manager, checkpoint_disabled=True,
                             config=config)
         download.futures["save_resume_data"] = succeed(True)
         download_state = DownloadState(download, Mock(state=4, paused=False, error=None), None)
@@ -419,7 +399,7 @@ class TestDownloadManager(TestBase):
         """
         Test if downloads can be retrieved by name.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name", None), self.manager, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.manager, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         self.manager.downloads = {b"\x01" * 20: download}
 
@@ -436,7 +416,7 @@ class TestDownloadManager(TestBase):
               as start_download):
             await self.manager.start_download_from_uri(magnet)
 
-        self.assertEqual(b'Unknown name', start_download.call_args.kwargs["tdef"].get_name())
+        self.assertEqual("Unknown name", start_download.call_args.kwargs["tdef"].name)
 
     async def test_start_download_from_magnet_with_name(self) -> None:
         """
@@ -448,7 +428,7 @@ class TestDownloadManager(TestBase):
               as start_download):
             await self.manager.start_download_from_uri(magnet)
 
-        self.assertEqual(b'AwesomeTorrent', start_download.call_args.kwargs["tdef"].get_name())
+        self.assertEqual("AwesomeTorrent", start_download.call_args.kwargs["tdef"].name)
 
     async def test_start_download_from_magnet_with_all_extras(self) -> None:
         """
@@ -465,22 +445,20 @@ class TestDownloadManager(TestBase):
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
         config.set_selected_files([])
         handle = Mock(is_valid=Mock(return_value=True))
-        download = Download(Mock(get_infohash=Mock(return_value=b"a" * 20)), self.manager, config,
-                            checkpoint_disabled=True)
+        download = Download(Mock(infohash=b"a" * 20), self.manager, config, checkpoint_disabled=True)
         download.handle = handle
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)) as start_download:
             await self.manager.start_download_from_uri(magnet, config)
-        await sleep(0)  # Schedule handler awaiter.
-        await sleep(0)  # Run callback after handle is available.
+            await sleep(0)  # Schedule handler awaiter.
+            await sleep(0)  # Run callback after handle is available.
 
-        self.assertEqual(b"AwesomeTorrent", start_download.call_args.kwargs["tdef"].get_name())
-        self.assertEqual([call({"url": b"tracker1", "verified": False}),
-                          call({"url": b"tracker2", "verified": False})], handle.add_tracker.call_args_list)
-        self.assertEqual([call("http://localhost/file"), call("http://localhost/cdn")],
-                         handle.add_url_seed.call_args_list)
+        self.assertEqual("AwesomeTorrent", start_download.call_args.kwargs["tdef"].name)
+        self.assertEqual(["tracker1", "tracker2"], start_download.call_args.kwargs["tdef"].atp.trackers)
+        self.assertEqual(["http://localhost/file", "http://localhost/cdn"],
+                         start_download.call_args.kwargs["tdef"].atp.url_seeds)
         self.assertEqual([0, 2, 4, 6, 7, 8], config.get_selected_files())
-        self.assertEqual([call(('1.2.3.4', 5), 0)], handle.connect_peer.call_args_list)  # See NOTE
+        self.assertEqual([("1.2.3.4", 5)], start_download.call_args.kwargs["tdef"].atp.peers)  # See NOTE
 
     async def test_start_download_from_magnet_keep_preselected(self) -> None:
         """
@@ -490,7 +468,7 @@ class TestDownloadManager(TestBase):
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
         config.set_selected_files([0, 1, 2])
         handle = Mock(is_valid=Mock(return_value=True))
-        download = Download(Mock(get_infohash=Mock(return_value=b"a" * 20)), self.manager, config,
+        download = Download(Mock(infohash=b"a" * 20), self.manager, config,
                             checkpoint_disabled=True)
         download.handle = handle
 
@@ -511,8 +489,8 @@ class TestDownloadManager(TestBase):
 
         self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce1"])
 
-        self.assertEqual(b"127.0.0.1/test-announce1", download.tdef.metainfo[b"announce"])
-        self.assertNotIn(b"announce-list", download.tdef.metainfo)
+        self.assertEqual(b"127.0.0.1/test-announce1", download.tdef.get_metainfo()[b"announce"])
+        self.assertListEqual([b"127.0.0.1/test-announce1"], download.tdef.get_metainfo()[b"announce-list"][0])
 
     def test_update_trackers_list(self) -> None:
         """
@@ -524,9 +502,10 @@ class TestDownloadManager(TestBase):
 
         self.manager.update_trackers(download.tdef.infohash, [f"127.0.0.1/test-announce{i}".encode() for i in range(2)])
 
-        self.assertNotIn(b"announce", download.tdef.metainfo)
+        self.assertIn(download.tdef.get_metainfo()[b"announce"], [b"127.0.0.1/test-announce0",
+                                                                  b"127.0.0.1/test-announce1"])
         self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
-                            {announce_url[0] for announce_url in download.tdef.metainfo[b"announce-list"]})
+                            {t[0] for t in download.tdef.get_metainfo()[b"announce-list"]})
 
     def test_update_trackers_list_append(self) -> None:
         """
@@ -539,9 +518,10 @@ class TestDownloadManager(TestBase):
         self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce0"])
         self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce1"])
 
-        self.assertNotIn(b"announce", download.tdef.metainfo)
+        self.assertIn(download.tdef.get_metainfo()[b"announce"],
+                      [b"127.0.0.1/test-announce0", b"127.0.0.1/test-announce1"])
         self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
-                            {announce_url[0] for announce_url in download.tdef.metainfo[b"announce-list"]})
+                            {t[0] for t in download.tdef.get_metainfo()[b"announce-list"]})
 
     async def test_get_download_rate_limit(self) -> None:
         """

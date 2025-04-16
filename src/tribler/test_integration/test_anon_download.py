@@ -4,7 +4,6 @@ from asyncio import sleep
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
-import libtorrent
 from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
@@ -16,7 +15,7 @@ from ipv8.test.mocking.ipv8 import MockIPv8
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
 from tribler.core.socks5.server import Socks5Server
@@ -94,7 +93,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         The seeder does not have an overlay!
         """
-        global_settings = cast(GlobalTestSettings, settings)
+        global_settings = cast("GlobalTestSettings", settings)
         my_node_id = global_settings.node_id
         global_settings.node_id += 1
         node_peer = Peer(default_eccrypto.generate_key("curve25519"))
@@ -168,7 +167,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
             f.write(bytes([1] * 524288))
 
         metainfo = create_torrent_file([config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"], {})["metainfo"]
-        tdef = TorrentDef(metainfo=libtorrent.bdecode(metainfo))
+        tdef = TorrentDef.load_from_memory(metainfo)
 
         download = await self.download_manager_seeder.start_download(tdef=tdef, config=config)
         await download.wait_for_status(DownloadStatus.SEEDING)
@@ -181,7 +180,8 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         config = await self.add_mock_download_config(self.download_manager_downloader, 2)
 
-        download = await self.download_manager_downloader.start_download(tdef=TorrentDefNoMetainfo(infohash, b"test"),
+        download = await self.download_manager_downloader.start_download(tdef=TorrentDef.load_only_sha1(infohash,
+                                                                                                        "test", ""),
                                                                          config=config)
 
         while not self.download_manager_seeder.listen_ports[0]:

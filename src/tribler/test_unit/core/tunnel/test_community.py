@@ -131,7 +131,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         Test the readd bittorrent peers method.
         """
         mock_torrent = Mock(add_peer=Mock(return_value=succeed(None)),
-                            tdef=Mock(get_infohash=Mock(return_value=b'a' * 20)))
+                            tdef=Mock(infohash=b'a' * 20))
         self.overlay(0).bittorrent_peers = {mock_torrent: [None]}
 
         self.overlay(0).readd_bittorrent_peers()
@@ -207,7 +207,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         Test if an old introduction point is recreated.
         """
         mock_state = Mock(get_status=Mock(return_value=DownloadStatus.SEEDING))
-        mock_tdef = Mock(get_infohash=Mock(return_value=b'a'))
+        mock_tdef = Mock(infohash=b'a')
         mock_download = Mock(get_def=Mock(return_value=mock_tdef), add_peer=Mock(return_value=succeed(None)),
                              get_state=Mock(return_value=mock_state), config=Mock(get_hops=Mock(return_value=1)),
                              apply_ip_filter=Mock(return_value=None))

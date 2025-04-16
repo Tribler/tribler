@@ -92,20 +92,18 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
     tags = "Unknown"
 
     try:
-        torrent_date = datetime.fromtimestamp(tdef.get_creation_date())  # noqa: DTZ006
+        creation_time = tdef.torrent_info.creation_date() if tdef.torrent_info else tdef.atp.added_time
+        torrent_date = datetime.fromtimestamp(creation_time)  # noqa: DTZ006
     except (ValueError, TypeError):
         torrent_date = EPOCH
 
-    tracker = tdef.get_tracker()
-    if not isinstance(tracker, bytes):
-        tracker = b""
-    tracker_url = tracker.decode()
+    tracker_url = tdef.atp.trackers[0] if tdef.atp.trackers else ""
     tracker_info = get_uniformed_tracker_url(tracker_url) or ''
     return {
-        "infohash": tdef.get_infohash(),
-        "title": tdef.get_name_as_unicode()[:300],
+        "infohash": tdef.infohash,
+        "title": tdef.name[:300],
         "tags": tags[:200],
-        "size": tdef.get_length(),
+        "size": tdef.torrent_info.total_size() if tdef.torrent_info else 0,
         "torrent_date": max(torrent_date, EPOCH),
         "tracker_info": tracker_info,
     }

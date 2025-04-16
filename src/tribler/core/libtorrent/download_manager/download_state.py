@@ -7,10 +7,10 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pathlib import Path
 
     import libtorrent
 
@@ -212,7 +212,8 @@ class DownloadState:
         if not self.lt_status:
             return 0
 
-        bytes_completed = self.get_progress() * self.download.tdef.get_length()
+        total_size = self.download.tdef.torrent_info.total_size() if self.download.tdef.torrent_info else 0
+        bytes_completed = self.get_progress() * total_size
         if not bytes_completed:
             # We're returning -1 instead of infinity, as it avoids issues when JSON encoding.
             return 0 if not self.all_time_upload else -1
@@ -231,7 +232,8 @@ class DownloadState:
 
         :return: The time in ?, as ?.
         """
-        return (1.0 - self.get_progress()) * (float(self.download.get_def().get_length()) /
+        ti = self.download.get_def().torrent_info
+        return (1.0 - self.get_progress()) * (float(ti.total_size() if ti else 0) /
                                               max(0.000001, self.lt_status.download_rate)) \
             if self.lt_status else 0.0
 
@@ -276,21 +278,30 @@ class DownloadState:
         completion = []
 
         if self.lt_status and self.download.handle and self.download.handle.is_valid():
-            files = self.download.get_def().get_files_with_length()
+            tinfo = self.download.get_def().torrent_info
+            num_files = tinfo.num_files() if tinfo else 0
             try:
                 progress = self.download.handle.file_progress(flags=1)
             except RuntimeError:
                 # For large torrents, the handle can be invalid at this point.
                 # See https://github.com/Tribler/tribler/issues/6454
                 progress = None
-            if progress and len(progress) == len(files):
-                for index, (path, size) in enumerate(files):
+            if progress and len(progress) == num_files:
+                for index in range(num_files):
+                    path = Path(tinfo.file_at(index).path)
+                    if num_files > 1:
+                        path = path.relative_to(tinfo.name())
+                    size = tinfo.file_at(index).size
                     completion_frac = (float(progress[index]) / size) if size > 0 else 1
                     completion.append((path, completion_frac))
-            elif progress and len(progress) > len(files) and self.download.tdef.torrent_info_loaded():
+            elif progress and len(progress) > num_files and self.download.tdef.torrent_info is not None:
                 # We need to remap
                 remapping = self.download.tdef.get_file_indices()
-                for index, (path, size) in enumerate(files):
+                for index in range(num_files):
+                    path = Path(tinfo.file_at(index).path)
+                    if num_files > 1:
+                        path = path.relative_to(tinfo.name())
+                    size = tinfo.file_at(index).size
                     completion_frac = (float(progress[remapping[index]]) / size) if size > 0 else 1
                     completion.append((path, completion_frac))
 
