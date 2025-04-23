@@ -9,7 +9,7 @@ import asyncio
 import base64
 import itertools
 import logging
-from asyncio import CancelledError, Future, get_running_loop, sleep, wait_for
+from asyncio import CancelledError, Future, sleep, wait_for
 from binascii import hexlify
 from collections import defaultdict
 from collections.abc import Callable
@@ -27,7 +27,7 @@ from tribler.core.libtorrent.download_manager.download_config import DownloadCon
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
-from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import TriblerConfigManager
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.libtorrent.torrentdef import MetainfoDict
 
 Getter = Callable[[Any], Any]
 
@@ -162,7 +163,7 @@ class Download(TaskManager):
         elif config is None:
             self.config = DownloadConfig.from_defaults(TriblerConfigManager())
 
-        self._logger.debug("Setup: %s", hexlify(self.tdef.get_infohash()).decode())
+        self._logger.debug("Setup: %s", hexlify(self.tdef.infohash).decode())
 
         self.checkpoint()
 
@@ -170,7 +171,7 @@ class Download(TaskManager):
         """
         Convert this download to a human-readable string.
         """
-        return (f"Download(name={self.tdef.get_name()}, "
+        return (f"Download(name={self.tdef.name}, "
                 f"hops={self.config.get_hops():d}, "
                 f"checkpoint_disabled={self.checkpoint_disabled:d})")
 
@@ -282,7 +283,7 @@ class Download(TaskManager):
             atp["flags"] = cast("int", atp["flags"]) | lt.add_torrent_params_flags_t.flag_upload_mode
 
         resume_data = self.config.get_engineresumedata()
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+        if self.tdef.torrent_info is not None:
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
 
@@ -295,8 +296,8 @@ class Download(TaskManager):
                     resume_data[b"save_path"] = str(self.state_dir / save_path)
                 atp["resume_data"] = lt.bencode(resume_data)
         else:
-            atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash()).decode()
-            atp["name"] = self.tdef.get_name_as_unicode()
+            atp["url"] = self.tdef.atp.url or "magnet:?xt=urn:btih:" + hexlify(self.tdef.infohash).decode()
+            atp["name"] = self.tdef.atp.name
 
         return atp
 
@@ -307,7 +308,7 @@ class Download(TaskManager):
         self._logger.info("On add torrent alert: %s", repr(alert))
 
         if hasattr(alert, "error") and alert.error.value():
-            self._logger.error("Failed to add torrent (%s)", self.tdef.get_name_as_unicode())
+            self._logger.error("Failed to add torrent (%s)", self.tdef.name)
             raise RuntimeError(alert.error.message())
         if not alert.handle.is_valid():
             self._logger.error("Received invalid torrent handle")
@@ -405,11 +406,11 @@ class Download(TaskManager):
         self.update_lt_status(self.handle.status())
 
         enable = alert.state == lt.torrent_status.seeding and self.config.get_hops() > 0
-        self._logger.debug("Setting IP filter for %s to %s", hexlify(self.tdef.get_infohash()), enable)
+        self._logger.debug("Setting IP filter for %s to %s", hexlify(self.tdef.infohash), enable)
         self.apply_ip_filter(enable)
 
         # On a rare occasion we don't get a metadata_received_alert. If this is the case, post an alert manually.
-        if alert.state == lt.torrent_status.downloading and isinstance(self.tdef, TorrentDefNoMetainfo):
+        if alert.state == lt.torrent_status.downloading and self.tdef.torrent_info is None:
             self.post_alert("metadata_received_alert")
 
     def on_save_resume_data_alert(self, alert: lt.save_resume_data_alert) -> None:
@@ -429,22 +430,22 @@ class Download(TaskManager):
             save_path = Path(resume_data[b"save_path"].decode()).absolute()
             resume_data[b"save_path"] = str(save_path)
 
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+        if self.tdef.torrent_info is not None:
             self.config.set_metainfo(self.tdef.get_metainfo())
         else:
             self.config.set_metainfo({
-                "infohash": self.tdef.get_infohash(),
-                "name": self.tdef.get_name_as_unicode(),
-                "url": self.tdef.get_url()
+                "infohash": self.tdef.infohash,
+                "name": self.tdef.name,
+                "url": self.tdef.atp.url
             })
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
         # Note resume_data[b"info-hash"] can be b"\x00" * 32, so we use the tdef.
-        basename = hexlify(self.tdef.get_infohash()).decode() + ".conf"
+        basename = hexlify(self.tdef.infohash).decode() + ".conf"
         Path(self.download_manager.get_checkpoint_dir()).mkdir(parents=True, exist_ok=True)
         filename = self.download_manager.get_checkpoint_dir() / basename
-        self.config.config["download_defaults"]["name"] = self.tdef.get_name_as_unicode()  # store name (for debugging)
+        self.config.config["download_defaults"]["name"] = self.tdef.name  # store name (for debugging)
         try:
             self.config.write(filename)
         except OSError as e:
@@ -533,7 +534,8 @@ class Download(TaskManager):
             self.set_def(TorrentDef.load_from_dict(metadata))
             with suppress(RuntimeError):
                 # Try to load the torrent info in the background if we have a loop.
-                get_running_loop().run_in_executor(None, self.tdef.load_torrent_info)
+                self.register_anonymous_task(f"Load torrent info for {self.tdef.infohash.hex()}",
+                                             self.tdef.load_torrent_info)
         except ValueError as ve:
             self._logger.exception(ve)
             return
@@ -573,7 +575,7 @@ class Download(TaskManager):
         """
         self._logger.info("On torrent remove alert: %s", repr(alert))
 
-        self._logger.debug("Removing %s", self.tdef.get_name())
+        self._logger.debug("Removing %s", self.tdef.name)
         self.handle = None
 
     def on_torrent_checked_alert(self, alert: lt.torrent_checked_alert) -> None:
@@ -600,8 +602,8 @@ class Download(TaskManager):
         self.checkpoint()
         downloaded = self.get_state().total_download
         if downloaded > 0 and self.notifier is not None:
-            name = self.tdef.get_name_as_unicode()
-            infohash = self.tdef.get_infohash().hex()
+            name = self.tdef.name
+            infohash = self.tdef.infohash.hex()
             self.notifier.notify(Notification.torrent_finished, infohash=infohash, name=name, hidden=self.hidden)
 
         if self.config.get_completed_dir() and self.config.get_completed_dir() != self.config.get_dest_dir():
@@ -619,7 +621,7 @@ class Download(TaskManager):
         # Notify the GUI if the status has changed
         if self.notifier and not self.hidden and state.get_status() != old_status:
             self.notifier.notify(Notification.torrent_status_changed,
-                                 infohash=hexlify(self.tdef.get_infohash()).decode(),
+                                 infohash=hexlify(self.tdef.infohash).decode(),
                                  status=state.get_status().name)
 
         if state.get_status() == DownloadStatus.SEEDING:
@@ -639,7 +641,7 @@ class Download(TaskManager):
         """
         if not force and self.stream is not None:
             return None
-        if not isinstance(self.tdef, TorrentDefNoMetainfo) and not self.get_share_mode():
+        if self.tdef.torrent_info is not None and not self.get_share_mode():
             if selected_files is None:
                 selected_files = self.config.get_selected_files()
             else:
@@ -667,7 +669,7 @@ class Download(TaskManager):
         """
         Move the output files to a different location.
         """
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+        if self.tdef.torrent_info is not None:
             self.handle = cast("lt.torrent_handle", self.handle)
             self.handle.move_storage(str(new_dir))
         self.config.set_dest_dir(new_dir)
@@ -679,7 +681,7 @@ class Download(TaskManager):
         """
         Force libtorrent to validate the files.
         """
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+        if self.tdef.torrent_info is not None:
             self.handle = cast("lt.torrent_handle", self.handle)
             if self.get_state().get_status() == DownloadStatus.STOPPED:
                 self.pause_after_next_hashcheck = True
@@ -813,7 +815,7 @@ class Download(TaskManager):
                 pex_peers += 1
 
         ltsession = self.download_manager.get_session(self.config.get_hops()).result()
-        public = self.tdef and not self.tdef.is_private()
+        public = not (self.tdef and self.tdef.torrent_info and self.tdef.atp.ti.priv())
 
         result = self.tracker_status.copy()
         result["[DHT]"] = (dht_peers, "Working" if ltsession.is_dht_running() and public else "Disabled")
@@ -841,7 +843,7 @@ class Download(TaskManager):
         """
         Stop downloading the download.
         """
-        self._logger.debug("Stopping %s", self.tdef.get_name())
+        self._logger.debug("Stopping %s", self.tdef.name)
         if self.stream is not None:
             self.stream.close()
         if user_stopped is not None:
@@ -855,7 +857,7 @@ class Download(TaskManager):
         """
         Resume downloading the download.
         """
-        self._logger.debug("Resuming %s", self.tdef.get_name())
+        self._logger.debug("Resuming %s", self.tdef.name)
 
         self.config.set_user_stopped(False)
 
@@ -867,7 +869,7 @@ class Download(TaskManager):
         """
         Returns the file to which the downloaded content is saved.
         """
-        return self.config.get_dest_dir() / self.tdef.get_name_as_unicode()
+        return self.config.get_dest_dir() / self.tdef.name
 
     def checkpoint(self) -> Awaitable[None]:
         """
@@ -884,7 +886,7 @@ class Download(TaskManager):
         if not self.handle or not self.handle.is_valid():
             # Libtorrent hasn't received or initialized this download yet
             # 1. Check if we have data for this infohash already (don't overwrite it if we do!)
-            basename = hexlify(self.tdef.get_infohash()).decode() + ".conf"
+            basename = hexlify(self.tdef.infohash).decode() + ".conf"
             filename = Path(self.download_manager.get_checkpoint_dir() / basename)
             if not filename.is_file():
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
@@ -892,7 +894,7 @@ class Download(TaskManager):
                 resume_data = self.config.get_engineresumedata() or {
                     b"file-format": b"libtorrent resume file",
                     b"file-version": 1,
-                    b"info-hash": self.tdef.get_infohash()
+                    b"info-hash": self.tdef.infohash
                 }
                 self.post_alert("save_resume_data_alert", {"resume_data": resume_data})
             return succeed(None)
@@ -902,10 +904,10 @@ class Download(TaskManager):
         """
         Set the torrent definition for this download.
         """
-        if (isinstance(self.tdef, TorrentDefNoMetainfo) and not isinstance(tdef, TorrentDefNoMetainfo)
-                and len(self.tdef.infohash) != 20):
+        if (self.tdef.torrent_info is None and tdef.torrent_info is not None
+                and len(self.tdef.atp.info_hash.to_bytes()) != 20):
             # We store SHA-1 conf files. v2 torrents start with SHA-256 infohashes.
-            basename = hexlify(self.tdef.get_infohash()).decode() + ".conf"
+            basename = hexlify(self.tdef.atp.info_hash.to_bytes()).decode() + ".conf"
             Path(self.download_manager.get_checkpoint_dir() / basename).unlink(missing_ok=True)
         self.tdef = tdef
 

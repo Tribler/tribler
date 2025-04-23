@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
+from pathlib import Path
 from ssl import SSLError
 from typing import TYPE_CHECKING, TypedDict
 
@@ -115,8 +116,12 @@ class TorrentInfoEndpoint(RESTEndpoint):
         Get a list of files from the given torrent definition.
         """
         remapped_indices = tdef.get_file_indices()
-        return [{"index": remapped_indices[i], "name": str(f[0]), "size": f[1]}
-                for i, f in enumerate(tdef.get_files_with_length())]
+        num_files = tdef.atp.ti.num_files()
+        return [{"index": remapped_indices[fi],
+                 "name": (str(Path(tdef.atp.ti.file_at(fi).path).relative_to(tdef.atp.ti.name())) if num_files > 1 else
+                          str(Path(tdef.atp.ti.file_at(fi).path))),
+                 "size": tdef.atp.ti.file_at(fi).size}
+                for fi in range(tdef.atp.ti.num_files())]
 
     @docs(
         tags=["Libtorrent"],
@@ -181,7 +186,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             file_path = url_to_path(uri)
             try:
                 tdef = await TorrentDef.load(file_path)
-                metainfo = tdef.metainfo
+                metainfo = tdef.get_metainfo()
                 skip_check_metainfo = False
             except (OSError, TypeError, ValueError, RuntimeError):
                 return RESTResponse({"error": {
@@ -286,7 +291,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         download_is_metainfo_request = download == metainfo_download
 
         return RESTResponse({"files": self.get_files(torrent_def),
-                             "name": torrent_def.get_name_utf8(),
+                             "name": torrent_def.atp.ti.name(),
                              "download_exists": download and not download_is_metainfo_request,
                              "valid_certificate": valid_cert})
 
@@ -305,7 +310,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         Return metainfo from a torrent found at a provided .torrent file.
         """
         tdef = TorrentDef.load_from_memory(await request.read())
-        infohash = tdef.get_infohash()
+        infohash = tdef.infohash
 
         # Check if the torrent is already in the downloads
         download = self.download_manager.downloads.get(infohash)
@@ -315,5 +320,5 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         return RESTResponse({"infohash": hexlify(infohash).decode(),
                              "files": self.get_files(tdef),
-                             "name": tdef.get_name_utf8(),
+                             "name": tdef.name,
                              "download_exists": download and not requesting_metainfo})

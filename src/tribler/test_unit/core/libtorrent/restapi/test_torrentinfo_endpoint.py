@@ -11,7 +11,7 @@ from ipv8.util import succeed
 import tribler
 from tribler.core.libtorrent.download_manager.download_manager import MetainfoLookup
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint, recursive_unicode
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
 
@@ -67,7 +67,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
 
-        tdef = TorrentDefNoMetainfo(b"\x01" * 20, b"test")
+        tdef = TorrentDef.load_only_sha1(b"\x01" * 20, "test", "")
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
@@ -528,41 +528,11 @@ class TestTorrentInfoEndpoint(TestBase):
         self.assertEqual(0, self.download_manager.get_metainfo.call_args.kwargs["hops"])
         self.assertEqual("magnet://", self.download_manager.get_metainfo.call_args.kwargs["url"])
 
-    async def test_get_torrent_info_invalid_response_empty_metainfo(self) -> None:
-        """
-        Test if a graceful error is returned when the metainfo is empty for a file.
-        """
-        tdef = TorrentDef().load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        tdef.metainfo = 3
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
-
-        with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
-            response = await self.endpoint.get_torrent_info(request)
-        response_body_json = await response_to_json(response)
-
-        self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("invalid response", response_body_json["error"]["message"])
-
-    async def test_get_torrent_info_invalid_response_empty_info(self) -> None:
-        """
-        Test if a graceful error is returned when the metainfo is empty for a file.
-        """
-        tdef = TorrentDef().load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        tdef.metainfo.pop(b"info")
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
-
-        with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
-            response = await self.endpoint.get_torrent_info(request)
-        response_body_json = await response_to_json(response)
-
-        self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("invalid response", response_body_json["error"]["message"])
-
     async def test_get_torrent_info_valid_download(self) -> None:
         """
         Test if a valid download has its info returned correctly.
         """
-        tdef = TorrentDef().load_from_memory(TORRENT_WITH_DIRS_CONTENT)
+        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         self.download_manager.metainfo_requests = {}
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
 
@@ -580,7 +550,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a valid metainfo request has its info returned correctly.
         """
-        tdef = TorrentDef().load_from_memory(TORRENT_WITH_DIRS_CONTENT)
+        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download = self.download_manager.downloads.get(tdef.infohash)
         self.download_manager.metainfo_requests = {tdef.infohash: MetainfoLookup(download, 1)}
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})

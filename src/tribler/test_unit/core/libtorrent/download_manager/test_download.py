@@ -13,7 +13,7 @@ from validate import Validator
 import tribler
 from tribler.core.libtorrent.download_manager.download import Download, IllegalFileIndex, SaveResumeDataError
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.notifier import Notification, Notifier
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_UBUNTU_FILE_CONTENT, TORRENT_WITH_DIRS_CONTENT
 from tribler.test_unit.mocks import MockTriblerConfigManager
@@ -122,7 +122,7 @@ class TestDownload(TestBase):
         """
         Test if storage is not moved for torrents without metainfo.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -136,7 +136,7 @@ class TestDownload(TestBase):
         """
         Test if checkpoints are not saved if checkpointing is disabled.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=False))
 
@@ -148,7 +148,7 @@ class TestDownload(TestBase):
         """
         Test if checkpoints are not saved if the handle specifies that it does not need resume data.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.handle = Mock(is_valid=Mock(return_value=True), need_save_resume_data=Mock(return_value=False))
@@ -162,7 +162,7 @@ class TestDownload(TestBase):
         Test if checkpoints are saved for torrents without a handle and no existing checkpoint file.
         """
         alerts = []
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.download_manager = Mock(get_checkpoint_dir=Mock(return_value=Path("foo")))
@@ -183,7 +183,7 @@ class TestDownload(TestBase):
         Test if existing checkpoints are not overwritten by checkpoints without data.
         """
         alerts = []
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.download_manager = Mock(get_checkpoint_dir=Mock(return_value=Path("foo")))
@@ -200,7 +200,7 @@ class TestDownload(TestBase):
         """
         Test if the default selected files are no files.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(file_priorities=Mock(return_value=[0, 0]))
 
@@ -276,7 +276,7 @@ class TestDownload(TestBase):
         """
         Test if we forward the enabled share mode when requested in the download.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.config.set_share_mode(True)
 
@@ -286,7 +286,7 @@ class TestDownload(TestBase):
         """
         Test if we forward the disabled share mode when requested in the download.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.config.set_share_mode(False)
 
@@ -296,7 +296,7 @@ class TestDownload(TestBase):
         """
         Test if the share mode can be enabled in a download.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -310,7 +310,7 @@ class TestDownload(TestBase):
         """
         Test if the share mode can be disabled in a download.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -324,7 +324,7 @@ class TestDownload(TestBase):
         """
         Test if connected peers and seeds are 0 if there is no handle.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         num_seeds, num_peers = download.get_num_connected_seeds_peers()
@@ -336,7 +336,7 @@ class TestDownload(TestBase):
         """
         Test if connected peers and seeds are correctly returned.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True), get_peer_info=Mock(return_value=[
             Mock(flags=140347, seed=1024),
@@ -353,7 +353,7 @@ class TestDownload(TestBase):
         """
         Test if setting the priority calls the right methods in download.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -366,7 +366,7 @@ class TestDownload(TestBase):
         """
         Test if trackers are added to the libtorrent handle.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
 
@@ -379,7 +379,7 @@ class TestDownload(TestBase):
         """
         Test if error alerts are processed correctly.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         download.process_alert(Mock(msg=None, status_code=123, url="http://google.com",
@@ -392,7 +392,7 @@ class TestDownload(TestBase):
         """
         Test if timeout error alerts are processed correctly.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         download.process_alert(Mock(msg=None, status_code=0, url="http://google.com",
@@ -405,7 +405,7 @@ class TestDownload(TestBase):
         """
         Test if not working error alerts are processed correctly.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         download.process_alert(Mock(msg=None, status_code=-1, url="http://google.com",
@@ -418,7 +418,7 @@ class TestDownload(TestBase):
         """
         Test if a tracking warning alert is processed correctly.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         download.process_alert(Mock(message=Mock(return_value="test"), url="http://google.com",
@@ -435,13 +435,12 @@ class TestDownload(TestBase):
         download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(torrent_file=Mock(return_value=download.tdef.torrent_info),
                                trackers=Mock(return_value=[{"url": "http://google.com"}]))
-        download.tdef = None
 
         download.on_metadata_received_alert(Mock())
 
         self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.metainfo[b"info"], download.tdef.metainfo[b"info"])
-        self.assertEqual(b"http://google.com", download.tdef.metainfo[b"announce"])
+        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
+        self.assertEqual(b"http://google.com", download.tdef.get_metainfo()[b"announce"])
 
     def test_on_metadata_received_alert_unicode_error_encode(self) -> None:
         """
@@ -452,13 +451,12 @@ class TestDownload(TestBase):
         download.handle = Mock(trackers=Mock(return_value=[{"url": "\uD800"}]),
                                torrent_file=Mock(return_value=download.tdef.torrent_info),
                                get_peer_info=Mock(return_value=[]))
-        download.tdef = None
 
         download.on_metadata_received_alert(Mock())
 
         self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.metainfo[b"info"], download.tdef.metainfo[b"info"])
-        self.assertNotIn(b"announce", download.tdef.metainfo)
+        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
+        self.assertEqual(b"", tdef.get_metainfo()[b"announce"])
 
     def test_on_metadata_received_alert_unicode_error_decode(self) -> None:
         """
@@ -471,13 +469,12 @@ class TestDownload(TestBase):
         download.handle = Mock(trackers=lambda: [{"url": b"\xFD".decode()}],
                                torrent_file=Mock(return_value=download.tdef.torrent_info),
                                get_peer_info=Mock(return_value=[]))
-        download.tdef = None
 
         download.on_metadata_received_alert(Mock())
 
         self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.metainfo[b"info"], download.tdef.metainfo[b"info"])
-        self.assertNotIn(b"announce", download.tdef.metainfo)
+        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
+        self.assertEqual(b"", download.tdef.get_metainfo()[b"announce"])
 
     def test_metadata_received_invalid_torrent_with_error(self) -> None:
         """
@@ -498,7 +495,7 @@ class TestDownload(TestBase):
         """
         Test if no pause or checkpoint happens if the download state is such.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.handle = Mock(is_valid=Mock(return_value=True), need_save_resume_data=Mock(return_value=False))
@@ -516,7 +513,7 @@ class TestDownload(TestBase):
         """
         Test if no pause but a checkpoint happens if the download state is such.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.handle = Mock(is_valid=Mock(return_value=True), need_save_resume_data=Mock(return_value=False))
@@ -534,7 +531,7 @@ class TestDownload(TestBase):
         """
         Test if a pause but no checkpoint happens if the download state is such.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.handle = Mock(is_valid=Mock(return_value=True), need_save_resume_data=Mock(return_value=False))
@@ -552,7 +549,7 @@ class TestDownload(TestBase):
         """
         Test if both a pause and a checkpoint happens if the download state is such.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.checkpoint_disabled = False
         download.handle = Mock(is_valid=Mock(return_value=True), need_save_resume_data=Mock(return_value=False))
@@ -570,7 +567,7 @@ class TestDownload(TestBase):
         """
         Test if the tracker status is extracted from a reply alert.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         download.on_tracker_reply_alert(Mock(url="http://google.com", num_peers=42))
@@ -581,7 +578,7 @@ class TestDownload(TestBase):
         """
         Test if a correct pieces bitmask is returned when requested.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.handle = Mock(status=Mock(return_value=Mock(pieces=[True, False, True, False, False])))
 
@@ -591,7 +588,7 @@ class TestDownload(TestBase):
         """
         Test if an error is raised when loading resume data failed.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
 
         future = download.wait_for_alert("save_resume_data_alert", None, "save_resume_data_failed_alert",
@@ -605,7 +602,7 @@ class TestDownload(TestBase):
         """
         Test if the ip filter gets enabled when in torrent status seeding (5) when hops are not zero.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.config.set_hops(1)
         download.handle = Mock(is_valid=Mock(return_value=True))
@@ -619,7 +616,7 @@ class TestDownload(TestBase):
         """
         Test if the ip filter does not get enabled when the hop count is zero.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.config.set_hops(0)
         download.handle = Mock(is_valid=Mock(return_value=True))
@@ -633,7 +630,7 @@ class TestDownload(TestBase):
         """
         Test if the ip filter does not get enabled when the hop count is zero.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.config.set_hops(1)
         download.handle = Mock(is_valid=Mock(return_value=True))
@@ -647,7 +644,7 @@ class TestDownload(TestBase):
         """
         Testing whether making a checkpoint times out when we receive no alert from libtorrent.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.futures["save_resume_data"] = [Future()]
 
@@ -662,7 +659,7 @@ class TestDownload(TestBase):
         """
         Test if permission error in writing the download config does not crash the save resume alert handler.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=PermissionErrorDownloadConfig(self.create_mock_download_config().config))
         download.checkpoint_disabled = False
         download.download_manager = Mock(get_checkpoint_dir=Mock(return_value=Path(__file__).absolute().parent))
@@ -678,7 +675,7 @@ class TestDownload(TestBase):
 
         See: https://github.com/Tribler/tribler/issues/7036
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         fut = Future()
         fut.set_result(Mock(is_dht_running=Mock(return_value=False)))
@@ -697,7 +694,7 @@ class TestDownload(TestBase):
         """
         Test if a tracker status is returned when getting peer info leads to a RuntimeError.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.download_manager = Mock(get_session=Mock(return_value=Mock(is_dht_running=Mock(return_value=True))))
         download.handle = Mock(is_valid=Mock(return_value=True), get_peer_info=Mock(side_effect=RuntimeError),
@@ -712,7 +709,7 @@ class TestDownload(TestBase):
         """
         Test if the shutdown method closes the stream and clears the futures dictionary.
         """
-        download = Download(TorrentDefNoMetainfo(b"\x01" * 20, b"name"), self.dlmngr, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
                             config=self.create_mock_download_config())
         download.stream = Mock()
 
@@ -749,14 +746,15 @@ class TestDownload(TestBase):
         """
         Test if the piece range of a multi-file torrent is correctly determined.
         """
-        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        tdef.metainfo[b"info"][b"files"][0][b"length"] = 60000
-        tdef.metainfo[b"info"][b"pieces"] = b'\x01' * 80
+        metainfo = libtorrent.bdecode(TORRENT_WITH_DIRS_CONTENT)
+        metainfo[b"info"][b"files"][0][b"length"] = 60000
+        metainfo[b"info"][b"pieces"] = b"\x01" * 80
+        tdef = TorrentDef.load_from_dict(metainfo)
         download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
 
         file1 = download.file_piece_range(Path("torrent_create") / "abc" / "file2.txt")
         other_indices = [download.file_piece_range(Path("torrent_create") / Path(
-            *[p.decode() for p in tdef.metainfo[b"info"][b"files"][-1-i][b"path"]]
+            *[p.decode() for p in tdef.get_metainfo()[b"info"][b"files"][-1-i][b"path"]]
         )) for i in range(5)]
 
         self.assertEqual([0, 1, 2], file1)

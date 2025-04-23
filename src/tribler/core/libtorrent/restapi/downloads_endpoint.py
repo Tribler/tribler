@@ -159,11 +159,16 @@ class DownloadsEndpoint(RESTEndpoint):
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
         index_mapping = download.get_def().get_file_indices()
-        for file_index, (fn, size) in enumerate(download.get_def().get_files_with_length()):
+        num_files = download.get_def().torrent_info.num_files() if download.get_def().torrent_info else 0
+        for file_index in range(num_files):
+            fn = Path(download.get_def().torrent_info.file_at(file_index).path)
+            if num_files > 1:
+                fn = fn.relative_to(download.get_def().torrent_info.name())
+            size = download.get_def().torrent_info.file_at(file_index).size
             files_json.append(cast("JSONFilesInfo", {
                 "index": index_mapping[file_index],
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
-                "name": str(PurePosixPath(fn)),
+                "name": str(fn.as_posix()),
                 "size": size,
                 "included": (index_mapping[file_index] in selected_files or not selected_files),
                 "progress": files_completion.get(fn, 0.0)
@@ -180,8 +185,9 @@ class DownloadsEndpoint(RESTEndpoint):
         :param view_start: The last-known path from which to fetch new paths.
         :param view_size: The requested number of elements (though only less may be available).
         """
-        if not download.tdef.torrent_info_loaded():
-            download.tdef.load_torrent_info()
+        if download.tdef.torrent_info is None:
+            download.download_manager.register_anonymous_task(f"Load torrent info for {download.tdef.infohash.hex()}",
+                                                              download.tdef.load_torrent_info)
             return [{
                 "index": IllegalFileIndex.unloaded.value,
                 "name": "loading...",
@@ -311,7 +317,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 continue
             state = download.get_state()
             tdef = download.get_def()
-            hex_infohash = hexlify(tdef.get_infohash()).decode()
+            hex_infohash = hexlify(tdef.infohash).decode()
             if params.get("excluded") == hex_infohash:
                 continue
 
@@ -323,7 +329,7 @@ class DownloadsEndpoint(RESTEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            name = tdef.get_name_utf8()
+            name = tdef.name
             status = self._get_extended_status(download)
 
             info = {
@@ -334,7 +340,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "speed_up": state.get_current_payload_speed(UPLOAD),
                 "status": status.name,
                 "status_code": status.value,
-                "size": tdef.get_length(),
+                "size": tdef.torrent_info.total_size() if tdef.torrent_info else 0,
                 "eta": state.get_eta(),
                 "num_peers": num_peers,
                 "num_seeds": num_seeds,
@@ -352,10 +358,12 @@ class DownloadsEndpoint(RESTEndpoint):
                 "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
                 "destination": str(download.config.get_dest_dir()),
                 "completed_dir": download.config.get_completed_dir(),
-                "total_pieces": tdef.get_nr_pieces(),
+                "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
-                "streamable": bool(tdef and tdef.get_files_with_length({'mp4', 'm4v', 'mov', 'mkv'}))
+                "streamable": bool(tdef and tdef.torrent_info
+                                   and any(tdef.torrent_info.file_at(fi).path.endswith(("mp4", "m4v", "mov", "mkv"))
+                                           for fi in range(tdef.torrent_info.num_files())))
             }
 
             if unfiltered or params.get("infohash") == info["infohash"]:
@@ -440,7 +448,7 @@ class DownloadsEndpoint(RESTEndpoint):
         Start a download from a provided URI.
         """
         tdef = uri = None
-        if request.content_type == 'applications/x-bittorrent':
+        if request.content_type == "applications/x-bittorrent":
             params: dict[str, str | int | list[int]] = {}
             for k, v in request.query.items():
                 if k == "anon_hops":
@@ -487,7 +495,7 @@ class DownloadsEndpoint(RESTEndpoint):
                                     "message": str(e)
                                 }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        return RESTResponse({"started": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
+        return RESTResponse({"started": True, "infohash": hexlify(download.get_def().infohash).decode()})
 
     @docs(
         tags=["Libtorrent"],
@@ -531,7 +539,7 @@ class DownloadsEndpoint(RESTEndpoint):
             self._logger.exception(e)
             return return_handled_exception(e)
 
-        return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
+        return RESTResponse({"removed": True, "infohash": hexlify(download.get_def().infohash).decode()})
 
     @docs(
         tags=["Libtorrent"],
@@ -578,7 +586,7 @@ class DownloadsEndpoint(RESTEndpoint):
             except Exception as e:
                 self._logger.exception(e)
                 return return_handled_exception(e)
-            return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
+            return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().infohash).decode()})
 
         if "selected_files" in parameters:
             selected_files_list = parameters["selected_files"]
@@ -621,7 +629,7 @@ class DownloadsEndpoint(RESTEndpoint):
                                         "message": "unknown state parameter"
                                     }}, status=HTTP_BAD_REQUEST)
 
-        return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().get_infohash()).decode()})
+        return RESTResponse({"modified": True, "infohash": hexlify(download.get_def().infohash).decode()})
 
     @docs(
         tags=["Libtorrent"],
@@ -749,16 +757,7 @@ class DownloadsEndpoint(RESTEndpoint):
                                     "message": str(e)
                                 }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        if download.tdef.metainfo:
-            url_bytes = url.encode()
-            if download.tdef.metainfo.get(b'announce-list'):
-                download.tdef.metainfo[b'announce-list'] = [e for e in download.tdef.metainfo[b'announce-list']
-                                                            if e[0] != url_bytes]
-            if url_bytes == download.tdef.metainfo.get(b"announce"):
-                if download.tdef.metainfo.get(b'announce-list'):
-                    download.tdef.metainfo[b"announce"] = download.tdef.metainfo[b'announce-list'][0][0]
-                else:
-                    download.tdef.metainfo.pop(b"announce")
+        download.tdef.atp.trackers = [t for t in download.tdef.atp.trackers if t != url]
 
         return RESTResponse({"removed": True})
 
@@ -1133,11 +1132,15 @@ class TorrentStreamResponse(StreamResponse):
         self._download = download
         self._file_index = file_index
 
-    async def prepare(self, request: BaseRequest) -> AbstractStreamWriter | None:
+    async def prepare(self, request: BaseRequest) -> AbstractStreamWriter | None:  # noqa: PLR0915
         """
         Prepare the response.
         """
-        file_name, file_size = self._download.get_def().get_files_with_length()[self._file_index]
+        num_files = self._download.get_def().torrent_info.num_files()
+        file_name = Path(self._download.get_def().torrent_info.file_at(self._file_index).path)
+        if num_files > 1:
+            file_name = file_name.relative_to(self._download.get_def().torrent_info.name())
+        file_size = self._download.get_def().torrent_info.file_at(self._file_index).size
         try:
             start = request.http_range.start
             stop = request.http_range.stop

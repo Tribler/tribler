@@ -144,6 +144,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config = DownloadConfig.from_defaults(self.download_manager.config)
             download_config.set_dest_dir(result["base_dir"])
             download_config.set_hops(self.download_manager.config.get("libtorrent/download_defaults/number_hops"))
-            await self.download_manager.start_download(save_path, TorrentDef(metainfo_dict), download_config)
+            await self.download_manager.start_download(save_path, TorrentDef.load_from_dict(metainfo_dict),
+                                                       download_config)
 
         return RESTResponse(json.dumps({"torrent": base64.b64encode(result["metainfo"]).decode()}))

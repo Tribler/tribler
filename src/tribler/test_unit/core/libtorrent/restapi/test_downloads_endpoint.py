@@ -17,7 +17,7 @@ from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
-from tribler.core.libtorrent.torrentdef import TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
 from tribler.test_unit.mocks import MockTriblerConfigManager
@@ -87,8 +87,8 @@ class TestDownloadsEndpoint(TestBase):
         conf.validate(Validator())
         config = DownloadConfig(conf)
         config.set_dest_dir(Path(""))
-        return Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), self.download_manager, config, hidden=False,
-                        checkpoint_disabled=True)
+        return Download(TorrentDef.load_only_sha1(b"\x01" * 20, "test", ""), self.download_manager, config,
+                        hidden=False, checkpoint_disabled=True)
 
     async def test_get_downloads_unloaded(self) -> None:
         """
@@ -129,8 +129,8 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if an empty list is returned if there are only hidden downloads.
         """
-        self.set_loaded_downloads([Download(TorrentDefNoMetainfo(b"\x01" * 20, b"test"), self.download_manager, Mock(),
-                                            hidden=True, checkpoint_disabled=True)])
+        self.set_loaded_downloads([Download(TorrentDef.load_only_sha1(b"\x01" * 20, "test", ""), self.download_manager,
+                                            Mock(), hidden=True, checkpoint_disabled=True)])
         request = MockRequest("/api/downloads", query={})
 
         response = await self.endpoint.get_downloads(request)
@@ -571,7 +571,7 @@ class TestDownloadsEndpoint(TestBase):
         Test if a download can be set to the recheck state.
         """
         download = self.create_mock_download()
-        download.tdef = Mock(get_infohash=Mock(return_value=b"\x01" * 20))
+        download.tdef = Mock(infohash=b"\x01" * 20)
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest("/api/downloads/" + "01" * 20, "PATCH", {"state": "recheck"}, {"infohash": "01" * 20})
@@ -604,7 +604,7 @@ class TestDownloadsEndpoint(TestBase):
         Test if a download can be set to the move_storage state.
         """
         download = self.create_mock_download()
-        download.tdef = Mock(get_infohash=Mock(return_value=b"\x01" * 20))
+        download.tdef = Mock(infohash=b"\x01" * 20)
         download.handle = Mock(is_valid=Mock(return_value=True))
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest("/api/downloads/" + "01" * 20, "PATCH",
@@ -709,7 +709,7 @@ class TestDownloadsEndpoint(TestBase):
         Test if the special loading state is returned when using a starting path and an unloaded torrent.
         """
         download = self.create_mock_download()
-        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
+        download.tdef = TorrentDef.load_only_sha1(b"01" * 20, "bla", "")
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET",
                               {"view_start_path": "def/file6.avi", "view_size": 2}, {"infohash": "01" * 20})
@@ -732,7 +732,6 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download.tdef.load_torrent_info()
         download.tdef.torrent_file_tree.expand(Path("torrent_create/abc"))
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files", "GET",
@@ -774,7 +773,6 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download.tdef.load_torrent_info()
         download.tdef.torrent_file_tree.expand(Path("torrent_create/abc"))
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files/collapse", "GET",
@@ -806,7 +804,6 @@ class TestDownloadsEndpoint(TestBase):
         """
         download = self.create_mock_download()
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files/expand", "GET",
                               {"path": "torrent_create/abc"}, {"infohash": "01" * 20})
@@ -838,7 +835,6 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files/select", "GET",
                               {"path": "torrent_create/def/file6.avi"}, {"infohash": "01" * 20})
@@ -868,7 +864,6 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download.tdef.load_torrent_info()
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/files/deselect", "GET",
                               {"path": "torrent_create/def/file6.avi"}, {"infohash": "01" * 20})
@@ -1028,8 +1023,8 @@ class TestDownloadsEndpoint(TestBase):
         Test if trackers can be removed from a download's metainfo with only b"announce".
         """
         download = self.create_mock_download()
-        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
-        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
+        tinfo = b"d" + b"8:announce25:http://127.0.0.1/announce" + TORRENT_WITH_VIDEO[1:]
+        download.tdef = TorrentDef.load_from_memory(tinfo)
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
@@ -1040,15 +1035,18 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertNotIn(b"announce", download.tdef.metainfo)
+        self.assertEqual(b"", download.tdef.get_metainfo()[b"announce"])
+        self.assertEqual([], download.tdef.get_metainfo()[b"announce-list"])
+        self.assertEqual([], download.tdef.atp.trackers)
 
     async def test_remove_tracker_from_metainfo_announce_list(self) -> None:
         """
         Test if trackers can be removed from a download's metainfo with only b"announce-list".
         """
         download = self.create_mock_download()
-        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
-        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/somethingelse"], [b"http://127.0.0.1/announce"]]
+        tinfo = (b"d13:announce-listll30:http://127.0.0.1/somethingelseel25:http://127.0.0.1/announceee"
+                 + TORRENT_WITH_VIDEO[1:])
+        download.tdef = TorrentDef.load_from_memory(tinfo)
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
@@ -1059,17 +1057,20 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
+        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
 
     async def test_remove_tracker_from_metainfo_announce_both_first(self) -> None:
         """
         Test if trackers can be removed from a download's metainfo where the b"announce" is first in b"announce-list".
         """
         download = self.create_mock_download()
-        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
-        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
-        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/announce"], [b"http://127.0.0.1/somethingelse"]]
+        tinfo = (
+            b"d8:announce25:http://127.0.0.1/announce"
+            b"13:announce-listll25:http://127.0.0.1/announceel30:http://127.0.0.1/somethingelseee"
+            + TORRENT_WITH_VIDEO[1:]
+        )
+        download.tdef = TorrentDef.load_from_memory(tinfo)
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
@@ -1080,18 +1081,21 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce"])
+        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce"])
 
     async def test_remove_tracker_from_metainfo_announce_both_second(self) -> None:
         """
         Test if trackers can be removed from a download's metainfo where the b"announce" is second in b"announce-list".
         """
         download = self.create_mock_download()
-        download.tdef = TorrentDef.load_from_memory(TORRENT_WITH_VIDEO)
-        download.tdef.metainfo[b"announce"] = b"http://127.0.0.1/announce"
-        download.tdef.metainfo[b"announce-list"] = [[b"http://127.0.0.1/somethingelse"], [b"http://127.0.0.1/announce"]]
+        tinfo = (
+            b"d8:announce25:http://127.0.0.1/announce"
+            b"13:announce-listll30:http://127.0.0.1/somethingelseel25:http://127.0.0.1/announceee"
+            + TORRENT_WITH_VIDEO[1:]
+        )
+        download.tdef = TorrentDef.load_from_memory(tinfo)
         download.handle = Mock(is_valid=Mock(return_value=True), trackers=Mock(return_value=[]))
         self.download_manager.get_download = Mock(return_value=download)
         url = "http://127.0.0.1/announce"
@@ -1102,9 +1106,9 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.metainfo[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce-list"][0][0])
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.metainfo[b"announce"])
+        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
+        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce"])
 
     async def test_remove_tracker_no_download(self) -> None:
         """

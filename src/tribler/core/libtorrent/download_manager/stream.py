@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from asyncio import sleep
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
@@ -10,7 +11,6 @@ from tribler.core.libtorrent.download_manager.download_state import DownloadStat
 if TYPE_CHECKING:
     from collections.abc import Generator
     from io import BufferedReader
-    from pathlib import Path
     from types import TracebackType
     from typing import Self
 
@@ -62,17 +62,21 @@ class Stream:
         Sets the file index and waits for initial buffering  to be completed.
         """
         # Check if the file index exists
-        files = self.download.get_def().get_files_with_length()
-        if file_index >= len(files) or file_index < 0:
+        num_files = self.download.get_def().torrent_info.num_files()
+        if file_index >= num_files or file_index < 0:
             raise NoAvailableStreamError
 
         # Set the new file
         self.file_index = file_index
-        filename, self.file_size = files[file_index]
+        filename = Path(self.download.get_def().torrent_info.file_at(file_index).path)
+        if num_files > 1:
+            filename = filename.relative_to(self.download.get_def().torrent_info.name())
+        self.file_size = self.download.get_def().torrent_info.file_at(file_index).size
         content_dest = self.download.get_content_dest()
-        self.file_name = content_dest / filename if self.download.get_def().is_multifile_torrent() else content_dest
+        self.file_name = (content_dest / filename if self.download.get_def().torrent_info.num_files() > 1
+                          else content_dest)
         self.buffer_size = int(self.file_size * buffer_percent)
-        self.piece_length = self.download.get_def().get_piece_length()
+        self.piece_length = self.download.get_def().torrent_info.piece_length()
 
         # Ensure the download isn't paused
         self.download.resume()

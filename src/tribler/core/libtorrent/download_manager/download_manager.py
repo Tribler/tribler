@@ -10,7 +10,7 @@ import dataclasses
 import logging
 import os
 import time
-from asyncio import CancelledError, Future, gather, iscoroutine, shield, sleep, wait_for
+from asyncio import CancelledError, Future, gather, iscoroutine, shield, sleep, timeout, wait_for
 from binascii import hexlify, unhexlify
 from collections import defaultdict
 from copy import deepcopy
@@ -27,7 +27,7 @@ from yarl import URL
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
-from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef, TorrentDefNoMetainfo
+from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
@@ -558,7 +558,7 @@ class DownloadManager(TaskManager):
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
-            tdef = TorrentDefNoMetainfo(infohash, b"metainfo request", url=url)
+            tdef = TorrentDef.load_only_sha1(infohash, "metainfo request", url or "")
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
@@ -586,10 +586,10 @@ class DownloadManager(TaskManager):
         self.metainfo_cache[infohash] = {"time": time.time(), "meta_info": metainfo}
         self.notifier.notify(Notification.torrent_metadata_added, metadata={
             "infohash": infohash,
-            "size": download.tdef.get_length(),
-            "title": download.tdef.get_name_utf8(),
+            "size": download.tdef.atp.ti.total_size(),
+            "title": download.tdef.name,
             "metadata_type": 300,
-            "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
+            "tracker_info": (download.tdef.atp.trackers or [""])[0]
         })
 
         seeders, leechers = download.get_state().get_num_seeds_peers()
@@ -643,29 +643,25 @@ class DownloadManager(TaskManager):
             return await self.start_download(tdef=tdef, config=config)
         if scheme == "magnet":
             logger.info("Magnet scheme detected")
-            params = lt.parse_magnet_uri(uri)
-            name = params.name.encode()
-            infohash = unhexlify(str(params.info_hash))
+            tdef = TorrentDef(lt.parse_magnet_uri(uri))
+            magnet_trackers = tdef.atp.trackers
+            magnet_peers = tdef.atp.peers
+            magnet_seeds = tdef.atp.url_seeds
+
             if config and not config.get_selected_files():
-                config.set_selected_files([i for i in range(len(params.file_priorities))
-                                           if params.file_priorities[i] > 0])
-            logger.info("Name: %s. Infohash: %s", name, infohash)
-            if infohash in self.metainfo_cache:
+                config.set_selected_files(
+                    [i for i in range(len(tdef.atp.file_priorities)) if tdef.atp.file_priorities[i] > 0]
+                )
+            logger.info("Name: %s. Infohash: %s", tdef.name, tdef.infohash)
+            if tdef.infohash in self.metainfo_cache:
                 logger.info("Metainfo found in cache")
-                tdef = TorrentDef.load_from_dict(self.metainfo_cache[infohash]["meta_info"])
-            else:
-                logger.info("Metainfo not found in cache")
-                tdef = TorrentDefNoMetainfo(infohash, name if name else b"Unknown name", url=uri)
-            download = await self.start_download(tdef=tdef, config=config)
-            async def add_helpers_later() -> None:
-                await download.get_handle()
-                download.add_trackers([t.encode() for t in params.trackers])
-                for peer in params.peers:
-                    download.add_peer(peer)
-                for url in params.url_seeds:
-                    download.add_url_seed(url)
-            self.register_anonymous_task(f"Add helpers to {params.info_hash!s}", add_helpers_later)
-            return download
+                tdef = TorrentDef.load_from_dict(self.metainfo_cache[tdef.infohash]["meta_info"])
+
+                # Merge existing tdef with tdef parsed from magnet
+                tdef.atp.trackers = magnet_trackers
+                tdef.atp.peers = magnet_peers
+                tdef.atp.seeds = magnet_seeds
+            return await self.start_download(tdef=tdef, config=config)
         if scheme == "file":
             logger.info("File scheme detected")
             file = url_to_path(uri)
@@ -696,15 +692,16 @@ class DownloadManager(TaskManager):
 
         assert tdef is not None, "tdef MUST not be None after loading torrent"
 
-        infohash = tdef.get_infohash()
+        infohash = tdef.infohash
         download = self.get_download(infohash)
 
         if download and infohash not in self.metainfo_requests:
             logger.info("Download exists and metainfo is not requested.")
-            new_trackers = list(tdef.get_trackers() - download.get_def().get_trackers())
+            new_trackers = list({t.encode() for t in tdef.atp.trackers}
+                                - {t.encode() for t in download.get_def().atp.trackers})
             if new_trackers:
                 logger.info("New trackers: %s", str(new_trackers))
-                self.update_trackers(tdef.get_infohash(), new_trackers)
+                self.update_trackers(tdef.infohash, new_trackers)
             return download
 
         # Create the destination directory if it does not exist yet
@@ -728,38 +725,26 @@ class DownloadManager(TaskManager):
                             state_dir=self.state_dir,
                             download_manager=self)
         logger.info("Download created: %s", str(download))
-        atp = download.get_atp()
-        logger.info("ATP: %s", str({k: v for k, v in atp.items() if k not in ["resume_data"]}))
+
+        logger.info("ATP: %s", str({k: v for k, v in tdef.atp.__dict__.items() if k not in ["resume_data"]}))
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash].download == download:
             logger.info("Metainfo is not requested or download is the first in the queue.")
             self.downloads[infohash] = download
         logger.info("Starting handle.")
-        await self.start_handle(download, atp)
+        await self.start_handle(download, tdef.atp)
         return download
 
-    async def start_handle(self, download: Download, atp: dict) -> None:
+    async def start_handle(self, download: Download, atp: lt.add_torrent_params) -> None:
         """
         Create and start the libtorrent handle for the given download.
         """
-        atp_resume_data_skipped = atp.copy()
-        resume_data = atp.get("resume_data")
-        if resume_data:
-            atp_resume_data_skipped["resume_data"] = "<skipped in log>"
-            try:
-                resume_data_dict = cast("dict[bytes, Any]", lt.bdecode(resume_data))
-                # If the save_path is None or "" win32 SEGFAULTS, see https://github.com/Tribler/tribler/issues/8353
-                if not resume_data_dict.get(b"save_path"):
-                    resume_data_dict[b"save_path"] = atp.get("save_path", ".").encode()
-                atp["resume_data"] = lt.bencode(resume_data_dict)
-            except RuntimeError:
-                atp.pop("resume_data")
-            logger.debug("Download resume data: %s", str(atp["resume_data"]))
-        logger.info("Start handle. Download: %s. Atp: %s", str(download), str(atp_resume_data_skipped))
+        logger.info("Start handle. Download: %s.", str(download))
 
         ltsession = await self.get_session(download.config.get_hops())
-        infohash = download.get_def().get_infohash()
+        infohash = download.get_def().infohash
+        atp.save_path = str(download.config.get_dest_dir())
 
         if infohash in self.metainfo_requests and self.metainfo_requests[infohash].download != download:
             logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))
@@ -779,16 +764,16 @@ class DownloadManager(TaskManager):
             _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent, ltsession,
                                   infohash, atp, ignore=(Exception,))
 
-        if not isinstance(download.tdef, TorrentDefNoMetainfo):
+        if download.tdef.torrent_info is not None:
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
-                "size": download.tdef.get_length(),
-                "title": download.tdef.get_name_utf8(),
+                "size": download.tdef.atp.ti.total_size(),
+                "title": download.tdef.name,
                 "metadata_type": 300,
-                "tracker_info": (list(download.tdef.get_trackers()) or [""])[0]
+                "tracker_info": (list(download.tdef.atp.trackers) or [""])[0]
             })
 
-    async def _async_add_torrent(self, ltsession: lt.session, infohash: bytes , atp: dict) -> None:
+    async def _async_add_torrent(self, ltsession: lt.session, infohash: bytes, atp: lt.add_torrent_params) -> None:
         self._logger.debug("Adding handle %s", hexlify(infohash))
         # To prevent flooding the DHT with a short burst of queries and triggering
         # flood protection, we postpone adding torrents until we get enough DHT peers.
@@ -799,10 +784,13 @@ class DownloadManager(TaskManager):
         # See https://github.com/Tribler/tribler/issues/5319
         if self.dht_readiness_timeout > 0 and self.dht_ready_task is not None:
             try:
-                await wait_for(shield(self.dht_ready_task), timeout=self.dht_readiness_timeout)
+                async with timeout(self.dht_readiness_timeout):
+                    await self.dht_ready_task
             except TimeoutError:
                 self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
-        ltsession.async_add_torrent(encode_atp(atp))
+        if not atp.save_path:
+            atp.save_path = atp.name or (atp.ti.name() if atp.ti else "Unknown name")
+        ltsession.async_add_torrent(atp)
 
     def get_libtorrent_version(self) -> str:
         """
@@ -865,7 +853,7 @@ class DownloadManager(TaskManager):
         """
         Remove a download and optionally also remove the downloaded file(s) and checkpoint.
         """
-        infohash = download.get_def().get_infohash()
+        infohash = download.get_def().infohash
         handle = download.handle
 
         # Note that the following block of code needs to be able to deal with multiple simultaneous
@@ -910,7 +898,7 @@ class DownloadManager(TaskManager):
         """
         Update the amount of hops for a specified download. This can be done on runtime.
         """
-        infohash = hexlify(download.tdef.get_infohash())
+        infohash = hexlify(download.tdef.infohash)
         logger.info("Updating the amount of hops of download %s", infohash)
         await download.save_resume_data()
         await self.remove_download(download)
@@ -933,7 +921,7 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
         if download:
             old_def = download.get_def()
-            old_trackers = old_def.get_trackers()
+            old_trackers = {t.encode() for t in old_def.atp.trackers}
             new_trackers = list(set(trackers) - old_trackers)
             all_trackers = [*old_trackers, *new_trackers]
 
@@ -942,20 +930,11 @@ class DownloadManager(TaskManager):
                 download.add_trackers(new_trackers)
 
                 # Create a new TorrentDef
-                if isinstance(old_def, TorrentDefNoMetainfo):
-                    new_def = TorrentDefNoMetainfo(old_def.get_infohash(), old_def.get_name(),
-                                                   download.get_magnet_link())
-                else:
-                    metainfo = old_def.get_metainfo()
-                    if len(all_trackers) > 1:
-                        metainfo[b"announce-list"] = [[tracker] for tracker in all_trackers]
-                        metainfo.pop(b"announce", None)
-                    else:
-                        metainfo[b"announce"] = all_trackers[0]
-                    new_def = TorrentDef.load_from_dict(metainfo)
+                old_def.atp.trackers = [t.decode() for t in all_trackers]
+                if old_def.torrent_info is not None:
+                    for tracker in new_trackers:
+                        old_def.torrent_info.add_tracker(tracker)
 
-                # Set TorrentDef + checkpoint
-                download.set_def(new_def)
                 download.checkpoint()
 
     def set_download_states_callback(self, user_callback: Callable[[list[DownloadState]], Awaitable[None] | None],
@@ -991,7 +970,7 @@ class DownloadManager(TaskManager):
 
         for i, ds in enumerate(states_list):
             download = ds.get_download()
-            infohash = download.get_def().get_infohash()
+            infohash = download.get_def().infohash
 
             if (ds.get_status() == DownloadStatus.SEEDING and download.config.get_hops() == 0
                     and download.config.get_safe_seeding()):
@@ -1060,7 +1039,7 @@ class DownloadManager(TaskManager):
         try:
             url = metainfo.get(b"url")
             url = url.decode() if url is not None else url
-            tdef = (TorrentDefNoMetainfo(metainfo[b"infohash"], metainfo[b"name"], url)
+            tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
                     if b"infohash" in metainfo else TorrentDef.load_from_dict(metainfo))
         except (KeyError, ValueError) as e:
             self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
@@ -1073,7 +1052,7 @@ class DownloadManager(TaskManager):
             return False
 
         try:
-            if self.download_exists(tdef.get_infohash()):
+            if self.download_exists(tdef.infohash):
                 self._logger.info("Not resuming checkpoint because download has already been added")
             else:
                 await self.start_download(tdef=tdef, config=config)
@@ -1109,7 +1088,7 @@ class DownloadManager(TaskManager):
         Get all downloads for which the UTF-8 name equals the given string.
         """
         downloads = self.get_downloads()
-        return [d for d in downloads if d.get_def().get_name_utf8() == torrent_name]
+        return [d for d in downloads if d.get_def().name == torrent_name]
 
     @staticmethod
     def set_libtorrent_proxy_settings(config: TriblerConfigManager, proxy_type: int,

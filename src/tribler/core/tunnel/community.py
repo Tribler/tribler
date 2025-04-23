@@ -167,7 +167,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Add the special IPs that belong to circuits to a download.
         """
         for torrent, peers in list(self.bittorrent_peers.items()):
-            infohash = hexlify(torrent.tdef.get_infohash())
+            infohash = hexlify(torrent.tdef.infohash)
             for peer in peers:
                 self.logger.info("Re-adding peer %s to torrent %s", peer, infohash)
                 torrent.add_peer(peer)
@@ -286,7 +286,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             hop_count = download.config.get_hops()
             if hop_count > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
-                real_info_hash = download.get_def().get_infohash()
+                real_info_hash = download.get_def().infohash
                 info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = hop_count
                 new_states[info_hash] = ds.get_status()
@@ -377,7 +377,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             return None
 
         for download in self.settings.download_manager.get_downloads():
-            if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+            if lookup_info_hash == self.get_lookup_info_hash(download.get_def().infohash):
                 return download
         return None
 
