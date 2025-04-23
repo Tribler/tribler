@@ -11,7 +11,7 @@ from ipv8.util import succeed
 from validate import Validator
 
 import tribler
-from tribler.core.libtorrent.download_manager.download import Download, IllegalFileIndex, SaveResumeDataError
+from tribler.core.libtorrent.download_manager.download import Download, SaveResumeDataError
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.notifier import Notification, Notifier
@@ -736,8 +736,8 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        piece_range_a = download.file_piece_range(Path("torrent_create") / "abc" / "file2.txt")
-        piece_range_b = download.file_piece_range(Path("torrent_create") / "abc" / "file3.txt")
+        piece_range_a = download.file_piece_range(Path("abc") / "file2.txt")
+        piece_range_b = download.file_piece_range(Path("abc") / "file3.txt")
 
         self.assertEqual([0], piece_range_a)
         self.assertEqual([0], piece_range_b)
@@ -752,8 +752,8 @@ class TestDownload(TestBase):
         tdef = TorrentDef.load_from_dict(metainfo)
         download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
 
-        file1 = download.file_piece_range(Path("torrent_create") / "abc" / "file2.txt")
-        other_indices = [download.file_piece_range(Path("torrent_create") / Path(
+        file1 = download.file_piece_range(Path("abc") / "file2.txt")
+        other_indices = [download.file_piece_range(Path(
             *[p.decode() for p in tdef.get_metainfo()[b"info"][b"files"][-1-i][b"path"]]
         )) for i in range(5)]
 
@@ -846,8 +846,8 @@ class TestDownload(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
 
-        self.assertEqual(6, download.get_file_length(Path("torrent_create") / "abc" / "file2.txt"))
-        self.assertEqual(6, download.get_file_length(Path("torrent_create") / "abc" / "file3.txt"))
+        self.assertEqual(6, download.get_file_length(Path("abc") / "file2.txt"))
+        self.assertEqual(6, download.get_file_length(Path("abc") / "file3.txt"))
 
     def test_file_length_nonexistent(self) -> None:
         """
@@ -858,34 +858,6 @@ class TestDownload(TestBase):
 
         self.assertEqual(0, download.get_file_length(Path("I don't exist")))
 
-    def test_file_index_unloaded(self) -> None:
-        """
-        Test if a non-existent path leads to the special unloaded index.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-
-        self.assertEqual(IllegalFileIndex.unloaded.value, download.get_file_index(Path("I don't exist")))
-
-    def test_file_index_directory_collapsed(self) -> None:
-        """
-        Test if a collapsed-dir path leads to the special collapsed dir index.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-
-        self.assertEqual(IllegalFileIndex.collapsed_dir.value, download.get_file_index(Path("torrent_create")))
-
-    def test_file_index_directory_expanded(self) -> None:
-        """
-        Test if an expanded-dir path leads to the special expanded dir index.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.tdef.torrent_file_tree.expand(Path("torrent_create"))
-
-        self.assertEqual(IllegalFileIndex.expanded_dir.value, download.get_file_index(Path("torrent_create")))
-
     def test_file_index_file(self) -> None:
         """
         Test if we can get the index of a file.
@@ -893,16 +865,7 @@ class TestDownload(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
 
-        self.assertEqual(1, download.get_file_index(Path("torrent_create") / "abc" / "file3.txt"))
-
-    def test_file_selected_nonexistent(self) -> None:
-        """
-        Test if a non-existent file does not register as selected.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-
-        self.assertFalse(download.is_file_selected(Path("I don't exist")))
+        self.assertEqual(1, download.get_file_index(Path("abc") / "file3.txt"))
 
     def test_file_selected_realfile(self) -> None:
         """
@@ -911,16 +874,7 @@ class TestDownload(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
 
-        self.assertTrue(download.is_file_selected(Path("torrent_create") / "abc" / "file3.txt"))
-
-    def test_file_selected_directory(self) -> None:
-        """
-        Test if a directory does not register as selected.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-
-        self.assertFalse(download.is_file_selected(Path("torrent_create") / "abc"))
+        self.assertTrue(download.is_file_selected(Path("abc") / "file3.txt"))
 
     def test_on_torrent_finished_alert(self) -> None:
         """
