@@ -1,4 +1,3 @@
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import libtorrent
@@ -151,20 +150,3 @@ class TestTorrentDef(TestBase):
         tdef.load_torrent_info()
 
         self.assertIsNotNone(tdef.torrent_info)
-
-    def test_generate_tree(self) -> None:
-        """
-        Test if a torrent tree can be generated from a TorrentDef.
-        """
-        tdef = TorrentDef.load_from_dict({
-            b"info": {
-                b"name": b"torrent name",
-                b"files": [{b"path": [b"a.txt"], b"length": 123}],
-                b"piece length": 128,
-                b"pieces": b"\x00" * 20
-            }
-        })
-
-        tree = tdef.torrent_file_tree
-
-        self.assertEqual(123, tree.find(Path("torrent name") / "a.txt").size)

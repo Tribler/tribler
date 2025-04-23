@@ -14,7 +14,6 @@ from binascii import hexlify
 from collections import defaultdict
 from collections.abc import Callable
 from contextlib import suppress
-from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
@@ -26,7 +25,6 @@ from ipv8.util import succeed
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
-from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
 from tribler.core.notifier import Notification, Notifier
@@ -43,16 +41,6 @@ Getter = Callable[[Any], Any]
 
 class SaveResumeDataError(Exception):
     """This error is used when the resume data of a download fails to save."""
-
-
-class IllegalFileIndex(Enum):
-    """
-    Error codes for Download.get_file_index(). These are used by the GUI to render directories.
-    """
-
-    collapsed_dir = -1
-    expanded_dir = -2
-    unloaded = -3
 
 
 class PeerDict(TypedDict):
@@ -532,10 +520,6 @@ class Download(TaskManager):
 
         try:
             self.set_def(TorrentDef.load_from_dict(metadata))
-            with suppress(RuntimeError):
-                # Try to load the torrent info in the background if we have a loop.
-                self.register_anonymous_task(f"Load torrent info for {self.tdef.infohash.hex()}",
-                                             self.tdef.load_torrent_info)
         except ValueError as ve:
             self._logger.exception(ve)
             return
@@ -646,22 +630,12 @@ class Download(TaskManager):
                 selected_files = self.config.get_selected_files()
             else:
                 self.config.set_selected_files(selected_files)
-
-            tree = self.tdef.torrent_file_tree
             total_files = self.tdef.torrent_info.num_files()
 
             if not selected_files:
                 selected_files = list(range(total_files))
 
-            def map_selected(index: int) -> int:
-                file_instance = tree.find(Path(tree.file_storage.file_path(index)))
-                if index in selected_files:
-                    file_instance.selected = True
-                    return prio
-                file_instance.selected = False
-                return 0
-
-            self.set_file_priorities(list(map(map_selected, range(total_files))))
+            self.set_file_priorities([prio if index in selected_files else 0 for index in range(total_files)])
         return None
 
     @check_handle(False)
@@ -1089,7 +1063,7 @@ class Download(TaskManager):
         Calling this method with anything but a file path will return an empty list.
         """
         file_index = self.get_file_index(file_path)
-        if file_index < 0:
+        if file_index is None:
             return []
 
         start_piece = self.tdef.torrent_info.map_file(file_index, 0, 1).piece
@@ -1124,28 +1098,26 @@ class Download(TaskManager):
         """
         Get the length of a file or directory in bytes. Returns 0 if the given path does not point to an existing path.
         """
-        result = self.tdef.torrent_file_tree.find(path)
+        result = self.get_file_index(path)
         if result is not None:
-            return result.size
+            return self.tdef.torrent_info.file_at(result).size
         return 0
 
-    def get_file_index(self, path: Path) -> int:
+    def get_file_index(self, path: Path) -> int | None:
         """
-        Get the index of a file or directory in a torrent. Note that directories do not have real file indices.
-
-        Special cases ("error codes"):
-
-         - ``-1`` (IllegalFileIndex.collapsed_dir): the given path is not a file but a collapsed directory.
-         - ``-2`` (IllegalFileIndex.expanded_dir): the given path is not a file but an expanded directory.
-         - ``-3`` (IllegalFileIndex.unloaded): the data structure is not loaded or the path is not found.
+        Get the index of a file or directory in a torrent, or None if it does not exist.
         """
-        result = self.tdef.torrent_file_tree.find(path)
-        if isinstance(result, TorrentFileTree.File):
-            return self.tdef.torrent_file_tree.find(path).index
-        if isinstance(result, TorrentFileTree.Directory):
-            return (IllegalFileIndex.collapsed_dir.value if result.collapsed
-                    else IllegalFileIndex.expanded_dir.value)
-        return IllegalFileIndex.unloaded.value
+        if not self.tdef.torrent_info:
+            return None
+        num_files = self.tdef.torrent_info.num_files()
+        if num_files > 1:
+            for file_index in range(num_files):
+                if (Path(self.tdef.torrent_info.file_at(file_index).path).relative_to(self.tdef.torrent_info.name())
+                        == path):
+                    return file_index
+        elif Path(self.tdef.torrent_info.file_at(0).path) == path:
+            return 0
+        return None
 
     @check_handle(None)
     def set_selected_file_or_dir(self, path: Path, selected: bool) -> None:
@@ -1153,23 +1125,26 @@ class Download(TaskManager):
         Set a single file or directory to be selected or not.
         """
         self.handle = cast("lt.torrent_handle", self.handle)
-        tree = self.tdef.torrent_file_tree
-        prio = 4 if selected else 0
-        for index in tree.set_selected(Path(path), selected):
-            self.set_file_priority(index, prio)
-            if not selected:
-                with suppress(ValueError):
-                    self.config.get_selected_files().remove(index)
-            else:
-                self.config.get_selected_files().append(index)
+        if not self.tdef.torrent_info:
+            return
+
+        previously_selected = self.config.get_selected_files()
+        num_files = self.tdef.torrent_info.num_files()
+        self.set_selected_files([
+            (4 if selected else 0)
+            if (Path(self.tdef.torrent_info.file_at(file_index).path).relative_to(self.tdef.torrent_info.name())
+                if num_files > 1 else Path(self.tdef.torrent_info.file_at(file_index).path)).is_relative_to(path)
+            else (4 if file_index in previously_selected else 0)
+            for file_index in range(num_files)
+        ])
 
     def is_file_selected(self, file_path: Path) -> bool:
         """
         Check if the given file path is selected.
 
-        Calling this method with anything but a file path will return False.
+        Calling this method with anything but a file path will lead to undefined behavior!
         """
-        result = self.tdef.torrent_file_tree.find(file_path)
-        if isinstance(result, TorrentFileTree.File):
-            return result.selected
-        return False
+        if not self.tdef.torrent_info:
+            return False
+        return (not self.config.get_selected_files()
+                or self.get_file_index(file_path) in self.config.get_selected_files())

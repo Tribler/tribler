@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from asyncio import get_running_loop
-from functools import cached_property
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import libtorrent as lt
-
-from tribler.core.libtorrent.torrent_file_tree import TorrentFileTree
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -255,13 +252,6 @@ class TorrentDef:
         if self.torrent_info:
             return self.torrent_info.info_hash().to_bytes()
         return self.atp.info_hash.to_bytes()
-
-    @cached_property
-    def torrent_file_tree(self) -> TorrentFileTree:
-        """
-        Construct a file tree from this torrent definition.
-        """
-        return TorrentFileTree.from_lt_file_storage(cast("lt.torrent_info", self.torrent_info).files())
 
     @staticmethod
     def _threaded_load_job(filepath: str | bytes | PathLike) -> TorrentDef:
