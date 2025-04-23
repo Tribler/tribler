@@ -9,7 +9,7 @@ from traceback import format_exception
 from typing import TYPE_CHECKING, TypedDict
 
 import marshmallow.fields
-from aiohttp import web
+from aiohttp import ClientConnectionResetError, web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
 
@@ -194,7 +194,7 @@ class EventsEndpoint(RESTEndpoint):
                 # by creating the list with processed responses we want to remove responses with
                 # ConnectionResetError from `self.events_responses`:
                 processed_responses.append(response)
-            except ConnectionResetError as e:
+            except ClientConnectionResetError as e:
                 # The connection was closed by GUI
                 self._logger.warning(e, exc_info=True)
         self.events_responses = processed_responses

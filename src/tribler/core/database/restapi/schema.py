@@ -7,15 +7,19 @@ class MetadataParameters(Schema):
     The REST API schema for metadata parameters.
     """
 
-    first = Integer(default=1, description="Limit the range of the query")
-    last = Integer(default=50, description="Limit the range of the query")
-    sort_by = String(description='Sorts results in forward or backward, based on column name (e.g. "id" vs "-id")')
-    sort_desc = Boolean(default=True)
-    txt_filter = String(description="FTS search on the chosen word* terms")
-    hide_xxx = Boolean(default=False, description="Toggles xxx filter")
+    first = Integer(load_default=1, metadata={"description": "Limit the range of the query"})
+    last = Integer(load_default=50, metadata={"description": "Limit the range of the query"})
+    sort_by = String(metadata={
+        "description": 'Sorts results in forward or backward, based on column name (e.g. "id" vs "-id")'
+    })
+    sort_desc = Boolean(load_default=True)
+    txt_filter = String(metadata={"description": "FTS search on the chosen word* terms"})
+    hide_xxx = Boolean(load_default=False, metadata={"description": "Toggles xxx filter"})
     category = String()
-    exclude_deleted = Boolean(default=False)
-    metadata_type = List(String(description='Limits query to certain metadata types (e.g. "torrent" or "channel")'))
+    exclude_deleted = Boolean(load_default=False)
+    metadata_type = List(String(metadata={
+        "description": 'Limits query to certain metadata types (e.g. "torrent" or "channel")'
+    }))
 
 
 class SearchMetadataParameters(MetadataParameters):
@@ -23,9 +27,12 @@ class SearchMetadataParameters(MetadataParameters):
     The REST API schema for search parameters.
     """
 
-    include_total = Boolean(default=False, description="Include total rows found in query response, expensive if "
-                                                       "there is many rows")
-    max_rowid = Integer(default=None, description="Only return results with rowid lesser than max_rowid")
+    include_total = Boolean(load_default=False, metadata={
+        "description": "Include total rows found in query response, expensive if there are many rows"
+    })
+    max_rowid = Integer(load_default=None, metadata={
+        "description": "Only return results with rowid lesser than max_rowid"
+    })
 
 
 class MetadataSchema(Schema):

@@ -1,12 +1,10 @@
 -r pyipv8/requirements.txt
 
-aiohttp==3.11.16
 bitarray
 configobj
 ipv8-rust-tunnels
 libtorrent==2.0.11
 lz4
-marshmallow==3.26.1
 pillow
 pony
 pystray
