@@ -34,7 +34,10 @@ function startDownloadCallback(response: any, t: TFunction) {
 const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
         accessorKey: "name",
-        header: getHeader('Name'),
+        header: getHeader('Name', true, true, true),
+        filterFn: (row, columnId, filterValue) => {
+            return row.original.name.includes(filterValue)
+        },
         cell: ({ row }) => {
             return (
                 <div

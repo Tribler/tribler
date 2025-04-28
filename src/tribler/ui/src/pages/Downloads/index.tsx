@@ -2,7 +2,6 @@ import { ActionButtons, ActionMenu } from "./Actions";
 import DownloadDetails from "./Details";
 import SimpleTable, { getHeader } from "@/components/ui/simple-table"
 import { Download, StatusCode } from "@/models/download.model";
-import { Progress } from "@/components/ui/progress"
 import { capitalize, formatBytes, formatDateTime, formatTimeRelative } from "@/lib/utils";
 import { isErrorDict } from "@/services/reporting";
 import { triblerService } from "@/services/tribler.service";
@@ -35,7 +34,7 @@ const downloadColumns: ColumnDef<Download>[] = [
     {
         accessorKey: "name",
         minSize: 0,
-        header: getHeader('Name'),
+        header: getHeader('Name', true, true, true),
         cell: ({ row }) => {
             return <span className="break-all line-clamp-1">{row.original.name}</span>
         },
@@ -53,20 +52,20 @@ const downloadColumns: ColumnDef<Download>[] = [
         cell: ({ row }) => {
             let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${(row.original.progress * 100).toFixed(0)}%`
             let progress = row.original.progress * 100;
-            let color = "bg-tribler";
+            let color = "text-tribler";
 
             if (row.original.status_code == StatusCode.STOPPED_ON_ERROR) {
                 status = "Error";
                 progress = 100;
-                color = "bg-red-600";
+                color = "text-red-600";
             }
 
             return (
                 <div className="grid">
                     <div className="col-start-1 row-start-1">
-                        <Progress className="h-5 bg-primary" value={progress} indicatorColor={`${color}`} />
+                        <Progress progress={progress} color={color} />
                     </div>
-                    <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle z-10">
+                    <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle">
                         {status}
                     </div>
                 </div>
@@ -128,6 +127,22 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
 ]
+
+function Progress({ progress, color }: { progress: number, color: string }) {
+    const ref = useRef<HTMLCanvasElement>(null)
+    useEffect(() => {
+        if (ref.current) {
+            const canvas = ref.current.getContext('2d');
+            if (!canvas) { return; }
+            const width = canvas.canvas.width;
+            const height = canvas.canvas.height;
+            canvas.clearRect(0, 0, width, height);
+            canvas.fillStyle = getComputedStyle(canvas.canvas).getPropertyValue("color");
+            canvas.fillRect(0, 0, width * (progress / 100), height);
+        }
+    }, [progress])
+    return <canvas ref={ref} className={`rounded-sm ${color}`} style={{ height: '20px', width: '97%', background: 'white', border: '1px solid #2f2f2f' }} />
+}
 
 export default function Downloads({ statusFilter }: { statusFilter: number[] }) {
     const { t } = useTranslation();

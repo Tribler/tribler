@@ -12,7 +12,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     {
         accessorKey: "name",
-        header: getHeader("Name", false),
+        header: getHeader("Name", false, true, true),
         cell: ({ row }) => {
             return (
                 <div
@@ -28,7 +28,7 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
                                 : <ChevronRight size="16" color="#777"></ChevronRight>}
                         </button>
                     )}
-                    {row.original.name}
+                    {row.original.identifier < 0 && row.original.name}
                 </div>
             )
         }
@@ -90,7 +90,7 @@ export default function Details() {
                     for (const [msgName, msgStats] of Object.entries(communityStats)) {
                         let [_, handler] = msgName.split(":", 2);
                         msgStats.handler = handler;
-                        messageStats.push(msgStats);
+                        messageStats.push({name: communityName, ...msgStats});
                     }
                     messageStats.sort((stat1, stat2) => stat1.identifier - stat2.identifier);
                     stats.push({

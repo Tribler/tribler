@@ -12,7 +12,7 @@ import { useInterval } from '@/hooks/useInterval';
 export const libtorrentColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: getHeader("Key", false),
+        header: getHeader("Key", false, true, true),
     },
     {
         accessorKey: "value",

@@ -13,8 +13,11 @@ import { useTranslation } from "react-i18next";
 
 const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
-        header: getHeader("Path"),
+        header: getHeader("Path", true, true, true),
         accessorKey: "path",
+        filterFn: (row, columnId, filterValue) => {
+            return row.original.name.includes(filterValue)
+        },
         cell: ({ row }) => {
             return (
                 <div
@@ -107,7 +110,7 @@ export default function Files({ download, style }: { download: Download, style?:
             updateFiles(setFiles, download, initialized);
     }, [download]);
 
-    const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), [OnSelectedFilesChange]);
+    const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), []);
 
     // The API call may not be finished yet or the download is still getting metainfo.
     if (files.length === 0)

@@ -1,9 +1,9 @@
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCoreRowModel, useReactTable, flexRender, getFilteredRowModel, getPaginationRowModel, getExpandedRowModel, getSortedRowModel } from '@tanstack/react-table';
 import type { ColumnDef, Row, PaginationState, RowSelectionState, ColumnFiltersState, ColumnDefTemplate, HeaderContext, SortingState, VisibilityState, Header, Column, InitialTableState } from '@tanstack/react-table';
 import { cn, isMac } from '@/lib/utils';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel } from './select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from './select';
 import { Button } from './button';
 import { ArrowDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, DotsHorizontalIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import * as SelectPrimitive from "@radix-ui/react-select"
@@ -14,6 +14,10 @@ import { triblerService } from '@/services/tribler.service';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { notUndefined, useVirtualizer } from '@tanstack/react-virtual';
 import { ScrollArea } from './scroll-area';
+import { Popover, PopoverAnchor, PopoverContent } from './popover';
+import { XIcon } from 'lucide-react';
+import { Label } from './label';
+import { Input } from './input';
 
 
 declare module '@tanstack/table-core/build/lib/types' {
@@ -22,22 +26,25 @@ declare module '@tanstack/table-core/build/lib/types' {
     }
 }
 
+function ColumnSetup({ name, column, translate, addSorting, addFilter }: { name: string, column: Column<any>, translate: boolean, addSorting: boolean, addFilter: boolean }) {
+    const { t } = useTranslation();
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [filter, setFilter] = useState<string>(column.getFilterValue() as string ?? "");
 
-export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
-    if (!addSorting) {
-        return () => {
-            const { t } = useTranslation();
-            return <span className='select-none'>{translate ? t(name) : name}</span>;
-        }
-    }
+    useEffect(() => {
+        column.setFilterValue(filter)
+    }, [filter]);
 
-    return ({ column }) => {
-        const { t } = useTranslation();
-        return (
-            <div className='select-none flex'>
+    return (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverAnchor>
                 <span
                     className="cursor-pointer hover:text-black dark:hover:text-white flex flex-row items-center"
-                    onClick={(e) => column.toggleSorting(undefined, e.shiftKey)}>
+                    onClick={(e) => column.toggleSorting(undefined, e.shiftKey)}
+                    onContextMenu={(e) => {
+                        setIsOpen(true);
+                        e.preventDefault();
+                    }}>
                     {translate ? t(name) : name}
                     {column.getIsSorted() === "desc" ? (
                         <ArrowDownIcon className="ml-2" />
@@ -47,8 +54,76 @@ export function getHeader<T>(name: string, translate: boolean = true, addSorting
                         <></>
                     )}
                 </span>
-            </div>
-        )
+            </PopoverAnchor>
+            <PopoverContent className="w-80" align="start" alignOffset={-4} onClick={event => event.stopPropagation()} onContextMenu={event => event.stopPropagation()}>
+                <div className="grid gap-4">
+                    <div className="space-y-2">
+                        <h4 className="font-medium leading-none">{t('ColumnSettings')}</h4>
+                        <p className="text-sm text-muted-foreground">
+                            {t('ColumnSettingsDescription')}
+                        </p>
+                    </div>
+                    <div className="grid gap-2">
+                        {addFilter &&
+                            <div className="grid grid-cols-3 items-center gap-4">
+                                <Label>{t('FilterBy')}</Label>
+                                <div className="col-span-2 relative w-full max-w-sm">
+                                    <Input className="h-8"
+                                        value={filter}
+                                        onChange={(event) => setFilter(event.target.value)} />
+
+                                    {filter.length > 0 && <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-500
+                                            hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                                        onClick={() => setFilter("")}
+                                    >
+                                        <XIcon className="h-4 w-4" />
+                                        <span className="sr-only">{t('Clear')}</span>
+                                    </Button>}
+                                </div>
+                            </div>
+                        }
+
+                        {addSorting &&
+                            <div className="grid grid-cols-3 items-center gap-4">
+                                <Label>{t('SortBy')}</Label>
+                                <Select
+                                    onValueChange={(value) => value == "none" ? column.clearSorting() : column.toggleSorting(value == "desc", false)}
+                                    value={column.getIsSorted() || "none"}
+                                >
+                                    <SelectTrigger className="col-span-2 h-8">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectItem value="asc">{t('Ascending')}</SelectItem>
+                                            <SelectItem value="desc">{t('Descending')}</SelectItem>
+                                            <SelectItem value="none">{t('None')}</SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
+export function getHeader<T>(name: string, translate: boolean = true, addSorting: boolean = true, addFilter: boolean = false): ColumnDefTemplate<HeaderContext<T, unknown>> | undefined {
+    if (!addSorting) {
+        return () => {
+            const { t } = useTranslation();
+            return <span className='select-none'>{translate ? t(name) : name}</span>;
+        }
+    }
+
+    return ({ column }) => {
+        return <ColumnSetup name={name} column={column} translate={translate} addSorting={addSorting} addFilter={addFilter}></ColumnSetup>
     }
 }
 
@@ -225,6 +300,7 @@ function SimpleTable<T extends object>({
         getSubRows: (row: any) => row?.subRows,
         getRowId: rowId,
         autoResetPageIndex: false,
+        filterFromLeafRows: true,
         initialState: initialState
     });
 

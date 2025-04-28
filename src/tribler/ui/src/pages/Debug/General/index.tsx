@@ -11,7 +11,7 @@ import { useInterval } from '@/hooks/useInterval';
 const generalColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: getHeader("Key", false),
+        header: getHeader("Key", false, true, true),
     },
     {
         accessorKey: "value",
