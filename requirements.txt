@@ -1,6 +1,5 @@
 -r pyipv8/requirements.txt
 
-bitarray
 configobj
 ipv8-rust-tunnels
 libtorrent==2.0.11

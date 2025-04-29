@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import libtorrent as lt
-from bitarray import bitarray
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import succeed
 
@@ -340,12 +339,10 @@ class Download(TaskManager):
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
-        binary_gen = (int(boolean) for boolean in cast("lt.torrent_handle", self.handle).status().pieces)
-        try:
-            bits = bitarray(binary_gen)
-        except ValueError:
-            return b""
-        return base64.b64encode(bits.tobytes())
+        handle = cast("lt.torrent_handle", self.handle)
+        pieces = handle.status().pieces
+        return base64.b64encode(bytes(sum(piece << (7 - (index % 8)) for index, piece in enumerate(pieces[i:i+8]))
+                                      for i in range(0, len(pieces), 8)))
 
     def post_alert(self, alert_type: str, alert_dict: dict | None = None) -> None:
         """
