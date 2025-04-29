@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from asyncio import CancelledError, Future
 from contextlib import suppress
+from functools import wraps
 from hashlib import sha1
 from os.path import getsize
-from typing import TYPE_CHECKING, Concatenate, TypedDict
+from typing import TYPE_CHECKING, Concatenate, TypedDict, cast
 
 import libtorrent as lt
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def check_handle[**WrappedParams, WrappedReturn](
         default: WrappedReturn
-    ) -> Callable[[Callable[Concatenate[Download, WrappedParams], WrappedReturn]],
+    ) -> Callable[[Callable[Concatenate[Download, lt.torrent_handle, WrappedParams], WrappedReturn]],
                   Callable[Concatenate[Download, WrappedParams], WrappedReturn]]:
     """
     Return the libtorrent handle if it's available, else return the default value.
@@ -30,13 +31,14 @@ def check_handle[**WrappedParams, WrappedReturn](
     """
 
     def wrap(
-            f: Callable[Concatenate[Download, WrappedParams], WrappedReturn]
+            f: Callable[Concatenate[Download, lt.torrent_handle, WrappedParams], WrappedReturn]
     ) -> Callable[Concatenate[Download, WrappedParams], WrappedReturn]:
+        @wraps(f)
         def invoke_func(self: Download,
                         *args: WrappedParams.args, **kwargs: WrappedParams.kwargs
                         ) -> WrappedReturn:
             if self.handle and self.handle.is_valid():
-                return f(self, *args, **kwargs)
+                return f(self, self.handle, *args, **kwargs)
             return default
 
         return invoke_func
@@ -45,7 +47,7 @@ def check_handle[**WrappedParams, WrappedReturn](
 
 
 def require_handle[**WrappedParams, WrappedReturn](
-        func: Callable[Concatenate[Download, WrappedParams], WrappedReturn]
+        func: Callable[Concatenate[Download, lt.torrent_handle, WrappedParams], WrappedReturn]
     ) -> Callable[Concatenate[Download, WrappedParams], Future[WrappedReturn | None]]:
     """
     Invoke the function once the handle is available. Returns a future that will fire once the function has completed.
@@ -63,12 +65,12 @@ def require_handle[**WrappedParams, WrappedReturn](
                 handle = fut.result()
 
             if fut.cancelled() or result_future.done() or handle != self.handle or not handle.is_valid():
-                logger.warning('Can not invoke function, handle is not valid or future is cancelled')
+                logger.warning("Can not invoke function, handle is not valid or future is cancelled")
                 result_future.set_result(None)
                 return
 
             try:
-                result = func(self, *args, **kwargs)
+                result = func(self, cast("lt.torrent_handle", fut.result()), *args, **kwargs)
             except RuntimeError as e:
                 # ignore runtime errors, for more info see: https://github.com/Tribler/tribler/pull/7783
                 logger.exception(e)

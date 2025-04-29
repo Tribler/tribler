@@ -335,11 +335,10 @@ class Download(TaskManager):
         return self.config.get_hops() > 0
 
     @check_handle(b"")
-    def get_pieces_base64(self) -> bytes:
+    def get_pieces_base64(self, handle: lt.torrent_handle) -> bytes:
         """
         Returns a base64 encoded bitmask of the pieces that we have.
         """
-        handle = cast("lt.torrent_handle", self.handle)
         pieces = handle.status().pieces
         return base64.b64encode(bytes(sum(piece << (7 - (index % 8)) for index, piece in enumerate(pieces[i:i+8]))
                                       for i in range(0, len(pieces), 8)))
@@ -480,14 +479,13 @@ class Download(TaskManager):
         self.tracker_status[alert.url] = (peers, status)
 
     @check_handle(None)
-    def on_metadata_received_alert(self, alert: lt.metadata_received_alert) -> None:
+    def on_metadata_received_alert(self, handle: lt.torrent_handle, alert: lt.metadata_received_alert) -> None:
         """
         Handle a metadata received alert.
         """
         self._logger.info("On metadata received alert: %s", repr(alert))
-        self.handle = cast("lt.torrent_handle", self.handle)
 
-        torrent_info = get_info_from_handle(self.handle)
+        torrent_info = get_info_from_handle(handle)
         if not torrent_info:
             return
 
@@ -500,7 +498,7 @@ class Download(TaskManager):
         tracker_urls = []
         trackers = []
         try:
-            trackers = self.handle.trackers()
+            trackers = handle.trackers()
         except UnicodeDecodeError as e:
             self._logger.warning(e)
         for tracker in trackers:
@@ -573,13 +571,12 @@ class Download(TaskManager):
             self.checkpoint()
 
     @check_handle(None)
-    def on_torrent_finished_alert(self, alert: lt.torrent_finished_alert) -> None:
+    def on_torrent_finished_alert(self, handle: lt.torrent_handle, alert: lt.torrent_finished_alert) -> None:
         """
         Handle a torrent finished alert.
         """
         self._logger.info("On torrent finished alert: %s", repr(alert))
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.update_lt_status(self.handle.status())
+        self.update_lt_status(handle.status())
         self.checkpoint()
         downloaded = self.get_state().total_download
         if downloaded > 0 and self.notifier is not None:
@@ -615,7 +612,7 @@ class Download(TaskManager):
                 self.stop()
 
     @check_handle(None)
-    def set_selected_files(self, selected_files: list[int] | None = None, prio: int = 4,
+    def set_selected_files(self, handle: lt.torrent_handle, selected_files: list[int] | None = None, prio: int = 4,
                            force: bool = False) -> int | None:
         """
         Set the selected files. If the selected files is None or empty, all files will be selected.
@@ -636,29 +633,27 @@ class Download(TaskManager):
         return None
 
     @check_handle(False)
-    def move_storage(self, new_dir: Path) -> bool:
+    def move_storage(self, handle: lt.torrent_handle, new_dir: Path) -> bool:
         """
         Move the output files to a different location.
         """
         if self.tdef.torrent_info is not None:
-            self.handle = cast("lt.torrent_handle", self.handle)
-            self.handle.move_storage(str(new_dir))
+            handle.move_storage(str(new_dir))
         self.config.set_dest_dir(new_dir)
         self.config.set_completed_dir(new_dir)
         return True
 
     @check_handle(None)
-    def force_recheck(self) -> None:
+    def force_recheck(self, handle: lt.torrent_handle) -> None:
         """
         Force libtorrent to validate the files.
         """
         if self.tdef.torrent_info is not None:
-            self.handle = cast("lt.torrent_handle", self.handle)
             if self.get_state().get_status() == DownloadStatus.STOPPED:
                 self.pause_after_next_hashcheck = True
             self.checkpoint_after_next_hashcheck = True
-            self.handle.resume()
-            self.handle.force_recheck()
+            handle.resume()
+            handle.force_recheck()
 
     def get_state(self) -> DownloadState:
         """
@@ -754,14 +749,13 @@ class Download(TaskManager):
         return t.generate()
 
     @check_handle(default={})
-    def get_tracker_status(self) -> dict[str, tuple[int, str]]:
+    def get_tracker_status(self, handle: lt.torrent_handle) -> dict[str, tuple[int, str]]:
         """
         Retrieve an overview of the trackers and their statuses.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         # Make sure all trackers are in the tracker_status dict
         try:
-            tracker_urls = {tracker["url"] for tracker in self.handle.trackers()}
+            tracker_urls = {tracker["url"] for tracker in handle.trackers()}
             for removed in (set(self.tracker_status.keys()) - tracker_urls):
                 self.tracker_status.pop(removed)
             for tracker_url in tracker_urls:
@@ -775,7 +769,7 @@ class Download(TaskManager):
         peer_info = []
 
         try:
-            peer_info = self.handle.get_peer_info()
+            peer_info = handle.get_peer_info()
         except Exception as e:
             self._logger.exception(e)
 
@@ -883,73 +877,66 @@ class Download(TaskManager):
         self.tdef = tdef
 
     @check_handle(None)
-    def add_trackers(self, trackers: list[bytes]) -> None:
+    def add_trackers(self, handle: lt.torrent_handle, trackers: list[bytes]) -> None:
         """
         Add the given trackers to the handle.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         for tracker in trackers:
-            self.handle.add_tracker({"url": tracker, "verified": False})
-        self.handle.force_reannounce()
+            handle.add_tracker({"url": tracker, "verified": False})
+        handle.force_reannounce()
 
     @check_handle(None)
-    def get_magnet_link(self) -> str:
+    def get_magnet_link(self, handle: lt.torrent_handle) -> str:
         """
         Generate a magnet link for our download.
         """
-        return lt.make_magnet_uri(cast("lt.torrent_handle", self.handle))  # Ensured by ``check_handle``
+        return lt.make_magnet_uri(handle)
 
     @require_handle
-    def add_peer(self, addr: tuple[str, int]) -> None:
+    def add_peer(self, handle: lt.torrent_handle, addr: tuple[str, int]) -> None:
         """
         Add a peer address from 3rd source (not tracker, not DHT) to this download.
 
         :param addr: The (hostname_ip,port) tuple to connect to
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.connect_peer(addr, 0)
+        handle.connect_peer(addr, 0)
 
     @require_handle
-    def add_url_seed(self, addr: str) -> None:
+    def add_url_seed(self, handle: lt.torrent_handle, addr: str) -> None:
         """
         Add a URL seed to this download.
 
         :param addr: The URL address to connect to
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.add_url_seed(addr)
+        handle.add_url_seed(addr)
 
     @require_handle
-    def set_priority(self, priority: int) -> None:
+    def set_priority(self, handle: lt.torrent_handle, priority: int) -> None:
         """
         Set the priority of this download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.set_priority(priority)
+        handle.set_priority(priority)
 
     @require_handle
-    def set_max_upload_rate(self, value: int) -> None:
+    def set_max_upload_rate(self, handle: lt.torrent_handle, value: int) -> None:
         """
         Set the maximum upload rate of this download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.set_upload_limit(value * 1024)
+        handle.set_upload_limit(value * 1024)
 
     @require_handle
-    def set_max_download_rate(self, value: int) -> None:
+    def set_max_download_rate(self, handle: lt.torrent_handle, value: int) -> None:
         """
         Set the maximum download rate of this download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.set_download_limit(value * 1024)
+        handle.set_download_limit(value * 1024)
 
     @require_handle
-    def apply_ip_filter(self, enable: bool) -> None:
+    def apply_ip_filter(self, handle: lt.torrent_handle, enable: bool) -> None:
         """
         Enable the IP filter on this download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.apply_ip_filter(enable)
+        handle.apply_ip_filter(enable)
 
     def get_share_mode(self) -> bool:
         """
@@ -958,13 +945,12 @@ class Download(TaskManager):
         return self.config.get_share_mode()
 
     @require_handle
-    def set_share_mode(self, share_mode: bool) -> None:
+    def set_share_mode(self, handle: lt.torrent_handle, share_mode: bool) -> None:
         """
         Set whether this download is in sharing mode.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         self.config.set_share_mode(share_mode)
-        self.handle.set_share_mode(share_mode)
+        handle.set_share_mode(share_mode)
 
     def get_upload_mode(self) -> bool:
         """
@@ -973,85 +959,75 @@ class Download(TaskManager):
         return self.config.get_upload_mode()
 
     @require_handle
-    def set_upload_mode(self, upload_mode: bool) -> None:
+    def set_upload_mode(self, handle: lt.torrent_handle, upload_mode: bool) -> None:
         """
         Set whether this download is in upload mode.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         self.config.set_upload_mode(upload_mode)
-        self.handle.set_upload_mode(upload_mode)
+        handle.set_upload_mode(upload_mode)
 
     @require_handle
-    def force_dht_announce(self) -> None:
+    def force_dht_announce(self, handle: lt.torrent_handle) -> None:
         """
         Force announce thid download on the DHT.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.force_dht_announce()
+        handle.force_dht_announce()
 
     @require_handle
-    def set_sequential_download(self, enable: bool) -> None:
+    def set_sequential_download(self, handle: lt.torrent_handle, enable: bool) -> None:
         """
         Set this download to sequential download mode.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.set_sequential_download(enable)
+        handle.set_sequential_download(enable)
 
     @check_handle(None)
-    def set_piece_priorities(self, piece_priorities: list[int]) -> None:
+    def set_piece_priorities(self, handle: lt.torrent_handle, piece_priorities: list[int]) -> None:
         """
         Set the priority for all pieces in the download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.prioritize_pieces(piece_priorities)
+        handle.prioritize_pieces(piece_priorities)
 
     @check_handle([])
-    def get_piece_priorities(self) -> list[int]:
+    def get_piece_priorities(self, handle: lt.torrent_handle) -> list[int]:
         """
         Get the priorities of all pieces in the download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        return self.handle.piece_priorities()
+        return handle.piece_priorities()
 
     @check_handle(None)
-    def set_file_priorities(self, file_priorities: list[int]) -> None:
+    def set_file_priorities(self, handle: lt.torrent_handle, file_priorities: list[int]) -> None:
         """
         Set the priority for all files in the download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.prioritize_files(file_priorities)
+        handle.prioritize_files(file_priorities)
 
     @check_handle(None)
-    def set_file_priority(self, file_index: int, prio: int = 4) -> None:
+    def set_file_priority(self, handle: lt.torrent_handle, file_index: int, prio: int = 4) -> None:
         """
         Set the priority for a particular file in the download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.file_priority(file_index, prio)
+        handle.file_priority(file_index, prio)
 
     @check_handle(None)
-    def reset_piece_deadline(self, piece: int) -> None:
+    def reset_piece_deadline(self, handle: lt.torrent_handle, piece: int) -> None:
         """
         Reset the deadline for the given piece.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.reset_piece_deadline(piece)
+        handle.reset_piece_deadline(piece)
 
     @check_handle(None)
-    def set_piece_deadline(self, piece: int, deadline: int, flags: int = 0) -> None:
+    def set_piece_deadline(self, handle: lt.torrent_handle, piece: int, deadline: int, flags: int = 0) -> None:
         """
         Set the deadline for a given piece.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        self.handle.set_piece_deadline(piece, deadline, flags)
+        handle.set_piece_deadline(piece, deadline, flags)
 
     @check_handle([])
-    def get_file_priorities(self) -> list[int]:
+    def get_file_priorities(self, handle: lt.torrent_handle) -> list[int]:
         """
         Get the priorities of all files in the download.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
-        return self.handle.file_priorities()
+        return handle.file_priorities()
 
     def file_piece_range(self, file_path: Path) -> list[int]:
         """
@@ -1077,15 +1053,14 @@ class Download(TaskManager):
         return list(range(start_piece, next_piece))
 
     @check_handle(0.0)
-    def get_file_completion(self, path: Path) -> float:
+    def get_file_completion(self, handle: lt.torrent_handle, path: Path) -> float:
         """
         Calculate the completion of a given file or directory.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         total = 0
         have = 0
         for piece_index in self.file_piece_range(path):
-            have += self.handle.have_piece(piece_index)
+            have += handle.have_piece(piece_index)
             total += 1
         if total == 0:
             return 1.0
@@ -1117,11 +1092,10 @@ class Download(TaskManager):
         return None
 
     @check_handle(None)
-    def set_selected_file_or_dir(self, path: Path, selected: bool) -> None:
+    def set_selected_file_or_dir(self, handle: lt.torrent_handle, path: Path, selected: bool) -> None:
         """
         Set a single file or directory to be selected or not.
         """
-        self.handle = cast("lt.torrent_handle", self.handle)
         if not self.tdef.torrent_info:
             return
 
