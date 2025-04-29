@@ -188,5 +188,13 @@
     "PleaseSelectDirectory": "디렉토리를 선택해주세요",
     "PleaseSelectFile": "파일을 선택해주세요",
     "NewFolder": "새 폴더",
-    "Browse": "먹다"
+    "Browse": "먹다",
+    "ColumnSettings": "열 설정",
+    "ColumnSettingsDescription": "아래 열의 설정을 변경하세요.",
+    "FilterBy": "필터링 기준",
+    "Clear": "분명한",
+    "SortBy": "정렬 기준",
+    "Ascending": "오름차순",
+    "Descending": "하강",
+    "None": "없음"
 }

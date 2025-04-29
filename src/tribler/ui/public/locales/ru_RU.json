@@ -192,5 +192,13 @@
     "PleaseSelectDirectory": "Пожалуйста, выберите каталог",
     "PleaseSelectFile": "Пожалуйста, выберите файл",
     "NewFolder": "Новая папка",
-    "Browse": "Просматривать"
+    "Browse": "Просматривать",
+    "ColumnSettings": "Настройки столбцов",
+    "ColumnSettingsDescription": "Измените настройки для этого столбца ниже.",
+    "FilterBy": "Фильтровать по",
+    "Clear": "Прозрачный",
+    "SortBy": "Сортировать по",
+    "Ascending": "По возрастанию",
+    "Descending": "По убыванию",
+    "None": "Никто"
 }

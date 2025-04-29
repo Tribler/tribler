@@ -185,5 +185,13 @@
     "PleaseSelectDirectory": "Selecione um diretório",
     "PleaseSelectFile": "Selecione um arquivo",
     "NewFolder": "Nova pasta",
-    "Browse": "Navegar"
+    "Browse": "Navegar",
+    "ColumnSettings": "Configurações de coluna",
+    "ColumnSettingsDescription": "Altere as configurações desta coluna abaixo.",
+    "FilterBy": "Filtrar por",
+    "Clear": "Claro",
+    "SortBy": "Ordenar por",
+    "Ascending": "Ascendente",
+    "Descending": "Descendente",
+    "None": "Nenhum"
 }

@@ -12,7 +12,7 @@ import { useResizeObserver } from "@/hooks/useResizeObserver";
 const overlayColumns: ColumnDef<Overlay>[] = [
     {
         accessorKey: "overlay_name",
-        header: getHeader("Name", false),
+        header: getHeader("Name", false, true, true),
     },
     {
         accessorKey: "id",

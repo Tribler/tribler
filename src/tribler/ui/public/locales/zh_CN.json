@@ -191,5 +191,13 @@
     "PleaseSelectDirectory": "请选择一个目录",
     "PleaseSelectFile": "请选择一个文件",
     "NewFolder": "新建文件夹",
-    "Browse": "浏览"
+    "Browse": "浏览",
+    "ColumnSettings": "列设置",
+    "ColumnSettingsDescription": "更改下面此列的设置。",
+    "FilterBy": "筛选条件",
+    "Clear": "清除",
+    "SortBy": "排序方式",
+    "Ascending": "升序",
+    "Descending": "降序",
+    "None": "没有任何"
 }

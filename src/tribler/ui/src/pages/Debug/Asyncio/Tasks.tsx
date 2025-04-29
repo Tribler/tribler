@@ -11,11 +11,11 @@ import { formatTimeRelativeISO } from "@/lib/utils";
 const taskColumns: ColumnDef<Task>[] = [
     {
         accessorKey: "taskmanager",
-        header: getHeader("Taskmanager", false),
+        header: getHeader("Taskmanager", false, true, true),
     },
     {
         accessorKey: "name",
-        header: getHeader("Name", false),
+        header: getHeader("Name", false, true, true),
         cell: ({ row }) => {
             return <span className="line-clamp-1">{row.original.name}</span>
         },

@@ -191,5 +191,13 @@
     "PleaseSelectDirectory": "कृपया एक निर्देशिका चुनें",
     "PleaseSelectFile": "कृपया एक संचिका चुनें",
     "NewFolder": "नया फ़ोल्डर",
-    "Browse": "ब्राउज़ करना"
+    "Browse": "ब्राउज़ करना",
+    "ColumnSettings": "कॉलम सेटिंग्स",
+    "ColumnSettingsDescription": "नीचे इस कॉलम के लिए सेटिंग्स बदलें.",
+    "FilterBy": "फिल्टर के द्वारा",
+    "Clear": "स्पष्ट",
+    "SortBy": "इसके अनुसार क्रमबद्ध करें",
+    "Ascending": "आरोही",
+    "Descending": "अवरोही",
+    "None": "कोई नहीं"
 }

@@ -30,7 +30,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
     },
     {
         accessorKey: "name",
-        header: getHeader('Name'),
+        header: getHeader('Name', true, true, true),
         cell: ({ row }) => {
             return <span
                 className="cursor-pointer hover:underline break-all line-clamp-1"
