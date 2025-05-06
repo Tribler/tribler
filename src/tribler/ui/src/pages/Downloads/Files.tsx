@@ -11,9 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { filesToTree, formatBytes, getSelectedFilesFromTree } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
+const getFileColumns = ({ headers, onSelectedFiles }: { headers: any[], onSelectedFiles: (row: Row<FileTreeItem>) => void }): ColumnDef<FileTreeItem>[] => [
     {
-        header: getHeader("Path", true, true, true),
+        header: headers[0],
         accessorKey: "path",
         filterFn: (row, columnId, filterValue) => {
             return row.original.name.includes(filterValue)
@@ -39,7 +39,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
         }
     },
     {
-        header: getHeader("Size"),
+        header: headers[1],
         accessorKey: "size",
         cell: ({ row }) => {
             return (
@@ -51,7 +51,7 @@ const getFileColumns = ({ onSelectedFiles }: { onSelectedFiles: (row: Row<FileTr
         },
     },
     {
-        header: getHeader("Progress"),
+        header: headers[2],
         accessorKey: "progress",
         cell: ({ row }) => {
             return <span>{((row.original.progress || 0) * 100).toFixed(1)}%</span>
@@ -110,7 +110,14 @@ export default function Files({ download, style }: { download: Download, style?:
             updateFiles(setFiles, download, initialized);
     }, [download]);
 
-    const fileColumns = useMemo(() => getFileColumns({ onSelectedFiles: OnSelectedFilesChange }), [OnSelectedFilesChange]);
+
+    // Memoize the headers or column config will disappear when updating the list.
+    const headers = [
+        useMemo(() => getHeader("Path", true, true, true), []),
+        useMemo(() => getHeader("Size"), []),
+        useMemo(() => getHeader("Progress"), [])
+    ]
+    const fileColumns = getFileColumns({ headers, onSelectedFiles: OnSelectedFilesChange });
 
     // The API call may not be finished yet or the download is still getting metainfo.
     if (files.length === 0)
