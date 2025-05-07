@@ -199,7 +199,7 @@ export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean =
     if (tree.subRows && tree.subRows.length) {
         for (const item of tree.subRows) {
             for (const i of getSelectedFilesFromTree(item, included))
-                selectedFiles.push(item.index);
+                selectedFiles.push(i);
         }
     }
     else if (tree.included === included)
