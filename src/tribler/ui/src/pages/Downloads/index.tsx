@@ -65,7 +65,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                     <div className="col-start-1 row-start-1">
                         <Progress progress={progress} color={color} />
                     </div>
-                    <div className="col-start-1 row-start-1 text-white dark:text-black dark:font-mediumnormal text-center align-middle">
+                    <div className="col-start-1 row-start-1 text-black dark:font-mediumnormal text-center align-middle">
                         {status}
                     </div>
                 </div>
