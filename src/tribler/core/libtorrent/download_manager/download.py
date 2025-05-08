@@ -292,7 +292,7 @@ class Download(TaskManager):
         """
         Handle an add torrent alert.
         """
-        self._logger.info("On add torrent alert: %s", repr(alert))
+        self._logger.info("On add torrent alert: %s", str(alert))
 
         if hasattr(alert, "error") and alert.error.value():
             self._logger.error("Failed to add torrent (%s)", self.tdef.name)
@@ -358,7 +358,7 @@ class Download(TaskManager):
         """
         try:
             if alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
-                self._logger.debug("Got alert: %s", repr(alert))
+                self._logger.debug("Got alert: %s", str(alert))
 
             for handler in self.alert_handlers.get(alert_type, []):
                 try:
@@ -371,19 +371,19 @@ class Download(TaskManager):
                     future_setter(getter(alert) if getter else alert)
         except Exception as e:
             self._logger.exception("process_alert failed with %s: %s for alert %s",
-                                   e.__class__.__name__, str(e), repr(alert))
+                                   e.__class__.__name__, str(e), str(alert))
 
     def on_torrent_error_alert(self, alert: lt.torrent_error_alert) -> None:
         """
         Handle a torrent error alert.
         """
-        self._logger.error("On torrent error alert: %s", repr(alert))
+        self._logger.info("On torrent error alert: %s", str(alert))
 
     def on_state_changed_alert(self, alert: lt.state_changed_alert) -> None:
         """
         Handle a state change alert.
         """
-        self._logger.info("On state changed alert: %s", repr(alert))
+        self._logger.info("On state changed alert: %s", str(alert))
 
         if not self.handle:
             return
@@ -402,7 +402,7 @@ class Download(TaskManager):
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
         """
-        self._logger.debug("On save resume data alert: %s", repr(alert))
+        self._logger.debug("On save resume data alert: %s", str(alert))
         if self.checkpoint_disabled:
             return
 
@@ -441,7 +441,7 @@ class Download(TaskManager):
         """
         Handle a tracker reply alert.
         """
-        self._logger.info("On tracker reply alert: %s", repr(alert))
+        self._logger.info("On tracker reply alert: %s", str(alert))
 
         self.tracker_status[alert.url] = (alert.num_peers, 'Working')
 
@@ -450,9 +450,7 @@ class Download(TaskManager):
         This alert is generated on tracker timeouts, premature disconnects, invalid response
         or an HTTP response other than "200 OK". - From Libtorrent documentation.
         """
-        # The try-except block is added as a workaround to suppress UnicodeDecodeError in `repr(alert)`,
-        # `alert.url` and `alert.msg`. See https://github.com/arvidn/libtorrent/issues/143
-        self._logger.error("On tracker error alert: %s", repr(alert))
+        self._logger.info("On tracker error alert: %s", str(alert))
         url = alert.url
 
         if alert.msg:
@@ -471,7 +469,7 @@ class Download(TaskManager):
         """
         Handle a tracker warning alert.
         """
-        self._logger.warning("On tracker warning alert: %s", repr(alert))
+        self._logger.warning("On tracker warning alert: %s", str(alert))
 
         peers = self.tracker_status[alert.url][0] if alert.url in self.tracker_status else 0
         status = "Warning: " + str(alert.message())
@@ -483,7 +481,7 @@ class Download(TaskManager):
         """
         Handle a metadata received alert.
         """
-        self._logger.info("On metadata received alert: %s", repr(alert))
+        self._logger.info("On metadata received alert: %s", str(alert))
 
         torrent_info = get_info_from_handle(handle)
         if not torrent_info:
@@ -526,7 +524,7 @@ class Download(TaskManager):
         """
         Handle a performance alert.
         """
-        self._logger.info("On performance alert: %s", repr(alert))
+        self._logger.info("On performance alert: %s", str(alert))
 
         if self.get_anon_mode() or self.download_manager.ltsessions is None:
             return
@@ -552,7 +550,7 @@ class Download(TaskManager):
         """
         Handle a torrent removed alert.
         """
-        self._logger.info("On torrent remove alert: %s", repr(alert))
+        self._logger.info("On torrent remove alert: %s", str(alert))
 
         self._logger.debug("Removing %s", self.tdef.name)
         self.handle = None
@@ -561,7 +559,7 @@ class Download(TaskManager):
         """
         Handle a torrent checked alert.
         """
-        self._logger.info("On torrent checked alert: %s", repr(alert))
+        self._logger.info("On torrent checked alert: %s", str(alert))
 
         if self.pause_after_next_hashcheck and self.handle:
             self.pause_after_next_hashcheck = False
@@ -575,7 +573,7 @@ class Download(TaskManager):
         """
         Handle a torrent finished alert.
         """
-        self._logger.info("On torrent finished alert: %s", repr(alert))
+        self._logger.info("On torrent finished alert: %s", str(alert))
         self.update_lt_status(handle.status())
         self.checkpoint()
         downloaded = self.get_state().total_download

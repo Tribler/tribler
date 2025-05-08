@@ -57,7 +57,7 @@ class WatchFolderManager:
             for name in files:
                 path = Path(root) / name
                 processed.add(path)
-                if not name.endswith(".torrent"):
+                if not name.endswith((".magnet", ".torrent")):
                     continue
                 self.task_manager.replace_task(f"Process file {path!s}", self.process_torrent_file, path)
 
@@ -70,9 +70,12 @@ class WatchFolderManager:
         """
         logger.debug("Add watched torrent file: %s", str(path))
         try:
-            tdef = await TorrentDef.load(path)
-            if not self.session.download_manager.download_exists(tdef.infohash):
-                logger.info("Starting download from torrent file %s", path.name)
-                await self.session.download_manager.start_download(torrent_file=path, tdef=tdef)
+            if path.name.endswith(".torrent"):
+                tdef = await TorrentDef.load(path)
+                if not self.session.download_manager.download_exists(tdef.infohash):
+                    logger.info("Starting download from torrent file %s", path.name)
+                    await self.session.download_manager.start_download(torrent_file=path, tdef=tdef)
+            else:  # The magnet link is in the file
+                await self.session.download_manager.start_download_from_uri(path.read_text().strip())
         except Exception as e:  # pylint: disable=broad-except
             logger.exception("Exception while adding watched torrent! %s: %s", e.__class__.__name__, str(e))

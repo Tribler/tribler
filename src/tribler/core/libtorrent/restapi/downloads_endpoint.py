@@ -424,11 +424,16 @@ class DownloadsEndpoint(RESTEndpoint):
                 else:
                     params[k] = v
             body = await request.read()
-            metainfo = cast("dict[bytes, Any]", lt.bdecode(body))
-            packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
-            if packed_selected_files is not None:
-                params["selected_files"] = packed_selected_files
-            tdef = TorrentDef.load_from_dict(metainfo)
+
+            try:
+                metainfo = cast("dict[bytes, Any]", lt.bdecode(body))
+                packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
+                if packed_selected_files is not None:
+                    params["selected_files"] = packed_selected_files
+                tdef = TorrentDef.load_from_memory(metainfo)
+            except Exception as e:
+                return RESTResponse({"error": {"handled": True, "message": f"corrupt torrent file ({e!s})"}},
+                                    status=HTTP_INTERNAL_SERVER_ERROR)
         else:
             params = await request.json()
             uri = params.get("uri")
