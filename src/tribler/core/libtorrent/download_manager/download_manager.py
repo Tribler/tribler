@@ -764,7 +764,7 @@ class DownloadManager(TaskManager):
             _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent, ltsession,
                                   infohash, atp, ignore=(Exception,))
 
-        if download.tdef.torrent_info is not None:
+        if download.tdef.torrent_info is not None and not download.tdef.torrent_info.priv():
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
                 "size": download.tdef.atp.ti.total_size(),
