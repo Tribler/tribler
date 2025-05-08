@@ -106,6 +106,27 @@ class TestWatchFolderManager(TestBase):
         self.assertEqual(call(torrent_file=Path("fake.torrent"), tdef=tdef),
                          self.manager.session.download_manager.start_download.call_args)
 
+    async def test_watch_folder_torrent_file_start_magnet(self) -> None:
+        """
+        Test that in the case of presence of a magnet file, a download is started.
+        """
+        self.config.set("watch_folder/enabled", True)
+        self.config.set("watch_folder/directory", os.path.dirname(__file__))
+        self.manager.session.download_manager.download_exists = lambda _: False
+        magnet = "thisisamagnetlink\n"
+
+        with patch("os.walk", lambda _: [(".", [], ["fake.magnet"])]), \
+                patch.object(Path, "read_text", Mock(return_value=magnet)):
+            result = self.manager.check()
+            await sleep(0)  # Schedule processing
+            scheduled_tasks = self.task_manager.get_tasks()
+            await sleep(0)  # Process (i.e., start the download)
+
+        self.assertTrue(result)
+        self.assertEqual(1, len(scheduled_tasks))
+        self.assertEqual(call("thisisamagnetlink"),
+                         self.manager.session.download_manager.start_download_from_uri.call_args)
+
     async def test_watch_folder_torrent_file_start_download_existing(self) -> None:
         """
         Test that in the case of presence of a torrent file, a download is started twice.
