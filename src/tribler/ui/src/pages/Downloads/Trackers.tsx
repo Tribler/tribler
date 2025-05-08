@@ -46,9 +46,9 @@ export default function Trackers({ download, style }: { download: Download, styl
                     <Button variant="secondary" className="max-h-6" onClick={(event) => {
                         triblerService.forceCheckDownloadTracker(download.infohash, props.row.original.url).then((response) => {
                             if (response === undefined) {
-                                toast.error(`${"ToastErrorTrackerCheck"} ${"ToastErrorGenNetworkErr"}`);
+                                toast.error(`${t("ToastErrorTrackerCheck")} ${t("ToastErrorGenNetworkErr")}`);
                             } else if (isErrorDict(response)) {
-                                toast.error(`${"ToastErrorTrackerCheck"} ${response.error.message}`);
+                                toast.error(`${t("ToastErrorTrackerCheck")} ${response.error.message}`);
                             }
                         });
                     }}>{t("ForceRecheck")}</Button>)
@@ -62,9 +62,9 @@ export default function Trackers({ download, style }: { download: Download, styl
                     <Button variant="secondary" className="max-h-6" onClick={(event) => {
                         triblerService.removeDownloadTracker(download.infohash, props.row.original.url).then((response) => {
                             if (response === undefined) {
-                                toast.error(`${"ToastErrorTrackerRemove"} ${"ToastErrorGenNetworkErr"}`);
+                                toast.error(`${t("ToastErrorTrackerRemove")} ${t("ToastErrorGenNetworkErr")}`);
                             } else if (isErrorDict(response)) {
-                                toast.error(`${"ToastErrorTrackerRemove"} ${response.error.message}`);
+                                toast.error(`${t("ToastErrorTrackerRemove")} ${response.error.message}`);
                             } else {
                                 download.trackers = download.trackers.filter(tracker => { return tracker.url != props.row.original.url });
                                 var button = event.target as HTMLButtonElement;
@@ -121,9 +121,9 @@ export default function Trackers({ download, style }: { download: Download, styl
                                 if (trackerInput) {
                                     triblerService.addDownloadTracker(download.infohash, trackerInput).then((response) => {
                                         if (response === undefined) {
-                                            toast.error(`${"ToastErrorTrackerAdd"} ${"ToastErrorGenNetworkErr"}`);
+                                            toast.error(`${t("ToastErrorTrackerAdd")} ${t("ToastErrorGenNetworkErr")}`);
                                         } else if (isErrorDict(response)) {
-                                            toast.error(`${"ToastErrorTrackerAdd"} ${response.error.message}`);
+                                            toast.error(`${t("ToastErrorTrackerAdd")} ${response.error.message}`);
                                         }
                                     });
                                     setTrackerDialogOpen(false);
