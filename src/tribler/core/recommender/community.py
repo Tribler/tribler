@@ -373,14 +373,14 @@ class RecommenderCommunityCrawler(RecommenderCommunity):
         """
         We got a query fragment from a peer.
         """
-        cache = cast(PartialQueryCache, self.request_cache.pop(hexlify(peer.mid).decode(), response["query_id"]))
+        cache = cast("PartialQueryCache", self.request_cache.pop(hexlify(peer.mid).decode(), response["query_id"]))
         cache.process_fragment(response)
         next_range = cache.get_next_range()
 
         if next_range is None:
             self.logger.info("Query %d has completed for %s.", response["query_id"], str(peer))
             self.finalize_query(peer, cache.query_id, cache.query, cache.chosen_index, cache.timestamp,
-                                cast(list[ResultItem] , cache.results))
+                                cast("list[ResultItem]" , cache.results))
         else:
             self.request_cache.add(cache)  # Reset the two-minute timer
             self.ez_send(peer, Crawl(peer.mid, self.json_pack(create_crawl_fragment(

@@ -8,6 +8,8 @@ from pony.orm import db_session
 
 from tribler.core.rendezvous.database import RendezvousDatabase
 
+logger = logging.getLogger(__name__)
+
 
 class RendezvousHook(PeerObserver):
     """
@@ -70,4 +72,4 @@ class RendezvousHook(PeerObserver):
         if self.current_time >= peer.creation_time:
             self.write_queue.append((peer, peer.creation_time, self.current_time))
         else:
-            logging.exception("%s was first seen in the future! Something is seriously wrong!", peer)
+            logger.exception("%s was first seen in the future! Something is seriously wrong!", peer)
