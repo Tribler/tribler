@@ -65,6 +65,7 @@ export function formatTimeRelative(ts: number, epochTime: boolean = true) {
     // Returns passed/future time as human readable text
     if (ts === 0) { return '-'; }
     if (epochTime) { ts = ts - (Date.now() / 1000); }
+    if (ts > 86400 * 365 * 10) { return '-'; }  // Consider > 10 years the same as never
     const cutoffs = [60, 3600, 86400, 86400 * 7, 86400 * 30, 86400 * 365, Infinity];
     const units: Intl.RelativeTimeFormatUnit[] = ["second", "minute", "hour", "day", "week", "month", "year"];
     const index = cutoffs.findIndex(cutoff => cutoff > Math.abs(ts));
