@@ -50,7 +50,7 @@ class SocksUDPConnection(DatagramProtocol):
         Send a datagram to the known remote address. Returns False if there is no remote yet.
         """
         if self.remote_udp_address:
-            cast(DatagramTransport, self.transport).sendto(data, self.remote_udp_address)
+            cast("DatagramTransport", self.transport).sendto(data, self.remote_udp_address)
             return True
         self._logger.error("cannot send data, no clue where to send it to")
         return False

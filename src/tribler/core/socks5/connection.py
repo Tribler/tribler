@@ -63,7 +63,7 @@ class Socks5Connection(Protocol):
         """
         Callback for when a connection is made.
         """
-        self.transport = cast(WriteTransport, transport)
+        self.transport = cast("WriteTransport", transport)
 
     def data_received(self, data: bytes) -> None:
         """
@@ -116,7 +116,7 @@ class Socks5Connection(Protocol):
         # Respond that we would like to use NO AUTHENTICATION (0x00)
         if self.state is not ConnectionState.CONNECTED:
             response = socks5_serializer.pack_serializable(MethodsResponse(SOCKS_VERSION, 0))
-            cast(WriteTransport, self.transport).write(response)
+            cast("WriteTransport", self.transport).write(response)
 
         # We are connected now, the next incoming message will be a REQUEST
         self.state = ConnectionState.CONNECTED
@@ -151,7 +151,7 @@ class Socks5Connection(Protocol):
         elif request.cmd == REQ_CMD_BIND:
             payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
             response = socks5_serializer.pack_serializable(payload)
-            cast(WriteTransport, self.transport).write(response)
+            cast("WriteTransport", self.transport).write(response)
             self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
         elif request.cmd == REQ_CMD_CONNECT:
@@ -159,7 +159,7 @@ class Socks5Connection(Protocol):
             self.connect_to = request.destination
             payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, ("127.0.0.1", 1081))
             response = socks5_serializer.pack_serializable(payload)
-            cast(WriteTransport, self.transport).write(response)
+            cast("WriteTransport", self.transport).write(response)
 
         else:
             self.deny_request()
@@ -174,7 +174,7 @@ class Socks5Connection(Protocol):
 
         payload = CommandResponse(SOCKS_VERSION, REP_COMMAND_NOT_SUPPORTED, 0, ("0.0.0.0", 0))
         response = socks5_serializer.pack_serializable(payload)
-        cast(WriteTransport, self.transport).write(response)
+        cast("WriteTransport", self.transport).write(response)
         self._logger.error("DENYING SOCKS5 request")
 
     async def on_udp_associate_request(self, request: CommandRequest) -> None:
@@ -189,13 +189,13 @@ class Socks5Connection(Protocol):
         else:
             self.udp_connection = SocksUDPConnection(self, request.destination)
         await self.udp_connection.open()
-        ip, _ = cast(WriteTransport, self.transport).get_extra_info('sockname')
+        ip, _ = cast("WriteTransport", self.transport).get_extra_info('sockname')
         port = self.udp_connection.get_listen_port()
 
         self._logger.info("Accepting UDP ASSOCIATE request to %s:%d (BIND addr %s:%d)", ip, port, *request.destination)
         payload = CommandResponse(SOCKS_VERSION, REP_SUCCEEDED, 0, (ip, port))
         response = socks5_serializer.pack_serializable(payload)
-        cast(WriteTransport, self.transport).write(response)
+        cast("WriteTransport", self.transport).write(response)
 
     def connection_lost(self, _: Exception | None) -> None:
         """

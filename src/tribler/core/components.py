@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from ipv8.peer import Peer
     from ipv8.types import IPv8
 
+    from tribler.core.recommender.community import RecommenderCommunity
+    from tribler.core.rendezvous.community import RendezvousCommunity
     from tribler.core.restapi.rest_endpoint import RESTEndpoint
     from tribler.core.session import Session
 
@@ -91,7 +93,7 @@ class ComponentLauncher(CommunityLauncherWEndpoints):
         """
         Create a fake Community.
         """
-        return cast(type[Community], type(f"{self.__class__.__name__}", (Component,), {}))
+        return cast("type[Community]", type(f"{self.__class__.__name__}", (Component,), {}))
 
     def get_my_peer(self, ipv8: IPv8, session: Session) -> Peer:
         """
@@ -196,10 +198,9 @@ class RendezvousComponent(BaseLauncher):
         """
         Start listening to peer connections after starting.
         """
-        from tribler.core.rendezvous.community import RendezvousCommunity
         from tribler.core.rendezvous.rendezvous_hook import RendezvousHook
 
-        rendezvous_hook = RendezvousHook(cast(RendezvousCommunity, community).composition.database, community)
+        rendezvous_hook = RendezvousHook(cast("RendezvousCommunity", community).composition.database, community)
         ipv8.network.add_peer_observer(rendezvous_hook)
 
 
@@ -276,10 +277,8 @@ class RecommenderComponent(BaseLauncher):
         """
         When we are done launching, register our REST API.
         """
-        from tribler.core.recommender.community import RecommenderCommunity
-
         endpoint = session.rest_manager.get_endpoint("/api/recommender")
-        endpoint.manager = cast(RecommenderCommunity, community).manager
+        endpoint.manager = cast("RecommenderCommunity", community).manager
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """
