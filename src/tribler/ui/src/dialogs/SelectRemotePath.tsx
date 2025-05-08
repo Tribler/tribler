@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from 'react-hot-toast';
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
@@ -7,13 +7,54 @@ import { Button } from "@/components/ui/button";
 import { DialogProps } from "@radix-ui/react-dialog";
 import { JSX } from "react/jsx-runtime";
 import { useTranslation } from "react-i18next";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Folder, File as FileIcon, FolderPlus } from "lucide-react";
 import { Path } from "@/models/path.model";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import SimpleTable, { getHeader } from "@/components/ui/simple-table";
+import { ColumnDef, Row } from "@tanstack/react-table";
 
+
+const getPathColumns = ({ onClick, onNew }: { onClick: (row: Row<Path>) => void, onNew: () => void }): ColumnDef<Path>[] => [
+    {
+        accessorKey: "name",
+        header: getHeader("Name", true, true, true),
+        filterFn: (row, columnId, filterValue) => {
+            // Don't remove the parent dir ("..") while filtering.
+            return row.original.name.includes(filterValue) || row.original.name === ".."
+        },
+        cell: ({ row }) => {
+            const { t } = useTranslation();
+
+            return (
+                <ContextMenu>
+                    <ContextMenuTrigger>
+                        <div
+                            className="flex text-start items-center cursor-pointer"
+                            onClick={() => onClick(row)}
+                            style={{
+                                paddingLeft: `${row.depth * 2}rem`
+                            }}
+                        >
+                            {row.original.dir && <Folder className="pr-2" />}
+                            {!row.original.dir && <FileIcon className="pr-2" />}
+                            <span className="break-all line-clamp-1">{row.original.name}</span>
+                        </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuItem
+                            className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                            onClick={() => onNew()}>
+                            <FolderPlus className="w-5 mx-2" />
+                            {t('NewFolder')}..
+                        </ContextMenuItem>
+                    </ContextMenuContent>
+                </ContextMenu>
+            )
+        }
+    },
+]
 
 interface SelectRemotePathProps {
     initialPath: string,
@@ -68,6 +109,20 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         }
     }
 
+
+    function OnClick(row: Row<Path>) {
+        if (row.original.dir)
+            reloadPaths(row.original.path)
+        setLastClicked(row.original);
+    }
+    function OnNew() {
+        setNewFolderName("");
+        setNewFolderError(undefined);
+        setNewDialogOpen(true);
+    }
+    const pathColumns = useMemo(() => getPathColumns({ onClick: OnClick, onNew: OnNew }), [OnClick, OnNew]);
+
+
     return (
         <Dialog {...props}>
             <DialogContent className="max-w-3xl">
@@ -98,41 +153,10 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                     </DialogDescription>
                 </DialogHeader>
 
-                <ScrollArea className="max-h-[380px] border">
-                    <ContextMenu>
-                        <ContextMenuTrigger>
-                            <div className="flex-col">
-                                {paths.map((item, index) => (
-                                    <div
-                                        className="p-2 hover:bg-accent border-x-1 [&:not(:first-child)]:border-t border-input flex cursor-pointer"
-                                        key={index}
-                                        onClick={(event) => {
-                                            if (item.dir)
-                                                reloadPaths(item.path)
-                                            setLastClicked(item);
-                                        }}
-                                    >
-                                        {item.dir && <Folder className="pr-2" />}
-                                        {!item.dir && <FileIcon className="pr-2" />}
-                                        <span className="break-all line-clamp-1">{item.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
-                            <ContextMenuItem
-                                className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
-                                onClick={() => {
-                                    setNewFolderName("");
-                                    setNewFolderError(undefined);
-                                    setNewDialogOpen(true);
-                                }}>
-                                <FolderPlus className="w-5 mx-2" />
-                                {t('NewFolder')}..
-                            </ContextMenuItem>
-                        </ContextMenuContent>
-                    </ContextMenu>
-                </ScrollArea>
+                <SimpleTable
+                    data={paths}
+                    columns={pathColumns}
+                    style={{maxHeight: 300}} />
 
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
                     <DialogContent>
