@@ -1,5 +1,4 @@
 !define PRODUCT "Tribler"
-!define BITVERSION "x86"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -14,7 +13,7 @@ RequestExecutionLevel admin
 
 ;General
 Name "${PRODUCT} ${VERSION}"
-OutFile "${PRODUCT}_${VERSION}_${BITVERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}_x64.exe"
 
 ;Folder selection page. 
 ; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64
@@ -112,8 +111,8 @@ Section "!Main EXE" SecMain
     SetOutPath "$INSTDIR"
 
     ; Libraries dependant on 2015 are: Python, Qt5
-    File "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.${BITVERSION}.exe"
-    ExecWait "$INSTDIR\vc_redist.${BITVERSION}.exe /q /norestart"
+    File "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.x64.exe"
+    ExecWait "$INSTDIR\vc_redist.x64.exe /q /norestart"
 
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""

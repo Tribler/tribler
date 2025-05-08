@@ -10,8 +10,6 @@ jobs:
           - os: ubuntu-latest
             architecture: aarch64
           - os: windows-latest
-            architecture: x86
-          - os: windows-latest
             architecture: x64
     runs-on: ${{ matrix.os }}
     steps:
@@ -174,24 +172,12 @@ jobs:
       - name: Fetch libsodium.dll (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          vcpkg install libsodium:${{ matrix.architecture }}-windows
-          Copy C:/vcpkg/packages/libsodium_${{ matrix.architecture }}-windows/bin/libsodium.dll src/libsodium.dll
-      - name: Install OpenSSL (Windows, x86)
-        if: ${{ matrix.os == 'windows-latest' && matrix.architecture == 'x86'}}
-        run: |
-          Remove-Item -Path "C:\Program Files\OpenSSL" -Force -Recurse
-          vcpkg install openssl:x86-windows
-          New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
+          vcpkg install libsodium:libsodium_x64-windows
+          Copy C:/vcpkg/packages/libsodium_x64-windows/bin/libsodium.dll src/libsodium.dll
       - name: Build Executables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          (gc build/win/resources/tribler.nsi) -replace '!define BITVERSION "x86"', '!define BITVERSION "${{ matrix.architecture }}"' | Out-File -encoding ASCII build/win/resources/tribler.nsi
           ./build/win/makedist_win.bat
-          echo 'Double-check executable architectures'
-          echo '> Should be "${{ matrix.architecture }}"'
-          7z l ./dist/tribler/tribler.exe | findstr CPU
-          echo '> Should be "x86"'
-          7z l ./dist/*.exe | findstr CPU
 
       ################################
       # Cleanup and artifact uploads #
