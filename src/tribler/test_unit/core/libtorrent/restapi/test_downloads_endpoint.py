@@ -335,6 +335,8 @@ class TestDownloadsEndpoint(TestBase):
         download = self.create_mock_download()
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.get_handle = AsyncMock(return_value=download.handle)
+        download.tdef = Mock(infohash=b"\x00" * 20)
+        download.tdef.torrent_info.priv = Mock(return_value=False)
         self.download_manager.start_download_from_uri = AsyncMock(return_value=download)
         self.download_manager.config = MockTriblerConfigManager()
         self.download_manager.config.set("libtorrent/download_defaults/trackers_file", "testpath.txt")
@@ -350,6 +352,29 @@ class TestDownloadsEndpoint(TestBase):
         self.assertListEqual([call({"url": b"http://1", "verified": False}),
                               call({"url": b"udp://2/", "verified": False})],
                              download.handle.add_tracker.call_args_list)
+
+    async def test_add_download_with_default_trackers_no_private(self) -> None:
+        """
+        Test if the default trackers are not added to private torrents.
+        """
+        download = self.create_mock_download()
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        download.get_handle = AsyncMock(return_value=download.handle)
+        download.tdef = Mock(infohash=b"\x00"*20)
+        download.tdef.torrent_info.priv = Mock(return_value=True)
+        self.download_manager.start_download_from_uri = AsyncMock(return_value=download)
+        self.download_manager.config = MockTriblerConfigManager()
+        self.download_manager.config.set("libtorrent/download_defaults/trackers_file", "testpath.txt")
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file"})
+
+        with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
+                   lambda _: download.config), patch("builtins.open", mock_open(read_data=b"http://1\n\nudp://2/\n\n")):
+            response = await self.endpoint.add_download(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["started"])
+        self.assertIsNone(download.handle.add_tracker.call_args)
 
     async def test_delete_download_no_remove_data(self) -> None:
         """

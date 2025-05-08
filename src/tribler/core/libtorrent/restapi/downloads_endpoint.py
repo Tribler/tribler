@@ -455,7 +455,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 download = await self.download_manager.start_download(tdef=tdef, config=download_config)
             else:  # guaranteed to have uri
                 download = await self.download_manager.start_download_from_uri(uri, config=download_config)
-            if self.download_manager.config.get("libtorrent/download_defaults/trackers_file"):
+            if (self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
+                    and (not download.tdef.torrent_info or not download.tdef.torrent_info.priv())):
                 await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
                 download.add_trackers(self._get_default_trackers())
             if params.get("only_metadata", "false") != "false":
