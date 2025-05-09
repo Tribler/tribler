@@ -69,9 +69,9 @@ export function Autocomplete({ placeholder, completions, onChange }: { placehold
                         <EasyTooltip content={t('Search')}>
                             <Button
                                 variant="ghost"
-                                className="h-6 py-0 px-0
-                                       hover:outline hover:outline-neutral-500 outline-1 outline-offset-1
-                                       active:outline active:outline-neutral-900 dark:active:outline-neutral-200"
+                                className="h-6 py-0 px-0 outline-offset-1
+                                       hover:outline hover:outline-neutral-500 dark:hover:outline-neutral-400
+                                       active:outline active:outline-neutral-900 dark:active:outline-neutral-100"
                                 onClick={() => {
                                     const query = (selectedSuggestion > 0) ? suggestions[selectedSuggestion - 1] : inputValue;
                                     handleSuggestionClick(query);
