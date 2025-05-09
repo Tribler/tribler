@@ -253,6 +253,7 @@ function SimpleTable<T extends object>({
     const [sorting, setSorting] = useState<SortingState>([]);
     const [startId, setStartId] = useState<string | undefined>(undefined);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [stateInit, setStateInit] = useState<boolean>(false);
 
     useHotkeys(isMac() ? 'meta+a' : 'ctrl+a', event => {
         if (allowMultiSelect) {
@@ -355,20 +356,22 @@ function SimpleTable<T extends object>({
                 }
             }
             setColumnVisibility(visibilityState);
+
+            setStateInit(true);
         })()
     }, []);
 
     useEffect(() => {
-        if (storeSortingState && sorting.length > 0) {
+        if (stateInit && storeSortingState) {
             setState("sorting", storeSortingState, sorting);
         }
-    }, [sorting]);
+    }, [sorting, stateInit]);
 
     useEffect(() => {
-        if (allowColumnToggle && Object.keys(columnVisibility).length > 0) {
+        if (stateInit && allowColumnToggle) {
             setState("columns", allowColumnToggle, columnVisibility);
         }
-    }, [columnVisibility]);
+    }, [columnVisibility, stateInit]);
 
     const parentRef = useRef<HTMLTableElement>(null);
     const columnCount = table.getAllColumns().length;
