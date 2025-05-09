@@ -10,7 +10,7 @@ import dataclasses
 import logging
 import os
 import time
-from asyncio import CancelledError, Future, gather, iscoroutine, shield, sleep, timeout, wait_for
+from asyncio import CancelledError, Future, gather, iscoroutine, shield, sleep, wait_for
 from binascii import hexlify, unhexlify
 from collections import defaultdict
 from copy import deepcopy
@@ -131,7 +131,7 @@ class DownloadManager(TaskManager):
 
         # Status of libtorrent session to indicate if it can safely close and no pending writes to disk exists.
         self.lt_session_shutdown_ready: dict[int, bool] = {}
-        self.dht_ready_task = None
+        self.dht_ready_tasks: dict[int, Future] = {}
         self.dht_readiness_timeout = config.get("libtorrent/dht_readiness_timeout")
         self._last_states_list: list[DownloadState] = []
 
@@ -165,7 +165,7 @@ class DownloadManager(TaskManager):
             return -1
         return rate // 1024
 
-    async def _check_dht_ready(self, min_dht_peers: int = 60) -> None:
+    async def _check_dht_ready(self, hops: int, timeout: int, min_dht_peers: int = 60) -> None:
         """
         Checks whether we got enough DHT peers. If the number of DHT peers is low,
         checking for a bunch of torrents in a short period of time may result in several consecutive requests
@@ -174,8 +174,11 @@ class DownloadManager(TaskManager):
 
         See https://github.com/Tribler/tribler/issues/5319
         """
-        while (await self.get_session()).status().dht_nodes < min_dht_peers:
+        while (await self.get_session(hops)).status().dht_nodes < min_dht_peers:
             await asyncio.sleep(1)
+            timeout -= 1
+            if timeout <= 0:
+                return
 
     async def initialize(self) -> None:
         """
@@ -186,8 +189,6 @@ class DownloadManager(TaskManager):
 
         # Register tasks
         self.register_task("process_alerts", self._task_process_alerts, interval=1, ignore=(Exception, ))
-        if self.dht_readiness_timeout > 0 and self.config.get("libtorrent/dht"):
-            self.dht_ready_task = self.register_task("check_dht_ready", self._check_dht_ready)
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task("task_cleanup_metacache", self._task_cleanup_metainfo_cache, interval=60, delay=0)
 
@@ -378,6 +379,10 @@ class DownloadManager(TaskManager):
         """
         if hops not in self.ltsessions:
             self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}", self.create_session, hops)
+
+            if self.dht_readiness_timeout > 0 and self.config.get("libtorrent/dht"):
+                self.dht_ready_tasks[hops] = self.register_task(f"DHT readiness check {hops}",
+                                                                self._check_dht_ready, hops, self.dht_readiness_timeout)
 
         return self.ltsessions[hops]
 
@@ -742,7 +747,8 @@ class DownloadManager(TaskManager):
         """
         logger.info("Start handle. Download: %s.", str(download))
 
-        ltsession = await self.get_session(download.config.get_hops())
+        hops = download.config.get_hops()
+        ltsession = await self.get_session(hops)
         infohash = download.get_def().infohash
         atp.save_path = str(download.config.get_dest_dir())
 
@@ -761,8 +767,8 @@ class DownloadManager(TaskManager):
             download.post_alert("add_torrent_alert", {"handle": existing_handle})
         else:
             # Otherwise, add it anew
-            _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent, ltsession,
-                                  infohash, atp, ignore=(Exception,))
+            _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent,
+                                  ltsession, hops, infohash, atp, ignore=(Exception,))
 
         if download.tdef.torrent_info is not None and not download.tdef.torrent_info.priv():
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
@@ -773,7 +779,8 @@ class DownloadManager(TaskManager):
                 "tracker_info": (list(download.tdef.atp.trackers) or [""])[0]
             })
 
-    async def _async_add_torrent(self, ltsession: lt.session, infohash: bytes, atp: lt.add_torrent_params) -> None:
+    async def _async_add_torrent(self, ltsession: lt.session, hops: int,
+                                 infohash: bytes, atp: lt.add_torrent_params) -> None:
         self._logger.debug("Adding handle %s", hexlify(infohash))
         # To prevent flooding the DHT with a short burst of queries and triggering
         # flood protection, we postpone adding torrents until we get enough DHT peers.
@@ -782,12 +789,8 @@ class DownloadManager(TaskManager):
         # Otherwise, e.g. if added to the Session init sequence, this results in startup
         # time increasing by 10-20 seconds.
         # See https://github.com/Tribler/tribler/issues/5319
-        if self.dht_readiness_timeout > 0 and self.dht_ready_task is not None:
-            try:
-                async with timeout(self.dht_readiness_timeout):
-                    await self.dht_ready_task
-            except TimeoutError:
-                self._logger.warning("Timeout waiting for libtorrent DHT getting enough peers")
+        if hops in self.dht_ready_tasks:
+            await self.dht_ready_tasks[hops]
         if not atp.save_path:
             atp.save_path = atp.name or (atp.ti.name() if atp.ti else "Unknown name")
         ltsession.async_add_torrent(atp)
