@@ -1,7 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { router } from "./Router";
-import { LanguageProvider } from "./contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 
@@ -50,7 +49,7 @@ export default function App() {
     const { t } = useTranslation();
 
     return (
-        <LanguageProvider>
+        <>
             <div id="error_popup" role="alert" className="overflow-hidden mx-8 mt-2 h-10 hover:h-96 hidden transition-height duration-500 ease-in-out">
                 <div className="bg-red-500 text-white font-bold rounded-t px-4 py-2">
                     {t("ErrorNotification")}
@@ -73,6 +72,6 @@ export default function App() {
             <ThemeProvider>
                 <RouterProvider router={router} />
             </ThemeProvider>
-        </LanguageProvider>
+        </>
     )
 }

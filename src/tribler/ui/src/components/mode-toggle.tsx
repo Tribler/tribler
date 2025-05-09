@@ -8,9 +8,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { useTheme } from "@/hooks/useTheme"
 import { EasyTooltip } from "./ui/tooltip"
 import { useTranslation } from "react-i18next"
+import { useTheme } from "@/contexts/ThemeContext"
 
 export function ModeToggle() {
     const { t } = useTranslation();

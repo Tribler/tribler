@@ -1,16 +1,15 @@
-import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useTranslation } from "react-i18next";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import toast from 'react-hot-toast';
 import { EasyTooltip } from "./ui/tooltip";
 
 
 const LanguageSelect = () => {
-    const { language, setLanguage } = useLanguage();
+    const [ language, setLanguage ] = useState<string>("");
     const { t, i18n } = useTranslation();
 
     useEffect(() => {
