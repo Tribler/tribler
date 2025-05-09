@@ -60,20 +60,6 @@ class TestDownload(TestBase):
 
         self.assertIsNone(download.get_magnet_link())
 
-    def test_download_get_atp(self) -> None:
-        """
-        Test if the atp can be retrieved from a download.
-        """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=self.create_mock_download_config())
-
-        atp = download.get_atp()
-
-        self.assertEqual(".", atp["save_path"])
-        self.assertIn("flags", atp)
-        self.assertIn("storage_mode", atp)
-        self.assertIn("ti", atp)
-
     def test_download_resume(self) -> None:
         """
         Test if a download can be resumed.
@@ -174,9 +160,7 @@ class TestDownload(TestBase):
 
         self.assertIsNone(value)
         self.assertEqual(None, alerts[0].category())
-        self.assertEqual(b"libtorrent resume file", alerts[0].resume_data[b"file-format"])
-        self.assertEqual(1, alerts[0].resume_data[b"file-version"])
-        self.assertEqual(b"\x01" * 20, alerts[0].resume_data[b"info-hash"])
+        self.assertEqual(b"\x01" * 20, alerts[0].params.info_hash.to_bytes())
 
     async def test_save_checkpoint_no_handle_existing(self) -> None:
         """
@@ -664,7 +648,7 @@ class TestDownload(TestBase):
         download.checkpoint_disabled = False
         download.download_manager = Mock(get_checkpoint_dir=Mock(return_value=Path(__file__).absolute().parent))
 
-        download.on_save_resume_data_alert(Mock(resume_data={b"info-hash": b"\x01" * 20}))
+        download.on_save_resume_data_alert(Mock(params=libtorrent.add_torrent_params()))
 
         self.assertTrue(download.config.config["TEST_CRASH"])
         self.assertEqual("name", download.config.config["download_defaults"]["name"])
@@ -901,7 +885,7 @@ class TestDownload(TestBase):
         config.set("libtorrent/check_after_complete", True)
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock()
+        download.handle = Mock(status=Mock(return_value=Mock(completed_time=0)))
 
         download.future_added.set_result(None)
         await sleep(0)
@@ -918,8 +902,7 @@ class TestDownload(TestBase):
         config.set("libtorrent/check_after_complete", True)
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock()
-        download.lt_status = Mock(progress=1.0)  # Start completed
+        download.handle = Mock(status=Mock(return_value=Mock(completed_time=1)))  # Start completed
 
         download.future_added.set_result(None)
         await sleep(0)

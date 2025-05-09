@@ -726,7 +726,7 @@ class DownloadManager(TaskManager):
                             download_manager=self)
         logger.info("Download created: %s", str(download))
 
-        logger.info("ATP: %s", str({k: v for k, v in tdef.atp.__dict__.items() if k not in ["resume_data"]}))
+        logger.info("ATP: %s", str(lt.write_resume_data(tdef.atp)))
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash].download == download:
@@ -1036,14 +1036,18 @@ class DownloadManager(TaskManager):
                                filename, type(metainfo), repr(metainfo))
             return False
 
-        try:
-            url = metainfo.get(b"url")
-            url = url.decode() if url is not None else url
-            tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
-                    if b"infohash" in metainfo else TorrentDef.load_from_dict(metainfo))
-        except (KeyError, ValueError) as e:
-            self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
-            return False
+        resumedata = config.get_engineresumedata()
+        if resumedata is None:
+            try:
+                url = metainfo.get(b"url")
+                url = url.decode() if url is not None else url
+                tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
+                        if b"infohash" in metainfo else TorrentDef.load_from_dict(metainfo))
+            except (KeyError, ValueError) as e:
+                self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
+                return False
+        else:
+            tdef = TorrentDef(resumedata)
 
         config.state_dir = self.state_dir
         if config.get_dest_dir() == "":  # removed torrent ignoring

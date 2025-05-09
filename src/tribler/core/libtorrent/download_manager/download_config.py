@@ -304,17 +304,23 @@ class DownloadConfig:
         """
         return _to_dict(self.config["state"]["metainfo"])
 
-    def set_engineresumedata(self, engineresumedata: dict) -> None:
+    def set_engineresumedata(self, engineresumedata: lt.add_torrent_params) -> None:
         """
         Set the engine resume data dict for this download.
         """
-        self.config["state"]["engineresumedata"] = _from_dict(engineresumedata)
+        self.config["state"]["engineresumedata"] = base64.b64encode(lt.write_resume_data_buf(engineresumedata)).decode()
 
-    def get_engineresumedata(self) -> dict | None:
+    def get_engineresumedata(self) -> lt.add_torrent_params | None:
         """
         Get the engine resume data dict for this download or None if it cannot be decoded.
         """
-        return _to_dict(self.config["state"]["engineresumedata"])
+        resume_data = self.config["state"]["engineresumedata"]
+        if resume_data:
+            try:
+                return lt.read_resume_data(base64.b64decode(resume_data))
+            except RuntimeError:
+                return None
+        return None
 
     def set_stop_after_metainfo(self, value: bool) -> None:
         """

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import get_running_loop
+from binascii import hexlify
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -229,6 +230,12 @@ class TorrentDef:
         :param atp: User-defined parameters for the new TorrentDef.
         """
         self.atp = atp
+
+    def __str__(self) -> str:
+        """
+        We are essentially the ATP dictionary itself.
+        """
+        return f"TorrentDef(name=\"{self.name}\", infohash={hexlify(self.infohash).decode()}, url=\"{self.atp.url}\")"
 
     @property
     def name(self) -> str:

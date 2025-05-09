@@ -173,9 +173,12 @@ class Download(TaskManager):
         Wait for the torrent to finish downloading, then recheck.
 
         Note: a finished recheck causes a ``torrent_finished_alert``: hooking into that causes an infinite loop!
+        Note2: our own self.lt_status is too old.
+        Note3: the state flip-flops too much to be reliable so we use completed_time instead.
         """
         await self.future_added
-        if self.get_state().get_progress() == 1.0:
+        handle = await self.get_handle()  # This should be available after adding the torrent
+        if handle.status().completed_time != 0:
             self._logger.info("Skipping recheck of %s, already finished when added!", str(self))
             return
         await self.future_finished
@@ -252,41 +255,6 @@ class Download(TaskManager):
             return succeed(self.handle)
 
         return self.future_added
-
-    def get_atp(self) -> dict:
-        """
-        Get the libtorrent "add torrent parameters" instantiation dictionary.
-        """
-        save_path = self.config.get_dest_dir()
-        atp = {"save_path": str(save_path),
-               "storage_mode": lt.storage_mode_t.storage_mode_sparse,
-               "flags": lt.add_torrent_params_flags_t.flag_paused
-                        | lt.add_torrent_params_flags_t.flag_duplicate_is_error
-                        | lt.add_torrent_params_flags_t.flag_update_subscribe}
-
-        if self.config.get_share_mode():
-            atp["flags"] = cast("int", atp["flags"]) | lt.add_torrent_params_flags_t.flag_share_mode
-        if self.config.get_upload_mode():
-            atp["flags"] = cast("int", atp["flags"]) | lt.add_torrent_params_flags_t.flag_upload_mode
-
-        resume_data = self.config.get_engineresumedata()
-        if self.tdef.torrent_info is not None:
-            metainfo = self.tdef.get_metainfo()
-            torrentinfo = lt.torrent_info(metainfo)
-
-            atp["ti"] = torrentinfo
-            if resume_data and isinstance(resume_data, dict):
-                # Rewrite save_path as a global path, if it is given as a relative path
-                save_path = (resume_data[b"save_path"].decode() if b"save_path" in resume_data
-                             else None)
-                if save_path and not Path(save_path).is_absolute():
-                    resume_data[b"save_path"] = str(self.state_dir / save_path)
-                atp["resume_data"] = lt.bencode(resume_data)
-        else:
-            atp["url"] = self.tdef.atp.url or "magnet:?xt=urn:btih:" + hexlify(self.tdef.infohash).decode()
-            atp["name"] = self.tdef.atp.name
-
-        return atp
 
     def on_add_torrent_alert(self, alert: lt.add_torrent_alert) -> None:
         """
@@ -406,13 +374,11 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
-        resume_data = (cast("dict[bytes, Any]", lt.bdecode(alert.resume_data))
-                       if isinstance(alert.resume_data, bytes)  # Libtorrent 2.X
-                       else alert.resume_data)  # Libtorrent 1.X
+        resume_data = alert.params
         # Make save_path relative if the torrent is saved in the Tribler state directory
-        if self.state_dir and b"save_path" in resume_data:
-            save_path = Path(resume_data[b"save_path"].decode()).absolute()
-            resume_data[b"save_path"] = str(save_path)
+        if self.state_dir:
+            save_path = Path(resume_data.save_path).absolute()
+            resume_data.save_path = str(save_path)
 
         if self.tdef.torrent_info is not None:
             self.config.set_metainfo(self.tdef.get_metainfo())
@@ -425,7 +391,6 @@ class Download(TaskManager):
         self.config.set_engineresumedata(resume_data)
 
         # Save it to file
-        # Note resume_data[b"info-hash"] can be b"\x00" * 32, so we use the tdef.
         basename = hexlify(self.tdef.infohash).decode() + ".conf"
         Path(self.download_manager.get_checkpoint_dir()).mkdir(parents=True, exist_ok=True)
         filename = self.download_manager.get_checkpoint_dir() / basename
@@ -854,12 +819,11 @@ class Download(TaskManager):
             if not filename.is_file():
                 # 2. If there is no saved data for this infohash, checkpoint it without data so we do not
                 #    lose it when we crash or restart before the download becomes known.
-                resume_data = self.config.get_engineresumedata() or {
-                    b"file-format": b"libtorrent resume file",
-                    b"file-version": 1,
-                    b"info-hash": self.tdef.infohash
-                }
-                self.post_alert("save_resume_data_alert", {"resume_data": resume_data})
+                resume_data = self.config.get_engineresumedata()
+                if resume_data is None:
+                    resume_data = lt.add_torrent_params()
+                    resume_data.info_hash = lt.sha1_hash(self.tdef.infohash)
+                self.post_alert("save_resume_data_alert", {"params": resume_data})
             return succeed(None)
         return self.save_resume_data()
 
