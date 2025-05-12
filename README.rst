@@ -50,12 +50,11 @@ Lost in development?
 
 - Check out our |docs| for development and building instructions!
 
-----
+|
 
-|downloads_7_0| |downloads_7_1| |downloads_7_2| |downloads_7_3| |downloads_7_4|
-|downloads_7_5| |downloads_7_6| |downloads_7_7| |downloads_7_8| |downloads_7_9|
-|downloads_7_10| |downloads_7_11| |downloads_7_12| |downloads_7_13| |downloads_7_13_1|
-|downloads_7_14| |downloads_8_7|
+
+| |downloads_pre_2006| |downloads_sourceforge| |downloads_github|
+| |latest_badge| |downloads_latest|
 
 ----
 
@@ -76,73 +75,18 @@ This file is part of Tribler, Copyright 2004-2024. Tribler is licensed under the
 .. |openhub| image:: https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif?style=flat
     :target: https://www.openhub.net/p/tribler
 
-.. |downloads_7_0| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.0.2/total.svg?style=flat
-    :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.0.2)
+.. |downloads_pre_2006| image:: https://img.shields.io/badge/total_downloads_pre_2006-1.8M-brightgreen
 
-.. |downloads_7_1| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.1.3/total.svg?style=flat
-    :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.1.3)
+.. |downloads_sourceforge| image:: https://img.shields.io/badge/total_downloads_SourceForge-200k-brightgreen
+     :target: https://sourceforge.net/projects/tribler/
 
-.. |downloads_7_2| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.2.2/total.svg?style=flat
-    :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.2.2)
-
-.. |downloads_7_3| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.3.2/total.svg?style=flat
-    :target: https://github.com/Tribler/tribler/releases
-    :alt: Downloads(7.3.2)
-
-.. |downloads_7_4| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.4.1/total.svg?style=flat
+.. |downloads_github| image:: https://img.shields.io/github/downloads/Tribler/tribler/total?label=total%20downloads%20GitHub
      :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.4.1)
 
-.. |downloads_7_5| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.5.1/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.5.1)
+.. |latest_badge| image:: https://img.shields.io/github/v/release/Tribler/tribler?label=latest&color=orange
 
-.. |downloads_7_6| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.6.1/total.svg?style=flat
+.. |downloads_latest| image:: https://img.shields.io/github/downloads/Tribler/tribler/latest/total?color=orange
      :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.6.1)
-
-.. |downloads_7_7| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.7.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.7.0)
-
-.. |downloads_7_8| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.8.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.8.0)
-
-.. |downloads_7_9| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.9.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.9.0)
-
-.. |downloads_7_10| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.10.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.10.0)
-
-.. |downloads_7_11| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.11.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.11.0)
-
-.. |downloads_7_12| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.12.1/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.12.1)
-
-.. |downloads_7_13| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.13.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.13.0)
-
-.. |downloads_7_13_1| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.13.1/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.13.1)
-
-.. |downloads_7_14| image:: https://img.shields.io/github/downloads/tribler/tribler/v7.14.0/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(7.14.0)
-
-.. |downloads_8_7| image:: https://img.shields.io/github/downloads/tribler/tribler/v8.0.7/total.svg?style=flat
-     :target: https://github.com/Tribler/tribler/releases
-     :alt: Downloads(8.0.7)
 
 .. |contributors| image:: https://img.shields.io/github/contributors/tribler/tribler.svg?style=flat
     :target: https://github.com/Tribler/tribler/graphs/contributors
