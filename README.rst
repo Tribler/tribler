@@ -16,6 +16,10 @@
 
 - `flathub <https://flathub.org/apps/org.tribler.Tribler>`_ |flathub|
 
+   .. raw:: html
+
+        <small>For Fedora ≥ 42 and pure GNOME check out <a href="https://github.com/Tribler/tribler/wiki/Enabling-the-Tray-icon-on-pure-GNOME">this tray icon guide</a>.</small>
+
 |
 
 *******
