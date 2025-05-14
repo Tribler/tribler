@@ -167,6 +167,7 @@ class TriblerConfig(TypedDict):
     """
 
     api: ApiConfig
+    headless: bool
 
     ipv8: dict
     statistics: bool
@@ -198,6 +199,7 @@ DEFAULT_CONFIG = {
         "http_port_running": 0,
         "https_port_running": 0,
     },
+    "headless": False,
 
     "ipv8": ipv8_default_config,
     "statistics": False,
