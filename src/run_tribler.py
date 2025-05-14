@@ -233,7 +233,7 @@ async def main() -> None:
         torrent_uri = load_torrent_uri(parsed_args)
         server_url, initial_message = await session.find_api_server()
 
-        headless = parsed_args.get("server")
+        headless = parsed_args.get("server") | config.get("headless")
         if server_url:
             logger.info("Core already running at %s", server_url)
             if torrent_uri:
