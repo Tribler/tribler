@@ -234,3 +234,50 @@ class TestMetadataStore(TestBase[MockCommunity]):
         self.assertEqual(20, ordered1.size)
         self.assertEqual(10, ordered2.size)
         self.assertEqual(1, ordered3.size)
+
+    @db_session
+    def test_get_entries_query_tags(self) -> None:
+        """
+        Test if entries can be fetched by partial tags.
+        """
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xab" * 20, "title": "abc", "size": 3,
+                                                               "tags": "tag1,tag4,tag2"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xcd" * 20, "title": "def", "size": 2,
+                                                               "tags": "tag2,tag3"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xef" * 20, "title": "ghi", "size": 1,
+                                                               "tags": "tag4,tag3"})
+
+        ordered1, ordered2 = self.metadata_store.get_entries_query(sort_by="size", tags=["tag4"])[:]
+        self.assertEqual(3, ordered1.size)
+        self.assertEqual(1, ordered2.size)
+
+    @db_session
+    def test_get_entries_query_category(self) -> None:
+        """
+        Test if entries can be fetched by category (single tag).
+        """
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xab" * 20, "title": "abc", "size": 3,
+                                                               "tags": "tag1,tag4,tag2"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xcd" * 20, "title": "def", "size": 2,
+                                                               "tags": "tag2,tag3"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xef" * 20, "title": "ghi", "size": 1,
+                                                               "tags": "tag4,tag3"})
+
+        ordered1, ordered2 = self.metadata_store.get_entries_query(sort_by="size", tags=["tag2"])[:]
+        self.assertEqual(3, ordered1.size)
+        self.assertEqual(2, ordered2.size)
+
+    @db_session
+    def test_get_entries_query_tags_multiple(self) -> None:
+        """
+        Test if entries can be fetched by multiple tags.
+        """
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xab" * 20, "title": "abc", "size": 3,
+                                                               "tags": "tag1,tag4,tag2"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xcd" * 20, "title": "def", "size": 2,
+                                                               "tags": "tag2,tag3"})
+        self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"\xef" * 20, "title": "ghi", "size": 1,
+                                                               "tags": "tag4,tag3"})
+
+        ordered1, = self.metadata_store.get_entries_query(sort_by="size", tags=["tag1", "tag2"])[:]
+        self.assertEqual(3, ordered1.size)

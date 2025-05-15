@@ -257,3 +257,135 @@ class TestDatabaseEndpoint(TestBase):
         self.assertEqual(200, response.status)
         self.assertEqual(["test1", "test2"], response_body_json["completions"])
         self.assertEqual(call("test", max_terms=5), endpoint.mds.get_auto_complete_terms.call_args)
+
+    async def test_add_tag_bad_query(self) -> None:
+        """
+        Test if a bad value leads to a bad request status.
+        """
+        endpoint = DatabaseEndpoint()
+        request = MockRequest("api/metadata/torrents/AA/tags", query={}, match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.add_tag(request)
+
+        self.assertEqual(HTTP_BAD_REQUEST, response.status)
+
+    async def test_add_tag(self) -> None:
+        """
+        Test if a tag can be added when no tags are present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", query={"tag": "test"}, match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.add_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("test", entry.tags)
+
+    async def test_add_tag_append(self) -> None:
+        """
+        Test if a tag can be added when tags are present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="tag1,tag2")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", query={"tag": "test"}, match_info={"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.add_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("tag1,tag2,test", entry.tags)
+
+    async def test_remove_tag_no_exist_empty(self) -> None:
+        """
+        Test if a non-existent tag can be removed when no tags are present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "DELETE", {"tag": "test"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.remove_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("", entry.tags)
+
+    async def test_remove_tag_no_exist(self) -> None:
+        """
+        Test if a non-existent tag can be removed when tags are present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="othertag,otherothertag")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "DELETE", {"tag": "test"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.remove_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("othertag,otherothertag", entry.tags)
+
+    async def test_remove_tag_one(self) -> None:
+        """
+        Test if a tag can be removed when the tag is present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="test")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "DELETE", {"tag": "test"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.remove_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("", entry.tags)
+
+    async def test_remove_tag_many(self) -> None:
+        """
+        Test if a tag can be removed when many tags are present.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="a,test,b,c")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "DELETE", {"tag": "test"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.remove_tag(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("a,b,c", entry.tags)
+
+    async def test_update_tags_empty(self) -> None:
+        """
+        Test if a tags can be set when none exist yet.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "PATCH", {"tags": "a,b,c"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.update_tags(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("a,b,c", entry.tags)
+
+    async def test_update_tags_existing(self) -> None:
+        """
+        Test if a tags can be overwritten.
+        """
+        entry = Mock(to_simple_dict=Mock(return_value={"test": "test"}), tags="test1,test2")
+        endpoint = DatabaseEndpoint()
+        endpoint.mds = Mock(run_threaded=self.mds_run_now, get_entries=Mock(return_value=[entry]))
+        request = MockRequest("api/metadata/torrents/AA/tags", "PATCH", {"tags": "a,b,c"}, {"infohash": "AA"})
+        request.context = [endpoint.mds]
+
+        response = await endpoint.update_tags(request)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual("a,b,c", entry.tags)
