@@ -152,7 +152,7 @@ export default function Search() {
                 />
             }
             <SimpleTable
-                className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-57px)]"
+                className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-82px)]"
                 data={torrents}
                 columns={torrentColumns}
                 storeSortingState="search-sorting"

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from asyncio import Future
 from binascii import hexlify
 from typing import TYPE_CHECKING
 
@@ -12,7 +11,6 @@ from marshmallow.fields import Integer
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    import libtorrent
     from aiohttp.abc import Request
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -95,22 +93,9 @@ class LibTorrentEndpoint(RESTEndpoint):
         """
         Return Libtorrent session information.
         """
-        session_stats: Future[dict[str, int]] = Future()
-
-        def on_session_stats_alert_received(alert: libtorrent.session_stats_alert) -> None:
-            if not session_stats.done():
-                session_stats.set_result(alert.values)
-
         args = request.query
         hop = 0
         if args.get("hop"):
             hop = int(args["hop"])
 
-        if hop not in self.download_manager.ltsessions or \
-                not hasattr(self.download_manager.ltsessions[hop].result(), "post_session_stats"):
-            return RESTResponse({"hop": hop, "session": {}})
-
-        self.download_manager.session_stats_callback = on_session_stats_alert_received
-        (await self.download_manager.ltsessions[hop]).post_session_stats()
-        stats = await session_stats
-        return RESTResponse({"hop": hop, "session": stats})
+        return RESTResponse({"hop": hop, "session": self.download_manager.session_stats.get(hop, {})})

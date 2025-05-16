@@ -64,7 +64,7 @@ export default function Swarms() {
     }, 5000, true);
 
     return <SimpleTable
-        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+        className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-122px)]"
         data={swarms}
         columns={swarmColumns} />
 }

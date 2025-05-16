@@ -80,7 +80,7 @@ export default function Libtorrent() {
             </TabsContent>
             <TabsContent value="session" className="contents">
                 <SimpleTable
-                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-122px)]"
                     data={session}
                     columns={libtorrentColumns}
                 />

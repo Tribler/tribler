@@ -119,6 +119,7 @@ class ContentDiscoveryComponent(BaseLauncher):
         When we are done launching, register our REST API.
         """
         session.rest_manager.get_endpoint("/api/search").content_discovery_community = community
+        session.rest_manager.get_endpoint("/api/statistics").content_discovery_community = community
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """
@@ -158,8 +159,7 @@ class DatabaseComponent(ComponentLauncher):
         """
         When we are done launching, register our REST API.
         """
-        session.rest_manager.get_endpoint("/api/downloads").mds = session.mds
-        session.rest_manager.get_endpoint("/api/statistics").mds = session.mds
+        session.rest_manager.get_endpoint("/api/statistics").session = session
 
         db_endpoint = session.rest_manager.get_endpoint("/api/metadata")
         db_endpoint.download_manager = session.download_manager

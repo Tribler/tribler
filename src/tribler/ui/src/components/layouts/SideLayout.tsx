@@ -11,6 +11,7 @@ import { Separator } from "../ui/separator";
 import { HamburgerMenuIcon } from "@radix-ui/react-icons";
 import { AddTorrent } from "../add-torrent";
 import { useTranslation } from "react-i18next";
+import { Footer } from "./Footer";
 
 export function SideLayout() {
     const { t } = useTranslation();
@@ -134,6 +135,7 @@ export function SideLayout() {
                     </div>
                 </div>
             </div>
+            <Footer />
         </div>
     )
 }

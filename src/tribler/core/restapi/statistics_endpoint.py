@@ -10,9 +10,7 @@ from marshmallow.fields import Integer, String
 from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from ipv8.types import IPv8
-
-    from tribler.core.database.store import MetadataStore
+    from tribler.core.session import Session
 
 
 class StatisticsEndpoint(RESTEndpoint):
@@ -27,9 +25,8 @@ class StatisticsEndpoint(RESTEndpoint):
         Create a new statistics endpoint.
         """
         super().__init__(middlewares, client_max_size)
-
-        self.mds: MetadataStore | None = None
-        self.ipv8: IPv8 | None = None
+        self.session: Session | None = None
+        self.content_discovery_community = None
 
         self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
                              web.get("/ipv8", self.get_ipv8_stats)])
@@ -61,9 +58,25 @@ class StatisticsEndpoint(RESTEndpoint):
         Return general statistics of Tribler.
         """
         stats_dict = {}
-        if self.mds:
-            stats_dict = {"db_size": self.mds.get_db_file_size(),
-                          "num_torrents": self.mds.get_num_torrents()}
+
+        if self.session and self.content_discovery_community:
+            stats_dict["peers"] = len(self.content_discovery_community.get_peers())
+
+        if self.session and self.session.mds:
+            stats_dict.update({"db_size": self.session.mds.get_db_file_size(),
+                               "num_torrents": self.session.mds.get_num_torrents()})
+
+        if self.session and self.session.download_manager:
+            lt_stats: dict[str, list[dict]] = {"sessions": []}
+            for hops, stats in self.session.download_manager.session_stats.items():
+                lt_stats["sessions"].append({
+                    "recv_bytes": stats.get("net.recv_bytes", 0),
+                    "sent_bytes": stats.get("net.sent_bytes", 0),
+                    "hops": hops
+                })
+            lt_stats["total_recv_bytes"] = sum([s["recv_bytes"] for s in lt_stats["sessions"]])
+            lt_stats["total_sent_bytes"] = sum([s["sent_bytes"] for s in lt_stats["sessions"]])
+            stats_dict["libtorrent"] = lt_stats
 
         return RESTResponse({"tribler_statistics": stats_dict})
 
@@ -86,9 +99,9 @@ class StatisticsEndpoint(RESTEndpoint):
         Return general statistics of IPv8.
         """
         stats_dict = {}
-        if self.ipv8:
+        if self.session and self.session.ipv8:
             stats_dict = {
-                "total_up": self.ipv8.endpoint.bytes_up,
-                "total_down": self.ipv8.endpoint.bytes_down
+                "total_up": self.session.ipv8.endpoint.bytes_up,
+                "total_down": self.session.ipv8.endpoint.bytes_down
             }
         return RESTResponse({"ipv8_statistics": stats_dict})
