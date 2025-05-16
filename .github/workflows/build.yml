@@ -172,7 +172,7 @@ jobs:
       - name: Fetch libsodium.dll (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          vcpkg install libsodium:libsodium_x64-windows
+          vcpkg install libsodium
           Copy C:/vcpkg/packages/libsodium_x64-windows/bin/libsodium.dll src/libsodium.dll
       - name: Build Executables (Windows)
         if: matrix.os == 'windows-latest'
