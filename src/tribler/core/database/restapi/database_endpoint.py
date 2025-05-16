@@ -4,6 +4,7 @@ import asyncio
 import json
 import typing
 from binascii import unhexlify
+from contextlib import suppress
 from typing import Self
 
 from aiohttp import web
@@ -87,9 +88,12 @@ class DatabaseEndpoint(RESTEndpoint):
         self.app.add_routes(
             [
                 web.get("/torrents/{infohash}/health", self.get_torrent_health),
+                web.put("/torrents/{infohash}/tags", self.add_tag),
+                web.delete("/torrents/{infohash}/tags", self.remove_tag),
+                web.patch("/torrents/{infohash}/tags", self.update_tags),
                 web.get("/torrents/popular", self.get_popular_torrents),
                 web.get("/search/local", self.local_search),
-                web.get("/search/completions", self.completions)
+                web.get("/search/completions", self.completions),
             ]
         )
 
@@ -331,3 +335,196 @@ class DatabaseEndpoint(RESTEndpoint):
         keywords = args["q"].strip().lower()
         results = request.context[0].get_auto_complete_terms(keywords, max_terms=5)
         return RESTResponse({"completions": results})
+
+    @docs(
+        tags=["Metadata"],
+        summary="Add a custom tag to the given download.",
+        parameters=[
+            {
+                "in": "path",
+                "name": "infohash",
+                "description": "Infohash of the download to add a tag to",
+                "type": "string",
+                "required": True,
+            },
+            {
+                "in": "query",
+                "name": "tag",
+                "description": "the tag to add",
+                "type": "string",
+                "required": True,
+            }
+        ],
+        responses={
+            200: {
+                "schema": schema(
+                    AddTagResponse={
+                        "added": Boolean()
+                    }
+                ),
+                "examples": [
+                    {"added": True},
+                ],
+            }
+        },
+    )
+    async def add_tag(self, request: RequestType) -> RESTResponse:
+        """
+        Add a custom tag to the given download.
+        """
+        tag = request.query.get("tag")
+        if not tag:
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": "no tag given to add (missing '?tag=')"
+            }}, status=web.HTTPBadRequest.status_code)
+
+        infohash = unhexlify(request.match_info["infohash"])
+
+        @db_session
+        def perform_db_act() -> bool:
+            """
+            Perform DB I/O acts on a thread, instead of blocking the main thread.
+            """
+            results = request.context[0].get_entries(infohash=infohash)
+
+            if not results:
+                return False
+
+            for result in results:
+                if result.tags:
+                    result.tags = result.tags + "," + tag
+                else:
+                    result.tags = tag
+
+            return True
+
+        return RESTResponse({"added": (await request.context[0].run_threaded(perform_db_act))})
+
+    @docs(
+        tags=["Metadata"],
+        summary="Remove a custom tag from the given download.",
+        parameters=[
+            {
+                "in": "path",
+                "name": "infohash",
+                "description": "Infohash of the download to remove the tag from",
+                "type": "string",
+                "required": True,
+            },
+            {
+                "in": "query",
+                "name": "tag",
+                "description": "the tag to remove",
+                "type": "string",
+                "required": True,
+            }
+        ],
+        responses={
+            200: {
+                "schema": schema(
+                    RemoveTagResponse={
+                        "removed": Boolean()
+                    }
+                ),
+                "examples": [
+                    {"removed": True},
+                ],
+            }
+        },
+    )
+    async def remove_tag(self, request: RequestType) -> RESTResponse:
+        """
+        Remove a custom tag from the given download.
+        """
+        tag = request.query.get("tag")
+        if not tag:
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": "no tag given to remove (missing '?tag=')"
+            }}, status=web.HTTPBadRequest.status_code)
+
+        infohash = unhexlify(request.match_info["infohash"])
+
+        @db_session
+        def perform_db_act() -> bool:
+            """
+            Perform DB I/O acts on a thread, instead of blocking the main thread.
+            """
+            results = request.context[0].get_entries(infohash=infohash)
+
+            if not results:
+                return False
+
+            for result in results:
+                if result.tags:
+                    tags = result.tags.split(",")
+                    with suppress(ValueError):  # We don't care if there is nothing to remove
+                        tags.remove(tag)
+                    result.tags = ",".join(tags)
+
+            return True
+
+        return RESTResponse({"removed": (await request.context[0].run_threaded(perform_db_act))})
+
+    @docs(
+        tags=["Metadata"],
+        summary="Set the tags for the given download.",
+        parameters=[
+            {
+                "in": "path",
+                "name": "infohash",
+                "description": "Infohash of the download to set the tags for",
+                "type": "string",
+                "required": True,
+            },
+            {
+                "in": "query",
+                "name": "tags",
+                "description": "the (comma-separated) tags to set",
+                "type": "string",
+                "required": True,
+            }
+        ],
+        responses={
+            200: {
+                "schema": schema(
+                    UpdateTagsResponse={
+                        "updated": Boolean()
+                    }
+                ),
+                "examples": [
+                    {"updated": True},
+                ],
+            }
+        },
+    )
+    async def update_tags(self, request: RequestType) -> RESTResponse:
+        """
+        Set the tags for the given download.
+        """
+        tags = request.query.get("tags")
+        if not tags:
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": "no tags given to set (missing '?tags=')"
+            }}, status=web.HTTPBadRequest.status_code)
+
+        infohash = unhexlify(request.match_info["infohash"])
+
+        @db_session
+        def perform_db_act() -> bool:
+            """
+            Perform DB I/O acts on a thread, instead of blocking the main thread.
+            """
+            results = request.context[0].get_entries(infohash=infohash)
+
+            if not results:
+                return False
+
+            for result in results:
+                result.tags = tags
+
+            return True
+
+        return RESTResponse({"updated": (await request.context[0].run_threaded(perform_db_act))})

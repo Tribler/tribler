@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from ipv8.types import PrivateKey
     from pony.orm.core import Entity, Query
 
-    from tribler.core.database.layers.layer import EntityImpl
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
     from tribler.core.notifier import Notifier
 
@@ -65,7 +64,7 @@ class ProcessingResult:
     arguments for get_entries to query the sender back through Remote Query Community.
     """
 
-    md_obj: EntityImpl
+    md_obj: TorrentMetadata
     obj_state: object
     missing_deps: list = field(default_factory=list)
 
@@ -533,7 +532,7 @@ class MetadataStore:
         return left_join(g for g in self.TorrentMetadata if g.rowid in fts_ids)
 
     @db_session
-    def get_entries_query(  # noqa: C901, PLR0913
+    def get_entries_query(  # noqa: C901, PLR0912, PLR0913
             self,
             metadata_type: int | None = None,
             channel_pk: bytes | None = None,
@@ -550,6 +549,7 @@ class MetadataStore:
             self_checked_torrent: bool | None = None,
             health_checked_after: int | None = None,
             popular: bool | None = None,
+            tags: list[str] | None = None,
             **kwargs
     ) -> Query:
         """
@@ -603,7 +603,14 @@ class MetadataStore:
         # origin_id can be zero, for e.g. root channel
         pony_query = pony_query.where(id_=id_) if id_ is not None else pony_query
         pony_query = pony_query.where(origin_id=origin_id) if origin_id is not None else pony_query
-        pony_query = pony_query.where(lambda g: g.tags == category) if category else pony_query
+        # SQL can do substring matching easily, but not string splitting.
+        pony_query = (pony_query.where(lambda g: g.tags.endswith(category) or (category + ",") in g.tags)
+                      if category else pony_query)
+        # Checking for "all" tags can't be mapped to a single SQL statement, so we loop multiple WHERE clauses.
+        for tag in (tags or []):
+            # Normally B023 is very dangerous. However, this lambda is not actually used, but remapped to SQL instead.
+            pony_query = (pony_query.where(lambda g: (g.tags.endswith(tag)) or (tag + "," in g.tags))  # noqa: B023
+                          if tags else pony_query)
         pony_query = pony_query.where(lambda g: g.xxx == 0) if hide_xxx else pony_query
         pony_query = pony_query.where(lambda g: g.infohash in infohash_set) if infohash_set else pony_query
         pony_query = (

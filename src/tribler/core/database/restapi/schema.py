@@ -13,9 +13,10 @@ class MetadataParameters(Schema):
         "description": 'Sorts results in forward or backward, based on column name (e.g. "id" vs "-id")'
     })
     sort_desc = Boolean(load_default=True)
-    txt_filter = String(metadata={"description": "FTS search on the chosen word* terms"})
+    fts_text = String(metadata={"description": "FTS search on the chosen word* terms"})
     hide_xxx = Boolean(load_default=False, metadata={"description": "Toggles xxx filter"})
     category = String()
+    tags = List(String())
     exclude_deleted = Boolean(load_default=False)
     metadata_type = List(String(metadata={
         "description": 'Limits query to certain metadata types (e.g. "torrent" or "channel")'
