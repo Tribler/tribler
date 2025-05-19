@@ -124,7 +124,7 @@ class DownloadsEndpoint(RESTEndpoint):
         download_config = DownloadConfig.from_defaults(self.download_manager.config)
 
         anon_hops = parameters.get('anon_hops')
-        safe_seeding = bool(parameters.get('safe_seeding', 0))
+        safe_seeding = bool(parameters.get('safe_seeding', download_config.get_safe_seeding()))
 
         if anon_hops is not None:
             if anon_hops > 0 and not safe_seeding:
@@ -132,8 +132,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if anon_hops >= 0:
                 download_config.set_hops(anon_hops)
 
-        if safe_seeding:
-            download_config.set_safe_seeding(True)
+        download_config.set_safe_seeding(safe_seeding)
 
         if 'destination' in parameters:
             download_config.set_dest_dir(parameters['destination'])
