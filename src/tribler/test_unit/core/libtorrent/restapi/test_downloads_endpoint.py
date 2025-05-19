@@ -90,6 +90,66 @@ class TestDownloadsEndpoint(TestBase):
         return Download(TorrentDef.load_only_sha1(b"\x01" * 20, "test", ""), self.download_manager, config,
                         hidden=False, checkpoint_disabled=True)
 
+    def test_create_dconf_safe_default_safe(self) -> None:
+        """
+        Test if a default safe config can be overwritten to be safe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", True)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({"safe_seeding": 1})
+
+        self.assertTrue(dconf.get_safe_seeding())
+
+    def test_create_dconf_unsafe_default_safe(self) -> None:
+        """
+        Test if a default safe config can be overwritten to be unsafe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", True)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({"safe_seeding": 0})
+
+        self.assertFalse(dconf.get_safe_seeding())
+
+    def test_create_dconf_unset_default_safe(self) -> None:
+        """
+        Test if a default safe config can be overwritten to be unsafe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", True)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({})
+
+        self.assertTrue(dconf.get_safe_seeding())
+
+    def test_create_dconf_safe_default_unsafe(self) -> None:
+        """
+        Test if a default unsafe config can be overwritten to be safe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", False)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({"safe_seeding": 1})
+
+        self.assertTrue(dconf.get_safe_seeding())
+
+    def test_create_dconf_unsafe_default_unsafe(self) -> None:
+        """
+        Test if a default unsafe config can be overwritten to be unsafe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", False)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({"safe_seeding": 0})
+
+        self.assertFalse(dconf.get_safe_seeding())
+
+    def test_create_dconf_unset_default_unsafe(self) -> None:
+        """
+        Test if a default unsafe config can be overwritten to be unsafe.
+        """
+        self.download_manager.config.set("libtorrent/download_defaults/safeseeding_enabled", False)
+
+        dconf, _ = self.endpoint.create_dconfig_from_params({})
+
+        self.assertFalse(dconf.get_safe_seeding())
+
     async def test_get_downloads_unloaded(self) -> None:
         """
         Test if a clean response is returned if the checkpoints are not loaded yet.
