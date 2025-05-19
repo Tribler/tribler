@@ -428,7 +428,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
                 if packed_selected_files is not None:
                     params["selected_files"] = packed_selected_files
-                tdef = TorrentDef.load_from_memory(metainfo)
+                tdef = TorrentDef.load_from_dict(metainfo)
             except Exception as e:
                 return RESTResponse({"error": {"handled": True, "message": f"corrupt torrent file ({e!s})"}},
                                     status=HTTP_INTERNAL_SERVER_ERROR)
