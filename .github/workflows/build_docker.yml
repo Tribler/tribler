@@ -34,9 +34,9 @@ jobs:
       - name: Create tags
         id: git_tag_version
         run: |
-          TAG=ghcr.io/tribler:$(git describe --tags)
-          COMMIT=ghcr.io/tribler:$REF_NAME
-          VERSION=ghcr.io/tribler:latest
+          TAG=ghcr.io/tribler/tribler:$(git describe --tags)
+          COMMIT=ghcr.io/tribler/tribler:$REF_NAME
+          VERSION=ghcr.io/tribler/tribler:latest
           echo "TAG1=${TAG,,}" >> $GITHUB_ENV
           echo "TAG2=${COMMIT,,}" >> $GITHUB_ENV
           echo "TAG3=${VERSION,,}" >> $GITHUB_ENV
