@@ -200,5 +200,9 @@
     "DC": "Download choked",
     "S": "Peer snubbed",
     "R": "Incoming",
-    "L": "Outgoing"
+    "L": "Outgoing",
+    "TotalDownloadSpeed": "Total BitTorrent download speed (including protocol overhead)",
+    "TotalUploadSpeed": "Total BitTorrent upload speed (including protocol overhead)",
+    "TriblerPeers": "Tribler peer connections: {{peers, number}}",
+    "BackendCommunication": "Communication with Tribler backend"
 }

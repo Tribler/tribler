@@ -200,5 +200,9 @@
     "DC": "Choked를 다운로드하십시오",
     "S": "피어가 snubbed",
     "R": "들어오는",
-    "L": "나가는"
+    "L": "나가는",
+    "TotalDownloadSpeed": "총 비트 토렌트 다운로드 속도 (프로토콜 오버 헤드 포함)",
+    "TotalUploadSpeed": "총 비트 토렌트 업로드 속도 (프로토콜 오버 헤드 포함)",
+    "TriblerPeers": "트라이 블러 피어 연결 : {{peers, number}}",
+    "BackendCommunication": "Tribler 백엔드와의 커뮤니케이션"
 }

@@ -200,5 +200,9 @@
     "DC": "Descargar Choked",
     "S": "Desprendido",
     "R": "Entrante",
-    "L": "Extrovertido"
+    "L": "Extrovertido",
+    "TotalDownloadSpeed": "Velocidad total de descarga de BitTorrent (incluida la sobrecarga del protocolo)",
+    "TotalUploadSpeed": "Velocidad total de carga de BitTorrent (incluida la sobrecarga del protocolo)",
+    "TriblerPeers": "Conexiones entre pares: Tribler: {{peers, number}}",
+    "BackendCommunication": "Comunicación con el backend de Tribler"
 }

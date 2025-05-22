@@ -200,5 +200,9 @@
     "DC": "下载cho住",
     "S": "同伴冷落",
     "R": "传入",
-    "L": "向外"
+    "L": "向外",
+    "TotalDownloadSpeed": "总Bittorrent下载速度（包括协议开销）",
+    "TotalUploadSpeed": "总Bittorrent上传速度（包括协议开销）",
+    "TriblerPeers": "Tribler对等连接： {{peers, number}}",
+    "BackendCommunication": "与Tribler后端的通信"
 }

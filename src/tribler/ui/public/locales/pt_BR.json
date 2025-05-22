@@ -200,5 +200,9 @@
     "DC": "Baixar sufocado",
     "S": "Colegas desprezados",
     "R": "Entrada",
-    "L": "Extrovertido"
+    "L": "Extrovertido",
+    "TotalDownloadSpeed": "Total BitTorrent Download Speed ​​(incluindo sobrecarga do protocolo)",
+    "TotalUploadSpeed": "Velocidade total de upload do BitTorrent (incluindo a sobrecarga do protocolo)",
+    "TriblerPeers": "Conexões de pares TRIBLER: {{peers, number}}",
+    "BackendCommunication": "Comunicação com o back -end TRIBER"
 }
