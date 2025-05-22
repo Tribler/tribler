@@ -10,7 +10,13 @@ Currently, only running the (unstable!) ``latest`` release is supported.
 Preparation
 -----------
 
-Fetch the docker image:
+Fetch the docker image from ``docker.io``:
+
+.. code-block::
+
+    docker pull tribler/tribler:latest
+
+Or, from ``ghcr.io``:
 
 .. code-block::
 
