@@ -8,4 +8,6 @@ lz4
 pillow
 pony
 pystray
+pyperclip
+windows-toasts
 pywin32;sys_platform=="win32"

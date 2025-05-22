@@ -72,6 +72,8 @@ try:
     from aiohttp import ClientSession
     from PIL import Image
 
+    import pyperclip
+
     import tribler
     from tribler.core.session import Session
     from tribler.tribler_config import VERSION_SUBDIR, TriblerConfigManager
@@ -198,6 +200,28 @@ def open_webbrowser_tab(url: str) -> None:
         webbrowser.open_new_tab(url)
 
 
+def copy_url_to_clipboard(url: str) -> None:
+    """
+    Copy the URL to clipboard and show a notification.
+    """
+    pyperclip.copy(url)
+    if sys.platform == 'win32':    
+        import windows_toasts
+        from windows_toasts import Toast, WindowsToaster
+        toaster = WindowsToaster('Tribler')
+        new_toast = Toast()
+        new_toast.text_fields = ['URL copied to clipboard']
+        toaster.show_toast(new_toast)
+    elif sys.platform == 'linux':
+        import subprocess
+        subprocess.Popen(['xmessage', '-center', "URL copied to clipboard"])  # noqa: S603, S607
+    elif sys.platform == 'darwin':
+        import subprocess
+        subprocess.Popen(['/usr/bin/osascript', '-e', 'display notification "URL copied to clipboard" with title "Tribler"'])  # noqa: S603
+    else:
+        print("URL copied to clipboard")  # noqa: T201
+
+
 def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     """
     Create the tray icon.
@@ -208,6 +232,7 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
     menu = (pystray.MenuItem('Open', lambda: open_webbrowser_tab(url)),
+            pystray.MenuItem('Copy URL', lambda: copy_url_to_clipboard(url)),
             pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
     open_webbrowser_tab(url)
