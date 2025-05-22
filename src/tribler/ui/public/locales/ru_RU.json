@@ -204,5 +204,9 @@
     "TotalDownloadSpeed": "Общая скорость загрузки BitTorrent (включая накладные расходы протокола)",
     "TotalUploadSpeed": "Общая скорость загрузки BitTorrent (включая накладные расходы протокола)",
     "TriblerPeers": "Соединения со стороны три марки: {{peers, number}}",
-    "BackendCommunication": "Общение с бэкэнд триблера"
+    "BackendCommunication": "Общение с бэкэнд триблера",
+    "ConnectedSeeders": "Подключенные сеялки: {{seeders, number}}",
+    "UnconnectedSeeders": "Неосвященные сеялки: {{seeders, number}}",
+    "ConnectedLeechers": "Подключенные личицы: {{leechers, number}}",
+    "UnconnectedLeechers": "Не связаны с личицами: {{leechers, number}}"
 }

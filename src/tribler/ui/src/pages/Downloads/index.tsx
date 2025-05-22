@@ -22,7 +22,7 @@ import { useResizeObserver } from "@/hooks/useResizeObserver";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
-
+import { EasyTooltip } from "@/components/ui/tooltip";
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 export const filterDownloading = [3];
@@ -76,14 +76,38 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "num_seeds",
         header: getHeader('Seeds'),
         cell: ({ row }) => {
-            return <span>{row.original.num_connected_seeds} ({row.original.num_seeds})</span>
+            const { t } = useTranslation();
+            return (
+                <EasyTooltip
+                    content={[
+                        t("ConnectedSeeders", { seeders: row.original.num_connected_seeds }),
+                        t("UnconnectedSeeders", { seeders: row.original.num_seeds }),
+                    ]}
+                >
+                    <span>
+                        {row.original.num_connected_seeds} ({row.original.num_seeds})
+                    </span>
+                </EasyTooltip>
+            );
         },
     },
     {
         accessorKey: "num_peers",
         header: getHeader('Peers'),
         cell: ({ row }) => {
-            return <span>{row.original.num_connected_peers} ({row.original.num_peers})</span>
+            const { t } = useTranslation();
+            return (
+                <EasyTooltip
+                    content={[
+                        t("ConnectedLeechers", { leechers: row.original.num_connected_peers }),
+                        t("UnconnectedLeechers", { leechers: row.original.num_peers }),
+                    ]}
+                >
+                    <span>
+                        {row.original.num_connected_peers} ({row.original.num_peers})
+                    </span>
+                </EasyTooltip>
+            );
         },
     },
     {

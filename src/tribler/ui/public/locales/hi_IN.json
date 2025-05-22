@@ -204,5 +204,9 @@
     "TotalDownloadSpeed": "कुल बिटटोरेंट डाउनलोड गति (प्रोटोकॉल ओवरहेड सहित)",
     "TotalUploadSpeed": "कुल बिटटोरेंट अपलोड गति (प्रोटोकॉल ओवरहेड सहित)",
     "TriblerPeers": "त्रिभुज सहकर्मी कनेक्शन: {{peers, number}}",
-    "BackendCommunication": "त्रिशबल बैकएंड के साथ संचार"
+    "BackendCommunication": "त्रिशबल बैकएंड के साथ संचार",
+    "ConnectedSeeders": "कनेक्टेड सीडर्स: {{seeders, number}}",
+    "UnconnectedSeeders": "असंबद्ध बीजक: {{seeders, number}}",
+    "ConnectedLeechers": "कनेक्टेड लीचर्स: {{leechers, number}}",
+    "UnconnectedLeechers": "असंबद्ध लीचर्स: {{leechers, number}}"
 }

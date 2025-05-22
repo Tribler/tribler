@@ -204,5 +204,9 @@
     "TotalDownloadSpeed": "총 비트 토렌트 다운로드 속도 (프로토콜 오버 헤드 포함)",
     "TotalUploadSpeed": "총 비트 토렌트 업로드 속도 (프로토콜 오버 헤드 포함)",
     "TriblerPeers": "트라이 블러 피어 연결 : {{peers, number}}",
-    "BackendCommunication": "Tribler 백엔드와의 커뮤니케이션"
+    "BackendCommunication": "Tribler 백엔드와의 커뮤니케이션",
+    "ConnectedSeeders": "커넥 티드 씨앗 : {{seeders, number}}",
+    "UnconnectedSeeders": "연결되지 않은 씨앗 : {{seeders, number}}",
+    "ConnectedLeechers": "연결 거머리 : {{leechers, number}}",
+    "UnconnectedLeechers": "연결되지 않은 거머리 : {{leechers, number}}"
 }

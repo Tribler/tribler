@@ -204,5 +204,9 @@
     "TotalDownloadSpeed": "总Bittorrent下载速度（包括协议开销）",
     "TotalUploadSpeed": "总Bittorrent上传速度（包括协议开销）",
     "TriblerPeers": "Tribler对等连接： {{peers, number}}",
-    "BackendCommunication": "与Tribler后端的通信"
+    "BackendCommunication": "与Tribler后端的通信",
+    "ConnectedSeeders": "连接的播种机： {{seeders, number}}",
+    "UnconnectedSeeders": "未连接的播种机： {{seeders, number}}",
+    "ConnectedLeechers": "连接的水cher： {{leechers, number}}",
+    "UnconnectedLeechers": "未连接的水echer： {{leechers, number}}"
 }

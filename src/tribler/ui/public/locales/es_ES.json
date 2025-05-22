@@ -204,5 +204,9 @@
     "TotalDownloadSpeed": "Velocidad total de descarga de BitTorrent (incluida la sobrecarga del protocolo)",
     "TotalUploadSpeed": "Velocidad total de carga de BitTorrent (incluida la sobrecarga del protocolo)",
     "TriblerPeers": "Conexiones entre pares: Tribler: {{peers, number}}",
-    "BackendCommunication": "Comunicación con el backend de Tribler"
+    "BackendCommunication": "Comunicación con el backend de Tribler",
+    "ConnectedSeeders": "Sembradoras conectadas: {{seeders, number}}",
+    "UnconnectedSeeders": "Sembradoras no conectadas: {{seeders, number}}",
+    "ConnectedLeechers": "Leechers conectados: {{leechers, number}}",
+    "UnconnectedLeechers": "Leechers no conectados: {{leechers, number}}"
 }
