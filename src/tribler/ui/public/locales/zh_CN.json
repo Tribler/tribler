@@ -31,6 +31,7 @@
     "WatchFolder": "监视文件夹",
     "EnableWatchFolder": "启用监视文件夹（需要重新启动）",
     "Save": "保存",
+    "Tags": "标签",
     "ProxySettings": "种子代理设置",
     "P2PSettings": "点对点设置",
     "LocalListeningInterface": "本地听力接口",
@@ -100,7 +101,7 @@
     "Flags": "旗帜",
     "Client": "客户端",
     "SeedersLeechers": "{{seeders, number}} 个做种者，{{leechers, number}} 个下载者",
-	"NoResults": "没有结果",
+    "NoResults": "没有结果",
     "GotoFirst": "转到第一页",
     "GotoPrev": "转到上一页",
     "GotoNext": "转到下一页",
@@ -189,5 +190,15 @@
     "Clear": "清除",
     "SortBy": "排序方式",
     "Ascending": "升序",
-    "Descending": "降序"
+    "Descending": "降序",
+    "O": "乐观的不变",
+    "UI": "上传有兴趣",
+    "UC": "上传窒息",
+    "UQ": "上传有缓冲区的请求，但没有被窒息",
+    "UBL": "上传没有冲洗",
+    "DI": "下载感兴趣",
+    "DC": "下载cho住",
+    "S": "同伴冷落",
+    "R": "传入",
+    "L": "向外"
 }

@@ -190,5 +190,15 @@
     "SortBy": "Sort by",
     "Ascending": "Ascending",
     "Descending": "Descending",
-    "None": "None"
+    "None": "None",
+    "O": "Optimistic unchoke",
+    "UI": "Upload interested",
+    "UC": "Upload choked",
+    "UQ": "Upload has requests in buffer and not choked",
+    "UBL": "Upload is not flushed",
+    "DI": "Download interested",
+    "DC": "Download choked",
+    "S": "Peer snubbed",
+    "R": "Incoming",
+    "L": "Outgoing"
 }

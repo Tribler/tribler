@@ -190,5 +190,15 @@
     "Clear": "Claro",
     "SortBy": "Ordenar por",
     "Ascending": "Ascendente",
-    "Descending": "Descendiendo"
+    "Descending": "Descendiendo",
+    "O": "Inicio optimista",
+    "UI": "Subir interesado",
+    "UC": "Subiendo ahogado",
+    "UQ": "Cargar tiene solicitudes en búfer y no ahogado",
+    "UBL": "La carga no está enjuagada",
+    "DI": "Descargar interesado",
+    "DC": "Descargar Choked",
+    "S": "Desprendido",
+    "R": "Entrante",
+    "L": "Extrovertido"
 }

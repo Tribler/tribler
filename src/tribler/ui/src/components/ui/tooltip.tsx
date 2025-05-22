@@ -29,7 +29,7 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
 const EasyTooltip = (props: {
     children?: React.ReactNode;
-    content?: string,
+    content?: string | string[],
 }) => {
     return (
         <TooltipProvider>
@@ -38,7 +38,9 @@ const EasyTooltip = (props: {
                     {props.children}
                 </TooltipTrigger>
                 <TooltipContent>
-                    <p>{props.content}</p>
+                    {(Array.isArray(props.content) ? props.content : [props.content]).map((desc, index) => (
+                        <div key={index}>{desc}</div>
+                    ))}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
