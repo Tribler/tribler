@@ -208,5 +208,6 @@
     "ConnectedSeeders": "कनेक्टेड सीडर्स: {{seeders, number}}",
     "UnconnectedSeeders": "असंबद्ध बीजक: {{seeders, number}}",
     "ConnectedLeechers": "कनेक्टेड लीचर्स: {{leechers, number}}",
-    "UnconnectedLeechers": "असंबद्ध लीचर्स: {{leechers, number}}"
+    "UnconnectedLeechers": "असंबद्ध लीचर्स: {{leechers, number}}",
+    "PeerSource": "सहकर्मी ने खोज की {{source, string}}"
 }

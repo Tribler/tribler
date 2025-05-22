@@ -23,4 +23,7 @@ export interface Peer {
     connection_type: number;
     seed: boolean;
     upload_only: boolean;
+    from_dht: boolean;
+    from_pex: boolean;
+    from_lsd: boolean;
 }

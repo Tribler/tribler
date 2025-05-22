@@ -43,6 +43,18 @@ const peerFlags = (peer: Peer): [string, string[]] => {
         state += "S,";
         stateDescription.push(`S = ${t("S")}`);
     }
+    if (peer.from_dht) {
+        state += "H,";
+        stateDescription.push(`H = ${t("PeerSource", {source: "DHT"})}`);
+    }
+    if (peer.from_pex) {
+        state += "X,";
+        stateDescription.push(`X = ${t("PeerSource", {source: "PEX"})}`);
+    }
+    if (peer.from_lsd) {
+        state += "LSD,";
+        stateDescription.push(`LSD = ${t("PeerSource", {source: "LSD"})}`);
+    }
     if (peer["direction"] == "R") {
         state += "R";
         stateDescription.push(`R = ${t("R")}`);

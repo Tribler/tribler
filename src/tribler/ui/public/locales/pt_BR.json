@@ -208,5 +208,6 @@
     "ConnectedSeeders": "Semeadores conectados: {{seeders, number}}",
     "UnconnectedSeeders": "Semeadores desconectados: {{seeders, number}}",
     "ConnectedLeechers": "Leechers conectados: {{leechers, number}}",
-    "UnconnectedLeechers": "Leechers desconectados: {{leechers, number}}"
+    "UnconnectedLeechers": "Leechers desconectados: {{leechers, number}}",
+    "PeerSource": "Peer descoberto usando {{source, string}}"
 }
