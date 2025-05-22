@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { Button } from "./ui/button";
-import { PlusIcon, Cloud, File as FileIcon } from "lucide-react";
+import { PlusIcon, Cloud, File as FileIcon, Server } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { triblerService } from "@/services/tribler.service";
@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import SaveAs from "@/dialogs/SaveAs";
 import CreateTorrent from "@/dialogs/CreateTorrent";
 import { useTranslation } from "react-i18next";
+import SelectRemotePath from "@/dialogs/SelectRemotePath";
 
 
 export function AddTorrent() {
@@ -21,6 +22,8 @@ export function AddTorrent() {
 
     const [urlDialogOpen, setUrlDialogOpen] = useState<boolean>(false);
     const [uriInput, setUriInput] = useState('');
+
+    const [remoteTorrentDialogOpen, setRemoteTorrentDialogOpen] = useState<boolean>(false);
 
     const [saveAsDialogOpen, setSaveAsDialogOpen] = useState<boolean>(false);
 
@@ -55,6 +58,16 @@ export function AddTorrent() {
                         <FileIcon className="mr-2 h-4 w-4" />
                         {t('ImportTorrentFile')}
                     </DropdownMenuItem>
+                    {(location.hostname !== "localhost" && location.hostname !== "127.0.0.1") && (
+                        <DropdownMenuItem
+                            onClick={() => {
+                                setRemoteTorrentDialogOpen(true);
+                            }}
+                        >
+                            <Server className="mr-2 h-4 w-4" />
+                            {t("ImportRemoteTorrentFile")}
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={() => {
@@ -114,6 +127,19 @@ export function AddTorrent() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <SelectRemotePath
+                initialPath={""}
+                selectDir={false}
+                open={remoteTorrentDialogOpen}
+                onOpenChange={setRemoteTorrentDialogOpen}
+                onSelect={(path) => {
+                    setUriInput(`file:///${path.replace(/\\/g, '/')}`);
+                    setTorrent(undefined);
+                    setSaveAsDialogOpen(true);
+                }}
+                filterFn={(path) => path.dir || path.name.endsWith(".torrent")}
+            />
 
             <SaveAs
                 open={saveAsDialogOpen}

@@ -209,5 +209,6 @@
     "UnconnectedSeeders": "未连接的播种机： {{seeders, number}}",
     "ConnectedLeechers": "连接的水cher： {{leechers, number}}",
     "UnconnectedLeechers": "未连接的水echer： {{leechers, number}}",
-    "PeerSource": "同伴发现使用 {{source, string}}"
+    "PeerSource": "同伴发现使用 {{source, string}}",
+    "ImportRemoteTorrentFile": "从远程文件导入洪流"
 }

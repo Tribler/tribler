@@ -209,5 +209,6 @@
     "UnconnectedSeeders": "Unconnected seeders: {{seeders, number}}",
     "ConnectedLeechers": "Connected leechers: {{leechers, number}}",
     "UnconnectedLeechers": "Unconnected leechers: {{leechers, number}}",
-    "PeerSource": "Peer discovered using {{source, string}}"
+    "PeerSource": "Peer discovered using {{source, string}}",
+    "ImportRemoteTorrentFile": "Import torrent from remote file(s)"
 }

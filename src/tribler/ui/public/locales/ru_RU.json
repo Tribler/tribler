@@ -209,5 +209,6 @@
     "UnconnectedSeeders": "Неосвященные сеялки: {{seeders, number}}",
     "ConnectedLeechers": "Подключенные личицы: {{leechers, number}}",
     "UnconnectedLeechers": "Не связаны с личицами: {{leechers, number}}",
-    "PeerSource": "Пир обнаружил, используя {{source, string}}"
+    "PeerSource": "Пир обнаружил, используя {{source, string}}",
+    "ImportRemoteTorrentFile": "Импорт торрент из удаленного файла (ы)"
 }

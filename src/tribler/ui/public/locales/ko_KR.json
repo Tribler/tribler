@@ -209,5 +209,6 @@
     "UnconnectedSeeders": "연결되지 않은 씨앗 : {{seeders, number}}",
     "ConnectedLeechers": "연결 거머리 : {{leechers, number}}",
     "UnconnectedLeechers": "연결되지 않은 거머리 : {{leechers, number}}",
-    "PeerSource": "피어는 사용을 발견했습니다 {{source, string}}"
+    "PeerSource": "피어는 사용을 발견했습니다 {{source, string}}",
+    "ImportRemoteTorrentFile": "원격 파일에서 토런트 가져 오기"
 }
