@@ -50,7 +50,7 @@ export function Footer() {
             <div className="h-6 flex flex-row items-center">
                 <div className="flex items-stretch"></div>
 
-                <EasyTooltip content="Total BitTorrent download speed (including protocol overhead)">
+                <EasyTooltip content={t("TotalDownloadSpeed")}>
                     <div className="flex items-center mx-1">
                         <DoubleArrowDownIcon className="w-4 mr-1" />
                         <span className="text-xs text-muted-foreground pr-1 select-none">
@@ -59,7 +59,7 @@ export function Footer() {
                     </div>
                 </EasyTooltip>
                 <p className="text-sm text-muted-foreground/50">|</p>
-                <EasyTooltip content="Total BitTorrent upload speed (including protocol overhead)">
+                <EasyTooltip content={t("TotalUploadSpeed")}>
                     <div className="flex items-center mx-1">
                         <DoubleArrowUpIcon className="w-4 mr-1" />
                         <span className="text-xs text-muted-foreground pr-1 select-none">
@@ -68,7 +68,7 @@ export function Footer() {
                     </div>
                 </EasyTooltip>
                 <p className="text-sm text-muted-foreground/50">|</p>
-                <EasyTooltip content={`Tribler peer connections: ${statistics?.peers}`}>
+                <EasyTooltip content={t("TriblerPeers", {peers: statistics?.peers})}>
                     <div className="flex items-center mx-1">
                         {statistics?.peers >= 0 && statistics?.peers < 5 && (
                             <GlobeIcon color="#FF2D3F" className="w-4 mr-1" />
@@ -80,7 +80,7 @@ export function Footer() {
                     </div>
                 </EasyTooltip>
                 <p className="text-sm text-muted-foreground/50">|</p>
-                <EasyTooltip content="Communication with Tribler backend">
+                <EasyTooltip content={t("BackendCommunication")}>
                     <div className="flex items-center mx-1">
                         {interactions == 0 && <DesktopIcon color={undefined} className="w-4 mr-1" />}
                         {interactions != 0 && <DesktopIcon color="#567DD8" className="w-4 mr-1" />}

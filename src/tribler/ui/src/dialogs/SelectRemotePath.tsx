@@ -61,6 +61,7 @@ interface SelectRemotePathProps {
     selectDir: boolean,
     showFiles?: boolean;
     onSelect: (selected: string, dir: boolean) => void;
+    filterFn?: (path: Path) => boolean;
 }
 
 export default function SelectRemotePath(props: SelectRemotePathProps & JSX.IntrinsicAttributes & DialogProps) {
@@ -102,7 +103,8 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                 }
             }
         } else {
-            setPaths(response.paths);
+            let filterFn = props.filterFn;
+            setPaths(filterFn ? response.paths.filter((path) => filterFn(path)) : response.paths);
             setCurrentPath(response.current);
             setLastClicked((selectDir) ? { name: '', path: response.current, dir: true } : undefined);
             setSeparator(response.separator);

@@ -676,7 +676,10 @@ class Download(TaskManager):
                 "speed": peer_info.remote_dl_rate,
                 "connection_type": peer_info.connection_type,  # type: ignore[attr-defined] # shortcoming of stubs
                 "seed": bool(peer_info.flags & peer_info.seed),
-                "upload_only": bool(peer_info.flags & peer_info.upload_only)
+                "upload_only": bool(peer_info.flags & peer_info.upload_only),
+                "from_dht": bool(peer_info.source & peer_info.dht),
+                "from_pex": bool(peer_info.source & peer_info.pex),
+                "from_lsd": bool(peer_info.source & peer_info.lsd)
             })
             if include_have:
                 peer_dict = cast("PeerDictHave", peer_dict)
