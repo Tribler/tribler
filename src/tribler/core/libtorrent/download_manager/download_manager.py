@@ -1028,9 +1028,6 @@ class DownloadManager(TaskManager):
             return False
 
         metainfo = config.get_metainfo()
-        if not metainfo:
-            self._logger.error("Could not resume checkpoint %s; metainfo not found", filename)
-            return False
         if not isinstance(metainfo, dict):
             self._logger.error("Could not resume checkpoint %s; metainfo is not dict %s %s",
                                filename, type(metainfo), repr(metainfo))
@@ -1048,6 +1045,11 @@ class DownloadManager(TaskManager):
                 return False
         else:
             tdef = TorrentDef(resumedata)
+            if b'info' in metainfo:
+                try:
+                    tdef.atp.ti = lt.torrent_info(metainfo)
+                except RuntimeError as e:
+                    self._logger.exception("Could not load torrent_info: %s %s ", e, metainfo)
 
         config.state_dir = self.state_dir
         if config.get_dest_dir() == "":  # removed torrent ignoring
