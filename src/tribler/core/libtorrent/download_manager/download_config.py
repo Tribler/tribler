@@ -32,6 +32,8 @@ if TYPE_CHECKING:
         saveas: str | None
         completed_dir: str | None
         stop_after_metainfo: bool
+        upload_limit: int
+        download_limit: int
 
 
     class StateConfigSection(TypedDict):
@@ -80,6 +82,8 @@ add_download_to_channel = boolean(default=False)
 saveas = string(default=None)
 completed_dir = string(default=None)
 stop_after_metainfo = boolean(default=False)
+upload_limit =  integer(default=-1)
+download_limit =  integer(default=-1)
 
 [state]
 metainfo = string(default='ZGU=')
@@ -333,3 +337,27 @@ class DownloadConfig:
         Get whether the download should stop after receiving the metainfo.
         """
         return self.config["download_defaults"].get("stop_after_metainfo", False)
+
+    def set_upload_limit(self, value: int) -> None:
+        """
+        Set the upload bandwidth limit for this torrent.
+        """
+        self.config["download_defaults"]["upload_limit"] = value
+
+    def get_upload_limit(self) -> int:
+        """
+        Get the upload bandwidth limit for this torrent.
+        """
+        return self.config["download_defaults"].get("upload_limit", False)
+
+    def set_download_limit(self, value: int) -> None:
+        """
+        Set the download bandwidth limit for this torrent.
+        """
+        self.config["download_defaults"]["download_limit"] = value
+
+    def get_download_limit(self) -> int:
+        """
+        Get the download bandwidth limit for this torrent.
+        """
+        return self.config["download_defaults"].get("download_limit", False)

@@ -3,19 +3,20 @@ import { triblerService } from "@/services/tribler.service";
 import { ErrorDict, isErrorDict } from "@/services/reporting";
 import toast from 'react-hot-toast';
 import { Button } from "@/components/ui/button";
-import { CheckCheckIcon, Clapperboard, ExternalLinkIcon, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCheckIcon, Clapperboard, ExternalLinkIcon, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
 import { MoveIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { downloadFile, downloadFilesAsZip } from "@/lib/utils";
+import { downloadFile, downloadFilesAsZip, formatBytes } from "@/lib/utils";
 import { TFunction } from "i18next";
-import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
+import { ContextMenuContent, ContextMenuItem, ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
 import MoveStorage from "@/dialogs/MoveStorage";
 import ConfirmRemove from "@/dialogs/ConfirmRemove";
 import { VideoDialog } from "@/dialogs/Videoplayer";
 import { filterActive, filterInactive } from ".";
 import { EasyTooltip } from "@/components/ui/tooltip";
 
+const defaultLimits = [5 * 1024, 15 * 1024, 50 * 1024, 100 * 1024, 150 * 1024, -1];
 
 function handleError(response: undefined | ErrorDict | boolean, errorMsg: string, undefinedMsg: string) {
     if (response === undefined) {
@@ -77,6 +78,29 @@ function setHops(selectedDownloads: Download[], hops: number, t: TFunction) {
     });
 }
 
+function setBandwidthLimit(selectedDownloads: Download[], value: number | undefined, direction: "up" | "down", t: TFunction) {
+    if (value === undefined) return
+    selectedDownloads.forEach((download) => {
+        let result;
+        if (direction === "up") {
+            download.upload_limit = value;
+            result = triblerService.setUploadLimit(download.infohash, value);
+        }
+        else {
+            download.download_limit = value;
+            result = triblerService.setDownloadLimit(download.infohash, value);
+        }
+        result.then((response) => handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr")));
+    });
+}
+
+function getBandwidthLimit(selectedDownloads: Download[], direction: "up" | "down", noDefaults: boolean = false): number | undefined {
+    const limits = selectedDownloads.map((download) => direction === "up" ? download.upload_limit : download.download_limit);
+    const allEqual = limits.every((val, i, arr) => val === arr[0]);
+    if (noDefaults) return allEqual && !defaultLimits.includes(limits[0]) ? limits[0] : undefined;
+    return allEqual ? limits[0] : undefined;
+}
+
 export function ActionButtons({ selectedDownloads }: { selectedDownloads: Download[] }) {
     const { t } = useTranslation();
 
@@ -131,6 +155,9 @@ export function ActionButtons({ selectedDownloads }: { selectedDownloads: Downlo
 export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[] }) {
     const { t } = useTranslation();
 
+    const uploadLimitRef = useRef<HTMLInputElement | null>(null);
+    const downloadLimitRef = useRef<HTMLInputElement | null>(null);
+
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const [storageDialogOpen, setStorageDialogOpen] = useState(false);
     const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
@@ -179,6 +206,86 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                     {t('Remove')}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger
+                        disabled={selectedDownloads.length < 1}
+                        className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
+                        <ArrowDown className="w-4 ml-2 mr-3" />
+                        {t("DownloadLimit")}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuRadioGroup
+                            value={String(getBandwidthLimit(selectedDownloads, "down"))}>
+                            {defaultLimits.map((limit) => (
+                                <ContextMenuRadioItem
+                                    value={limit.toString()}
+                                    onSelect={() => setBandwidthLimit(selectedDownloads, limit, "down", t)}>
+                                    <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
+                                </ContextMenuRadioItem >
+                            ))}
+                            <ContextMenuRadioItem
+                                className="space-x-2"
+                                value={String(getBandwidthLimit(selectedDownloads, "down", true) || -2)}>
+                                <input
+                                    ref={downloadLimitRef}
+                                    type="number"
+                                    defaultValue={(getBandwidthLimit(selectedDownloads, "down", true) || 1024) / 1024}
+                                    className="bg-white text-black w-[75px] mr-1"
+                                    onClick={(e) => e.preventDefault()}
+                                    min={1} max={1024 * 10}>
+                                </input>
+                                KiB/s
+                                <Button
+                                    className="outline px-1 py-1 h-6 ml-1"
+                                    onClick={() => {
+                                        if (downloadLimitRef.current?.value) {
+                                            setBandwidthLimit(selectedDownloads, +downloadLimitRef.current?.value * 1024, "down", t)
+                                        }
+                                    }}>Set</Button>
+                            </ContextMenuRadioItem>
+                        </ContextMenuRadioGroup>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger
+                        disabled={selectedDownloads.length < 1}
+                        className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
+                        <ArrowUp className="w-4 ml-2 mr-3" />
+                        {t("UploadLimit")}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuRadioGroup
+                            value={String(getBandwidthLimit(selectedDownloads, "up"))}>
+                            {defaultLimits.map((limit) => (
+                                <ContextMenuRadioItem
+                                    value={limit.toString()}
+                                    onSelect={() => setBandwidthLimit(selectedDownloads, limit, "up", t)}>
+                                    <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
+                                </ContextMenuRadioItem >
+                            ))}
+                            <ContextMenuRadioItem
+                                className="space-x-2"
+                                value={String(getBandwidthLimit(selectedDownloads, "up", true) || -2)}>
+                                <input
+                                    ref={uploadLimitRef}
+                                    type="number"
+                                    defaultValue={(getBandwidthLimit(selectedDownloads, "up", true) || 1024) / 1024}
+                                    className="bg-white text-black w-[75px] mr-1"
+                                    onClick={(e) => e.preventDefault()}
+                                    min={1} max={1024 * 10}>
+                                </input>
+                                KiB/s
+                                <Button
+                                    className="outline px-1 py-1 h-6 ml-1"
+                                    onClick={() => {
+                                        if (uploadLimitRef.current?.value) {
+                                            setBandwidthLimit(selectedDownloads, +uploadLimitRef.current?.value * 1024, "up", t)
+                                        }
+                                    }}>Set</Button>
+                            </ContextMenuRadioItem>
+                        </ContextMenuRadioGroup>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
                 <ContextMenuItem
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => (selectedDownloads.length > 0) && setStorageDialogOpen(true)}

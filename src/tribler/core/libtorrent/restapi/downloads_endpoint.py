@@ -19,7 +19,6 @@ from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
-from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream, StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
@@ -38,6 +37,7 @@ if TYPE_CHECKING:
     from aiohttp.abc import AbstractStreamWriter, BaseRequest, Request
 
     from tribler.core.libtorrent.download_manager.download import Download
+    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 TOTAL = "total"
@@ -316,9 +316,8 @@ class DownloadsEndpoint(RESTEndpoint):
                 "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),
                 "safe_seeding": download.config.get_safe_seeding(),
-                # Maximum upload/download rates are set for entire sessions
-                "max_upload_speed": DownloadManager.get_libtorrent_max_upload_rate(self.download_manager.config),
-                "max_download_speed": DownloadManager.get_libtorrent_max_download_rate(self.download_manager.config),
+                "upload_limit": download.get_upload_limit(),
+                "download_limit": download.get_download_limit(),
                 "destination": str(download.config.get_dest_dir()),
                 "completed_dir": download.config.get_completed_dir(),
                 "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
@@ -531,7 +530,10 @@ class DownloadsEndpoint(RESTEndpoint):
         "state": (String, "State parameter to be passed to modify the state of the download (resume/stop/recheck)"),
         "selected_files": (List(Integer), "File indexes to be included in the download"),
         "anon_hops": (Integer, "The anonymity of a download can be changed at runtime by passing the anon_hops "
-                               "parameter, however, this must be the only parameter in this request.")
+                               "parameter, however, this must be the only parameter in this request."),
+        "completed_dir": (String, "Directory where to move files upon completion."),
+        "upload_limit": (Integer, "Upload limit in bytes/s."),
+        "download_limit": (Integer, "Download limit in bytes/s."),
     }))
     async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0911
         """
@@ -575,6 +577,12 @@ class DownloadsEndpoint(RESTEndpoint):
                                         "message": f"Directory ({completed_dir}) does not exist"
                                     }}, status=HTTP_BAD_REQUEST)
             download.config.set_completed_dir(completed_dir)
+
+        if upload_limit := parameters.get("upload_limit"):
+            await download.set_upload_limit(upload_limit)
+
+        if download_limit := parameters.get("download_limit"):
+            await download.set_download_limit(download_limit)
 
         if state := parameters.get("state"):
             if state == "resume":

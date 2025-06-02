@@ -210,5 +210,8 @@
     "ConnectedLeechers": "연결 거머리 : {{leechers, number}}",
     "UnconnectedLeechers": "연결되지 않은 거머리 : {{leechers, number}}",
     "PeerSource": "피어는 사용을 발견했습니다 {{source, string}}",
-    "ImportRemoteTorrentFile": "원격 파일에서 토런트 가져 오기"
+    "ImportRemoteTorrentFile": "원격 파일에서 토런트 가져 오기",
+    "UploadLimit": "속도 제한 업로드",
+    "DownloadLimit": "속도 제한을 다운로드하십시오",
+    "ToastErrorSetBandwidthLimit": "대역폭 제한을 설정하지 못했습니다!"
 }

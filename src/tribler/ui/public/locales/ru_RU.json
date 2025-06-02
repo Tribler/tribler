@@ -210,5 +210,8 @@
     "ConnectedLeechers": "Подключенные личицы: {{leechers, number}}",
     "UnconnectedLeechers": "Не связаны с личицами: {{leechers, number}}",
     "PeerSource": "Пир обнаружил, используя {{source, string}}",
-    "ImportRemoteTorrentFile": "Импорт торрент из удаленного файла (ы)"
+    "ImportRemoteTorrentFile": "Импорт торрент из удаленного файла (ы)",
+    "UploadLimit": "Ограничение скорости загрузки",
+    "DownloadLimit": "Скачать ограничение скорости",
+    "ToastErrorSetBandwidthLimit": "Не удалось установить предел полосы пропускания!"
 }

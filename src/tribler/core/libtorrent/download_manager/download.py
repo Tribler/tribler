@@ -1084,3 +1084,31 @@ class Download(TaskManager):
             return False
         return (not self.config.get_selected_files()
                 or self.get_file_index(file_path) in self.config.get_selected_files())
+
+    async def set_upload_limit(self, value: int) -> None:
+        """
+        Set the upload bandwidth limit for this torrent.
+        """
+        handle = await self.get_handle()
+        handle.set_upload_limit(value)
+        self.config.set_upload_limit(value)
+
+    def get_upload_limit(self) -> int:
+        """
+        Get the upload bandwidth limit for this torrent.
+        """
+        return self.config.get_upload_limit()
+
+    async def set_download_limit(self, value: int) -> None:
+        """
+        Set the download bandwidth limit for this torrent.
+        """
+        handle = await self.get_handle()
+        handle.set_download_limit(value)
+        self.config.set_download_limit(value)
+
+    def get_download_limit(self) -> int:
+        """
+        Get the download bandwidth limit for this torrent.
+        """
+        return self.config.get_download_limit()
