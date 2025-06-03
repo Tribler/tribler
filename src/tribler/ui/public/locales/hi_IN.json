@@ -210,5 +210,8 @@
     "ConnectedLeechers": "कनेक्टेड लीचर्स: {{leechers, number}}",
     "UnconnectedLeechers": "असंबद्ध लीचर्स: {{leechers, number}}",
     "PeerSource": "सहकर्मी ने खोज की {{source, string}}",
-    "ImportRemoteTorrentFile": "दूरस्थ फ़ाइल से धार आयात करें"
+    "ImportRemoteTorrentFile": "दूरस्थ फ़ाइल से धार आयात करें",
+    "UploadLimit": "गति सीमा अपलोड करें",
+    "DownloadLimit": "डाउनलोड गति सीमा",
+    "ToastErrorSetBandwidthLimit": "बैंडविड्थ सीमा निर्धारित करने में विफल!"
 }

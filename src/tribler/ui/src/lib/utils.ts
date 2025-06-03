@@ -83,10 +83,10 @@ export function formatTimeRelativeISO(ts: number) {
     return date.toISOString().substr(11, 8);
 }
 
-export function formatBytes(bytes: number) {
-    if (bytes === 0) { return '0.00 B'; }
+export function formatBytes(bytes: number, digits: number = 2) {
+    if (bytes === 0) { return `0${digits > 0 ? "."+"0".repeat(digits) : ""} B`; }
     const e = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, e)).toFixed(2) + ' ' + ' KMGTP'.charAt(e) + 'B';
+    return (bytes / Math.pow(1024, e)).toFixed(digits) + ' ' + ' KMGTP'.charAt(e) + 'B';
 }
 
 export function formatFlags(flags: number[]) {

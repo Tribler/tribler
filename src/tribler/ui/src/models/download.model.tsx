@@ -41,8 +41,8 @@ export interface Download {
     hops: number;
     anon_download: boolean;
     safe_seeding: boolean;
-    max_upload_speed: number;
-    max_download_speed: number;
+    upload_limit: number;
+    download_limit: number;
     destination: string;
     completed_dir: string;
     total_pieces: number;

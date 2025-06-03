@@ -210,5 +210,8 @@
     "ConnectedLeechers": "Connected leechers: {{leechers, number}}",
     "UnconnectedLeechers": "Unconnected leechers: {{leechers, number}}",
     "PeerSource": "Peer discovered using {{source, string}}",
-    "ImportRemoteTorrentFile": "Import torrent from remote file(s)"
+    "ImportRemoteTorrentFile": "Import torrent from remote file(s)",
+    "UploadLimit": "Upload speed limit",
+    "DownloadLimit": "Download speed limit",
+    "ToastErrorSetBandwidthLimit": "Failed to set bandwidth limit!"
 }

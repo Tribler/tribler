@@ -206,7 +206,22 @@ export class TriblerService {
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
+    }
 
+    async setUploadLimit(infohash: string, limit: number): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, { upload_limit: limit })).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async setDownloadLimit(infohash: string, limit: number): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, { download_limit: limit })).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
     }
 
     // Statistics

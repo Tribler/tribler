@@ -210,5 +210,8 @@
     "ConnectedLeechers": "连接的水cher： {{leechers, number}}",
     "UnconnectedLeechers": "未连接的水echer： {{leechers, number}}",
     "PeerSource": "同伴发现使用 {{source, string}}",
-    "ImportRemoteTorrentFile": "从远程文件导入洪流"
+    "ImportRemoteTorrentFile": "从远程文件导入洪流",
+    "UploadLimit": "上传速度限制",
+    "DownloadLimit": "下载速度限制",
+    "ToastErrorSetBandwidthLimit": "无法设置带宽限制！"
 }
