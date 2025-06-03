@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from http.cookies import BaseCookie
 from typing import TYPE_CHECKING
 
 from aiohttp import hdrs, web
@@ -36,7 +35,7 @@ class GenericRequest(MockRequest):
         super().__init__(path, "GET", query)
         self._headers = headers or {}
         if cookies is not None:
-            self._headers[hdrs.COOKIE] = BaseCookie(cookies)
+            self._headers[hdrs.COOKIE] = cookies
 
     @classmethod
     async def generic_handler(cls: type[Self], _: GenericRequest) -> RESTResponse:
@@ -102,7 +101,7 @@ class TestRESTManager(TestBase):
         Test if the api key middleware allows keys passed in a cookie.
         """
         middleware = ApiKeyMiddleware("123")
-        request = GenericRequest(cookies={"api_key": "123"})
+        request = GenericRequest(cookies="api_key=123")
 
         response = await middleware(request, GenericRequest.generic_handler)
         response_body_json = await response_to_json(response)

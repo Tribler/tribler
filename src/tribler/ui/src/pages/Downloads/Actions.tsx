@@ -64,9 +64,9 @@ function exportTorrents(selectedDownloads: Download[]) {
     else if (files.length > 1) downloadFilesAsZip(files, 'torrents.zip');
 }
 
-function moveDownloads(selectedDownloads: Download[], storageLocation: string, t: TFunction) {
+function moveDownloads(selectedDownloads: Download[], storageLocation: string, completedLocation: string, t: TFunction) {
     selectedDownloads.forEach((download) => {
-        triblerService.moveDownload(download.infohash, storageLocation).then((response) =>
+        triblerService.moveDownload(download.infohash, storageLocation, completedLocation).then((response) =>
             handleError(response, t("ToastErrorDownloadMove"), t("ToastErrorGenNetworkErr")))
     });
 }
@@ -291,7 +291,7 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                     onClick={() => (selectedDownloads.length > 0) && setStorageDialogOpen(true)}
                     disabled={selectedDownloads.length < 1}>
                     <MoveIcon className="w-4 ml-2 mr-3" />
-                    {t('MoveStorage')}
+                    {t('MoveStorage')}..
                 </ContextMenuItem>
                 <ContextMenuItem
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"

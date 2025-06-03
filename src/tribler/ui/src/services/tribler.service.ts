@@ -152,9 +152,10 @@ export class TriblerService {
         }
     }
 
-    async moveDownload(infohash: string, dest_dir: string): Promise<undefined | ErrorDict | boolean> {
+    async moveDownload(infohash: string, dest_dir: string, completed_dir: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { state: 'move_storage', dest_dir: dest_dir })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`,
+                { state: 'move_storage', dest_dir, completed_dir })).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

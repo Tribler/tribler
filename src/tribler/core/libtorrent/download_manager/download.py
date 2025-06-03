@@ -603,7 +603,6 @@ class Download(TaskManager):
         if self.tdef.torrent_info is not None:
             handle.move_storage(str(new_dir))
         self.config.set_dest_dir(new_dir)
-        self.config.set_completed_dir(new_dir)
         return True
 
     @check_handle(None)
