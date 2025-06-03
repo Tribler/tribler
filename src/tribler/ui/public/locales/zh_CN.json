@@ -45,6 +45,7 @@
     "MinusOneIsUnlimited": "-1 = 无限制",
     "EnableAnnounceAll": "向所有种子追踪者宣布",
     "MaxTrackerConnections": "最大并发跟踪器连接数",
+    "MaxTrackerConnectionsWarning": "此设置很高，可能会使您的Tribler慢或无法使用！",
     "Password": "密码",
     "UploadRate": "上传速率限制",
     "DownloadRate": "下载速率限制",

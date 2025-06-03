@@ -45,6 +45,7 @@
     "MinusOneIsUnlimited": "-1 = без ограничения",
     "EnableAnnounceAll": "Анонсируйте на всех торрент-трекерах",
     "MaxTrackerConnections": "Максимальное количество одновременных подключений к трекеру",
+    "MaxTrackerConnectionsWarning": "Эта настройка высока и может сделать ваш Tribler медленным или неработоспособным!",
     "Password": "Пароль",
     "UploadRate": "Исходящий трафик",
     "DownloadRate": "Входящий трафик",

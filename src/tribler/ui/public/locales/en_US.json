@@ -45,6 +45,7 @@
     "MinusOneIsUnlimited": "-1 = unlimited",
     "EnableAnnounceAll": "Announce to all torrent trackers",
     "MaxTrackerConnections": "Max concurrent tracker connections",
+    "MaxTrackerConnectionsWarning": "This setting is high and may make your Tribler slow or inoperable!",
     "Password": "Password",
     "UploadRate": "Upload rate limit",
     "DownloadRate": "Download rate limit",
