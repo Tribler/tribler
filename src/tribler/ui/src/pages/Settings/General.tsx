@@ -165,7 +165,7 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.ui?.ask_download_settings}
+                    checked={settings?.ui?.ask_download_settings !== false}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
