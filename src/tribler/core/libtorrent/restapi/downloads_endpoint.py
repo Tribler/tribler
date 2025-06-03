@@ -531,11 +531,10 @@ class DownloadsEndpoint(RESTEndpoint):
         "selected_files": (List(Integer), "File indexes to be included in the download"),
         "anon_hops": (Integer, "The anonymity of a download can be changed at runtime by passing the anon_hops "
                                "parameter, however, this must be the only parameter in this request."),
-        "completed_dir": (String, "Directory where to move files upon completion."),
         "upload_limit": (Integer, "Upload limit in bytes/s."),
         "download_limit": (Integer, "Download limit in bytes/s."),
     }))
-    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0911
+    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
         """
         Update a specific download.
         """
@@ -569,15 +568,6 @@ class DownloadsEndpoint(RESTEndpoint):
                                     }}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
 
-        if parameters.get("completed_dir"):
-            completed_dir = Path(parameters["completed_dir"])
-            if not completed_dir.exists():
-                return RESTResponse({"error": {
-                                        "handled": True,
-                                        "message": f"Directory ({completed_dir}) does not exist"
-                                    }}, status=HTTP_BAD_REQUEST)
-            download.config.set_completed_dir(completed_dir)
-
         if upload_limit := parameters.get("upload_limit"):
             await download.set_upload_limit(upload_limit)
 
@@ -593,12 +583,17 @@ class DownloadsEndpoint(RESTEndpoint):
                 download.force_recheck()
             elif state == "move_storage":
                 dest_dir = Path(parameters["dest_dir"])
-                if not dest_dir.exists():
+                completed_dir = Path(parameters.get("completed_dir") or dest_dir)
+                if not dest_dir.exists() or not completed_dir.exists():
                     return RESTResponse({"error": {
                                             "handled": True,
                                             "message": f"Target directory ({dest_dir}) does not exist"
                                         }}, status=HTTP_BAD_REQUEST)
                 download.move_storage(dest_dir)
+                if download.get_state().get_progress() != 1:
+                    download.config.set_completed_dir(completed_dir)
+                else:
+                    download.config.set_completed_dir(dest_dir)
                 download.checkpoint()
             else:
                 return RESTResponse({"error": {
