@@ -45,6 +45,7 @@
     "MinusOneIsUnlimited": "-1 = sem limites",
     "EnableAnnounceAll": "Anuncie a todos os rastreadores de torrent",
     "MaxTrackerConnections": "Máximo de conexões simultâneas do rastreador",
+    "MaxTrackerConnectionsWarning": "Essa configuração é alta e pode tornar seu Tribler lento ou inoperante!",
     "Password": "Senha",
     "UploadRate": "Limite de upload",
     "DownloadRate": "Limite de upload",

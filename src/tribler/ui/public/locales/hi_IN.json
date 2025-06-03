@@ -45,6 +45,7 @@
     "MinusOneIsUnlimited": "-1 =  असीमित",
     "EnableAnnounceAll": "सभी टॉरेंट ट्रैकर्स को घोषणा करें",
     "MaxTrackerConnections": "अधिकतम समवर्ती ट्रैकर कनेक्शन",
+    "MaxTrackerConnectionsWarning": "यह सेटिंग उच्च है और आपके Tribler को धीमा या निष्क्रिय बना सकती है!",
     "Password": "पासवर्ड",
     "UploadRate": "प्रदान दर सीमा",
     "DownloadRate": "आदान दर सीमा",

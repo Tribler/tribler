@@ -319,6 +319,14 @@ export default function Connection() {
                         }
                     }}
                 />
+                <div></div>
+                {(settings?.libtorrent?.max_concurrent_http_announces === undefined)
+                    || (settings.libtorrent.max_concurrent_http_announces <= 150) ? (<div></div>) :
+                    (<Label className="whitespace-nowrap p-2 text-muted-foreground bg-secondary">
+                        {t('MaxTrackerConnectionsWarning')}
+                    </Label>)
+                }
+
             </div>
 
             <SaveButton
