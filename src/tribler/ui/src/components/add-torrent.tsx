@@ -26,6 +26,9 @@ export function AddTorrent() {
     const [remoteTorrentDialogOpen, setRemoteTorrentDialogOpen] = useState<boolean>(false);
 
     const [saveAsDialogOpen, setSaveAsDialogOpen] = useState<boolean>(false);
+    const [saveAsClosed, setSaveAsClosed] = useState<{ callback: ((value: unknown) => void) | null }>({
+        callback: null,
+    });
 
     const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false);
 
@@ -108,7 +111,7 @@ export function AddTorrent() {
                                             const response = await triblerService.getMetainfo(uriInputRef.current.value, true);
                                             if (response === undefined) {
                                                 toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
-                                            } else if (isErrorDict(response)){
+                                            } else if (isErrorDict(response)) {
                                                 toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
                                             } else {
                                                 setSaveAsDialogOpen(true);
@@ -143,7 +146,12 @@ export function AddTorrent() {
 
             <SaveAs
                 open={saveAsDialogOpen}
-                onOpenChange={setSaveAsDialogOpen}
+                onOpenChange={(value) => {
+                    setSaveAsDialogOpen(value);
+                    if (!value && saveAsClosed.callback) {
+                        saveAsClosed.callback(undefined);
+                    }
+                }}
                 torrent={torrent}
                 uri={uriInput}
             />
@@ -165,9 +173,17 @@ export function AddTorrent() {
                     const files = Array.from(event.target.files as ArrayLike<File>);
                     event.target.value = '';
 
-                    if (files.length === 1 && triblerService.guiSettings.ask_download_settings !== false) {
-                        setSaveAsDialogOpen(true);
-                        setTorrent(files[0]);
+                    if (triblerService.guiSettings.ask_download_settings !== false) {
+                        (async () => {
+                            for (let file of files) {
+                                // Open SaveAs dialog for 1 torrent at a time
+                                await new Promise(function (resolve, reject) {
+                                    setTorrent(file);
+                                    setSaveAsDialogOpen(true);
+                                    setSaveAsClosed({ callback: resolve });
+                                });
+                            }
+                        })();
                     }
                     else {
                         for (let file of files) {
@@ -178,7 +194,7 @@ export function AddTorrent() {
                                 } else if (isErrorDict(response)){
                                     toast.error(`${t("ToastErrorDownloadStart")} ${response.error.message}`);
                                 }
-                             })();
+                            })();
                         }
                     }
                     navigate("/downloads/all");
