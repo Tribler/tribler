@@ -67,6 +67,7 @@ try:
     import threading
     import typing
     import webbrowser
+    from contextlib import suppress
     from pathlib import Path
 
     from aiohttp import ClientSession
@@ -203,6 +204,13 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     Create the tray icon.
     """
     import pystray
+
+    # Remove w3m, if available, until it is fixed by CPython (https://github.com/Tribler/tribler/issues/8602)
+    webbrowser.get()  # First, populate the initial ``_browsers`` and ``_tryorder``
+    webbrowser._browsers.pop("w3m", None)  # noqa: SLF001
+    with suppress(ValueError):
+        webbrowser._tryorder.remove("w3m")  # noqa: SLF001
+
     image_path = tribler.get_webui_root() / "public" / "tribler.png"
     image = Image.open(image_path.resolve())
     api_port = session.rest_manager.get_api_port()
