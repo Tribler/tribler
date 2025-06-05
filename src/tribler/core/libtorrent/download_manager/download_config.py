@@ -19,8 +19,7 @@ if TYPE_CHECKING:
         """
 
         hops: int
-        selected_files: list[str]
-        selected_file_indexes: list[int]
+        files: list[int] | None
         safe_seeding: bool
         user_stopped: bool
         share_mode: bool
@@ -69,8 +68,7 @@ else:
 SPEC_FILENAME = 'download_config.spec'
 SPEC_CONTENT = """[download_defaults]
 hops = integer(default=0)
-selected_files = string_list(default=list())
-selected_file_indexes = int_list(default=list())
+files = int_list(default=None)
 safe_seeding = boolean(default=False)
 user_stopped = boolean(default=False)
 share_mode = boolean(default=False)
@@ -274,15 +272,15 @@ class DownloadConfig:
 
         :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1])
         """
-        self.config["download_defaults"]["selected_file_indexes"] = file_indexes
+        self.config["download_defaults"]["files"] = file_indexes
 
-    def get_selected_files(self) -> list[int]:
+    def get_selected_files(self) -> list[int] | None:
         """
         Returns the list of files selected for download.
 
         :return: A list of file indexes.
         """
-        return self.config["download_defaults"]["selected_file_indexes"]
+        return self.config["download_defaults"]["files"]
 
     def set_bootstrap_download(self, value: bool) -> None:
         """

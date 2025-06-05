@@ -311,8 +311,7 @@ class DownloadState:
         """
         Get the selection status of the download's files, or None if it is not available.
         """
-        selected_files = self.download.config.get_selected_files()
-        return selected_files if len(selected_files) > 0 else None
+        return self.download.config.get_selected_files()
 
     def get_availability(self) -> float:
         """

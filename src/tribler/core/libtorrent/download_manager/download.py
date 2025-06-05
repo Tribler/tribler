@@ -589,7 +589,7 @@ class Download(TaskManager):
                 self.config.set_selected_files(selected_files)
             total_files = self.tdef.torrent_info.num_files()
 
-            if not selected_files:
+            if selected_files is None:
                 selected_files = list(range(total_files))
 
             self.set_file_priorities([prio if index in selected_files else 0 for index in range(total_files)])
@@ -1081,7 +1081,7 @@ class Download(TaskManager):
         """
         if not self.tdef.torrent_info:
             return False
-        return (not self.config.get_selected_files()
+        return (self.config.get_selected_files() is None
                 or self.get_file_index(file_path) in self.config.get_selected_files())
 
     async def set_upload_limit(self, value: int) -> None:

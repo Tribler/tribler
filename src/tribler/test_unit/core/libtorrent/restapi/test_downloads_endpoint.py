@@ -329,7 +329,7 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual(0, download.config.get_hops())
         self.assertFalse(download.config.get_safe_seeding())
         self.assertEqual(Path(""), download.config.get_dest_dir())
-        self.assertEqual([], download.config.get_selected_files())
+        self.assertEqual(None, download.config.get_selected_files())
 
     async def test_add_download_custom_parameters(self) -> None:
         """

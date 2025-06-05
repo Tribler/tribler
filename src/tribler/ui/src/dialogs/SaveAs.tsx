@@ -113,7 +113,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [params, setParams] = useState<DownloadConfig>({
         destination: '',
         anon_hops: 0,
-        selected_files: [],
+        selected_files: undefined,
         safe_seeding: false,
     });
 
@@ -143,7 +143,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 completed_dir: newSettings?.libtorrent.download_defaults.completed_dir ?? '',
                 anon_hops: safeDownloading ? newSettings.libtorrent.download_defaults.number_hops : 0,
                 safe_seeding: safeSeeding,
-                selected_files: []
+                selected_files: undefined
             }));
             setMoveCompleted((newSettings?.libtorrent?.download_defaults.completed_dir ?? '').length > 0);
 
@@ -317,7 +317,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         variant="outline"
                         type="submit"
                         onClick={() => OnDownloadClicked()}
-                        disabled={exists || (files.length !== 0 && (params.selected_files || []).length === 0)}>
+                        disabled={exists}>
                         {t('Download')}
                     </Button>
                     <DialogClose asChild>
