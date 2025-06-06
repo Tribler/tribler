@@ -455,6 +455,9 @@ class DownloadsEndpoint(RESTEndpoint):
                     and (not download.tdef.torrent_info or not download.tdef.torrent_info.priv())):
                 await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
                 download.add_trackers(self._get_default_trackers())
+            if self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"):
+                await download.get_handle()  # We can only generate a torrent file for a valid handle, wait for it.
+                download.write_backup_torrent_file()
             if params.get("only_metadata", "false") != "false":
                 download.stop_after_metainfo()
         except Exception as e:

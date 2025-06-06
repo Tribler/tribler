@@ -213,6 +213,24 @@ class Download(TaskManager):
         t = lt.create_torrent(torrent_info)
         return t.generate()
 
+    def write_backup_torrent_file(self) -> None:
+        """
+        Write a torrent file to the backup ".torrent"-file folder.
+
+        In contrast to the individual torrent export, which sends torrent data to the client, this method saves a
+        torrent to the server's "torrent_folder".
+        """
+        meta_dict = self.get_torrent_data()
+        if meta_dict is None:
+            self._logger.warning("Aborting torrent file write without torrent data for %s!", str(self))
+            return
+
+        file_name = f"{self.tdef.name} [{hexlify(self.tdef.infohash).decode()}].torrent"
+        folder = Path(self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"))
+        folder.mkdir(parents=True, exist_ok=True)
+        with open(str(folder / file_name), "wb") as f:
+            f.write(lt.bencode(meta_dict))
+
     def register_alert_handler(self, alert_type: str, handler: Callable[[lt.torrent_alert], None]) -> None:
         """
         Add (no replace) a callback for a given alert type.
