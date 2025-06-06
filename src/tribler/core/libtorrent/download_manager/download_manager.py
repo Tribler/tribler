@@ -117,9 +117,6 @@ class DownloadManager(TaskManager):
 
         self.notifier = notifier
 
-        self.register_task("Set default upload rate limit", self.set_upload_rate_limit, 0)
-        self.register_task("Set default download rate limit", self.set_download_rate_limit, 0)
-
         self.downloads: dict[bytes, Download] = {}
 
         self.checkpoint_directory = (self.state_dir / "dlcheckpoints")
@@ -157,30 +154,6 @@ class DownloadManager(TaskManager):
         Whether the download manager is currently shutting down.
         """
         return self._shutdown
-
-    @staticmethod
-    def convert_rate(rate: int) -> int:
-        """
-        Rate conversion due to the fact that we had a different system with Swift
-        and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes.
-        """
-        if rate == 0:
-            return -1
-        if rate == -1:
-            return 1
-        return rate * 1024
-
-    @staticmethod
-    def reverse_convert_rate(rate: int) -> int:
-        """
-        Rate conversion due to the fact that we had a different system with Swift
-        and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes.
-        """
-        if rate == -1:
-            return 0
-        if rate == 1:
-            return -1
-        return rate // 1024
 
     async def _check_dht_ready(self, hops: int, timeout: int, min_dht_peers: int = 60) -> None:
         """
@@ -294,7 +267,7 @@ class DownloadManager(TaskManager):
         """
         return all(self.lt_session_shutdown_ready.values())
 
-    def create_session(self, hops: int = 0) -> lt.session:  # noqa: PLR0915
+    def create_session(self, hops: int = 0) -> lt.session:
         """
         Construct a libtorrent session for the given number of anonymization hops.
         """
@@ -366,12 +339,7 @@ class DownloadManager(TaskManager):
                     logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception as exc:
                 logger.info("could not load libtorrent state, got exception: %s. starting from scratch", repr(exc))
-        else:
-            rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
-            download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
-            settings = {"upload_rate_limit": rate,
-                        "download_rate_limit": download_rate}
-            self.set_session_settings(ltsession, settings)
+        self.set_session_limits(hops)
 
         if self.config.get("libtorrent/dht"):
             ltsession.start_dht()
@@ -395,7 +363,15 @@ class DownloadManager(TaskManager):
         Get the session for the given number of anonymization hops.
         """
         if hops not in self.ltsessions:
-            self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}", self.create_session, hops)
+            actual_hops = hops
+
+            # For background downloads we use hops -1, but the actual hop count will never be <1.
+            if hops < 0:
+                default_hops = self.config.get("libtorrent/download_defaults/number_hops")
+                actual_hops = max(default_hops, 1)
+
+            self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}",
+                                                                self.create_session, actual_hops)
 
             if self.dht_readiness_timeout > 0 and self.config.get("libtorrent/dht"):
                 self.dht_ready_tasks[hops] = self.register_task(f"DHT readiness check {hops}",
@@ -425,48 +401,6 @@ class DownloadManager(TaskManager):
         Set the maximum number of connections for the given hop count.
         """
         self._map_call_on_ltsessions(hops, "set_max_connections", conns)
-
-    async def set_upload_rate_limit(self, rate: int) -> None:
-        """
-        Set the upload rate limit for the given session.
-        """
-        # Rate conversion due to the fact that we had a different system with Swift
-        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = self.convert_rate(rate=rate)
-
-        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
-        settings_dict = {"upload_rate_limit": libtorrent_rate, "outgoing_port": 0, "num_outgoing_ports": 1}
-        for session in self.ltsessions.values():
-            self.set_session_settings(await session, settings_dict)
-
-    async def get_upload_rate_limit(self, hops: int = 0) -> int:
-        """
-        Get the upload rate limit for the session with the given hop count.
-        """
-        # Rate conversion due to the fact that we had a different system with Swift
-        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        session = await self.get_session(hops)
-        libtorrent_rate = session.upload_rate_limit()
-        return self.reverse_convert_rate(rate=libtorrent_rate)
-
-    async def set_download_rate_limit(self, rate: int) -> None:
-        """
-        Set the download rate limit for the given session.
-        """
-        libtorrent_rate = self.convert_rate(rate=rate)
-
-        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
-        settings_dict = {"download_rate_limit": libtorrent_rate}
-        for session in self.ltsessions.values():
-            self.set_session_settings(await session, settings_dict)
-
-    async def get_download_rate_limit(self, hops: int = 0) -> int:
-        """
-        Get the download rate limit for the session with the given hop count.
-        """
-        session = await self.get_session(hops)
-        libtorrent_rate = session.download_rate_limit()
-        return self.reverse_convert_rate(rate=libtorrent_rate)
 
     def process_alert(self, alert: lt.alert, hops: int = 0) -> None:  # noqa: C901, PLR0912
         """
@@ -560,7 +494,7 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,
+    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = -1,
                            url: str | None = None) -> dict | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
@@ -588,6 +522,7 @@ class DownloadManager(TaskManager):
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
+            dcfg.set_auto_managed(False)
             if self.metadata_tmpdir is not None:
                 dcfg.set_dest_dir(self.metadata_tmpdir.name)
             try:
@@ -847,19 +782,27 @@ class DownloadManager(TaskManager):
         """
         return deepcopy(self.ltsettings.get(lt_session, {}))
 
-    def update_max_rates_from_config(self) -> None:
+    def set_session_limits(self, hops: int | None = None) -> None:
         """
-        Set the maximum download and maximum upload rate limits with the value in the config.
+        Set the session limits for the libtorrent session with the specified hop count.
+        """
+        settings = {"download_rate_limit": min(self.config.get("libtorrent/max_download_rate"), 2147483647),
+                    "upload_rate_limit": min(self.config.get("libtorrent/max_upload_rate"), 2147483647),
+                    "active_downloads": self.config.get("libtorrent/active_downloads"),
+                    "active_seeds": self.config.get("libtorrent/active_seeds"),
+                    "active_checking": self.config.get("libtorrent/active_checking"),
+                    "active_dht_limit": self.config.get("libtorrent/active_dht_limit"),
+                    "active_tracker_limit": self.config.get("libtorrent/active_tracker_limit"),
+                    "active_lsd_limit": self.config.get("libtorrent/active_lsd_limit"),
+                    "active_limit": self.config.get("libtorrent/active_limit"),
+                    "dont_count_slow_torrents": False}
 
-        This is the extra step necessary to apply a new maximum download/upload rate setting.
-        :return:
-        """
-        rate = DownloadManager.get_libtorrent_max_upload_rate(self.config)
-        download_rate = DownloadManager.get_libtorrent_max_download_rate(self.config)
-        settings = {"download_rate_limit": download_rate,
-                    "upload_rate_limit": rate}
-        for lt_session in self.ltsessions.values():
-            lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
+        for lt_hops, lt_session in self.ltsessions.items():
+            if hops is None or lt_hops == hops:
+                # For now, we use a hard-coded limit of 500KiB/s for metainfo downloading.
+                if lt_hops == -1:
+                    settings["download_rate_limit"] = 500 * 1024
+                lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
 
     async def remove_download(self, download: Download, remove_content: bool = False,
                               remove_checkpoint: bool = True) -> None:
@@ -1144,21 +1087,3 @@ class DownloadManager(TaskManager):
                       if setting_proxy_auth and len(setting_proxy_auth) == 2  else None)
 
         return self.config.get("libtorrent/proxy_type"), proxy_server, proxy_auth
-
-    @staticmethod
-    def get_libtorrent_max_upload_rate(config: TriblerConfigManager) -> float:
-        """
-        Gets the maximum upload rate (kB / s).
-
-        :return: the maximum upload rate in kB / s
-        """
-        return min(config.get("libtorrent/max_upload_rate"), 2147483647)
-
-    @staticmethod
-    def get_libtorrent_max_download_rate(config: TriblerConfigManager) -> float:
-        """
-        Gets the maximum download rate (kB / s).
-
-        :return: the maximum download rate in kB / s
-        """
-        return min(config.get("libtorrent/max_download_rate"), 2147483647)

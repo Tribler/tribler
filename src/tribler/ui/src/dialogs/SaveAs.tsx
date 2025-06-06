@@ -115,6 +115,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         anon_hops: 0,
         selected_files: undefined,
         safe_seeding: false,
+        auto_managed: undefined
     });
 
     const navigate = useNavigate();
@@ -143,7 +144,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 completed_dir: newSettings?.libtorrent.download_defaults.completed_dir ?? '',
                 anon_hops: safeDownloading ? newSettings.libtorrent.download_defaults.number_hops : 0,
                 safe_seeding: safeSeeding,
-                selected_files: undefined
+                selected_files: undefined,
+                auto_managed: newSettings?.libtorrent.download_defaults.auto_managed === true
             }));
             setMoveCompleted((newSettings?.libtorrent?.download_defaults.completed_dir ?? '').length > 0);
 
@@ -262,6 +264,18 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 }
 
                 <div className="flex items-center space-x-2 mt-5">
+                    <Checkbox
+                        checked={params.auto_managed}
+                        id="auto_managed"
+                        onCheckedChange={(value) => setParams({ ...params, auto_managed: !!value })} />
+                    <label
+                        htmlFor="auto_managed"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        {t('AutoManageEnable')}
+                    </label>
+                </div>
+                <div className="flex items-center space-x-2">
                     <Checkbox
                         checked={params.anon_hops !== 0}
                         onCheckedChange={(value) => {

@@ -143,6 +143,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if 'selected_files' in parameters:
             download_config.set_selected_files(parameters['selected_files'])
 
+        if 'auto_managed' in parameters:
+            download_config.set_auto_managed(parameters['auto_managed'])
+
         return download_config, None
 
     @staticmethod
@@ -323,6 +326,10 @@ class DownloadsEndpoint(RESTEndpoint):
                 "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
+                # To prevent the queue_position from becoming stale, we get it directly from the download
+                "queue_position": download.get_queue_position(),
+                "auto_managed": download.config.get_auto_managed(),
+                "user_stopped": download.config.get_user_stopped(),
                 "streamable": bool(tdef and tdef.torrent_info
                                    and any(tdef.torrent_info.file_at(fi).path.endswith(("mp4", "m4v", "mov", "mkv"))
                                            for fi in range(tdef.torrent_info.num_files())))
@@ -536,8 +543,11 @@ class DownloadsEndpoint(RESTEndpoint):
                                "parameter, however, this must be the only parameter in this request."),
         "upload_limit": (Integer, "Upload limit in bytes/s."),
         "download_limit": (Integer, "Download limit in bytes/s."),
+        "queue_position": (String, "Change the position of the download in the queue. "
+                                   "Possible values are queue_up/queue_top/queue_down/queue_bottom."),
+        "auto_managed": (Boolean, "Set the auto managed flag.")
     }))
-    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
+    async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0915, PLR0911
         """
         Update a specific download.
         """
@@ -576,6 +586,30 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if download_limit := parameters.get("download_limit"):
             await download.set_download_limit(download_limit)
+
+        if queue_position := parameters.get("queue_position"):
+            if queue_position == "queue_up":
+                download.queue_position_up()
+            elif queue_position == "queue_top":
+                download.queue_position_top()
+            elif queue_position == "queue_down":
+                download.queue_position_down()
+            elif queue_position == "queue_bottom":
+                download.queue_position_bottom()
+            else:
+                return RESTResponse({"error": {
+                    "handled": True,
+                    "message": "invalid value for queue_position"
+                }}, status=HTTP_BAD_REQUEST)
+
+        if "auto_managed" in parameters:
+            if isinstance(parameters["auto_managed"], bool):
+                download.set_auto_managed(parameters["auto_managed"])
+            else:
+                return RESTResponse({"error": {
+                    "handled": True,
+                    "message": "invalid value for auto_managed"
+                }}, status=HTTP_BAD_REQUEST)
 
         if state := parameters.get("state"):
             if state == "resume":

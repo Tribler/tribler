@@ -81,8 +81,9 @@ export interface Settings {
             add_download_to_channel: boolean;
             trackers_file: string;
             torrent_folder: string;
+            auto_managed: boolean;
         },
-    },
+    } & AutoManageSettings,
     rendezvous: {
         enabled: boolean;
     },
@@ -106,6 +107,16 @@ export interface Settings {
     state_dir: string;
     memory_db: boolean;
     ui: GuiSettings;
+}
+
+export interface AutoManageSettings {
+    active_downloads: number;
+    active_seeds: number;
+    active_checking: number;
+    active_dht_limit: number;
+    active_tracker_limit: number;
+    active_lsd_limit: number;
+    active_limit: number;
 }
 
 export interface GuiSettings {

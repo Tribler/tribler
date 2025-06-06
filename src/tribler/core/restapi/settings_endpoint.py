@@ -60,12 +60,13 @@ class SettingsEndpoint(RESTEndpoint):
         Update Tribler settings.
         """
         settings = await request.json()
+        has_lt_settings = "libtorrent" in settings
         self._logger.info("Received settings: %s", settings)
         self._recursive_merge_settings(self.config.configuration, settings)
         self.config.write()
 
-        if self.download_manager:
-            self.download_manager.update_max_rates_from_config()
+        if has_lt_settings and self.download_manager:
+            self.download_manager.set_session_limits()
 
         return RESTResponse({"modified": True})
 

@@ -1,16 +1,53 @@
 import { PathInput } from "@/components/path-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Settings } from "@/models/settings.model";
+import { AutoManageSettings, Settings } from "@/models/settings.model";
 import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from 'react-hot-toast';
 import SaveButton from "./SaveButton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+const autoManageOptions = [
+    {
+        settingsKey: "active_downloads",
+        translationKey: "ActiveDownloads",
+        default: 3,
+    },
+    {
+        settingsKey: "active_seeds",
+        translationKey: "ActiveSeeds",
+        default: 5,
+    },
+    {
+        settingsKey: "active_checking",
+        translationKey: "ActiveChecking",
+        default: 1,
+    },
+    {
+        settingsKey: "active_dht_limit",
+        translationKey: "ActiveDHTLimit",
+        default: 88,
+    },
+    {
+        settingsKey: "active_tracker_limit",
+        translationKey: "ActiveTrackerLimit",
+        default: 1600,
+    },
+    {
+        settingsKey: "active_lsd_limit",
+        translationKey: "ActiveLSDLimit",
+        default: 60,
+    },
+        {
+        settingsKey: "active_limit",
+        translationKey: "ActiveLimit",
+        default: 500,
+    },
+];
 
 export default function General() {
     const { t } = useTranslation();
@@ -33,8 +70,8 @@ export default function General() {
     }
 
     return (
-        <div className="px-6 w-full">
-            <div className="pt-5 py-2 font-semibold">{t('WebServerSettings')}</div>
+        <div className="p-5 w-full">
+            <div className="pb-2 font-semibold">{t('WebServerSettings')}</div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="http_port" className="whitespace-nowrap pr-5">
                     {t('Port')}
@@ -256,6 +293,65 @@ export default function General() {
                 >
                     {t('SeedAnon')}
                 </label>
+            </div>
+
+            <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                    checked={settings?.libtorrent?.download_defaults?.auto_managed}
+                    id="auto_manage"
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    download_defaults: {
+                                        ...settings.libtorrent.download_defaults,
+                                        auto_managed: !!value
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+                <label
+                    htmlFor="auto_manage"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap"
+                >
+                    {t("AutoManageEnable")}
+                </label>
+            </div>
+
+            <div className="space-x-2 py-2">
+                <Label htmlFor="active_downloads" className="whitespace-nowrap">
+                    {t("AutoManageMax")}
+                </Label>
+                <div className="grid grid-cols-2 gap-2 items-center pt-2 pl-10">
+                    {autoManageOptions.map((option) => (
+                        <>
+                            <Label htmlFor="active_downloads" className="whitespace-nowrap">
+                                {t(option.translationKey)}
+                            </Label>
+                            <Input
+                                type="number"
+                                id={option.settingsKey}
+                                defaultValue={option.default}
+                                value={settings && settings?.libtorrent[option.settingsKey as keyof AutoManageSettings]}
+                                onChange={(event) => {
+                                    if (settings) {
+                                        setSettings({
+                                            ...settings,
+                                            libtorrent: {
+                                                ...settings.libtorrent,
+                                                [option.settingsKey]: +event.target.value,
+                                            },
+                                        });
+                                    }
+                                }}
+                            />
+                        </>
+                    ))}
+                </div>
             </div>
 
             <div className="pt-5 py-2 font-semibold">{t('WatchFolder')}</div>

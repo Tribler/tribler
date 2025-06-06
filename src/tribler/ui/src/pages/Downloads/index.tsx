@@ -20,13 +20,38 @@ import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
 import { EasyTooltip } from "@/components/ui/tooltip";
 
-export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 export const filterDownloading = [3];
 export const filterCompleted = [4];
-export const filterActive = [0, 1, 2, 3, 4, 7, 8, 9];
-export const filterInactive = [5, 6];
+export const filterActive = [0, 1, 2, 3, 4, 7, 8, 9, 10];
+export const filterInactive = [5, 6, 11];
 
 const downloadColumns: ColumnDef<Download>[] = [
+    {
+        accessorKey: "queue_position",
+        header: getHeader("#", false, true, false),
+        sortingFn: (rowA, rowB) => {
+            if (rowA.original.hops < rowB.original.hops) return -1;
+            if (rowA.original.hops > rowB.original.hops) return 1;
+            return rowA.original.queue_position - rowB.original.queue_position;
+        },
+        cell: ({ row }) => {
+            const { t } = useTranslation();
+            if (row.original.queue_position < 0) {
+                return <EasyTooltip content={t("NotInQueue")}><span>*</span></EasyTooltip>
+            }
+            return (
+                <EasyTooltip content={t("InQueue", {
+                    hops: row.original.hops,
+                    queue_position: row.original.queue_position + 1
+                })}>
+                    <span>
+                        {`${row.original.hops}-${row.original.queue_position + 1}`}
+                    </span>
+                </EasyTooltip>
+            )
+        },
+    },
     {
         accessorKey: "name",
         minSize: 0,
@@ -270,6 +295,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                     selectedDownloads={selectedDownloads.filter(
                                         (d) => d.status_code !== StatusCode.LOADING
                                     )}
+                                    onClick={() =>setTimeout(updateDownloads, 100)}
                                 />
                             </div>
                             <div>
@@ -319,6 +345,7 @@ export default function Downloads({ statusFilter }: { statusFilter: number[] }) 
                                 selectedDownloads={selectedDownloads.filter(
                                     (d) => d.status_code !== StatusCode.LOADING
                                 )}
+                                onClick={() =>setTimeout(updateDownloads, 100)}
                             />
                         </ContextMenu>
                     </Card>
