@@ -82,6 +82,18 @@ def encode_atp(atp: dict) -> dict:
     return atp
 
 
+def upgrade_checkpoint(conf_obj: ConfigObj) -> None:
+    """
+    Upgrade checkpoint and write it to disk.
+    """
+    dl_defaults = conf_obj["download_defaults"]
+    if "selected_file_indexes" in dl_defaults:
+        indexes = dl_defaults.pop("selected_file_indexes", [])
+        if dl_defaults["files"] is None and indexes:
+            dl_defaults["files"] = list(map(int, indexes))
+        conf_obj.write()
+
+
 class DownloadManager(TaskManager):
     """
     The manager of all downloads.
@@ -658,7 +670,7 @@ class DownloadManager(TaskManager):
             magnet_peers = tdef.atp.peers
             magnet_seeds = tdef.atp.url_seeds
 
-            if config and not config.get_selected_files():
+            if config and not config.get_selected_files() and tdef.atp.file_priorities:
                 config.set_selected_files(
                     [i for i in range(len(tdef.atp.file_priorities)) if tdef.atp.file_priorities[i] > 0]
                 )
@@ -1024,6 +1036,7 @@ class DownloadManager(TaskManager):
             conf_obj = ConfigObj(str(filename), configspec=DownloadConfig.get_spec_file_name(self.config),
                                  encoding="utf-8")
             conf_obj.validate(Validator())
+            upgrade_checkpoint(conf_obj)
             config = DownloadConfig(conf_obj)
         except Exception:
             self._logger.exception("Could not open checkpoint file %s", filename)

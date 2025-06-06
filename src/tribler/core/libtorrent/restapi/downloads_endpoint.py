@@ -165,7 +165,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
                 "name": str(fn.as_posix()),
                 "size": size,
-                "included": (index_mapping[file_index] in selected_files or not selected_files),
+                "included": (selected_files is None or index_mapping[file_index] in selected_files),
                 "progress": files_completion.get(fn, 0.0)
             }))
         return files_json

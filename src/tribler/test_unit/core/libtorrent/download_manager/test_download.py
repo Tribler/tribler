@@ -188,7 +188,7 @@ class TestDownload(TestBase):
                             config=self.create_mock_download_config())
         download.handle = Mock(file_priorities=Mock(return_value=[0, 0]))
 
-        self.assertEqual([], download.config.get_selected_files())
+        self.assertEqual(None, download.config.get_selected_files())
         self.assertEqual([0, 0], download.get_file_priorities())
 
     def test_selected_files_last(self) -> None:
@@ -240,7 +240,7 @@ class TestDownload(TestBase):
 
         download.set_selected_files()
 
-        self.assertEqual([], download.config.get_selected_files())
+        self.assertEqual(None, download.config.get_selected_files())
         self.assertEqual([4, 4], download.get_file_priorities())
 
     def test_selected_files_all_through_empty_list(self) -> None:
