@@ -505,6 +505,10 @@ class DownloadManager(TaskManager):
                 logger.debug("Got alert for download without handle %s: %s", infohash, alert)
         elif infohash:
             logger.debug("Got alert for unknown download %s: %s", infohash, alert)
+            if alert_type == "add_torrent_alert":
+                # A torrent got added, but the download is already removed.
+                handle = cast("lt.add_torrent_alert", alert).handle
+                self.ltsessions[hops].add_done_callback(lambda s: s.result().remove_torrent(handle))
 
         if alert_type == "listen_succeeded_alert":
             ls_alert = cast("lt.listen_succeeded_alert", alert)
@@ -556,8 +560,8 @@ class DownloadManager(TaskManager):
             ip_filter.add_rule(ip, ip, 0)
         lt_session.set_ip_filter(ip_filter)
 
-    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,  # noqa: C901
-                           url: str | None = None, raise_errors: bool = False) -> dict | None:
+    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = None,
+                           url: str | None = None) -> dict | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
@@ -590,8 +594,6 @@ class DownloadManager(TaskManager):
                 download = await self.start_download(tdef=tdef, config=dcfg, hidden=True, checkpoint_disabled=True)
             except TypeError as e:
                 logger.warning(e)
-                if raise_errors:
-                    raise
                 return None
             self.metainfo_requests[infohash] = MetainfoLookup(download, 1)
 
@@ -600,31 +602,28 @@ class DownloadManager(TaskManager):
         except (CancelledError, TimeoutError) as e:
             logger.warning("%s: %s (timeout=%f)", type(e).__name__, str(e), timeout)
             logger.info("Failed to retrieve metainfo for %s", infohash_hex)
-            if raise_errors:
-                raise
             return None
+        else:
+            logger.info("Successfully retrieved metainfo for %s", infohash_hex)
+            self.metainfo_cache[infohash] = {"time": time.time(), "meta_info": metainfo}
+            self.notifier.notify(Notification.torrent_metadata_added, metadata={
+                "infohash": infohash,
+                "size": download.tdef.atp.ti.total_size(),
+                "title": download.tdef.name,
+                "metadata_type": 300,
+                "tracker_info": (download.tdef.atp.trackers or [""])[0]
+            })
 
-        logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-        self.metainfo_cache[infohash] = {"time": time.time(), "meta_info": metainfo}
-        self.notifier.notify(Notification.torrent_metadata_added, metadata={
-            "infohash": infohash,
-            "size": download.tdef.atp.ti.total_size(),
-            "title": download.tdef.name,
-            "metadata_type": 300,
-            "tracker_info": (download.tdef.atp.trackers or [""])[0]
-        })
-
-        seeders, leechers = download.get_state().get_num_seeds_peers()
-        metainfo[b"seeders"] = seeders
-        metainfo[b"leechers"] = leechers
-
-        if infohash in self.metainfo_requests:
-            self.metainfo_requests[infohash].pending -= 1
-            if self.metainfo_requests[infohash].pending <= 0:
-                await self.remove_download(download, remove_content=True)
-                self.metainfo_requests.pop(infohash, None)
-
-        return metainfo
+            seeders, leechers = download.get_state().get_num_seeds_peers()
+            metainfo[b"seeders"] = seeders
+            metainfo[b"leechers"] = leechers
+            return metainfo
+        finally:
+            if infohash in self.metainfo_requests:
+                self.metainfo_requests[infohash].pending -= 1
+                if self.metainfo_requests[infohash].pending <= 0:
+                    await self.remove_download(download, remove_content=True)
+                    self.metainfo_requests.pop(infohash, None)
 
     def _task_cleanup_metainfo_cache(self) -> None:
         oldest_time = time.time() - METAINFO_CACHE_PERIOD
