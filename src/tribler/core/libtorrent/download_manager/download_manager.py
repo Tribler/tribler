@@ -189,6 +189,8 @@ class DownloadManager(TaskManager):
         if self.config.get("libtorrent/upnp"):
             (await self.get_session()).start_upnp()
 
+        self.get_session(-1).add_done_callback(lambda s: self.set_session_limits(-1))
+
     def start(self) -> None:
         """
         Start loading the checkpoints from disk.
