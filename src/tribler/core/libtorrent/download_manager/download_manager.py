@@ -1048,10 +1048,10 @@ class DownloadManager(TaskManager):
             return False
 
         resumedata = config.get_engineresumedata()
-        if resumedata is None:
+        if resumedata is None or resumedata.info_hash.to_bytes() == (b"\x00" * 20):
             try:
                 url = metainfo.get(b"url")
-                url = url.decode() if url is not None else url
+                url = url.decode() if url is not None else ""
                 tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
                         if b"infohash" in metainfo else TorrentDef.load_from_dict(metainfo))
             except (KeyError, ValueError) as e:

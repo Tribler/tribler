@@ -6,6 +6,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
+import libtorrent
 from configobj import ConfigObj
 from configobj.validate import Validator, VdtParamError
 from ipv8.test.base import TestBase
@@ -267,6 +268,7 @@ class TestDownloadManager(TestBase):
         self.assertEqual(call({"proxy_type": 0, "proxy_hostnames": True, "proxy_peer_connections": True,
                                "proxy_hostname": "a", "proxy_port": 1234, "proxy_username": "abc",
                                "proxy_password": "def"}), self.manager.ltsessions[0].result().apply_settings.call_args)
+
     async def test_load_checkpoint_no_metainfo(self) -> None:
         """
         Test if no checkpoint can be loaded from a file with no metainfo.
@@ -324,6 +326,22 @@ class TestDownloadManager(TestBase):
             value = await self.manager.load_checkpoint("foo.conf")
 
         self.assertTrue(value)
+
+    async def test_load_checkpoint_zeroed_engineresumedata(self) -> None:
+        """
+        Test if no checkpoint is restored from uninitialized engineresumedata.
+        """
+        download_config = self.create_mock_download_config()
+        download_config.set_metainfo({b"name": b"torrent name", b"infohash": b"\x01" * 20})
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        download_config.set_engineresumedata(libtorrent.add_torrent_params())
+        self.manager.start_download = AsyncMock()
+        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
+                        {"ConfigObj": Mock(return_value=download_config.config)}):
+            value = await self.manager.load_checkpoint("foo.conf")
+
+        self.assertTrue(value)
+        self.assertEqual(b"\x01" * 20, self.manager.start_download.call_args.kwargs["tdef"].infohash)
 
     async def test_load_checkpoint_file_not_found(self) -> None:
         """
