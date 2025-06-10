@@ -107,6 +107,28 @@ export default function General() {
                     }}
                 />
             </div>
+            <div className="py-2 flex items-center">
+                <Label htmlFor="torrent_folder" className="whitespace-nowrap pr-5">
+                    {t('BackupTorrentFolder')}
+                </Label>
+                <PathInput
+                    path={settings?.libtorrent?.download_defaults?.torrent_folder}
+                    onPathChange={(path) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    download_defaults: {
+                                        ...settings.libtorrent.download_defaults,
+                                        torrent_folder: path
+                                    }
+                                }
+                            });
+                        }
+                    }}
+                />
+            </div>
             <div className="flex items-center">
                 <div className="w-64 flex items-center">
                     <Checkbox

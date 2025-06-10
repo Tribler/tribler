@@ -23,6 +23,7 @@
     "DefaultDownloadSettings": "Configuração de download padrão",
     "SaveFilesTo": "Salvar arquivos em:",
     "DefaultTrackersFile": "Arquivo de rastreadores padrão:",
+    "BackupTorrentFolder": "Crie torrents de backup em:",
     "AlwaysAsk": "Sempre peça configurações de download",
     "DownloadAnon": "Baixe anonimamente usando proxies",
     "SeedAnon": "Semear anonimamente usando proxies",

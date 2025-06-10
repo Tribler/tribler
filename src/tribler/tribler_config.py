@@ -78,6 +78,7 @@ class DownloadDefaultsConfig(TypedDict):
     channel_download: bool
     add_download_to_channel: bool
     trackers_file: str
+    torrent_folder: str
 
 
 class LibtorrentConfig(TypedDict):
@@ -237,7 +238,8 @@ DEFAULT_CONFIG = {
             seeding_time=60.0,
             channel_download=False,
             add_download_to_channel=False,
-            trackers_file="")
+            trackers_file="",
+            torrent_folder="")
         ),
     "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),
