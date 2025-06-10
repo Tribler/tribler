@@ -266,13 +266,17 @@ class DownloadConfig:
         """
         return self.config["download_defaults"]["time_added"]
 
-    def set_selected_files(self, file_indexes: list[int]) -> None:
+    def set_selected_files(self, file_indexes: list[int] | None) -> None:
         """
         Select which files in the torrent to download.
 
         :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1])
         """
-        self.config["download_defaults"]["files"] = file_indexes
+        config_obj = cast("ConfigObj", self.config)
+        if file_indexes is None:
+            config_obj["download_defaults"].restore_default("files")
+        else:
+            config_obj["download_defaults"]["files"] = file_indexes
 
     def get_selected_files(self) -> list[int] | None:
         """
