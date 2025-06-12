@@ -12,18 +12,18 @@ class UpdateSettingsRequest(MockRequest):
     A MockRequest that mimics UpdateSettingsRequests.
     """
 
-    def __init__(self, raw_json_content: bytes) -> None:
+    def __init__(self, json_content: dict) -> None:
         """
         Create a new UpdateSettingsRequest.
         """
         super().__init__("/api/settings", "POST")
-        self.raw_json_content = raw_json_content
+        self.json_content = json_content
 
-    async def read(self) -> bytes:
+    async def json(self) -> dict:
         """
         Get the json contents of this request.
         """
-        return self.raw_json_content
+        return self.json_content
 
 
 class TestSettingsEndpoint(TestBase):
@@ -51,7 +51,7 @@ class TestSettingsEndpoint(TestBase):
         """
         config = MockTriblerConfigManager()
         endpoint = SettingsEndpoint(config)
-        request = UpdateSettingsRequest(b'{"api":{"http_port":1337}}')
+        request = UpdateSettingsRequest({"api": {"http_port": 1337}})
 
         response = await endpoint.update_settings(request)
         response_body_json = await response_to_json(response)
@@ -65,12 +65,12 @@ class TestSettingsEndpoint(TestBase):
         """
         config = MockTriblerConfigManager()
         endpoint = SettingsEndpoint(config)
-        endpoint.download_manager = Mock(update_max_rates_from_config=Mock(return_value=None))
-        request = UpdateSettingsRequest(b'{"api":{"http_port":1337}}')
+        endpoint.download_manager = Mock(set_session_limits=Mock(return_value=None))
+        request = UpdateSettingsRequest({"libtorrent": {"port": 1337}})
 
         response = await endpoint.update_settings(request)
         response_body_json = await response_to_json(response)
 
         self.assertTrue(response_body_json["modified"])
-        self.assertEqual(1337, config.get("api/http_port"))
-        self.assertEqual(call(), endpoint.download_manager.update_max_rates_from_config.call_args)
+        self.assertEqual(1337, config.get("libtorrent/port"))
+        self.assertEqual(call(), endpoint.download_manager.set_session_limits.call_args)

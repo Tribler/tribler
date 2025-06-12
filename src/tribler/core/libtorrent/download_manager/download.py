@@ -289,18 +289,14 @@ class Download(TaskManager):
 
         self.handle = alert.handle
         self._logger.debug("Added torrent %s", str(self.handle.info_hash()))
-        # In LibTorrent auto_managed flag is now on by default, and as a result
-        # any torrent"s state can change from Stopped to Downloading at any time.
-        # Here we unset this flag to prevent auto-resuming of stopped torrents.
-        if hasattr(self.handle, "unset_flags"):
-            self.handle.unset_flags(lt.add_torrent_params_flags_t.flag_auto_managed)
+        self.handle.auto_managed(self.config.get_auto_managed())
 
         self.set_selected_files()
 
         user_stopped = self.config.get_user_stopped()
 
         # If we lost resume_data always resume download in order to force checking
-        if not user_stopped or not self.config.get_engineresumedata():
+        if not self.config.get_auto_managed() and (not user_stopped or not self.config.get_engineresumedata()):
             self.handle.resume()
 
             # If we only needed to perform checking, pause download after it is complete
@@ -797,6 +793,8 @@ class Download(TaskManager):
         if user_stopped is not None:
             self.config.set_user_stopped(user_stopped)
         if self.handle and self.handle.is_valid():
+            # Unset auto managed, and revert when resuming
+            self.handle.auto_managed(False)
             self.handle.pause()
             return self.checkpoint()
         return succeed(None)
@@ -811,6 +809,7 @@ class Download(TaskManager):
 
         if self.handle and self.handle.is_valid():
             self.handle.set_upload_mode(self.get_upload_mode())
+            self.handle.auto_managed(self.config.get_auto_managed())
             self.handle.resume()
 
     def get_content_dest(self) -> Path:
@@ -1129,3 +1128,46 @@ class Download(TaskManager):
         Get the download bandwidth limit for this torrent.
         """
         return self.config.get_download_limit()
+
+    @require_handle
+    def queue_position_up(self, handle: lt.torrent_handle) -> None:
+        """
+        Move download up in the download queue.
+        """
+        handle.queue_position_up()
+
+    @require_handle
+    def queue_position_top(self, handle: lt.torrent_handle) -> None:
+        """
+        Move download to the top of the download queue.
+        """
+        handle.queue_position_top()
+
+    @require_handle
+    def queue_position_down(self, handle: lt.torrent_handle) -> None:
+        """
+        Move download down in the download queue.
+        """
+        handle.queue_position_down()
+
+    @require_handle
+    def queue_position_bottom(self, handle: lt.torrent_handle) -> None:
+        """
+        Move download to the bottom of the download queue.
+        """
+        handle.queue_position_bottom()
+
+    @check_handle(-1)
+    def get_queue_position(self, handle: lt.torrent_handle) -> int:
+        """
+        Returns the position in the download queue. If the torrent is a seed or finished, -1 is returned.
+        """
+        return handle.queue_position()
+
+    @require_handle
+    def set_auto_managed(self, handle: lt.torrent_handle, value: bool) -> None:
+        """
+        Set the auto managed flag.
+        """
+        handle.auto_managed(value)
+        self.config.set_auto_managed(value)

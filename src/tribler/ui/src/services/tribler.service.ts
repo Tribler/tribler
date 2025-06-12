@@ -8,6 +8,7 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestCo
 import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
 import { TriblerStatistics } from "@/models/statistics.model";
 
+export type QueueOperation = "queue_up" | "queue_top" | "queue_down" | "queue_bottom"
 
 const OnError = (event: MessageEvent) => {
     const data = JSON.parse(event.data);
@@ -147,6 +148,22 @@ export class TriblerService {
     async recheckDownload(infohash: string): Promise<undefined | ErrorDict | boolean> {
         try {
             return (await this.http.patch(`/downloads/${infohash}`, { state: 'recheck' })).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async updateQueuePosition(infohash: string, operation: QueueOperation): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, { queue_position: operation })).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async setAutoManaged(infohash: string, value: boolean): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, { auto_managed: value })).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

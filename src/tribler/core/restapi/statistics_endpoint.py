@@ -72,6 +72,12 @@ class StatisticsEndpoint(RESTEndpoint):
                 lt_stats["sessions"].append({
                     "recv_bytes": stats.get("net.recv_bytes", 0),
                     "sent_bytes": stats.get("net.sent_bytes", 0),
+                    "dht_recv_bytes": stats.get("dht.dht_bytes_in", 0),
+                    "dht_sent_bytes": stats.get("dht.dht_bytes_out", 0),
+                    "tracker_recv_bytes": stats.get("net.recv_tracker_bytes", 0),
+                    "tracker_sent_bytes": stats.get("net.sent_tracker_bytes", 0),
+                    "payload_recv_bytes": stats.get("net.recv_payload_bytes", 0),
+                    "payload_sent_bytes": stats.get("net.sent_payload_bytes", 0),
                     "hops": hops
                 })
             lt_stats["total_recv_bytes"] = sum([s["recv_bytes"] for s in lt_stats["sessions"]])

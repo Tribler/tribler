@@ -62,9 +62,9 @@ export default function Connection() {
     }
 
     return (
-        <div className="px-6 w-full">
+        <div className="p-5 w-full">
             <div className="grid grid-cols-2 gap-2 items-center">
-                <div className="pt-5 py-2 font-semibold col-span-2">{t('P2PSettings')}</div>
+                <div className="pb-2 font-semibold col-span-2">{t('P2PSettings')}</div>
 
                 <Label htmlFor="ipv8_ipv4" className="whitespace-nowrap pr-5">
                     {t('LocalListeningInterface') + " IPv4"}

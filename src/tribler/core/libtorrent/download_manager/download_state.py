@@ -32,6 +32,8 @@ class DownloadStatus(Enum):
     METADATA = 7
     LOADING = 8
     EXIT_NODES = 9
+    MOVING = 10
+    QUEUED = 11
 
 
 # Map used to convert libtorrent -> Tribler download status
@@ -102,8 +104,10 @@ class DownloadState:
         if self.get_error():
             return DownloadStatus.STOPPED_ON_ERROR
         if self.lt_status:
+            if self.lt_status.moving_storage:
+                return DownloadStatus.MOVING
             if self.lt_status.paused:
-                return DownloadStatus.STOPPED
+                return DownloadStatus.QUEUED if self.lt_status.auto_managed else DownloadStatus.STOPPED
             return DOWNLOAD_STATUS_MAP[self.lt_status.state]
         return DownloadStatus.STOPPED
 
@@ -356,3 +360,9 @@ class DownloadState:
         Returns a list of dictionaries, one for each connected peer, containing the statistics for that peer.
         """
         return self.download.get_peer_list(include_have)
+
+    def get_queue_position(self) -> int:
+        """
+        Returns the position in the download queue. If the torrent is a seed or finished, -1 is returned.
+        """
+        return self.lt_status.queue_position if self.lt_status else -1

@@ -66,6 +66,7 @@ export default function Libtorrent() {
                                 <SelectItem value="1">Hops = 1</SelectItem>
                                 <SelectItem value="2">Hops = 2</SelectItem>
                                 <SelectItem value="3">Hops = 3</SelectItem>
+                                <SelectItem value="-1">Background tasks</SelectItem>
                             </SelectGroup>
                         </SelectContent>
                     </Select>
@@ -73,7 +74,7 @@ export default function Libtorrent() {
             </TabsList>
             <TabsContent value="settings" className="contents">
                 <SimpleTable
-                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-97px)]"
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-122px)]"
                     data={settings}
                     columns={libtorrentColumns}
                 />

@@ -174,7 +174,7 @@ class Session:
         self.rest_manager.add_endpoint(EventsEndpoint(self.notifier))
         self.rest_manager.add_endpoint(IPv8RootEndpoint())
         self.rest_manager.add_endpoint(LibTorrentEndpoint(self.download_manager))
-        self.rest_manager.add_endpoint(SettingsEndpoint(self.config))
+        self.rest_manager.add_endpoint(SettingsEndpoint(self.config, self.download_manager))
         self.rest_manager.add_endpoint(ShutdownEndpoint(self.shutdown_event.set))
         self.rest_manager.add_endpoint(StatisticsEndpoint())
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))

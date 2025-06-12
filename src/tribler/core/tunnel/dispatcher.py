@@ -64,23 +64,27 @@ class TunnelDispatcher(TaskManager):
             origin = (community.circuit_id_to_ip(circuit.circuit_id), CIRCUIT_ID_PORT)
 
         try:
-            connection = self.cid_to_con[circuit.circuit_id]
+            connections = [self.cid_to_con[circuit.circuit_id]]
         except KeyError:
             session_hops = circuit.goal_hops if circuit.ctype != CIRCUIT_TYPE_RP_DOWNLOADER else circuit.goal_hops - 1
             if session_hops > len(self.socks_servers) or not self.socks_servers[session_hops - 1].sessions:
                 self._logger.exception("No connection found for %d hops", session_hops)
                 return False
-            connection = next((s for s in self.socks_servers[session_hops - 1].sessions
-                               if s.udp_connection and s.udp_connection.remote_udp_address), None)
+            # Broadcast the packet to all SOCKS5 connections. We can have multiple
+            # connections when there are multiple libtorrent sessions with the same hop count.
+            connections = [s for s in self.socks_servers[session_hops - 1].sessions
+                           if s.udp_connection and s.udp_connection.remote_udp_address]
 
-        if connection is None or connection.udp_connection is None:
-            self._logger.error("Connection has closed or has not gotten an UDP associate")
-            self.connection_dead(connection)
-            return False
-
-        packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, origin, data))
-        connection.udp_connection.send_datagram(packet)
-        return True
+        handled = False
+        for connection in connections:
+            if connection.udp_connection is None:
+                self._logger.error("Connection has closed or has not gotten an UDP associate")
+                self.connection_dead(connection)
+            else:
+                packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, origin, data))
+                connection.udp_connection.send_datagram(packet)
+                handled = True
+        return handled
 
     def on_socks5_udp_data(self, udp_connection: SocksUDPConnection, request: UdpPacket) -> bool:
         """

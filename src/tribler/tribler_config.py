@@ -79,6 +79,7 @@ class DownloadDefaultsConfig(TypedDict):
     add_download_to_channel: bool
     trackers_file: str
     torrent_folder: str
+    auto_managed: bool
 
 
 class LibtorrentConfig(TypedDict):
@@ -107,6 +108,14 @@ class LibtorrentConfig(TypedDict):
     check_after_complete: bool
 
     download_defaults: DownloadDefaultsConfig
+
+    active_downloads: int
+    active_seeds: int
+    active_checking: int
+    active_dht_limit: int
+    active_tracker_limit: int
+    active_lsd_limit: int
+    active_limit: int
 
 
 class RecommenderConfig(TypedDict):
@@ -239,7 +248,16 @@ DEFAULT_CONFIG = {
             channel_download=False,
             add_download_to_channel=False,
             trackers_file="",
-            torrent_folder="")
+            torrent_folder="",
+            auto_managed=False),
+        # active_* defaults are the same as the ones used by libtorrent
+        active_downloads=3,
+        active_seeds=5,
+        active_checking=1,
+        active_dht_limit=88,
+        active_tracker_limit=1600,
+        active_lsd_limit=60,
+        active_limit=500
         ),
     "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),

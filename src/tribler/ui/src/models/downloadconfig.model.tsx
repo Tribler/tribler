@@ -7,5 +7,6 @@ export interface DownloadConfig {
     anon_hops?: number,
     selected_files?: number[],
     safe_seeding?: boolean,
-    only_metadata?: boolean
+    only_metadata?: boolean,
+    auto_managed?: boolean
 }

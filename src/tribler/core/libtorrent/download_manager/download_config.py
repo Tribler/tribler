@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         stop_after_metainfo: bool
         upload_limit: int
         download_limit: int
+        auto_managed: bool
 
 
     class StateConfigSection(TypedDict):
@@ -82,6 +83,7 @@ completed_dir = string(default=None)
 stop_after_metainfo = boolean(default=False)
 upload_limit =  integer(default=-1)
 download_limit =  integer(default=-1)
+auto_managed = boolean(default=False)
 
 [state]
 metainfo = string(default='ZGU=')
@@ -148,6 +150,7 @@ class DownloadConfig:
         config.set_dest_dir(settings.get("libtorrent/download_defaults/saveas"))
         if settings.get("libtorrent/download_defaults/completed_dir"):
             config.set_completed_dir(settings.get("libtorrent/download_defaults/completed_dir"))
+        config.set_auto_managed(bool(settings.get("libtorrent/download_defaults/auto_managed")))
 
         return config
 
@@ -363,3 +366,15 @@ class DownloadConfig:
         Get the download bandwidth limit for this torrent.
         """
         return self.config["download_defaults"].get("download_limit", False)
+
+    def set_auto_managed(self, value: bool) -> None:
+        """
+        Set auto managed flag.
+        """
+        self.config["download_defaults"]["auto_managed"] = value
+
+    def get_auto_managed(self) -> bool:
+        """
+        Get auto managed flag.
+        """
+        return self.config["download_defaults"].get("auto_managed", False)

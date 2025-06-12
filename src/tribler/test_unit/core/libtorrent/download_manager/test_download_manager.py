@@ -1,5 +1,4 @@
 import asyncio
-import functools
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
 from io import StringIO
@@ -205,26 +204,6 @@ class TestDownloadManager(TestBase):
 
         self.assertEqual(mock_handle, handle)
 
-    def test_convert_rate(self) -> None:
-        """
-        Test if rates are correctly converted.
-        """
-        self.assertEqual(-1, DownloadManager.convert_rate(0))
-        self.assertEqual(1, DownloadManager.convert_rate(-1))
-        self.assertEqual(1024, DownloadManager.convert_rate(1))
-        self.assertEqual(2048, DownloadManager.convert_rate(2))
-        self.assertEqual(-2048, DownloadManager.convert_rate(-2))
-
-    def test_reverse_convert_rate(self) -> None:
-        """
-        Test if converted rates can be reversed.
-        """
-        self.assertEqual(0, DownloadManager.reverse_convert_rate(-1))
-        self.assertEqual(-1, DownloadManager.reverse_convert_rate(1))
-        self.assertEqual(0, DownloadManager.reverse_convert_rate(0))
-        self.assertEqual(1, DownloadManager.reverse_convert_rate(1024))
-        self.assertEqual(-2, DownloadManager.reverse_convert_rate(-2048))
-
     async def test_start_download_existing_download(self) -> None:
         """
         Test if torrents can be added when there is a pre-existing download.
@@ -385,7 +364,7 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.manager, checkpoint_disabled=True,
                             config=config)
         download.futures["save_resume_data"] = succeed(True)
-        download_state = DownloadState(download, Mock(state=4, paused=False, error=None), None)
+        download_state = DownloadState(download, Mock(state=4, paused=False, moving_storage=False, error=None), None)
         self.manager.downloads = {b"\x01" * 20: download}
         self.manager.config.set("libtorrent/download_defaults/number_hops", 42)
 
@@ -529,33 +508,3 @@ class TestDownloadManager(TestBase):
                       [b"127.0.0.1/test-announce0", b"127.0.0.1/test-announce1"])
         self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
                             {t[0] for t in download.tdef.get_metainfo()[b"announce-list"]})
-
-    async def test_get_download_rate_limit(self) -> None:
-        """
-        Test if the download rate limit can be set.
-        """
-        settings = {}
-        self.manager.ltsessions[0] = Future()
-        self.manager.ltsessions[0].set_result(Mock(
-            get_settings=Mock(return_value=settings),
-            download_rate_limit=functools.partial(settings.get, "download_rate_limit")
-        ))
-
-        await self.manager.set_download_rate_limit(42)
-
-        self.assertEqual(42, await self.manager.get_download_rate_limit())
-
-    async def test_get_upload_rate_limit(self) -> None:
-        """
-        Test if the upload rate limit can be set.
-        """
-        settings = {}
-        self.manager.ltsessions[0] = Future()
-        self.manager.ltsessions[0].set_result(Mock(
-            get_settings=Mock(return_value=settings),
-            upload_rate_limit = functools.partial(settings.get, "upload_rate_limit")
-        ))
-
-        await self.manager.set_upload_rate_limit(42)
-
-        self.assertEqual(42, await self.manager.get_upload_rate_limit())

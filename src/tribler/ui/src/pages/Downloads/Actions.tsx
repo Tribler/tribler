@@ -1,15 +1,15 @@
 import { Download } from "@/models/download.model";
-import { triblerService } from "@/services/tribler.service";
+import { QueueOperation, triblerService } from "@/services/tribler.service";
 import { ErrorDict, isErrorDict } from "@/services/reporting";
 import toast from 'react-hot-toast';
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, CheckCheckIcon, Clapperboard, ExternalLinkIcon, Pause, Play, Trash, VenetianMaskIcon } from "lucide-react";
+import { ArrowDown, ArrowDownToLine, ArrowUp, ArrowUpToLine, Bot, CheckCheckIcon, Clapperboard, ExternalLinkIcon, Pause, Play, Rows4, Trash, VenetianMaskIcon } from "lucide-react";
 import { MoveIcon } from "@radix-ui/react-icons";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { downloadFile, downloadFilesAsZip, formatBytes } from "@/lib/utils";
 import { TFunction } from "i18next";
-import { ContextMenuContent, ContextMenuItem, ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
+import { ContextMenuCheckboxItem, ContextMenuContent, ContextMenuItem, ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
 import MoveStorage from "@/dialogs/MoveStorage";
 import ConfirmRemove from "@/dialogs/ConfirmRemove";
 import { VideoDialog } from "@/dialogs/Videoplayer";
@@ -44,6 +44,20 @@ function removeDownloads(selectedDownloads: Download[], removeData: boolean, t: 
     selectedDownloads.forEach((download) => {
         triblerService.removeDownload(download.infohash, removeData).then((response) =>
             handleError(response, t("ToastErrorDownloadRemove"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function updateQueuePosition(selectedDownloads: Download[], queueChange: QueueOperation, t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.updateQueuePosition(download.infohash, queueChange).then((response) =>
+            handleError(response, t("ToastErrorDownloadQueue"), t("ToastErrorGenNetworkErr")))
+    });
+}
+
+function setAutoManaged(selectedDownloads: Download[], value: boolean, t: TFunction) {
+    selectedDownloads.forEach((download) => {
+        triblerService.setAutoManaged(download.infohash, value).then((response) =>
+            handleError(response, t("ToastErrorDownloadAutoManaged"), t("ToastErrorGenNetworkErr")))
     });
 }
 
@@ -101,7 +115,7 @@ function getBandwidthLimit(selectedDownloads: Download[], direction: "up" | "dow
     return allEqual ? limits[0] : undefined;
 }
 
-export function ActionButtons({ selectedDownloads }: { selectedDownloads: Download[] }) {
+export function ActionButtons({ selectedDownloads, onClick }: { selectedDownloads: Download[], onClick?: () => void }) {
     const { t } = useTranslation();
 
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
@@ -110,38 +124,84 @@ export function ActionButtons({ selectedDownloads }: { selectedDownloads: Downlo
         <>
             <p className="text-sm whitespace-nowrap pr-3">{t('WithSelected')}</p>
 
-            <EasyTooltip content={t('Start')}>
-                <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => resumeDownloads(selectedDownloads, t)}
-                    disabled={selectedDownloads.length < 1
-                        || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
-                    <Play className="h-4 w-4" />
-                </Button>
-            </EasyTooltip>
+            <div onClick={() => { if (onClick) onClick() }}>
+                <EasyTooltip content={t('Start')}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => resumeDownloads(selectedDownloads, t)}
+                        disabled={selectedDownloads.length < 1
+                            || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
+                        <Play className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
 
-            <EasyTooltip content={t('Stop')}>
-                <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => stopDownloads(selectedDownloads, t)}
-                    disabled={selectedDownloads.length < 1
-                        || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
-                    <Pause className="h-4 w-4" />
-                </Button>
-            </EasyTooltip>
+                <EasyTooltip content={t('Stop')}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => stopDownloads(selectedDownloads, t)}
+                        disabled={selectedDownloads.length < 1
+                            || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
+                        <Pause className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
 
-            <EasyTooltip content={t('Remove')}>
-                <Button
-                    variant="outline"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setRemoveDialogOpen(true)}
-                    disabled={selectedDownloads.length < 1}
-                >
-                    <Trash className="h-4 w-4" />
-                </Button>
-            </EasyTooltip>
+                <EasyTooltip content={t('Remove')}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setRemoveDialogOpen(true)}
+                        disabled={selectedDownloads.length < 1}
+                    >
+                        <Trash className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
+
+                <EasyTooltip content={t("MoveToTop")}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateQueuePosition(selectedDownloads, "queue_top", t)}
+                        disabled={selectedDownloads.length < 1}
+                    >
+                        <ArrowUpToLine className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
+
+                <EasyTooltip content={t("MoveUp")}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateQueuePosition(selectedDownloads, "queue_up", t)}
+                        disabled={selectedDownloads.length < 1}
+                    >
+                        <ArrowUp className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
+
+                <EasyTooltip content={t("MoveDown")}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateQueuePosition(selectedDownloads, "queue_down", t)}
+                        disabled={selectedDownloads.length < 1}
+                    >
+                        <ArrowDown className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
+
+                <EasyTooltip content={t("MoveToBottom")}>
+                    <Button
+                        variant="outline"
+                        className="h-8 w-8 p-0"
+                        onClick={() => updateQueuePosition(selectedDownloads, "queue_bottom", t)}
+                        disabled={selectedDownloads.length < 1}
+                    >
+                        <ArrowDownToLine className="h-4 w-4" />
+                    </Button>
+                </EasyTooltip>
+            </div>
 
             <ConfirmRemove
                 open={removeDialogOpen}
@@ -152,7 +212,7 @@ export function ActionButtons({ selectedDownloads }: { selectedDownloads: Downlo
     )
 }
 
-export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[] }) {
+export function ActionMenu({ selectedDownloads, onClick }: { selectedDownloads: Download[], onClick?: () => void }) {
     const { t } = useTranslation();
 
     const uploadLimitRef = useRef<HTMLInputElement | null>(null);
@@ -165,25 +225,27 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
 
     return (
         <>
-            <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
-                <ContextMenuItem
+            <ContextMenuContent
+                className="w-64 bg-neutral-50 dark:bg-neutral-950"
+                onClick={() => { if (onClick) onClick() }}>
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => resumeDownloads(selectedDownloads, t)}
                     disabled={selectedDownloads.length < 1
                         || selectedDownloads.every((d) => filterActive.includes(d.status_code))}>
-                    <Play className="w-4 ml-2 mr-3" />
+                    <Play className="w-4 mx-2" />
                     {t('Start')}
                 </ContextMenuItem>
-                <ContextMenuItem
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => stopDownloads(selectedDownloads, t)}
                     disabled={selectedDownloads.length < 1
                         || selectedDownloads.every((d) => filterInactive.includes(d.status_code))}>
-                    <Pause className="w-4 ml-2 mr-3" />
+                    <Pause className="w-4 mx-2" />
                     {t('Stop')}
                 </ContextMenuItem>
                 {triblerService.guiSettings.dev_mode && navigator.userAgent.includes("Chrome") &&
-                    <ContextMenuItem
+                    <ContextMenuItem inset
                         className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                         onClick={() => {
                             console.log("Streaming...", selectedDownloads[0]);
@@ -193,24 +255,41 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                             }
                         }}
                         disabled={selectedDownloads.length !== 1 || selectedDownloads[0].streamable !== true}>
-                        <Clapperboard className="w-4 ml-2 mr-3" />
+                        <Clapperboard className="w-4 mx-2" />
                         {t("Stream")}
                     </ContextMenuItem>
                 }
                 <ContextMenuSeparator />
-                <ContextMenuItem
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => (selectedDownloads.length > 0) && setRemoveDialogOpen(true)}
                     disabled={selectedDownloads.length < 1}>
-                    <Trash className="w-4 ml-2 mr-3" />
+                    <Trash className="w-4 mx-2" />
                     {t('Remove')}
                 </ContextMenuItem>
                 <ContextMenuSeparator />
+                <ContextMenuCheckboxItem
+                    onClick={() =>
+                        setAutoManaged(selectedDownloads, !selectedDownloads.every((d) => d.auto_managed), t)
+                    }
+                    disabled={selectedDownloads.length < 1}
+                    checked={
+                        selectedDownloads.every((d) => d.auto_managed)
+                            ? true
+                            : selectedDownloads.some((d) => d.auto_managed)
+                            ? "indeterminate"
+                            : false
+                    }
+                >
+                    <Bot className="w-4 mx-2" />
+                    {t("AutoManaged")}
+                </ContextMenuCheckboxItem>
+                <ContextMenuSeparator />
                 <ContextMenuSub>
-                    <ContextMenuSubTrigger
+                    <ContextMenuSubTrigger inset
                         disabled={selectedDownloads.length < 1}
                         className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
-                        <ArrowDown className="w-4 ml-2 mr-3" />
+                        <ArrowDown className="w-4 mx-2" />
                         {t("DownloadLimit")}
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
@@ -247,10 +326,10 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                     </ContextMenuSubContent>
                 </ContextMenuSub>
                 <ContextMenuSub>
-                    <ContextMenuSubTrigger
+                    <ContextMenuSubTrigger inset
                         disabled={selectedDownloads.length < 1}
                         className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
-                        <ArrowUp className="w-4 ml-2 mr-3" />
+                        <ArrowUp className="w-4 mx-2" />
                         {t("UploadLimit")}
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
@@ -286,32 +365,32 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                         </ContextMenuRadioGroup>
                     </ContextMenuSubContent>
                 </ContextMenuSub>
-                <ContextMenuItem
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => (selectedDownloads.length > 0) && setStorageDialogOpen(true)}
                     disabled={selectedDownloads.length < 1}>
-                    <MoveIcon className="w-4 ml-2 mr-3" />
+                    <MoveIcon className="w-4 mx-2" />
                     {t('MoveStorage')}..
                 </ContextMenuItem>
-                <ContextMenuItem
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => recheckDownloads(selectedDownloads, t)}
                     disabled={selectedDownloads.length < 1}>
-                    <CheckCheckIcon className="w-4 ml-2 mr-3" />
+                    <CheckCheckIcon className="w-4 mx-2" />
                     {t('ForceRecheck')}
                 </ContextMenuItem>
-                <ContextMenuItem
+                <ContextMenuItem inset
                     className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
                     onClick={() => exportTorrents(selectedDownloads)}
                     disabled={selectedDownloads.length < 1}>
-                    <ExternalLinkIcon className="w-4 ml-2 mr-3" />
+                    <ExternalLinkIcon className="w-4 mx-2" />
                     {t('ExportTorrent')}
                 </ContextMenuItem>
                 <ContextMenuSub>
-                    <ContextMenuSubTrigger
+                    <ContextMenuSubTrigger inset
                         disabled={selectedDownloads.length < 1}
                         className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
-                        <VenetianMaskIcon className="w-4 ml-2 mr-3" />
+                        <VenetianMaskIcon className="w-4 mx-2" />
                         {t('ChangeAnonymity')}
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
@@ -326,6 +405,32 @@ export function ActionMenu({ selectedDownloads }: { selectedDownloads: Download[
                         </ContextMenuItem>
                         <ContextMenuItem onClick={() => { setHops(selectedDownloads, 3, t) }}>
                             <span>{t('ThreeHops')}</span>
+                        </ContextMenuItem>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger inset
+                        disabled={selectedDownloads.length < 1}
+                        className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
+                        <Rows4 className="w-4 mx-2" />
+                        {t('Queue')}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuItem onClick={() => updateQueuePosition(selectedDownloads, "queue_top", t)}>
+                            <ArrowUpToLine className="w-4 mx-2" />
+                            {t('MoveToTopShort')}
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => updateQueuePosition(selectedDownloads, "queue_up", t)}>
+                            <ArrowUp className="w-4 mx-2" />
+                            {t('MoveUpShort')}
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => updateQueuePosition(selectedDownloads, "queue_down", t)}>
+                            <ArrowDown className="w-4 mx-2" />
+                            {t('MoveDownShort')}
+                        </ContextMenuItem>
+                        <ContextMenuItem onClick={() => updateQueuePosition(selectedDownloads, "queue_bottom", t)}>
+                            <ArrowDownToLine className="w-4 mx-2" />
+                            {t('MoveToBottomShort')}
                         </ContextMenuItem>
                     </ContextMenuSubContent>
                 </ContextMenuSub>

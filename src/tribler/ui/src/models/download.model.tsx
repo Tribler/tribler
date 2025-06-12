@@ -53,4 +53,7 @@ export interface Download {
     peers: Peer[];
     files: File[] | undefined;
     streamable?: boolean;
+    queue_position: number;
+    auto_managed: boolean;
+    user_stopped: boolean;
 }
