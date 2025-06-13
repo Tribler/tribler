@@ -19,7 +19,7 @@ if TYPE_CHECKING:
         name: str
         value: str | None
 
-        def __init__(self, name: str) -> None: ...  # noqa: D107
+        def __init__(self, name: str, value: str | None = None) -> None: ...  # noqa: D107
 
         @staticmethod
         def get(name: str) -> MiscData | None: ...  # noqa: D102

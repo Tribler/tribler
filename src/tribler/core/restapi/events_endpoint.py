@@ -17,7 +17,7 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from aiohttp.abc import Request
+    from aiohttp.web_request import Request
     from ipv8.messaging.anonymization.tunnel import Circuit
 
 topics_to_send_to_gui = [

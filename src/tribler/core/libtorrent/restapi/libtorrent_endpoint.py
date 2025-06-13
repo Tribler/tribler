@@ -11,7 +11,7 @@ from marshmallow.fields import Integer
 from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from aiohttp.abc import Request
+    from aiohttp.web_request import Request
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 

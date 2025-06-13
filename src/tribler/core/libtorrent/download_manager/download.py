@@ -878,6 +878,7 @@ class Download(TaskManager):
         """
         Add a peer address from 3rd source (not tracker, not DHT) to this download.
 
+        :param handle: the valid torrent handle.
         :param addr: The (hostname_ip,port) tuple to connect to
         """
         handle.connect_peer(addr, 0)
@@ -887,6 +888,7 @@ class Download(TaskManager):
         """
         Add a URL seed to this download.
 
+        :param handle: the valid torrent handle.
         :param addr: The URL address to connect to
         """
         handle.add_url_seed(addr)

@@ -81,7 +81,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         """
         Get the torrent checker of node i.
         """
-        return cast(MockTorrentChecker, self.overlay(i).composition.torrent_checker)
+        return cast("MockTorrentChecker", self.overlay(i).composition.torrent_checker)
 
     async def test_torrents_health_gossip(self) -> None:
         """

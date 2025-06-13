@@ -107,7 +107,7 @@ class TestRecommenderCommunity(TestBase[RecommenderCommunity]):
         """
         Get the overlay of the crawler (peer id 1).
         """
-        return cast(StubRecommenderCommunityCrawler, self.overlay(1))
+        return cast("StubRecommenderCommunityCrawler", self.overlay(1))
 
     async def test_crawl_table_empty(self) -> None:
         """

@@ -7,7 +7,7 @@ import time
 from asyncio import CancelledError, DatagramTransport
 from binascii import hexlify
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from ipv8.taskmanager import TaskManager
 from pony.orm import db_session, desc, select
@@ -25,6 +25,7 @@ from tribler.core.torrent_checker.torrentchecker_session import (
 from tribler.core.torrent_checker.tracker_manager import MAX_TRACKER_FAILURES, TrackerManager
 
 if TYPE_CHECKING:
+    from tribler.core.database.orm_bindings.tracker_state import TrackerState
     from tribler.core.database.store import MetadataStore
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
     from tribler.tribler_config import TriblerConfigManager
@@ -281,7 +282,7 @@ class TorrentChecker(TaskManager):
         self._logger.info("Results for local torrents check: %s", str(results))
         return selected_torrents, results
 
-    def get_next_tracker(self) -> Any | None:  # noqa: ANN401
+    def get_next_tracker(self) -> TrackerState | None:
         """
         Return the next unchecked tracker.
         """

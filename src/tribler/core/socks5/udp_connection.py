@@ -118,7 +118,7 @@ class RustUDPConnection:
         return
 
     @remote_udp_address.setter
-    def remote_udp_address(self, address: tuple) -> None:
+    def remote_udp_address(self, address: tuple[str, int]) -> None:
         """
         Set the remote address for this connection.
         """

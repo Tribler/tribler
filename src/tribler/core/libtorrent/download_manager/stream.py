@@ -175,7 +175,7 @@ class Stream:
 
         # Iterate over all pieces that have not yet been downloaded, and determine their appropriate priority/deadline.
         for piece in self.iter_pieces(have=False):
-            deadline = None
+            deadline: int | None = None
             for pieces in self.cursor_pieces.values():
                 if piece in pieces and (deadline is None or pieces.index(piece) < deadline):
                     deadline = pieces.index(piece)

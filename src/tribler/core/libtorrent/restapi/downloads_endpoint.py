@@ -34,7 +34,8 @@ from tribler.core.restapi.rest_endpoint import (
 if TYPE_CHECKING:
     from typing import Any
 
-    from aiohttp.abc import AbstractStreamWriter, BaseRequest, Request
+    from aiohttp.abc import AbstractStreamWriter, BaseRequest
+    from aiohttp.web_request import Request
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager

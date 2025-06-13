@@ -156,7 +156,7 @@ def add_url_params(url: str, params: dict) -> str:
     :param params: dict containing requested params to be added
     :return: string with updated URL
     """
-    # Unquoting URL first so we don't loose existing args
+    # Unquoting URL first so we don't lose existing args
     url = unquote(url)
     # Extracting url info
     parsed_url = urlparse(url)

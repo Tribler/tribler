@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from asyncio.base_events import Server
     from collections.abc import Awaitable, Callable
 
-    from aiohttp.abc import Request
+    from aiohttp.web_request import Request
 
     from tribler.tribler_config import TriblerConfigManager
 

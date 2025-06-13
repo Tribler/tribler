@@ -16,7 +16,7 @@ from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import libtorrent as lt
 from configobj import ConfigObj
@@ -27,7 +27,7 @@ from yarl import URL
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
-from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
+from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict, TorrentDef
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
     from tribler.tribler_config import TriblerConfigManager
+
 
 SOCKS5_PROXY_DEF = 2
 
@@ -68,6 +69,15 @@ class MetainfoLookup:
 
     download: Download
     pending: int
+
+
+class PendingMetainfoLookup(TypedDict):
+    """
+    A metainfo_cache entry that is pending a result.
+    """
+
+    time: float
+    meta_info: MetainfoDict | MetainfoV2Dict
 
 
 def encode_atp(atp: dict) -> dict:
@@ -129,7 +139,10 @@ class DownloadManager(TaskManager):
         # Dictionary that maps infohashes to download instances. These include only downloads that have
         # been made specifically for fetching metainfo, and will be removed afterwards.
         self.metainfo_requests: dict[bytes, MetainfoLookup] = {}
-        self.metainfo_cache: dict[bytes, MetainfoDict] = {}  # Dictionary that maps infohashes to cached metainfo items
+        self.metainfo_cache: dict[bytes, PendingMetainfoLookup] = {}
+        """
+        Dictionary that maps infohashes to cached metainfo items
+        """
 
         self.default_alert_mask = lt.alert.category_t.error_notification | lt.alert.category_t.status_notification | \
                                   lt.alert.category_t.storage_notification | lt.alert.category_t.performance_warning | \
@@ -542,7 +555,7 @@ class DownloadManager(TaskManager):
             return None
         else:
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-            self.metainfo_cache[infohash] = {"time": time.time(), "meta_info": metainfo}
+            self.metainfo_cache[infohash] = PendingMetainfoLookup(time=time.time(), meta_info= metainfo)
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
                 "size": download.tdef.atp.ti.total_size(),
@@ -879,8 +892,8 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
         if download:
             old_def = download.get_def()
-            old_trackers = {t.encode() for t in old_def.atp.trackers}
-            new_trackers = list(set(trackers) - old_trackers)
+            old_trackers: set[bytes] = {t.encode() for t in old_def.atp.trackers}
+            new_trackers: list[bytes] = list(set(trackers) - old_trackers)
             all_trackers = [*old_trackers, *new_trackers]
 
             if new_trackers:
