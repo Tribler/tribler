@@ -135,7 +135,8 @@ class Session:
 
         # Libtorrent
         self.download_manager = DownloadManager(self.config, self.notifier)
-        self.socks_servers = [Socks5Server(port) for port in self.config.get("libtorrent/socks_listen_ports")]
+        self.socks_servers = [Socks5Server(index+1, port)
+                              for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))]
 
         # IPv8
         rescue_keys(self.config)
