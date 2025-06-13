@@ -44,7 +44,7 @@ class LoggingEndpoint(RESTEndpoint):
 
         self.app.add_routes([web.get("", self.get_logs)])
 
-    def get_logs(self, request: web.Request) -> RESTResponse:
+    async def get_logs(self, request: web.Request) -> RESTResponse:
         """
         Return the most recent logs.
         """

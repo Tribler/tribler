@@ -34,6 +34,7 @@ if TYPE_CHECKING:
         upload_limit: int
         download_limit: int
         auto_managed: bool
+        name: str
 
 
     class StateConfigSection(TypedDict):

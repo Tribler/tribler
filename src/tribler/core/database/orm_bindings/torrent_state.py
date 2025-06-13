@@ -7,6 +7,7 @@ from pony import orm
 from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
     from dataclasses import dataclass
 
     from pony.orm import Database
@@ -23,14 +24,13 @@ if TYPE_CHECKING:
 
         rowid: int
         infohash: bytes
-        seeders: int | None
-        leechers: int | None
-        last_check: int | None
-        self_checked: bool | None
+        seeders: int
+        leechers: int
+        last_check: int
+        self_checked: bool
         has_data: bool
         metadata: set[TorrentMetadata]
         trackers: set[TrackerState]
-
 
         def __init__(self, infohash: bytes) -> None: ...  # noqa: D107
 
@@ -38,7 +38,35 @@ if TYPE_CHECKING:
         def get(infohash: bytes) -> TorrentState | None: ...  # noqa: D102
 
         @staticmethod
-        def get_for_update(infohash: bytes) -> TorrentState | None: ...  # noqa: D102
+        def set(  # noqa: D102, PLR0913
+                rowid: int | None = None,
+                infohash: bytes | None = None,
+                seeders: int | None = None,
+                leechers: int | None = None,
+                last_check: int | None = None,
+                self_checked: bool | None = None,
+                has_data: bool | None = None,
+                metadata: set[TorrentMetadata] | None = None,
+                trackers: set[TrackerState] | None = None) -> None: ...
+
+        @staticmethod
+        def get_for_update(infohash: bytes) -> TorrentState: ...  # noqa: D102
+
+        @staticmethod
+        def select(selector: Callable) -> TorrentState: ...  # noqa: D102
+
+        @staticmethod
+        def order_by(selector: Callable) -> TorrentState: ...  # noqa: D102
+
+        @staticmethod
+        def limit(limit: int) -> list[TorrentState]: ...  # noqa: D102
+
+        def __iter__(self) -> Generator[TorrentState]: ...  # noqa: D105
+
+        def to_health(self) -> HealthInfo: ...  # noqa: D102
+
+        @staticmethod
+        def from_health(health: HealthInfo) -> TorrentState: ...  # noqa: D102
 
 
 def define_binding(db: Database) -> type[TorrentState]:

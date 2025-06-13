@@ -147,7 +147,7 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         url = tracker.url
         with db_session:
-            dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** tracker.failures)
+            dynamic_interval = TORRENT_CHECK_RETRY_INTERVAL * (2 ** (tracker.failures or 0))
             torrents = select(ts for ts in tracker.torrents
                               if ts.has_data == 1  # The condition had to be written this way for the index to work
                               and ts.last_check + dynamic_interval < int(time.time()))
@@ -309,8 +309,10 @@ class TorrentChecker(TaskManager):
         """
         Get a set of valid trackers for torrent. Also remove any invalid torrent.
         """
-        db_tracker_list = self.mds.TorrentState.get(infohash=infohash).trackers
-        return {tracker.url for tracker in db_tracker_list
+        res = self.mds.TorrentState.get(infohash=infohash)
+        if not res:
+            return set()
+        return {tracker.url for tracker in res.trackers
                 if is_valid_url(tracker.url) and not self.is_blacklisted_tracker(tracker.url)}
 
     async def check_torrent_health(self, infohash: bytes, timeout: float = 20, scrape_now: bool = False) -> HealthInfo:

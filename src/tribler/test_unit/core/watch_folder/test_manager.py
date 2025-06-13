@@ -103,7 +103,7 @@ class TestWatchFolderManager(TestBase):
 
         self.assertTrue(result)
         self.assertEqual(1, len(scheduled_tasks))
-        self.assertEqual(call(torrent_file=Path("fake.torrent"), tdef=tdef),
+        self.assertEqual(call(torrent_file="fake.torrent", tdef=tdef),
                          self.manager.session.download_manager.start_download.call_args)
 
     async def test_watch_folder_torrent_file_start_magnet(self) -> None:
@@ -166,5 +166,5 @@ class TestWatchFolderManager(TestBase):
 
         self.assertTrue(result)
         self.assertEqual(1, len(scheduled_tasks))
-        self.assertEqual(call(torrent_file=Path("fake.torrent"), tdef=tdef),
+        self.assertEqual(call(torrent_file="fake.torrent", tdef=tdef),
                          self.manager.session.download_manager.start_download.call_args)

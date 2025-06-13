@@ -89,6 +89,25 @@ class TrackerStatusDict(TypedDict):
     status: str
 
 
+class AlertHandlerDict(TypedDict):
+    """
+    Alert handler dictionary.
+    """
+
+    tracker_reply_alert: list[Callable[[lt.tracker_reply_alert], None]]
+    tracker_error_alert: list[Callable[[lt.tracker_error_alert], None]]
+    tracker_warning_alert: list[Callable[[lt.tracker_warning_alert], None]]
+    metadata_received_alert: list[Callable[[lt.metadata_received_alert], None]]
+    performance_alert: list[Callable[[lt.performance_alert], None]]
+    torrent_checked_alert: list[Callable[[lt.torrent_checked_alert], None]]
+    torrent_finished_alert: list[Callable[[lt.torrent_finished_alert], None]]
+    save_resume_data_alert: list[Callable[[lt.save_resume_data_alert], None]]
+    state_changed_alert: list[Callable[[lt.state_changed_alert], None]]
+    torrent_error_alert: list[Callable[[lt.torrent_error_alert], None]]
+    add_torrent_alert: list[Callable[[lt.add_torrent_alert], None]]
+    torrent_removed_alert: list[Callable[[lt.torrent_removed_alert], None]]
+
+
 class Download(TaskManager):
     """
     Download subclass that represents a libtorrent download.
@@ -124,6 +143,20 @@ class Download(TaskManager):
 
         self.futures: dict[str, list[tuple[Future, Callable, Getter | None]]] = defaultdict(list)
         self.alert_handlers: dict[str, list[Callable[[lt.torrent_alert], None]]] = defaultdict(list)
+        self.alert_handlers.update(**cast("dict[str, list[Callable[[lt.torrent_alert], None]]]", AlertHandlerDict(
+            tracker_reply_alert=[self.on_tracker_reply_alert],
+            tracker_error_alert=[self.on_tracker_error_alert],
+            tracker_warning_alert=[self.on_tracker_warning_alert],
+            metadata_received_alert=[self.on_metadata_received_alert],
+            performance_alert=[self.on_performance_alert],
+            torrent_checked_alert=[self.on_torrent_checked_alert],
+            torrent_finished_alert=[self.on_torrent_finished_alert],
+            save_resume_data_alert=[self.on_save_resume_data_alert],
+            state_changed_alert=[self.on_state_changed_alert],
+            torrent_error_alert=[self.on_torrent_error_alert],
+            add_torrent_alert=[self.on_add_torrent_alert],
+            torrent_removed_alert=[self.on_torrent_removed_alert]
+        )))
 
         self.future_added = self.wait_for_alert("add_torrent_alert", lambda a: a.handle)
         self.future_removed = self.wait_for_alert("torrent_removed_alert")
@@ -136,31 +169,18 @@ class Download(TaskManager):
         if config and config.get_stop_after_metainfo():
             self.stop_after_metainfo()
 
-        alert_handlers = {"tracker_reply_alert": self.on_tracker_reply_alert,
-                          "tracker_error_alert": self.on_tracker_error_alert,
-                          "tracker_warning_alert": self.on_tracker_warning_alert,
-                          "metadata_received_alert": self.on_metadata_received_alert,
-                          "performance_alert": self.on_performance_alert,
-                          "torrent_checked_alert": self.on_torrent_checked_alert,
-                          "torrent_finished_alert": self.on_torrent_finished_alert,
-                          "save_resume_data_alert": self.on_save_resume_data_alert,
-                          "state_changed_alert": self.on_state_changed_alert,
-                          "torrent_error_alert": self.on_torrent_error_alert,
-                          "add_torrent_alert": self.on_add_torrent_alert,
-                          "torrent_removed_alert": self.on_torrent_removed_alert}
-
-        for alert_type, alert_handler in alert_handlers.items():
-            self.register_alert_handler(alert_type, alert_handler)
         self.stream: Stream | None = None
 
         # With hidden True download will not be in GET/downloads set, as a result will not be shown in GUI
         self.hidden = hidden
         self.checkpoint_disabled = checkpoint_disabled
-        self.config: DownloadConfig = config
+        self.config: DownloadConfig
         if config is None and self.download_manager is not None:
             self.config = DownloadConfig.from_defaults(self.download_manager.config)
         elif config is None:
             self.config = DownloadConfig.from_defaults(TriblerConfigManager())
+        else:
+            self.config = config
 
         self._logger.debug("Setup: %s", hexlify(self.tdef.infohash).decode())
 
@@ -222,6 +242,8 @@ class Download(TaskManager):
             return None
 
         torrent_info = get_info_from_handle(self.handle)
+        if torrent_info is None:
+            return None
         t = lt.create_torrent(torrent_info)
         return t.generate()
 
@@ -394,7 +416,7 @@ class Download(TaskManager):
             return
 
         if self.tdef.torrent_info is not None:
-            self.config.set_metainfo(self.tdef.get_metainfo())
+            self.config.set_metainfo(cast("MetainfoDict", self.tdef.get_metainfo()))
         else:
             self.config.set_metainfo({
                 "infohash": self.tdef.infohash,
@@ -571,8 +593,9 @@ class Download(TaskManager):
             infohash = self.tdef.infohash.hex()
             self.notifier.notify(Notification.torrent_finished, infohash=infohash, name=name, hidden=self.hidden)
 
-        if self.config.get_completed_dir() and self.config.get_completed_dir() != self.config.get_dest_dir():
-            self.move_storage(Path(self.config.get_completed_dir()))
+        completed_dir = self.config.get_completed_dir()
+        if completed_dir is not None and completed_dir != self.config.get_dest_dir():
+            self.move_storage(Path(completed_dir))
 
     def update_lt_status(self, lt_status: lt.torrent_status) -> None:
         """
@@ -600,12 +623,12 @@ class Download(TaskManager):
 
     @check_handle(None)
     def set_selected_files(self, handle: lt.torrent_handle, selected_files: list[int] | None = None, prio: int = 4,
-                           force: bool = False) -> int | None:
+                           force: bool = False) -> None:
         """
         Set the selected files. If the selected files is None or empty, all files will be selected.
         """
         if not force and self.stream is not None:
-            return None
+            return
         if self.tdef.torrent_info is not None and not self.get_share_mode():
             if selected_files is None:
                 selected_files = self.config.get_selected_files()
@@ -617,7 +640,7 @@ class Download(TaskManager):
                 selected_files = list(range(total_files))
 
             self.set_file_priorities([prio if index in selected_files else 0 for index in range(total_files)])
-        return None
+        return
 
     @check_handle(False)
     def move_storage(self, handle: lt.torrent_handle, new_dir: Path) -> bool:
@@ -734,10 +757,12 @@ class Download(TaskManager):
             return None
 
         torrent_info = get_info_from_handle(self.handle)
+        if torrent_info is None:
+            return None
         t = lt.create_torrent(torrent_info)
         return t.generate()
 
-    @check_handle(default=[])
+    @check_handle(default=cast("list[TrackerStatusDict]", []))
     def get_tracker_status(self, handle: lt.torrent_handle) -> list[TrackerStatusDict]:
         """
         Retrieve an overview of the trackers and their statuses.
@@ -745,17 +770,19 @@ class Download(TaskManager):
         # Make sure all trackers are in the tracker_status dict
         result: list[TrackerStatusDict] = []
         try:
-            trackers = handle.trackers()
+            trackers = cast("list[lt._AnnounceEntryDict]", handle.trackers())  # noqa: SLF001
             for removed in (set(self.tracker_status.keys()) - {t["url"] for t in trackers}):
                 self.tracker_status.pop(removed)
             for tracker in trackers:
                 url = tracker["url"]
                 peers, status = self.tracker_status.get(url, [-1, "Not contacted yet"])
-                result.append({"url": url,
-                               "peers": cast("int", peers),
-                               "seeds": tracker["scrape_complete"],
-                               "leeches": tracker["scrape_incomplete"],
-                               "status": cast("str", status)})
+                result.append(TrackerStatusDict(
+                    url=url,
+                    peers=cast("int", peers),
+                    seeds=tracker["scrape_complete"],
+                    leeches=tracker["scrape_incomplete"],
+                    status=cast("str", status)
+                ))
         except UnicodeDecodeError:
             self._logger.warning("UnicodeDecodeError in get_tracker_status")
 
@@ -775,10 +802,11 @@ class Download(TaskManager):
                 pex_peers += 1
 
         ltsession = self.download_manager.get_session(self.config.get_hops()).result()
-        dht_on = ltsession.is_dht_running() and not (self.tdef and self.tdef.torrent_info and self.tdef.atp.ti.priv())
+        dht_on = ltsession.is_dht_running() and not (self.tdef and self.tdef.torrent_info
+                                                     and self.tdef.torrent_info.priv())
         dht_status = "Working" if dht_on else "Disabled"
-        result.append({"url": "[DHT]", "peers": dht_peers, "seeds": -1, "leeches": -1, "status": dht_status})
-        result.append({"url": "[PeX]", "peers": pex_peers, "seeds": -1, "leeches": -1, "status": "Working"})
+        result.append(TrackerStatusDict(url="[DHT]", peers=dht_peers, seeds=-1, leeches=-1, status=dht_status))
+        result.append(TrackerStatusDict(url="[PeX]", peers=pex_peers, seeds=-1, leeches=-1, status="Working"))
         return result
 
     async def shutdown(self) -> None:
@@ -872,7 +900,7 @@ class Download(TaskManager):
         self.tdef = tdef
 
     @check_handle(None)
-    def add_trackers(self, handle: lt.torrent_handle, trackers: list[bytes]) -> None:
+    def add_trackers(self, handle: lt.torrent_handle, trackers: list[str]) -> None:
         """
         Add the given trackers to the handle.
         """
@@ -880,8 +908,8 @@ class Download(TaskManager):
             handle.add_tracker({"url": tracker, "verified": False})
         handle.force_reannounce()
 
-    @check_handle(None)
-    def get_magnet_link(self, handle: lt.torrent_handle) -> str:
+    @check_handle(cast("str | None", None))
+    def get_magnet_link(self, handle: lt.torrent_handle) -> str | None:
         """
         Generate a magnet link for our download.
         """
@@ -977,7 +1005,7 @@ class Download(TaskManager):
         """
         handle.prioritize_pieces(piece_priorities)
 
-    @check_handle([])
+    @check_handle(cast("list[int]", []))
     def get_piece_priorities(self, handle: lt.torrent_handle) -> list[int]:
         """
         Get the priorities of all pieces in the download.
@@ -1012,7 +1040,7 @@ class Download(TaskManager):
         """
         handle.set_piece_deadline(piece, deadline, flags)
 
-    @check_handle([])
+    @check_handle(cast("list[int]", []))
     def get_file_priorities(self, handle: lt.torrent_handle) -> list[int]:
         """
         Get the priorities of all files in the download.
@@ -1026,16 +1054,17 @@ class Download(TaskManager):
         Calling this method with anything but a file path will return an empty list.
         """
         file_index = self.get_file_index(file_path)
-        if file_index is None:
+        torrent_info = self.tdef.torrent_info
+        if file_index is None or torrent_info is None:
             return []
 
-        start_piece = self.tdef.torrent_info.map_file(file_index, 0, 1).piece
+        start_piece = torrent_info.map_file(file_index, 0, 1).piece
         # Note: next_piece contains the next piece that is NOT part of this file.
-        if file_index < self.tdef.torrent_info.num_files() - 1:
-            next_piece = self.tdef.torrent_info.map_file(file_index + 1, 0, 1).piece
+        if file_index < torrent_info.num_files() - 1:
+            next_piece = torrent_info.map_file(file_index + 1, 0, 1).piece
         else:
             # There is no next file so the nex piece is the last piece index + 1 (num_pieces()).
-            next_piece = self.tdef.torrent_info.num_pieces()
+            next_piece = torrent_info.num_pieces()
 
         if start_piece == next_piece:
             # A single piece with multiple files.
@@ -1061,8 +1090,9 @@ class Download(TaskManager):
         Get the length of a file or directory in bytes. Returns 0 if the given path does not point to an existing path.
         """
         result = self.get_file_index(path)
-        if result is not None:
-            return self.tdef.torrent_info.file_at(result).size
+        torrent_info = self.tdef.torrent_info
+        if result is not None and torrent_info is not None:
+            return torrent_info.file_at(result).size
         return 0
 
     def get_file_index(self, path: Path) -> int | None:
@@ -1089,7 +1119,7 @@ class Download(TaskManager):
         if not self.tdef.torrent_info:
             return
 
-        previously_selected = self.config.get_selected_files()
+        previously_selected = self.config.get_selected_files() or []
         num_files = self.tdef.torrent_info.num_files()
         self.set_selected_files([
             (4 if selected else 0)
@@ -1107,8 +1137,9 @@ class Download(TaskManager):
         """
         if not self.tdef.torrent_info:
             return False
+        selected_files = self.config.get_selected_files() or []
         return (self.config.get_selected_files() is None
-                or self.get_file_index(file_path) in self.config.get_selected_files())
+                or self.get_file_index(file_path) in selected_files)
 
     async def set_upload_limit(self, value: int) -> None:
         """

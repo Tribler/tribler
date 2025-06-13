@@ -159,7 +159,7 @@ class ContentDiscoveryCommunity(Community):
         if not peers or not self.composition.torrent_checker:
             return
 
-        self.ez_send(random.choice(peers), TorrentsHealthPayload.create(self.get_random_torrents(), {}))
+        self.ez_send(random.choice(peers), TorrentsHealthPayload.create(self.get_random_torrents(), []))
 
         for p in random.sample(peers, min(len(peers), 5)):
             self.ez_send(p, PopularTorrentsRequest())
@@ -203,7 +203,7 @@ class ContentDiscoveryCommunity(Community):
         """
         self.logger.debug("Received popular torrents health request")
         popular_torrents = self.get_random_torrents()
-        self.ez_send(peer, TorrentsHealthPayload.create({}, popular_torrents))
+        self.ez_send(peer, TorrentsHealthPayload.create([], popular_torrents))
 
     def get_random_torrents(self) -> list[HealthInfo]:
         """

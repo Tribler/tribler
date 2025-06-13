@@ -12,15 +12,21 @@ from ipv8.overlay import Overlay, SettingsClass
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy, RandomWalk
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from ipv8.bootstrapping.bootstrapper_interface import Bootstrapper
     from ipv8.peer import Peer
     from ipv8.types import IPv8
 
+    from tribler.core.database.store import MetadataStore
     from tribler.core.recommender.community import RecommenderCommunity
     from tribler.core.rendezvous.community import RendezvousCommunity
     from tribler.core.restapi.rest_endpoint import RESTEndpoint
     from tribler.core.session import Session
+    from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
+# We actually want lazy imports inside the components:
+# ruff: noqa: PLC0415
 
 class CommunityLauncherWEndpoints(CommunityLauncher, ABC):
     """
@@ -154,7 +160,7 @@ class DatabaseComponent(ComponentLauncher):
             notifier=session.notifier,
             disable_sync=False
         )
-        session.notifier.add(Notification.torrent_metadata_added, session.mds.TorrentMetadata.add_ffa_from_dict)
+        session.notifier.add(Notification.torrent_metadata_added, cast("Callable[[dict], None]", session.mds.TorrentMetadata.add_ffa_from_dict))
 
     def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
         """
@@ -205,6 +211,7 @@ class RendezvousComponent(BaseLauncher):
         ipv8.network.add_peer_observer(rendezvous_hook)
 
 
+@after("DatabaseComponent")
 @precondition('session.config.get("torrent_checker/enabled")')
 @precondition('session.config.get("database/enabled")')
 class TorrentCheckerComponent(ComponentLauncher):
@@ -219,22 +226,27 @@ class TorrentCheckerComponent(ComponentLauncher):
         from tribler.core.torrent_checker.torrent_checker import TorrentChecker
         from tribler.core.torrent_checker.tracker_manager import TrackerManager
 
+        metadata_store = cast("MetadataStore", session.mds)  # Guaranteed by DatabaseComponent
+
         tracker_manager = TrackerManager(state_dir=Path(session.config.get_version_state_dir()),
-                                         metadata_store=session.mds)
+                                         metadata_store=metadata_store)
         torrent_checker = TorrentChecker(config=session.config,
                                          download_manager=session.download_manager,
                                          notifier=session.notifier,
                                          tracker_manager=tracker_manager,
-                                         metadata_store=session.mds,
-                                         socks_listen_ports=[s.port for s in session.socks_servers])
+                                         metadata_store=metadata_store,
+                                         socks_listen_ports=[s.port for s in session.socks_servers
+                                                             if s.port is not None])
         session.torrent_checker = torrent_checker
 
     def finalize(self, ipv8: IPv8, session: Session, community: Community) -> None:
         """
         When we are done launching, register our REST API.
         """
-        community.register_task("Start torrent checker", session.torrent_checker.initialize)
-        session.rest_manager.get_endpoint("/api/metadata").torrent_checker = session.torrent_checker
+        torrent_checker = cast("TorrentChecker", session.torrent_checker)  # Created and set in prepare()
+
+        community.register_task("Start torrent checker", torrent_checker.initialize)
+        session.rest_manager.get_endpoint("/api/metadata").torrent_checker = torrent_checker
 
 
 @set_in_session("dht_discovery_community")
@@ -344,7 +356,7 @@ class TunnelComponent(BaseLauncher):
         out["max_circuits"] = session.config.get("tunnel_community/max_circuits")
         out["default_hops"] = session.config.get("libtorrent/download_defaults/number_hops")
         out["dht_provider"] = (DHTCommunityProvider(session.ipv8.get_overlay(DHTDiscoveryCommunity),
-                                                    session.config.get("ipv8/port"))
+                                                    0) # Unused, requires changes in IPv8.
                                if session.ipv8.get_overlay(DHTDiscoveryCommunity) else None)
         return out
 

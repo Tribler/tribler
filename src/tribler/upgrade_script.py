@@ -29,7 +29,7 @@ FROM: str = "7.14"
 TO: str = "8.0"
 logger = logging.getLogger(__name__)
 
-# ruff: noqa: B007,C901,F841,N802,RUF015,W291
+# ruff: noqa: B007, N802, W291
 
 
 def batched(results: list, n: int = 1) -> Generator[list]:
@@ -58,7 +58,7 @@ def _copy_if_exists(src: ConfigObj, src_path: str, dst: TriblerConfigManager, ds
             out = out.get(part)
         else:
             return
-    dst.set(dst_path, conversion(out))
+    dst.set(dst_path, conversion(out))  # type: ignore[call-overload]
 
 
 def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:

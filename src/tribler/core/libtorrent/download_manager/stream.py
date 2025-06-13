@@ -4,7 +4,7 @@ import logging
 import math
 from asyncio import sleep
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 
@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from io import BufferedReader
     from types import TracebackType
     from typing import Self
+
+    import libtorrent as lt
 
     from tribler.core.libtorrent.download_manager.download import Download
 
@@ -61,22 +63,23 @@ class Stream:
         """
         Sets the file index and waits for initial buffering  to be completed.
         """
+        tinfo = cast("lt.torrent_info", self.download.get_def().torrent_info)
         # Check if the file index exists
-        num_files = self.download.get_def().torrent_info.num_files()
+        num_files = tinfo.num_files()
         if file_index >= num_files or file_index < 0:
             raise NoAvailableStreamError
 
         # Set the new file
         self.file_index = file_index
-        filename = Path(self.download.get_def().torrent_info.file_at(file_index).path)
+        filename = Path(tinfo.file_at(file_index).path)
         if num_files > 1:
-            filename = filename.relative_to(self.download.get_def().torrent_info.name())
-        self.file_size = self.download.get_def().torrent_info.file_at(file_index).size
+            filename = filename.relative_to(tinfo.name())
+        self.file_size = tinfo.file_at(file_index).size
         content_dest = self.download.get_content_dest()
-        self.file_name = (content_dest / filename if self.download.get_def().torrent_info.num_files() > 1
+        self.file_name = (content_dest / filename if tinfo.num_files() > 1
                           else content_dest)
         self.buffer_size = int(self.file_size * buffer_percent)
-        self.piece_length = self.download.get_def().torrent_info.piece_length()
+        self.piece_length = tinfo.piece_length()
 
         # Ensure the download isn't paused
         self.download.resume()
@@ -88,7 +91,7 @@ class Stream:
             status = self.download.get_state().get_status()
 
         # Give the selected file a high priority
-        file_priorities = self.download.get_file_priorities()
+        file_priorities: list[int] = self.download.get_file_priorities()
         file_priorities[file_index] = 7
         self.download.set_file_priorities(file_priorities)
 
@@ -105,7 +108,7 @@ class Stream:
             return
 
         # Starting buffering
-        priorities = self.download.get_piece_priorities()
+        priorities: list[int] = self.download.get_piece_priorities()
         for piece in self.iter_pieces(have=False):
             if piece in pieces_needed:
                 priorities[piece] = 7
@@ -164,13 +167,15 @@ class Stream:
         """
         Finds the piece position that begin_bytes is mapped to.
         """
-        return self.download.get_def().torrent_info.map_file(self.file_index, byte_begin, 0).piece
+        return (cast("lt.torrent_info", self.download.get_def().torrent_info)
+                .map_file(self.file_index, byte_begin, 0).piece)
 
     def update_priorities(self) -> None:
         """
         Sets the piece priorities and deadlines according to the cursors of the outstanding stream requests.
         """
-        if not (piece_priorities := self.download.get_piece_priorities()):
+        piece_priorities: list[int] = self.download.get_piece_priorities()
+        if not piece_priorities:
             return
 
         # Iterate over all pieces that have not yet been downloaded, and determine their appropriate priority/deadline.
@@ -204,13 +209,13 @@ class Stream:
         Resets the priorities and deadlines of pieces.
         If no pieces are provided reset all pieces within the current file.
         """
-        piece_priorities = self.download.get_piece_priorities()
+        piece_priorities: list[int] = self.download.get_piece_priorities()
         if pieces is None:
             pieces = list(range(len(piece_priorities)))
         for piece in pieces:
             self.download.reset_piece_deadline(piece)
         self.download.set_piece_priorities([priority] * len(pieces))
-        file_priorities = self.download.get_file_priorities()
+        file_priorities: list[int] = self.download.get_file_priorities()
         file_priorities[self.file_index] = 4
         self.download.set_file_priorities(file_priorities)
 

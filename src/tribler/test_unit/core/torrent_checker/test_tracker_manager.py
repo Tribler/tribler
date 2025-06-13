@@ -20,7 +20,7 @@ class MockTrackerManager(TrackerManager):
         Create a new MockTrackerManager.
         """
         self.blacklist_contents = None
-        super().__init__(Path("."), Mock(TrackerState=MockTrackerState()))
+        super().__init__(Mock(TrackerState=MockTrackerState()), Path("."))
 
     def load_blacklist(self) -> None:
         """

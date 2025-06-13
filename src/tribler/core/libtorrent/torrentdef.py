@@ -122,6 +122,9 @@ if TYPE_CHECKING:
         @overload
         def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
 
+        @overload
+        def __getitem__(self, key: Literal[b"piece length"]) -> int | None: ...
+
         def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
 
     ###############

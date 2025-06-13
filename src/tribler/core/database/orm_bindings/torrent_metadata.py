@@ -40,6 +40,7 @@ UPDATED = 6  # One of the entry's properties was updated. It will be committed a
 PUBLIC_KEY_LEN = 64
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
     from dataclasses import dataclass
 
     from tribler.core.database.orm_bindings.torrent_state import TorrentState
@@ -51,7 +52,7 @@ if TYPE_CHECKING:
         Database type for torrent metadata.
         """
 
-        rowid: int
+        rowid: list[int]
         infohash: bytes
         size: int | None
         torrent_date: datetime | None
@@ -76,6 +77,23 @@ if TYPE_CHECKING:
         def serialized(self, key: bytes | None = None) -> bytes: ...  # noqa: D102
 
         def to_simple_dict(self) -> dict[str, str | bytes | float | None]: ...  # noqa: D102
+
+        @staticmethod
+        def add_ffa_from_dict(metadata: dict) -> TorrentMetadata | None: ...  # noqa: D102
+
+        @staticmethod
+        def get_for_update(id_: int, public_key: bytes) -> TorrentMetadata: ...  # noqa: D102
+
+        @staticmethod
+        def select(selector: Callable) -> TorrentMetadata: ...  # noqa: D102
+
+        @staticmethod
+        def from_payload(payload: TorrentMetadataPayload) -> TorrentMetadata: ...  # noqa: D102
+
+        @staticmethod
+        def select_by_sql(selector: str) -> TorrentMetadata: ...  # noqa: D102
+
+        def __iter__(self) -> Generator[TorrentMetadata]: ...  # noqa: D105
 
 
 def infohash_to_id(infohash: bytes) -> int:

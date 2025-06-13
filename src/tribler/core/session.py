@@ -64,8 +64,8 @@ def rust_enhancements(session: Session) -> Generator[None]:
 
     if not use_fallback:
         try:
-            from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES
-            from ipv8_rust_tunnels.endpoint import RustEndpoint
+            from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES  # noqa: PLC0415
+            from ipv8_rust_tunnels.endpoint import RustEndpoint  # noqa: PLC0415
             INTERFACES["UDPIPv4"] = RustEndpoint
             for ifc in if_specs:
                 ifc["worker_threads"] = ifc.get("worker_threads", session.config.get("tunnel_community/max_circuits"))
@@ -229,7 +229,7 @@ class Session:
         # Libtorrent
         for server in self.socks_servers:
             await server.start()
-        self.download_manager.socks_listen_ports = [s.port for s in self.socks_servers]
+        self.download_manager.socks_listen_ports = [cast("int", s.port) for s in self.socks_servers]
         await self.download_manager.initialize()
         self.download_manager.start()
 

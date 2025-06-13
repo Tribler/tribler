@@ -74,7 +74,7 @@ class WatchFolderManager:
                 tdef = await TorrentDef.load(path)
                 if not self.session.download_manager.download_exists(tdef.infohash):
                     logger.info("Starting download from torrent file %s", path.name)
-                    await self.session.download_manager.start_download(torrent_file=path, tdef=tdef)
+                    await self.session.download_manager.start_download(torrent_file=str(path), tdef=tdef)
             else:  # The magnet link is in the file
                 await self.session.download_manager.start_download_from_uri(path.read_text().strip())
         except Exception as e:  # pylint: disable=broad-except

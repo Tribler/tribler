@@ -104,6 +104,7 @@ class ApiConfig(TypedDict):
     https_enabled: bool
     https_host: str
     https_port: int
+    https_certfile: str
     http_port_running: int
     https_port_running: int
 
@@ -157,6 +158,7 @@ class DownloadDefaultsConfig(TypedDict):
     trackers_file: str
     torrent_folder: str
     auto_managed: bool
+    completed_dir: str
 
 
 class LibtorrentConfig(TypedDict):
@@ -327,7 +329,8 @@ DEFAULT_CONFIG = {
             add_download_to_channel=False,
             trackers_file="",
             torrent_folder="",
-            auto_managed=False),
+            auto_managed=False,
+            completed_dir=""),
         # active_* defaults are the same as the ones used by libtorrent
         active_downloads=3,
         active_seeds=5,
@@ -480,6 +483,8 @@ if __name__ == "__main__":
             if getattr(key_type, "__name__", None) == "list" and get_args(key_type):
                 key_type, = get_args(key_type)
                 global_keys[abs_key] = f"list[{getattr(key_type, '__name__', str(key_type))}]"
+            elif getattr(key_type, "__name__", None) == "NotRequired":
+                key_type, = get_args(key_type)
             else:
                 global_keys[abs_key] = getattr(key_type, "__name__", str(key_type))
 
@@ -519,6 +524,8 @@ if __name__ == "__main__":
 from typing import Literal, NotRequired, TypedDict, overload
 
 # ruff: noqa: PYI021
+
+VERSION_SUBDIR: str
 
 {src_typed_dicts}
 

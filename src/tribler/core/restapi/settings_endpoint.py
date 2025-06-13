@@ -1,3 +1,5 @@
+from typing import cast
+
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
@@ -15,7 +17,7 @@ class SettingsEndpoint(RESTEndpoint):
 
     path = "/api/settings"
 
-    def __init__(self, tribler_config: TriblerConfigManager, download_manager: DownloadManager = None) -> None:
+    def __init__(self, tribler_config: TriblerConfigManager, download_manager: DownloadManager | None = None) -> None:
         """
         Create a new settings endpoint.
         """
@@ -62,7 +64,7 @@ class SettingsEndpoint(RESTEndpoint):
         settings = await request.json()
         has_lt_settings = "libtorrent" in settings
         self._logger.info("Received settings: %s", settings)
-        self._recursive_merge_settings(self.config.configuration, settings)
+        self._recursive_merge_settings(cast("dict", self.config.configuration), settings)
         self.config.write()
 
         if has_lt_settings and self.download_manager:

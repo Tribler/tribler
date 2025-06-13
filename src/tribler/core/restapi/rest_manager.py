@@ -6,7 +6,7 @@ import traceback
 from functools import wraps
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from aiohttp import tcp_helpers, web, web_protocol
 from aiohttp.web_exceptions import HTTPNotFound, HTTPRequestEntityTooLarge
@@ -32,9 +32,9 @@ if TYPE_CHECKING:
 
     from tribler.tribler_config import TriblerConfigManager
 
-    ComponentsType = TypeVar("ComponentsType", bound=tuple[type])
+    ComponentsType = TypeVar("ComponentsType", bound=tuple)
 
-    class TriblerRequest(Request, Generic[ComponentsType]):
+    class TriblerRequest[ComponentsType](Request):
         """
         A request that guarantees that the given components are not None in its ``context`` attribute.
         """
@@ -199,7 +199,11 @@ class RESTManager:
         """
         Get an endpoint by its name, including the first forward slash.
         """
-        return self.root_endpoint.endpoints.get(name)
+        ep = self.root_endpoint.endpoints.get(name)
+        if ep is None:
+            msg = f"REST Endpoint {name} does not exist!"
+            raise LookupError(msg)
+        return ep
 
     def get_api_port(self) -> int | None:
         """

@@ -3,6 +3,7 @@ import base64
 import json
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -13,7 +14,7 @@ from marshmallow.fields import String
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
-from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
@@ -122,12 +123,11 @@ class CreateTorrentEndpoint(RESTEndpoint):
         except PackageNotFoundError:
             v = "git"
         params["created by"] = f"Tribler version: {v}"
-        params["nodes"] = False
-        params["httpseeds"] = False
-        params["encoding"] = False
+        params["nodes"] = None
+        params["httpseeds"] = None
         params["piece length"] = 0  # auto
 
-        save_path = export_dir / f"{name}.torrent" if export_dir and export_dir.exists() else None
+        save_path = str(export_dir / f"{name}.torrent") if export_dir and export_dir.exists() else None
 
         try:
             result = await asyncio.get_event_loop().run_in_executor(None, create_torrent_file,
@@ -144,7 +144,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
             download_config = DownloadConfig.from_defaults(self.download_manager.config)
             download_config.set_dest_dir(result["base_dir"])
             download_config.set_hops(self.download_manager.config.get("libtorrent/download_defaults/number_hops"))
-            await self.download_manager.start_download(save_path, TorrentDef.load_from_dict(metainfo_dict),
+            await self.download_manager.start_download(save_path,
+                                                       TorrentDef.load_from_dict(cast("MetainfoDict", metainfo_dict)),
                                                        download_config)
 
         return RESTResponse(json.dumps({"torrent": base64.b64encode(result["metainfo"]).decode()}))

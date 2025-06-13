@@ -536,17 +536,19 @@ class DownloadManager(TaskManager):
             self.metainfo_requests[infohash] = MetainfoLookup(download, 1)
 
         try:
-            metainfo = download.tdef.get_metainfo() or await wait_for(shield(download.future_metainfo), timeout)
+            metainfo = cast("MetainfoDict", download.tdef.get_metainfo()
+                            or await wait_for(shield(download.future_metainfo), timeout))
         except (CancelledError, TimeoutError) as e:
             logger.warning("%s: %s (timeout=%f)", type(e).__name__, str(e), timeout)
             logger.info("Failed to retrieve metainfo for %s", infohash_hex)
             return None
         else:
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-            self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(), meta_info=metainfo)
+            self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(),
+                                                                 meta_info=metainfo)
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
-                "size": download.tdef.atp.ti.total_size(),
+                "size": cast("lt.torrent_info", download.tdef.atp.ti).total_size(),
                 "title": download.tdef.name,
                 "metadata_type": 300,
                 "tracker_info": (download.tdef.atp.trackers or [""])[0]
@@ -619,7 +621,7 @@ class DownloadManager(TaskManager):
                 # Merge existing tdef with tdef parsed from magnet
                 tdef.atp.trackers = magnet_trackers
                 tdef.atp.peers = magnet_peers
-                tdef.atp.seeds = magnet_seeds
+                tdef.atp.url_seeds = magnet_seeds
             return await self.start_download(tdef=tdef, config=config)
         if scheme == "file":
             logger.info("File scheme detected")
@@ -656,8 +658,7 @@ class DownloadManager(TaskManager):
 
         if download and infohash not in self.metainfo_requests:
             logger.info("Download exists and metainfo is not requested.")
-            new_trackers = list({t.encode() for t in tdef.atp.trackers}
-                                - {t.encode() for t in download.get_def().atp.trackers})
+            new_trackers = list(set(tdef.atp.trackers) - set(download.get_def().atp.trackers))
             if new_trackers:
                 logger.info("New trackers: %s", str(new_trackers))
                 self.update_trackers(tdef.infohash, new_trackers)
@@ -729,7 +730,7 @@ class DownloadManager(TaskManager):
         if download.tdef.torrent_info is not None and not download.tdef.torrent_info.priv():
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
-                "size": download.tdef.atp.ti.total_size(),
+                "size": cast("lt.torrent_info", download.tdef.atp.ti).total_size(),
                 "title": download.tdef.name,
                 "metadata_type": 300,
                 "tracker_info": (list(download.tdef.atp.trackers) or [""])[0]
@@ -876,7 +877,7 @@ class DownloadManager(TaskManager):
 
         await self.start_download(tdef=download.tdef, config=config)
 
-    def update_trackers(self, infohash: bytes, trackers: list[bytes]) -> None:
+    def update_trackers(self, infohash: bytes, trackers: list[str]) -> None:
         """
         Update the trackers for a download.
 
@@ -886,8 +887,8 @@ class DownloadManager(TaskManager):
         download = self.get_download(infohash)
         if download:
             old_def = download.get_def()
-            old_trackers: set[bytes] = {t.encode() for t in old_def.atp.trackers}
-            new_trackers: list[bytes] = list(set(trackers) - old_trackers)
+            old_trackers: set[str] = set(old_def.atp.trackers)
+            new_trackers: list[str] = list(set(trackers) - old_trackers)
             all_trackers = [*old_trackers, *new_trackers]
 
             if new_trackers:
@@ -895,7 +896,7 @@ class DownloadManager(TaskManager):
                 download.add_trackers(new_trackers)
 
                 # Create a new TorrentDef
-                old_def.atp.trackers = [t.decode() for t in all_trackers]
+                old_def.atp.trackers = all_trackers
                 if old_def.torrent_info is not None:
                     for tracker in new_trackers:
                         old_def.torrent_info.add_tracker(tracker)
@@ -1005,7 +1006,7 @@ class DownloadManager(TaskManager):
                 url = metainfo.get(b"url")
                 url = url.decode() if url is not None else ""
                 tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
-                        if b"infohash" in metainfo else TorrentDef.load_from_dict(metainfo))
+                        if b"infohash" in metainfo else TorrentDef.load_from_dict(cast("MetainfoDict", metainfo)))
             except (KeyError, ValueError) as e:
                 self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
                 return False
@@ -1017,7 +1018,6 @@ class DownloadManager(TaskManager):
                 except RuntimeError as e:
                     self._logger.exception("Could not load torrent_info: %s %s ", e, metainfo)
 
-        config.state_dir = self.state_dir
         if config.get_dest_dir() == "":  # removed torrent ignoring
             self._logger.info("Removing checkpoint %s destdir is %s", filename, config.get_dest_dir())
             os.remove(filename)
@@ -1080,8 +1080,9 @@ class DownloadManager(TaskManager):
         :param auth: (username, password) tuple or None
         """
         config.set("libtorrent/proxy_type", proxy_type)
-        config.set("libtorrent/proxy_server", server if proxy_type else ":")
-        config.set("libtorrent/proxy_auth", auth if proxy_type in [3, 5] else ":")
+        proxy_server = f"{server[0]}:{server[1]}" if proxy_type and server else ":"
+        config.set("libtorrent/proxy_server", proxy_server)
+        config.set("libtorrent/proxy_auth", ":".join(auth) if proxy_type in [3, 5] and auth else ":")
 
     def get_libtorrent_proxy_settings(self) -> tuple[int, tuple[str, str] | None, tuple[str, str] | None]:
         """

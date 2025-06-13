@@ -7,6 +7,7 @@ from pony import orm
 from tribler.core.libtorrent.trackers import MalformedTrackerURLException, get_uniformed_tracker_url
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
     from dataclasses import dataclass
 
     from pony.orm import Database
@@ -22,18 +23,34 @@ if TYPE_CHECKING:
 
         rowid: int
         url: str
-        last_check: int | None
-        alive: bool | None
+        last_check: int
+        alive: bool
         torrents: set[TorrentState]
-        failures: int | None
+        failures: int
 
-        def __init__(self, url: str) -> None: ...  # noqa: D107
+        def __init__(self, rowid: int | None = None, url: str | None = None,  # noqa: D107
+                     last_check: int | None = None, alive: bool | None = None,
+                     torrents: set[TorrentState] | None = None, failures: int | None = None) -> None: ...
 
         @staticmethod
-        def get(url: str) -> TrackerState | None: ...  # noqa: D102
+        def delete() -> None: ...  # noqa: D102
+
+        @staticmethod
+        def get(url: str | Callable) -> TrackerState | None: ...  # noqa: D102
 
         @staticmethod
         def get_for_update(url: str) -> TrackerState | None: ...  # noqa: D102
+
+        @staticmethod
+        def select(selector: Callable) -> TrackerState: ...  # noqa: D102
+
+        @staticmethod
+        def order_by(selector: int | Callable) -> TrackerState: ...  # noqa: D102
+
+        @staticmethod
+        def limit(limit: int) -> list[TrackerState]: ...  # noqa: D102
+
+        def __iter__(self) -> Generator[TrackerState]: ...  # noqa: D105
 
 
 def define_binding(db: Database) -> type[TrackerState]:

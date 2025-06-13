@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_ID_PORT,
@@ -82,7 +82,7 @@ class TunnelDispatcher(TaskManager):
                 self.connection_dead(connection)
             else:
                 packet = socks5_serializer.pack_serializable(UdpPacket(0, 0, origin, data))
-                connection.udp_connection.send_datagram(packet)
+                cast("SocksUDPConnection", connection.udp_connection).send_datagram(packet)
                 handled = True
         return handled
 
@@ -142,7 +142,7 @@ class TunnelDispatcher(TaskManager):
                                request: UdpPacket = request) -> bool | None:
             if result_func.result() is None:
                 return None
-            return self.on_socks5_udp_data(connection, request)
+            return self.on_socks5_udp_data(cast("SocksUDPConnection", connection), request)
 
         if request.destination[1] == CIRCUIT_ID_PORT:
             circuit = self.tunnels.circuits.get(self.tunnels.ip_to_circuit_id(request.destination[0]))
@@ -180,6 +180,8 @@ class TunnelDispatcher(TaskManager):
         When a circuit dies, we update the destinations dictionary and remove all peers that are affected.
         """
         con = self.cid_to_con.pop(broken_circuit.circuit_id, None)
+        if con is None:
+            return set()
 
         destinations = set()
         destination_to_circuit = self.con_to_cir.get(con, {})
@@ -195,7 +197,8 @@ class TunnelDispatcher(TaskManager):
         """
         Callback for when a given connection is dead.
         """
-        self.con_to_cir.pop(connection, None)
+        if connection is not None:
+            self.con_to_cir.pop(connection, None)
         for cid, con in list(self.cid_to_con.items()):
             if con == connection:
                 self.cid_to_con.pop(cid, None)
