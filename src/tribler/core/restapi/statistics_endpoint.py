@@ -84,6 +84,14 @@ class StatisticsEndpoint(RESTEndpoint):
             lt_stats["total_sent_bytes"] = sum([s["sent_bytes"] for s in lt_stats["sessions"]])
             stats_dict["libtorrent"] = lt_stats
 
+        if self.session and self.session.socks_servers:
+            socks5_stats = []
+            for index, server in enumerate(self.session.socks_servers):
+                socks5_stats.append({"hops": index,
+                                     "sessions": len(server.sessions),
+                                     "associates": sum([1 for session in server.sessions if session.udp_connection])})
+            stats_dict["socks5_sessions"] = socks5_stats
+
         return RESTResponse({"tribler_statistics": stats_dict})
 
     @docs(
