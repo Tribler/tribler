@@ -6,7 +6,8 @@ import socket
 import struct
 import time
 from abc import ABCMeta, abstractmethod
-from asyncio import DatagramProtocol, Future, Task, ensure_future, get_event_loop, timeout
+from asyncio import DatagramProtocol, Future, Task, ensure_future, get_event_loop
+from asyncio import timeout as asynctimeout
 from typing import TYPE_CHECKING, Any, NoReturn, cast
 
 import libtorrent as lt
@@ -21,7 +22,7 @@ from tribler.core.torrent_checker.healthdataclasses import HealthInfo, TrackerRe
 if TYPE_CHECKING:
     from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 
-    from tribler.core.libtorrent.download_manager import DownloadManager
+    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -350,7 +351,7 @@ class UdpTrackerSession(TrackerSession):
         await self.cancel_pending_task("resolve")
 
         try:
-            async with timeout(self.timeout):
+            async with asynctimeout(self.timeout):
                 # We only resolve the hostname if we're not using a proxy.
                 # If a proxy is used, the TunnelCommunity will resolve the hostname at the exit nodes.
                 if not self.proxy:
@@ -517,6 +518,8 @@ def create_tracker_session(tracker_url: str, timeout: float, proxy: tuple,
 
     :param tracker_url: The given tracker URL.
     :param timeout: The timeout for the session.
+    :param proxy: the proxy to use.
+    :param socket_manager: the socket manager to use.
     :return: The tracker session.
     """
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)

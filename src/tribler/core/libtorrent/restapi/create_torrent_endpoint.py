@@ -6,7 +6,7 @@ from pathlib import Path
 
 import libtorrent as lt
 from aiohttp import web
-from aiohttp.abc import Request
+from aiohttp.web_request import Request
 from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
 from marshmallow.fields import String
@@ -127,7 +127,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         params["encoding"] = False
         params["piece length"] = 0  # auto
 
-        save_path = export_dir / (f"{name}.torrent") if export_dir and export_dir.exists() else None
+        save_path = export_dir / f"{name}.torrent" if export_dir and export_dir.exists() else None
 
         try:
             result = await asyncio.get_event_loop().run_in_executor(None, create_torrent_file,

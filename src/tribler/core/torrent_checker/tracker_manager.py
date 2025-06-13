@@ -10,6 +10,7 @@ from pony.orm import count, db_session
 from tribler.core.libtorrent.trackers import get_uniformed_tracker_url
 
 if TYPE_CHECKING:
+    from tribler.core.database.orm_bindings.tracker_state import TrackerState
     from tribler.core.database.store import MetadataStore
 
 MAX_TRACKER_FAILURES = 5  # if a tracker fails this amount of times in a row, its 'is_alive' will be marked as 0 (dead).
@@ -134,7 +135,7 @@ class TrackerManager:
         self._logger.info("Tracker updated: %s. Alive: %s. Failures: %d.", tracker.url, str(is_alive), failures)
 
     @db_session
-    def get_next_tracker(self) -> str | None:
+    def get_next_tracker(self) -> TrackerState | None:
         """
         Gets the next tracker.
 

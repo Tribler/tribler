@@ -80,7 +80,6 @@ def return_handled_exception(exception: Exception) -> RESTResponse:
     """
     Create a RESTResponse that tells the use that an exception is handled.
 
-    :param request: the request that encountered the exception
     :param exception: the handled exception
     :return: JSON dictionary describing the exception
     """

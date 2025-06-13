@@ -257,6 +257,11 @@ class PartialQueryCache(NumberCache):
         """
         return 120.0
 
+    def on_timeout(self) -> None:
+        """
+        No need for any action.
+        """
+
 
 class RecommenderCommunityCrawler(RecommenderCommunity):
     """

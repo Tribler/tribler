@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 FROM: str = "7.14"
 TO: str = "8.0"
+logger = logging.getLogger(__name__)
 
 # ruff: noqa: B007,C901,F841,N802,RUF015,W291
 
@@ -232,11 +233,11 @@ INNER JOIN TorrentState ON ChannelNode.health=TorrentState.rowid
         try:
             _inject_ChannelNode_inner(db, batch)
         except OperationalError as e:
-            logging.exception(e)
+            logger.exception(e)
     try:
         db.disconnect()
     except OperationalError as e:
-        logging.exception(e)
+        logger.exception(e)
 
 
 @db_session(retry=3)
@@ -278,11 +279,11 @@ def _inject_TrackerState(abs_src_db: str, abs_dst_db: str) -> None:
         try:
             _inject_TrackerState_inner(db, batch)
         except OperationalError as e:
-            logging.exception(e)
+            logger.exception(e)
     try:
         db.disconnect()
     except OperationalError as e:
-        logging.exception(e)
+        logger.exception(e)
 
 
 @db_session(retry=3)
@@ -304,10 +305,10 @@ WHERE TorrentState.infohash=$infohash AND TrackerState.url=$url
             tracker_states = list(db.execute("SELECT rowid FROM TrackerState WHERE url=$url",
                                              globals(), locals()))
             if not torrent_states:
-                logging.warning("Torrent state for %s disappeared mid-upgrade!", infohash)
+                logger.warning("Torrent state for %s disappeared mid-upgrade!", infohash)
                 continue
             if not tracker_states:
-                logging.warning("Tracker state for %s disappeared mid-upgrade!", url)
+                logger.warning("Tracker state for %s disappeared mid-upgrade!", url)
                 continue
             torrent_state, = torrent_states[0]
             tracker_state, = tracker_states[0]
@@ -333,11 +334,11 @@ INNER JOIN TrackerState ON TorrentState_TrackerState.trackerstate=TrackerState.r
         try:
             _inject_TorrentState_TrackerState_inner(db, batch)
         except OperationalError as e:
-            logging.exception(e)
+            logger.exception(e)
     try:
         db.disconnect()
     except OperationalError as e:
-        logging.exception(e)
+        logger.exception(e)
 
 
 def _inject_7_14_tables(src_db: str, dst_db: str) -> None:

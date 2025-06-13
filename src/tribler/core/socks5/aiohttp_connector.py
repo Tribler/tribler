@@ -55,7 +55,7 @@ class Socks5Connector(TCPConnector):
         """
         Create a transport and its associated connection.
         """
-        client = Socks5Client(self.proxy_addr, lambda *_: None)
+        client = Socks5Client(self.proxy_addr, lambda _, __: None)
         host, port = kwargs.pop("addr_infos")[0][-1]
 
         if "timeout" in kwargs and hasattr(kwargs["timeout"], "sock_connect"):

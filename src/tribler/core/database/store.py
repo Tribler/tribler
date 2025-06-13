@@ -358,7 +358,7 @@ class MetadataStore:
 
         torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
 
-        if torrent_state and health.should_replace(torrent_state.to_health()):
+        if torrent_state is not None and health.should_replace(torrent_state.to_health()):
             self._logger.debug("Update health info %s", str(health))
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
                               self_checked=False)
@@ -383,6 +383,8 @@ class MetadataStore:
         :param external_thread: if this is set to True, we add some sleep between batches to allow other threads
             to get the database lock. This is an ugly workaround for Python and asynchronous programming (locking)
             imperfections. It only makes sense to use it when this routine runs on a non-reactor thread.
+        :param health_info: the health info to update a torrent with.
+        :param skip_personal_metadata_payload: don't process our own torrents.
         :return: a list of tuples of (<metadata or payload>, <action type>)
         """
         offset = 0

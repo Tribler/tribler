@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from tribler.core.session import Session
 
 
-class CommunityLauncherWEndpoints(CommunityLauncher):
+class CommunityLauncherWEndpoints(CommunityLauncher, ABC):
     """
     A CommunityLauncher that can supply endpoints.
     """

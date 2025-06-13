@@ -37,8 +37,8 @@ from tribler.core.restapi.rest_endpoint import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from aiohttp.abc import Request
     from aiohttp.typedefs import LooseHeaders
+    from aiohttp.web_request import Request
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
@@ -60,6 +60,7 @@ def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
     Converts any bytes within a data structure to unicode strings. Bytes are assumed to be UTF-8 encoded text.
 
     :param obj: object comprised of lists/dicts/strings/bytes
+    :param ignore_errors: if bytes are not valid unicode, don't attempt to decode them.
     :return: obj: object comprised of lists/dicts/strings
     """
     if isinstance(obj, dict):
@@ -117,10 +118,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         remapped_indices = tdef.get_file_indices()
         num_files = tdef.atp.ti.num_files()
-        return [{"index": remapped_indices[fi],
-                 "name": (str(Path(tdef.atp.ti.file_at(fi).path).relative_to(tdef.atp.ti.name())) if num_files > 1 else
-                          str(Path(tdef.atp.ti.file_at(fi).path))),
-                 "size": tdef.atp.ti.file_at(fi).size}
+        return [JSONMiniFileInfo(index=remapped_indices[fi],
+                                 name=(str(Path(tdef.atp.ti.file_at(fi).path).relative_to(tdef.atp.ti.name()))
+                                       if num_files > 1 else str(Path(tdef.atp.ti.file_at(fi).path))),
+                                 size=tdef.atp.ti.file_at(fi).size)
                 for fi in range(tdef.atp.ti.num_files())]
 
     @docs(
