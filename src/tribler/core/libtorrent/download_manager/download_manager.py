@@ -757,8 +757,11 @@ class DownloadManager(TaskManager):
         # Otherwise, e.g. if added to the Session init sequence, this results in startup
         # time increasing by 10-20 seconds.
         # See https://github.com/Tribler/tribler/issues/5319
-        if hops in self.dht_ready_tasks:
-            await self.dht_ready_tasks[hops]
+        try:
+            if hops in self.dht_ready_tasks:
+                await self.dht_ready_tasks[hops]
+        except CancelledError:
+            self._logger.warning("DHT readiness task was cancelled")
         if not atp.save_path:
             atp.save_path = atp.name or (atp.ti.name() if atp.ti else "Unknown name")
         ltsession.async_add_torrent(atp)

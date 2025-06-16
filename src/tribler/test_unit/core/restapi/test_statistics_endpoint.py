@@ -30,6 +30,7 @@ class TestStatisticsEndpoint(TestBase):
         endpoint = StatisticsEndpoint()
         endpoint.session = Mock(download_manager=None)
         endpoint.session.mds = Mock(get_db_file_size=Mock(return_value=42), get_num_torrents=Mock(return_value=7))
+        endpoint.session.socks_servers = []
         request = MockRequest("/api/statistics/tribler")
 
         response = endpoint.get_tribler_stats(request)

@@ -306,9 +306,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
         # Request 1 circuit per download while ensuring that the total number of circuits requested per hop count
         # stays within min_circuits and max_circuits.
-        self.circuits_needed = {hop_count: min(max(download_count, self.settings.min_circuits),
-                                               self.settings.max_circuits)
-                                for hop_count, download_count in active_downloads_per_hop.items()}
+        circuits_needed = {hop_count: min(max(download_count, self.settings.min_circuits),
+                                          self.settings.max_circuits)
+                           for hop_count, download_count in active_downloads_per_hop.items()}
+
+        # Take into consideration how many UDP associates are currently active.
+        for index, server in enumerate(self.settings.socks_servers):
+            if (index + 1) in circuits_needed:
+                circuits_needed[index + 1] = max(circuits_needed[index + 1],
+                                                 2 * sum([1 for session in server.sessions if session.udp_connection]))
+        self.circuits_needed = circuits_needed
 
         self.monitor_hidden_swarms(new_states, hops)
         self.download_states = new_states
