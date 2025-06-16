@@ -277,7 +277,7 @@ class DownloadConfig:
         """
         config_obj = cast("ConfigObj", self.config)
         if file_indexes is None:
-            config_obj["download_defaults"].restore_default("files")
+            config_obj["download_defaults"].pop("files", None)
         else:
             config_obj["download_defaults"]["files"] = file_indexes
 
@@ -287,7 +287,7 @@ class DownloadConfig:
 
         :return: A list of file indexes.
         """
-        return self.config["download_defaults"]["files"]
+        return self.config["download_defaults"].get("files")
 
     def set_bootstrap_download(self, value: bool) -> None:
         """

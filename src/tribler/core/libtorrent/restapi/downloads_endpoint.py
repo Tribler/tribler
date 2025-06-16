@@ -423,7 +423,7 @@ class DownloadsEndpoint(RESTEndpoint):
             for k, v in request.query.items():
                 if k == "anon_hops":
                     params[k] = int(v)
-                elif k == "safe_seeding":
+                elif k in ["auto_managed", "safe_seeding"]:
                     params[k] = v != "false"
                 else:
                     params[k] = v

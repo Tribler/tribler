@@ -876,6 +876,9 @@ class DownloadManager(TaskManager):
 
         # copy the old download_config and change the hop count
         config = download.config.copy()
+        # Necessary to deal with an issue of files getting set to "None" (str).
+        if config.get_selected_files() is None:
+            config.set_selected_files(None)
         config.set_hops(new_hops)
         # If the user wants to change the hop count to 0, don't automatically bump this up to 1 anymore
         config.set_safe_seeding(False)
