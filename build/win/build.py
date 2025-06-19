@@ -64,9 +64,6 @@ def get_freeze_build_options():
         ("tribler.dist-info/METADATA", "lib/tribler.dist-info/METADATA"),
     ]
 
-    if platform.system() == "Linux" and platform.machine() == "aarch64":
-        included_files.append(("libcrypt-06cd74a6.so.2", "lib/libcrypt-06cd74a6.so.2"))
-
     # These packages will be excluded from the build
     excluded_packages = [
         'wx',

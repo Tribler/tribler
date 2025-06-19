@@ -110,10 +110,6 @@ Section "!Main EXE" SecMain
     ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
 
-    ; Libraries dependant on 2015 are: Python, Qt5
-    File "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.x64.exe"
-    ExecWait "$INSTDIR\vc_redist.x64.exe /q /norestart"
-
     FileOpen $9 "$INSTDIR\tribler.exe.log" w
     FileWrite $9 ""
     FileClose $9
