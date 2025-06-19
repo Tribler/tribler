@@ -63,10 +63,10 @@ class TestDownloadManager(TestBase):
         Testing if the metainfo is retrieved when the handle has valid metadata immediately.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.get_state = Mock(return_value=Mock(get_num_seeds_peers=Mock(return_value=(42, 7))))
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = self.create_mock_download_config()
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)), \
                  patch.object(self.manager, "remove_download", AsyncMock()), \
@@ -151,7 +151,8 @@ class TestDownloadManager(TestBase):
                            is_valid=Mock(return_value=True))
         mock_alert = type("add_torrent_alert", (object,), {"handle": mock_handle,
                                                            "error": Mock(value=Mock(return_value=None)),
-                                                           "category": MagicMock(return_value=None)})
+                                                           "category": MagicMock(return_value=None),
+                                                           "params": Mock(added_time=0)})
         self.manager.ltsessions[0].result().async_add_torrent = lambda _: self.manager.process_alert(mock_alert())
 
         with patch.object(self.manager, "remove_download", AsyncMock()):
