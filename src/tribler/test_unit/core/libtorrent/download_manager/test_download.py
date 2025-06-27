@@ -160,7 +160,7 @@ class TestDownload(TestBase):
 
         self.assertIsNone(value)
         self.assertEqual(None, alerts[0].category())
-        self.assertEqual(b"\x01" * 20, alerts[0].params.info_hash.to_bytes())
+        self.assertEqual(b"\x00" * 20, alerts[0].params.info_hash.to_bytes())
 
     async def test_save_checkpoint_no_handle_existing(self) -> None:
         """
