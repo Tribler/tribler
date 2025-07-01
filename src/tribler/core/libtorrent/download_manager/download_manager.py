@@ -71,9 +71,9 @@ class MetainfoLookup:
     pending: int
 
 
-class PendingMetainfoLookup(TypedDict):
+class MetainfoLookupResult(TypedDict):
     """
-    A metainfo_cache entry that is pending a result.
+    The result of a MetainfoLookup, stored in the metainfo_cache.
     """
 
     time: float
@@ -139,7 +139,7 @@ class DownloadManager(TaskManager):
         # Dictionary that maps infohashes to download instances. These include only downloads that have
         # been made specifically for fetching metainfo, and will be removed afterwards.
         self.metainfo_requests: dict[bytes, MetainfoLookup] = {}
-        self.metainfo_cache: dict[bytes, PendingMetainfoLookup] = {}
+        self.metainfo_cache: dict[bytes, MetainfoLookupResult] = {}
         """
         Dictionary that maps infohashes to cached metainfo items
         """
@@ -444,7 +444,7 @@ class DownloadManager(TaskManager):
         infohash = (alert.handle.info_hash().to_bytes() if hasattr(alert, "handle") and alert.handle.is_valid()
                     else getattr(alert, "info_hash", b""))
         download = self.downloads.get(infohash)
-        if download:
+        if download and download.config.get_hops() == hops:
             is_process_alert = (download.handle and download.handle.is_valid()) \
                                or (not download.handle and alert_type == "add_torrent_alert") \
                                or (download.handle and alert_type == "torrent_removed_alert")
@@ -555,7 +555,7 @@ class DownloadManager(TaskManager):
             return None
         else:
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-            self.metainfo_cache[infohash] = PendingMetainfoLookup(time=time.time(), meta_info= metainfo)
+            self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(), meta_info=metainfo)
             self.notifier.notify(Notification.torrent_metadata_added, metadata={
                 "infohash": infohash,
                 "size": download.tdef.atp.ti.total_size(),
@@ -732,7 +732,7 @@ class DownloadManager(TaskManager):
         if existing_handle:
             # Reuse existing handle
             logger.debug("Reusing handle %s", hexlify(infohash))
-            download.post_alert("add_torrent_alert", {"handle": existing_handle})
+            download.post_alert("add_torrent_alert", {"handle": existing_handle, "params": atp})
         else:
             # Otherwise, add it anew
             _ = self.replace_task(f"AddTorrent_{hexlify(infohash).decode()}", self._async_add_torrent,
@@ -840,7 +840,7 @@ class DownloadManager(TaskManager):
                 logger.debug("Removing handle %s", hexlify(infohash))
                 (await self.get_session(download.config.get_hops())).remove_torrent(handle, int(remove_content))
         else:
-            logger.debug("Cannot remove handle %s because it does not exists", hexlify(infohash))
+            logger.debug("Cannot remove handle %s because it does not exist", hexlify(infohash))
         await download.shutdown()
 
         if infohash in self.downloads and self.downloads[infohash] == download:

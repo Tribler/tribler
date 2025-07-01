@@ -388,12 +388,6 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
-        resume_data = alert.params
-        # Make save_path relative if the torrent is saved in the Tribler state directory
-        if self.state_dir:
-            save_path = Path(resume_data.save_path).absolute()
-            resume_data.save_path = str(save_path)
-
         if self.tdef.torrent_info is not None:
             self.config.set_metainfo(self.tdef.get_metainfo())
         else:
@@ -402,7 +396,18 @@ class Download(TaskManager):
                 "name": self.tdef.name,
                 "url": self.tdef.atp.url
             })
-        self.config.set_engineresumedata(resume_data)
+
+        resume_data = alert.params
+        if resume_data.info_hash.to_bytes() != (b"\x00" * 20):
+            self._logger.debug("Resume data is valid for %s", self.tdef.name)
+            # Make save_path relative if the torrent is saved in the Tribler state directory
+            if self.state_dir:
+                save_path = Path(resume_data.save_path).absolute()
+                resume_data.save_path = str(save_path)
+            self.config.set_engineresumedata(resume_data)
+        else:
+            self._logger.debug("Resume data is not available for %s", self.tdef.name)
+            self.config.config["state"]["engineresumedata"] = ""
 
         # Save it to file
         basename = hexlify(self.tdef.infohash).decode() + ".conf"
@@ -841,7 +846,6 @@ class Download(TaskManager):
                 resume_data = self.config.get_engineresumedata()
                 if resume_data is None:
                     resume_data = lt.add_torrent_params()
-                    resume_data.info_hash = lt.sha1_hash(self.tdef.infohash)
                 self.post_alert("save_resume_data_alert", {"params": resume_data})
             return succeed(None)
         return self.save_resume_data()
