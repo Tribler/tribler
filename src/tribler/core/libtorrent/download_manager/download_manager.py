@@ -99,7 +99,7 @@ def upgrade_checkpoint(conf_obj: ConfigObj) -> None:
     dl_defaults = conf_obj["download_defaults"]
     if "selected_file_indexes" in dl_defaults:
         indexes = dl_defaults.pop("selected_file_indexes", [])
-        if dl_defaults["files"] is None and indexes:
+        if dl_defaults.get("files") is None and indexes:
             dl_defaults["files"] = list(map(int, indexes))
         conf_obj.write()
 
