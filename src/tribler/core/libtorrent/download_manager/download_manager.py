@@ -444,7 +444,7 @@ class DownloadManager(TaskManager):
         infohash = (alert.handle.info_hash().to_bytes() if hasattr(alert, "handle") and alert.handle.is_valid()
                     else getattr(alert, "info_hash", b""))
         download = self.downloads.get(infohash)
-        if download:
+        if download and download.config.get_hops() == hops:
             is_process_alert = (download.handle and download.handle.is_valid()) \
                                or (not download.handle and alert_type == "add_torrent_alert") \
                                or (download.handle and alert_type == "torrent_removed_alert")
