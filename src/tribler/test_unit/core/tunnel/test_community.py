@@ -12,7 +12,6 @@ from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_TYPE_IP_SEEDER,
     CIRCUIT_TYPE_RP_DOWNLOADER,
-    CIRCUIT_TYPE_RP_SEEDER,
     PEER_FLAG_EXIT_BT,
     Circuit,
 )
@@ -209,8 +208,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         mock_state = Mock(get_status=Mock(return_value=DownloadStatus.SEEDING))
         mock_tdef = Mock(infohash=b'a')
         mock_download = Mock(get_def=Mock(return_value=mock_tdef), add_peer=Mock(return_value=succeed(None)),
-                             get_state=Mock(return_value=mock_state), config=Mock(get_hops=Mock(return_value=1)),
-                             apply_ip_filter=Mock(return_value=None))
+                             get_state=Mock(return_value=mock_state), config=Mock(get_hops=Mock(return_value=1)))
         mock_state.get_download = Mock(return_value=mock_download)
         self.overlay(0).create_introduction_point = Mock()
         self.overlay(0).download_states[b'a'] = DownloadStatus.DOWNLOADING
@@ -270,34 +268,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
 
         self.assertNotIn(0, self.overlay(0).circuits)
-
-    async def test_update_ip_filter(self) -> None:
-        """
-        Test if the ip filter is updated properly.
-        """
-        circuit = Circuit(123, 1, CIRCUIT_TYPE_RP_DOWNLOADER)
-        remote_endpoint = AutoMockEndpoint()
-        circuit.add_hop(Mock(address=remote_endpoint.get_address()))
-        circuit.bytes_down = 0
-        circuit.last_activity = 0
-        self.overlay(0).circuits[circuit.circuit_id] = circuit
-
-        download = Mock(handle=None, config=Mock(get_hops=Mock(return_value=1)))
-        self.overlay(0).get_download = Mock(return_value=download)
-
-        lt_session = Mock()
-        self.overlay(0).settings.download_manager = Mock(get_session=Mock(return_value=lt_session),
-                                                         update_ip_filter=Mock(),
-                                                         get_downloads=Mock(return_value=[download]))
-
-        self.overlay(0).update_ip_filter(0)
-        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session.result(), [])
-
-        circuit.ctype = CIRCUIT_TYPE_RP_SEEDER
-        self.overlay(0).update_ip_filter(0)
-        ips = [self.overlay(0).circuit_id_to_ip(circuit.circuit_id)]
-
-        self.overlay(0).settings.download_manager.update_ip_filter.assert_called_with(lt_session.result(), ips)
 
     def test_update_torrent(self) -> None:
         """

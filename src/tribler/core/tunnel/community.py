@@ -13,7 +13,6 @@ from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, 
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
     CIRCUIT_TYPE_IP_SEEDER,
-    CIRCUIT_TYPE_RP_SEEDER,
     PEER_FLAG_EXIT_BT,
     PEER_FLAG_EXIT_IPV8,
     Circuit,
@@ -354,27 +353,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             dl.add_peer(address)
         else:
             self.logger.error("Could not find download for adding hidden services peer %s:%d!", *address)
-
-    def on_rendezvous_established(self, source_address: Address, data: bytes, circuit_id: int) -> None:
-        """
-        Callback for when a rendezvous node has been established.
-        """
-        super().on_rendezvous_established(source_address, data, circuit_id)
-
-        circuit = self.circuits.get(circuit_id)
-        if circuit and self.settings.download_manager:
-            self.update_ip_filter(circuit.info_hash)
-
-    def update_ip_filter(self, info_hash: bytes) -> None:
-        """
-        Set the IP filter setting for the given infohash.
-        """
-        download = self.get_download(info_hash)
-        if download is not None:
-            lt_session = self.settings.download_manager.get_session(download.config.get_hops()).result()
-            ip_addresses = [self.circuit_id_to_ip(c.circuit_id)
-                            for c in self.find_circuits(ctype=CIRCUIT_TYPE_RP_SEEDER)]
-            self.settings.download_manager.update_ip_filter(lt_session, ip_addresses)
 
     def get_download(self, lookup_info_hash: bytes) -> Download | None:
         """
