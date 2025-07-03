@@ -33,7 +33,7 @@ from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Iterable
+    from collections.abc import Awaitable, Callable
 
     from tribler.core.libtorrent.download_manager.dht_health_manager import DHTHealthManager
     from tribler.tribler_config import TriblerConfigManager
@@ -497,17 +497,6 @@ class DownloadManager(TaskManager):
                 self.dht_health_manager.received_bloomfilters(decoded[b"t"],
                                                               bytearray(decoded[b"r"][b"BFsd"]),
                                                               bytearray(decoded[b"r"][b"BFpe"]))
-
-    def update_ip_filter(self, lt_session: lt.session, ip_addresses: Iterable[str]) -> None:
-        """
-        Add illegal IPs to libtorrent.
-        """
-        logger.debug("Updating IP filter %s", ip_addresses)
-        ip_filter = lt.ip_filter()
-        ip_filter.add_rule("0.0.0.0", "255.255.255.255", 1)
-        for ip in ip_addresses:
-            ip_filter.add_rule(ip, ip, 0)
-        lt_session.set_ip_filter(ip_filter)
 
     async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = -1,
                            url: str | None = None) -> dict | None:

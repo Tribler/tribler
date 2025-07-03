@@ -305,9 +305,6 @@ class Download(TaskManager):
         # Limit the amount of connections if we have specified that
         self.handle.set_max_connections(self.download_manager.config.get("libtorrent/max_connections_download"))
 
-        # By default don't apply the IP filter
-        self.apply_ip_filter(False)
-
         self.checkpoint()
 
     def get_anon_mode(self) -> bool:
@@ -370,10 +367,6 @@ class Download(TaskManager):
         if not self.handle:
             return
         self.update_lt_status(self.handle.status())
-
-        enable = alert.state == lt.torrent_status.seeding and self.config.get_hops() > 0
-        self._logger.debug("Setting IP filter for %s to %s", hexlify(self.tdef.infohash), enable)
-        self.apply_ip_filter(enable)
 
         # On a rare occasion we don't get a metadata_received_alert. If this is the case, post an alert manually.
         if alert.state == lt.torrent_status.downloading and self.tdef.torrent_info is None:
@@ -917,13 +910,6 @@ class Download(TaskManager):
         Set the maximum download rate of this download.
         """
         handle.set_download_limit(value * 1024)
-
-    @require_handle
-    def apply_ip_filter(self, handle: lt.torrent_handle, enable: bool) -> None:
-        """
-        Enable the IP filter on this download.
-        """
-        handle.apply_ip_filter(enable)
 
     def get_share_mode(self) -> bool:
         """

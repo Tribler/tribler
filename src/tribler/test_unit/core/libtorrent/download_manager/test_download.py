@@ -582,48 +582,6 @@ class TestDownload(TestBase):
         with self.assertRaises(SaveResumeDataError):
             await future
 
-    async def test_on_state_changed_apply_ip_filter(self) -> None:
-        """
-        Test if the ip filter gets enabled when in torrent status seeding (5) when hops are not zero.
-        """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
-        download.config.set_hops(1)
-        download.handle = Mock(is_valid=Mock(return_value=True))
-
-        download.on_state_changed_alert(type("state_changed_alert", (object,), {"state": 5}))
-        await sleep(0)
-
-        self.assertEqual(call(True), download.handle.apply_ip_filter.call_args)
-
-    async def test_on_state_changed_no_filter(self) -> None:
-        """
-        Test if the ip filter does not get enabled when the hop count is zero.
-        """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
-        download.config.set_hops(0)
-        download.handle = Mock(is_valid=Mock(return_value=True))
-
-        download.on_state_changed_alert(type("state_changed_alert", (object,), {"state": 5}))
-        await sleep(0)
-
-        self.assertEqual(call(False), download.handle.apply_ip_filter.call_args)
-
-    async def test_on_state_changed_not_seeding(self) -> None:
-        """
-        Test if the ip filter does not get enabled when the hop count is zero.
-        """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
-        download.config.set_hops(1)
-        download.handle = Mock(is_valid=Mock(return_value=True))
-
-        download.on_state_changed_alert(type("state_changed_alert", (object,), {"state": 4}))
-        await sleep(0)
-
-        self.assertEqual(call(False), download.handle.apply_ip_filter.call_args)
-
     async def test_checkpoint_timeout(self) -> None:
         """
         Testing whether making a checkpoint times out when we receive no alert from libtorrent.
