@@ -77,6 +77,18 @@ class PeerDictHave(PeerDict):
     have: list[bool]  # Bitfield object for this peer if not completed
 
 
+class TrackerStatusDict(TypedDict):
+    """
+    Information about the state of a tracker.
+    """
+
+    url: str
+    peers: int
+    seeds: int
+    leeches: int
+    status: str
+
+
 class Download(TaskManager):
     """
     Download subclass that represents a libtorrent download.
@@ -439,7 +451,7 @@ class Download(TaskManager):
         else:
             status = "Not working"
 
-        peers = 0  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
+        peers = -1  # If there is a tracker error, alert.num_peers is not available. So resetting peer count to zero.
         self.tracker_status[url] = (peers, status)
 
     def on_tracker_warning_alert(self, alert: lt.tracker_warning_alert) -> None:
@@ -725,19 +737,25 @@ class Download(TaskManager):
         t = lt.create_torrent(torrent_info)
         return t.generate()
 
-    @check_handle(default={})
-    def get_tracker_status(self, handle: lt.torrent_handle) -> dict[str, tuple[int, str]]:
+    @check_handle(default=[])
+    def get_tracker_status(self, handle: lt.torrent_handle) -> list[TrackerStatusDict]:
         """
         Retrieve an overview of the trackers and their statuses.
         """
         # Make sure all trackers are in the tracker_status dict
+        result: list[TrackerStatusDict] = []
         try:
-            tracker_urls = {tracker["url"] for tracker in handle.trackers()}
-            for removed in (set(self.tracker_status.keys()) - tracker_urls):
+            trackers = handle.trackers()
+            for removed in (set(self.tracker_status.keys()) - {t["url"] for t in trackers}):
                 self.tracker_status.pop(removed)
-            for tracker_url in tracker_urls:
-                if tracker_url not in self.tracker_status:
-                    self.tracker_status[tracker_url] = (0, "Not contacted yet")
+            for tracker in trackers:
+                url = tracker["url"]
+                peers, status = self.tracker_status.get(url, [-1, "Not contacted yet"])
+                result.append({"url": url,
+                               "peers": cast("int", peers),
+                               "seeds": tracker["scrape_complete"],
+                               "leeches": tracker["scrape_incomplete"],
+                               "status": cast("str", status)})
         except UnicodeDecodeError:
             self._logger.warning("UnicodeDecodeError in get_tracker_status")
 
@@ -757,11 +775,10 @@ class Download(TaskManager):
                 pex_peers += 1
 
         ltsession = self.download_manager.get_session(self.config.get_hops()).result()
-        public = not (self.tdef and self.tdef.torrent_info and self.tdef.atp.ti.priv())
-
-        result = self.tracker_status.copy()
-        result["[DHT]"] = (dht_peers, "Working" if ltsession.is_dht_running() and public else "Disabled")
-        result["[PeX]"] = (pex_peers, "Working")
+        dht_on = ltsession.is_dht_running() and not (self.tdef and self.tdef.torrent_info and self.tdef.atp.ti.priv())
+        dht_status = "Working" if dht_on else "Disabled"
+        result.append({"url": "[DHT]", "peers": dht_peers, "seeds": -1, "leeches": -1, "status": dht_status})
+        result.append({"url": "[PeX]", "peers": pex_peers, "seeds": -1, "leeches": -1, "status": "Working"})
         return result
 
     async def shutdown(self) -> None:

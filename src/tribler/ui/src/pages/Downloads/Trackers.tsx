@@ -11,7 +11,8 @@ import { triblerService } from "@/services/tribler.service";
 import { isErrorDict } from "@/services/reporting";
 import { useTranslation } from "react-i18next";
 import { Icons } from "@/components/icons";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Plus, RefreshCw, Trash } from "lucide-react";
 
 
 interface TrackerRow extends Tracker {
@@ -24,6 +25,7 @@ export default function Trackers({ download, style }: { download: Download, styl
 
     const [trackerDialogOpen, setTrackerDialogOpen] = useState<boolean>(false);
     const [trackerInput, setTrackerInput] = useState('');
+    const [selectedTrackers, setSelectedTrackers] = useState<Tracker[]>([]);
 
     const trackerColumns: ColumnDef<TrackerRow>[] = [
         {
@@ -37,65 +39,76 @@ export default function Trackers({ download, style }: { download: Download, styl
         {
             accessorKey: "peers",
             header: getHeader('Peers'),
+            cell: (props) => (props.row.original?.peers ?? -1) >= 0 ? <>{props.row.original.peers}</> : <></>
         },
         {
-            header: "",
-            accessorKey: "recheckButton",
-            cell: (props) => {
-                return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
-                    <Button variant="secondary" className="max-h-6" onClick={(event) => {
-                        triblerService.forceCheckDownloadTracker(download.infohash, props.row.original.url).then((response) => {
-                            if (response === undefined) {
-                                toast.error(`${t("ToastErrorTrackerCheck")} ${t("ToastErrorGenNetworkErr")}`);
-                            } else if (isErrorDict(response)) {
-                                toast.error(`${t("ToastErrorTrackerCheck")} ${response.error.message}`);
-                            }
-                        });
-                    }}>{t("ForceRecheck")}</Button>)
-            }
+            accessorKey: "seeds",
+            header: getHeader('Seeds'),
+            cell: (props) => (props.row.original?.seeds ?? -1) >= 0 ? <>{props.row.original.seeds}</> : <></>
         },
         {
-            header: "",
-            accessorKey: "removeButton",
-            cell: (props) => {
-                return (["[DHT]", "[PeX]"].includes(props.row.original.url) ? <></> :
-                    <Button variant="secondary" className="max-h-6" onClick={(event) => {
-                        triblerService.removeDownloadTracker(download.infohash, props.row.original.url).then((response) => {
-                            if (response === undefined) {
-                                toast.error(`${t("ToastErrorTrackerRemove")} ${t("ToastErrorGenNetworkErr")}`);
-                            } else if (isErrorDict(response)) {
-                                toast.error(`${t("ToastErrorTrackerRemove")} ${response.error.message}`);
-                            } else {
-                                download.trackers = download.trackers.filter(tracker => { return tracker.url != props.row.original.url });
-                                var button = event.target as HTMLButtonElement;
-                                button.disabled = true;
-                                button.classList.add("cursor-not-allowed");
-                                button.classList.add("opacity-50");
-                            }
-                        });
-                    }}>❌</Button>)
-            }
-        }
+            accessorKey: "leeches",
+            header: getHeader('Leeches'),
+            cell: (props) => (props.row.original?.leeches ?? -1) >= 0 ? <>{props.row.original.leeches}</> : <></>
+        },
     ]
 
     if (download.trackers.length === 0)
         return <Icons.spinner className="ml-4 mt-4" />;
 
     return (
-        <ScrollArea style={style} className="h=full">
-            <div style={style}>
-                <SimpleTable
-                    className="border-b-4 border-muted"
-                    data={download.trackers as TrackerRow[]}
-                    columns={trackerColumns}
-                />
-                <Button
-                    className="mx-4 my-2 min-w-24 max-h-8"
-                    variant="secondary"
-                    onClick={() => { setTrackerDialogOpen(true) }}>
-                    {t('Add')}
-                </Button>
-            </div>
+        <>
+            <ContextMenu modal={false}>
+                <ContextMenuTrigger>
+                    <SimpleTable
+                        className="border-b-4 border-muted"
+                        data={download.trackers as TrackerRow[]}
+                        allowSelect={true}
+                        selectOnRightClick={true}
+                        onSelectedRowsChange={setSelectedTrackers}
+                        columns={trackerColumns}
+                        style={style}
+                    />
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-64 bg-neutral-50 dark:bg-neutral-950">
+                    <ContextMenuItem
+                        className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                        onClick={() => setTrackerDialogOpen(true)}>
+                        <Plus className="w-5 mx-2" />
+                        {t('Add')}..
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                        disabled={selectedTrackers.length !== 1 || ["[DHT]", "[PeX]"].includes(selectedTrackers[0].url) }
+                        onClick={() => {
+                            triblerService.removeDownloadTracker(download.infohash, selectedTrackers[0].url).then((response) => {
+                                if (response === undefined) {
+                                    toast.error(`${t("ToastErrorTrackerRemove")} ${t("ToastErrorGenNetworkErr")}`);
+                                } else if (isErrorDict(response)) {
+                                    toast.error(`${t("ToastErrorTrackerRemove")} ${response.error.message}`);
+                                }
+                            })
+                        }}>
+                        <Trash className="w-5 mx-2" />
+                        {t('Remove')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                        disabled={selectedTrackers.length !== 1 || ["[DHT]", "[PeX]"].includes(selectedTrackers[0].url) }
+                        onClick={() => {
+                            triblerService.forceCheckDownloadTracker(download.infohash, selectedTrackers[0].url).then((response) => {
+                                if (response === undefined) {
+                                    toast.error(`${t("ToastErrorTrackerCheck")} ${t("ToastErrorGenNetworkErr")}`);
+                                } else if (isErrorDict(response)) {
+                                    toast.error(`${t("ToastErrorTrackerCheck")} ${response.error.message}`);
+                                }
+                            })
+                        }}>
+                        <RefreshCw className="w-5 mx-2" />
+                        {t('ForceRecheck')}
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
 
             <Dialog open={trackerDialogOpen} onOpenChange={setTrackerDialogOpen}>
                 <DialogContent>
@@ -139,6 +152,6 @@ export default function Trackers({ download, style }: { download: Download, styl
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </ScrollArea>
+        </>
     )
 }
