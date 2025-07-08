@@ -71,7 +71,7 @@ const getColumns = ({ onDownload }: { onDownload: (torrent: Torrent) => void }):
 export default function Popular() {
     const [open, setOpen] = useState<boolean>(false)
     const [torrents, setTorrents] = useState<Torrent[]>([])
-    const [torrentDoubleClicked, setTorrentDoubleClicked] = useState<Torrent | undefined>();
+    const [torrentClicked, setTorrentClicked] = useState<Torrent | undefined>();
 
     useInterval(async () => {
         const popular = await triblerService.getPopularTorrents();
@@ -87,7 +87,7 @@ export default function Popular() {
     }, 5000, true);
 
     const handleDownload = useCallback((torrent: Torrent) => {
-        setTorrentDoubleClicked(torrent);
+        setTorrentClicked(torrent);
         setOpen(true);
     }, []);
 
@@ -95,14 +95,14 @@ export default function Popular() {
 
     return (
         <>
-            {torrentDoubleClicked &&
+            {torrentClicked &&
                 <SaveAs
                     open={open}
                     onOpenChange={() => {
-                        setTorrentDoubleClicked(undefined)
+                        setTorrentClicked(undefined)
                         setOpen(false);
                     }}
-                    uri={getMagnetLink(torrentDoubleClicked.infohash, torrentDoubleClicked.name)}
+                    uri={getMagnetLink(torrentClicked.infohash, torrentClicked.name, torrentClicked.trackers)}
                 />
             }
             <SimpleTable

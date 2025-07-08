@@ -19,8 +19,9 @@ export function unhexlify(input: string) {
     return new TextDecoder().decode(new Uint8Array([...input.matchAll(/[0-9a-f]{2}/g)].map(a => parseInt(a[0], 16))));
 };
 
-export function getMagnetLink(infohash: string, name: string): string {
-    return `magnet:?xt=urn:btih:${infohash}&dn=${encodeURIComponent(name)}`;
+export function getMagnetLink(infohash: string, name: string, trackers: string[]): string {
+    const tr = trackers.length > 0  ? `&${trackers.map((t) => `tr=${encodeURIComponent(t)}`).join("&")}` : "";
+    return `magnet:?xt=urn:btih:${infohash}&dn=${encodeURIComponent(name)}${tr}`;
 }
 
 export function unwrapMagnetSO(selectedFiles: string): Set<number> {

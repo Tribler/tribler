@@ -280,7 +280,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             return cls.from_dict(dict(metadata, public_key=b'', status=COMMITTED, id_=id_))
 
         @db_session
-        def to_simple_dict(self) -> dict[str, str | float]:
+        def to_simple_dict(self) -> dict[str, str | float | list[str]]:
             """
             Return a basic dictionary with information about the channel.
             """
@@ -300,6 +300,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 "origin_id": self.origin_id,
                 "public_key": hexlify(self.public_key).decode(),
                 "status": self.status,
+                "trackers": self.tracker_info.split(",") if self.tracker_info else [],
             }
 
         def get_type(self) -> int:

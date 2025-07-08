@@ -12,6 +12,7 @@ export interface Torrent {
     size: number;
     num_seeders: number;
     num_leechers: number;
+    trackers: string[];
     last_tracker_check: number;
     created: number;
     tag_processor_version: number;
