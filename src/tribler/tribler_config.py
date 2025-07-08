@@ -1,3 +1,6 @@
+"""
+Note: after making changes to this file, run it to generate the `pyi` types!
+"""
 from __future__ import annotations
 
 import json
@@ -6,13 +9,87 @@ import os
 from importlib.metadata import PackageNotFoundError, version
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from ipv8.configuration import default as ipv8_default_config
 
 from tribler.upgrade_script import TO
 
 logger = logging.getLogger(__name__)
+
+
+class IPv8InterfaceConfig(TypedDict):
+    """
+    An IPv8 network interface.
+    """
+
+    interface: str
+    ip: str
+    port: int
+    worker_threads: NotRequired[int]
+
+
+class IPv8KeysConfig(TypedDict):
+    """
+    An IPv8 key configuration.
+    """
+
+    alias: str
+    generation: str
+    file: str
+
+
+class IPv8LoggerConfig(TypedDict):
+    """
+    The IPv8 logger configuration.
+    """
+
+    level: str
+
+
+class IPv8WalkerConfig(TypedDict):
+    """
+    An IPv8 walker configuration.
+    """
+
+    strategy: str
+    peers: int
+    init: dict
+
+
+IPv8BootstrapperConfig = TypedDict("IPv8BootstrapperConfig", {
+    "class": str,
+    "init": dict
+})
+"""
+An IPv8 bootstrapper configuration.
+"""
+
+
+IPv8OverlayConfig = TypedDict("IPv8OverlayConfig", {
+    "class": str,
+    "key": str,
+    "walkers": list[IPv8WalkerConfig],
+    "bootstrappers": list[IPv8BootstrapperConfig],
+    "initialize": dict,
+    "on_start": list
+})
+"""
+An IPv8 overlay launch config.
+"""
+
+
+class IPv8Config(TypedDict):
+    """
+    The main IPv8 configuration dictionary.
+    """
+
+    interfaces: list[IPv8InterfaceConfig]
+    keys: list[IPv8KeysConfig]
+    logger: IPv8LoggerConfig
+    working_directory: str
+    walker_interval: float
+    overlays: list[IPv8OverlayConfig]
 
 
 class ApiConfig(TypedDict):
@@ -179,7 +256,7 @@ class TriblerConfig(TypedDict):
     api: ApiConfig
     headless: bool
 
-    ipv8: dict
+    ipv8: IPv8Config
     statistics: bool
 
     content_discovery_community: ContentDiscoveryCommunityConfig
@@ -191,6 +268,7 @@ class TriblerConfig(TypedDict):
     torrent_checker: TorrentCheckerConfig
     tunnel_community: TunnelCommunityConfig
     versioning: VersioningConfig
+    watch_folder: WatchFolderConfig
 
     state_dir: str
     memory_db: bool
@@ -309,7 +387,7 @@ class TriblerConfigManager:
         self.config_file = config_file
 
         logger.info("Load: %s.", self.config_file)
-        self.configuration = {}
+        self.configuration = TriblerConfig()
         if config_file.exists():
             try:
                 with open(self.config_file) as f:
@@ -326,7 +404,7 @@ class TriblerConfigManager:
         with open(self.config_file, "w") as f:
             json.dump(self.configuration, f, indent=4)
 
-    def get(self, option: os.PathLike | str) -> dict | list | str | float | bool | None:
+    def get(self, option: str) -> dict | list | str | float | bool | None:
         """
         Get a config option based on the path-like descriptor.
         """
@@ -348,7 +426,7 @@ class TriblerConfigManager:
         """
         return os.path.join(self.get("state_dir"), VERSION_SUBDIR)
 
-    def set(self, option: os.PathLike | str, value: dict | list | str | float | bool | None) -> None:
+    def set(self, option: str, value: dict | list | str | float | bool | None) -> None:
         """
         Set a config option value based on the path-like descriptor.
         """
@@ -366,3 +444,92 @@ class TriblerConfigManager:
                         current[part] = out
                         break
         current[Path(option).parts[-1]] = value
+
+if __name__ == "__main__":
+    # Run this file to generate ``tribler_config.pyi`` type stubs.
+    import ast
+    import inspect
+    from typing import get_args
+
+    from mypy.errors import Errors
+    from mypy.fastparse import ASTConverter
+    from mypy.nodes import FuncDef
+    from mypy.options import Options
+    from mypy.stubgen import ASTStubGenerator
+
+    def _produce_set_overload(key: str, value_type: str) -> str:
+        return f"""    @overload
+    def set(self, option: Literal["{key}"], value: {value_type}) -> None: ...
+"""
+
+    def _produce_get_overload(key: str, value_type: str) -> str:
+        return f"""    @overload
+    def get(self, option: Literal["{key}"]) -> {value_type}: ...
+"""
+
+    global_keys = {}
+    typed_dicts = [("TriblerConfig", "")]
+    index = 0
+    while index < len(typed_dicts):
+        for key, value in locals()[typed_dicts[index][0]].__annotations__.items():
+            key_type = value
+            if hasattr(value, "_evaluate"):  # It's a ForwardRef!
+                key_type = value._evaluate(globals(), locals(), recursive_guard=set())  # noqa: SLF001
+
+            abs_key = typed_dicts[index][1] + ("/" if typed_dicts[index][1] else "") + key
+            if getattr(key_type, "__name__", None) == "list" and get_args(key_type):
+                key_type, = get_args(key_type)
+                global_keys[abs_key] = f"list[{getattr(key_type, '__name__', str(key_type))}]"
+            else:
+                global_keys[abs_key] = getattr(key_type, "__name__", str(key_type))
+
+            if key_type.__module__ == "__main__":
+                typed_dicts.append((getattr(key_type, "__name__", str(key_type)), abs_key))
+        index += 1
+
+    set_annotations = inspect.get_annotations(TriblerConfigManager.set)
+    get_annotations = inspect.get_annotations(TriblerConfigManager.get)
+
+    typed_dicts_sources = []
+    unsourced = {v[0] for v in typed_dicts}
+    from linecache import getlines
+    with open(__file__) as this_file:
+        this_module = ast.parse(this_file.read())
+    for entry in this_module.body:
+        if (isinstance(entry, ast.Assign) and len(entry.targets) == 1 and isinstance(entry.targets[0], ast.Name)
+                and entry.targets[0].id in unsourced):
+            typed_dicts_sources.append("".join(getlines(__file__)[entry.lineno-1:entry.end_lineno]))
+            unsourced.remove(entry.targets[0].id)
+    typed_dicts_sources += [inspect.getsource(globals()[k]) for k in unsourced]
+    src_typed_dicts = "\n".join(typed_dicts_sources)
+
+    mypy_opts = Options()
+    ast_tcm = ast.parse(inspect.getsource(TriblerConfigManager))
+    conv = ASTConverter(mypy_opts, True, Errors(mypy_opts), strip_function_bodies=True, path="")
+    mypy_file = conv.visit(ast_tcm)
+    cdef, = mypy_file.defs
+    stubgen = ASTStubGenerator([key for key in TriblerConfigManager.__dict__
+                                if key not in ['__module__', '__doc__', 'get', 'set', '__dict__', '__weakref__']])
+    stubgen.indent()
+    for fdef in cdef.defs.body:
+        if isinstance(fdef, FuncDef) and fdef.name not in ["get", "set"]:
+            stubgen.visit_func_def(fdef)
+
+    stub = f"""from pathlib import Path
+from typing import Literal, NotRequired, TypedDict, overload
+
+# ruff: noqa: PYI021
+
+{src_typed_dicts}
+
+class TriblerConfigManager:
+
+    configuration: TriblerConfig
+    config_file: Path
+
+{"".join(l for l in stubgen._output if l.startswith("    def"))}
+{"".join(_produce_set_overload(k, v) for k, v in global_keys.items())}
+{"".join(_produce_get_overload(k, v) for k, v in global_keys.items())}"""  # noqa: SLF001
+
+    with open("tribler_config.pyi", "w") as stub_file:
+        stub_file.write(stub)
