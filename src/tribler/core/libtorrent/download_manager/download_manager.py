@@ -363,7 +363,7 @@ class DownloadManager(TaskManager):
             ltsession.start_lsd()
 
         logger.info("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
-        self.lt_session_shutdown_ready[hops] = False
+        self.lt_session_shutdown_ready[hops] = True
 
         return ltsession
 
@@ -472,8 +472,7 @@ class DownloadManager(TaskManager):
             queued_disk_jobs = ss_alert.values["disk.queued_disk_jobs"]
             self.queued_write_bytes = ss_alert.values["disk.queued_write_bytes"]
             num_write_jobs = ss_alert.values["disk.num_write_jobs"]
-            if queued_disk_jobs == self.queued_write_bytes == num_write_jobs == 0:
-                self.lt_session_shutdown_ready[hops] = True
+            self.lt_session_shutdown_ready[hops] = queued_disk_jobs == self.queued_write_bytes == num_write_jobs == 0
 
             self.session_stats[hops] = self.session_stats.get(hops, {})
             self.session_stats[hops].update(ss_alert.values)

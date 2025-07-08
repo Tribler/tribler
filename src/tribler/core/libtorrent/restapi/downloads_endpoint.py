@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from aiohttp.abc import AbstractStreamWriter, BaseRequest
     from aiohttp.web_request import Request
 
-    from tribler.core.libtorrent.download_manager.download import Download
+    from tribler.core.libtorrent.download_manager.download import Download, TrackerStatusDict
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 
@@ -288,13 +288,15 @@ class DownloadsEndpoint(RESTEndpoint):
             if params.get("excluded") == hex_infohash:
                 continue
 
-            # Create tracker information of the download
-            tracker_info = []
-            for url, url_info in download.get_tracker_status().items():
-                tracker_info.append({"url": url, "peers": url_info[0], "status": url_info[1]})
-
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
+
+            tracker_info: list[TrackerStatusDict] = download.get_tracker_status()
+            num_seeds_scraped = max([ti.get("seeds", 0) for ti in tracker_info]) if tracker_info else 0
+            num_peers_scraped = max([ti.get("leeches", 0) for ti in tracker_info]) if tracker_info else 0
+            if (num_seeds_scraped + num_peers_scraped) > (num_seeds + num_peers):
+                num_seeds = num_seeds_scraped
+                num_peers = num_peers_scraped
 
             name = tdef.name
             status = self._get_extended_status(download)

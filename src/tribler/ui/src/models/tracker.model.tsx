@@ -4,4 +4,6 @@ export interface Tracker {
     url: string;
     peers: number;
     status: string;
+    seeds: number;
+    leeches: number;
 }

@@ -629,8 +629,8 @@ class TestDownload(TestBase):
 
         result = download.get_tracker_status()
 
-        self.assertEqual((42, "Disabled"), result["[DHT]"])
-        self.assertEqual((7, "Working"), result["[PeX]"])
+        self.assertIn({'leeches': -1, 'peers': 42, 'seeds': -1, 'status': 'Disabled', 'url': '[DHT]'}, result)
+        self.assertIn({'leeches': -1, 'peers': 7, 'seeds': -1, 'status': 'Working', 'url': '[PeX]'}, result)
 
     def test_get_tracker_status_get_peer_info_error(self) -> None:
         """
@@ -644,8 +644,8 @@ class TestDownload(TestBase):
 
         result = download.get_tracker_status()
 
-        self.assertEqual((0, "Working"), result["[DHT]"])
-        self.assertEqual((0, "Working"), result["[PeX]"])
+        self.assertIn({'leeches': -1, 'peers': 0, 'seeds': -1, 'status': 'Working', 'url': '[DHT]'}, result)
+        self.assertIn({'leeches': -1, 'peers': 0, 'seeds': -1, 'status': 'Working', 'url': '[PeX]'}, result)
 
     async def test_shutdown(self) -> None:
         """
