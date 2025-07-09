@@ -4,7 +4,7 @@ import { File as BTFile } from "@/models/file.model";
 import { Path } from "@/models/path.model";
 import { GuiSettings, Settings } from "@/models/settings.model";
 import { Torrent } from "@/models/torrent.model";
-import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
 import { TriblerStatistics } from "@/models/statistics.model";
 
@@ -270,9 +270,9 @@ export class TriblerService {
 
     // Torrents / search
 
-    async getMetainfo(uri: string, skipMagnet: boolean): Promise<undefined | ErrorDict | {files: {index: number, name: string, size: number}[], name: string, download_exists: boolean, valid_certificate: boolean}> {
+    async getMetainfo(uri: string, skipMagnet: boolean, config?: AxiosRequestConfig): Promise<undefined | ErrorDict | {files: {index: number, name: string, size: number}[], name: string, download_exists: boolean, valid_certificate: boolean}> {
         try {
-            return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`)).data;
+            return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`, config)).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
