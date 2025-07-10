@@ -1,12 +1,6 @@
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs"
-import Buckets from "./Buckets"
-import Statistics from "./Statistics"
-
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import Buckets from "./Buckets";
+import Statistics from "./Statistics";
 
 export default function DHT() {
     return (
@@ -22,5 +16,5 @@ export default function DHT() {
                 <Buckets />
             </TabsContent>
         </Tabs>
-     )
+    );
 }

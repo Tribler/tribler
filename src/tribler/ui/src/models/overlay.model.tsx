@@ -1,27 +1,27 @@
 // For compile-time type checking and code completion
 
 export interface Address {
-    ip: string,
-    port: number,
+    ip: string;
+    port: number;
 }
 
 export interface Strategy {
-    name: string,
-    target_peers: number,
+    name: string;
+    target_peers: number;
 }
 
 export interface Peer {
-    ip: string,
-    port: number,
-    public_key: string,
+    ip: string;
+    port: number;
+    public_key: string;
 }
 
 export interface Statistics {
-    num_up: number,
-    num_down: number,
-    bytes_up: number,
-    bytes_down: number,
-    diff_time: number,
+    num_up: number;
+    num_down: number;
+    bytes_up: number;
+    bytes_down: number;
+    diff_time: number;
 }
 
 export interface Overlay {

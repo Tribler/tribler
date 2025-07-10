@@ -1,9 +1,8 @@
 // For compile-time type checking and code completion
 
-import { Peer } from "./bittorrentpeer.model";
-import { File } from "./file.model";
-import { Tracker } from "./tracker.model";
-
+import {Peer} from "./bittorrentpeer.model";
+import {File} from "./file.model";
+import {Tracker} from "./tracker.model";
 
 export enum StatusCode {
     ALLOCATING_DISKSPACE = 0,
@@ -15,7 +14,7 @@ export enum StatusCode {
     STOPPED_ON_ERROR = 6,
     METADATA = 7,
     LOADING = 8,
-    EXIT_NODES = 9
+    EXIT_NODES = 9,
 }
 
 export type Status = keyof typeof StatusCode;

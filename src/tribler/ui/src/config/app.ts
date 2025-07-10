@@ -1,7 +1,7 @@
 interface AppConfig {
-    name: string,
+    name: string;
 }
 
 export const appConfig: AppConfig = {
     name: "Tribler",
-}
+};

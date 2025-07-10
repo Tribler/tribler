@@ -1,6 +1,6 @@
 // For compile-time type checking and code completion
 
-type direction = 'forward' | 'backward';
+type direction = "forward" | "backward";
 
 export interface Relay {
     circuit_from: number;

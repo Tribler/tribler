@@ -8,7 +8,7 @@ interface DHTPeer {
     failed: number;
     last_contact: number;
     distance: number;
-    }
+}
 
 type endpoint = "UDPIPv4" | "UDPIPv6";
 

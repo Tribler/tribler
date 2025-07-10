@@ -1,12 +1,11 @@
-import SimpleTable, { getHeader } from "@/components/ui/simple-table";
-import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
-import { ipv8Service } from "@/services/ipv8.service";
-import { isErrorDict } from "@/services/reporting";
-import { Task } from "@/models/task.model";
-import { useInterval } from '@/hooks/useInterval';
-import { formatTimeRelativeISO } from "@/lib/utils";
-
+import SimpleTable, {getHeader} from "@/components/ui/simple-table";
+import {ColumnDef} from "@tanstack/react-table";
+import {useState} from "react";
+import {ipv8Service} from "@/services/ipv8.service";
+import {isErrorDict} from "@/services/reporting";
+import {Task} from "@/models/task.model";
+import {useInterval} from "@/hooks/useInterval";
+import {formatTimeRelativeISO} from "@/lib/utils";
 
 const taskColumns: ColumnDef<Task>[] = [
     {
@@ -16,8 +15,8 @@ const taskColumns: ColumnDef<Task>[] = [
     {
         accessorKey: "name",
         header: getHeader("Name", false, true, true),
-        cell: ({ row }) => {
-            return <span className="line-clamp-1">{row.original.name}</span>
+        cell: ({row}) => {
+            return <span className="line-clamp-1">{row.original.name}</span>;
         },
     },
     {
@@ -31,22 +30,26 @@ const taskColumns: ColumnDef<Task>[] = [
     {
         accessorKey: "start_time",
         header: getHeader("Started", false),
-        cell: ({ row }) => {
-            return row.original.start_time && <span>{formatTimeRelativeISO(row.original.start_time)}</span>
+        cell: ({row}) => {
+            return row.original.start_time && <span>{formatTimeRelativeISO(row.original.start_time)}</span>;
         },
     },
-]
+];
 
 export default function Tasks() {
-    const [tasks, setTasks] = useState<Task[]>([])
+    const [tasks, setTasks] = useState<Task[]>([]);
 
-    useInterval(async () => {
-        const response = await ipv8Service.getTasks();
-        if (!(response === undefined) && !isErrorDict(response)) {
-            // We ignore errors and correct with the missing information on the next call
-            setTasks(response);
-        }
-    }, 5000, true);
+    useInterval(
+        async () => {
+            const response = await ipv8Service.getTasks();
+            if (!(response === undefined) && !isErrorDict(response)) {
+                // We ignore errors and correct with the missing information on the next call
+                setTasks(response);
+            }
+        },
+        5000,
+        true
+    );
 
     return (
         <SimpleTable
@@ -54,5 +57,5 @@ export default function Tasks() {
             data={tasks}
             columns={taskColumns}
         />
-    )
+    );
 }

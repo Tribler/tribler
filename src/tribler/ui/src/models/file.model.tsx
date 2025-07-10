@@ -1,6 +1,6 @@
 // For compile-time type checking and code completion
 
-import { CheckedState } from "@radix-ui/react-checkbox";
+import {CheckedState} from "@radix-ui/react-checkbox";
 
 export interface File {
     index: number;

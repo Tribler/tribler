@@ -1,44 +1,44 @@
-import { NavLink, useSearchParams } from "react-router-dom";
-import { Icons } from "@/components/icons";
-import { appConfig } from "@/config/app";
-import { Button } from "@/components/ui/button";
-import { ExitIcon } from "@radix-ui/react-icons";
-import { ModeToggle } from "../mode-toggle";
-import { Search } from "./Search";
+import {NavLink, useSearchParams} from "react-router-dom";
+import {Icons} from "@/components/icons";
+import {appConfig} from "@/config/app";
+import {Button} from "@/components/ui/button";
+import {ExitIcon} from "@radix-ui/react-icons";
+import {ModeToggle} from "../mode-toggle";
+import {Search} from "./Search";
 import LanguageSelect from "../language-select";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-import { useInterval } from "@/hooks/useInterval";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import { useEffect, useRef, useState } from "react";
-import toast, { Toaster } from 'react-hot-toast';
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
+import {useInterval} from "@/hooks/useInterval";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "../ui/dialog";
+import {useEffect, useRef, useState} from "react";
+import toast, {Toaster} from "react-hot-toast";
 import Cookies from "js-cookie";
-import { DialogDescription } from "@radix-ui/react-dialog";
-import { Ban, Loader } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import { ScrollArea } from "../ui/scroll-area";
-import { EasyTooltip } from "../ui/tooltip";
+import {DialogDescription} from "@radix-ui/react-dialog";
+import {Ban, Loader} from "lucide-react";
+import {useTranslation} from "react-i18next";
+import {ScrollArea} from "../ui/scroll-area";
+import {EasyTooltip} from "../ui/tooltip";
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
     const [shutdownLogs, setShutdownLogs] = useState<string[]>([]);
-    const logsEndRef = useRef<null | HTMLDivElement>(null)
+    const logsEndRef = useRef<null | HTMLDivElement>(null);
     const [searchParams, setSearchParams] = useSearchParams();
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
     const scrollToBottom = () => {
-        logsEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }
+        logsEndRef.current?.scrollIntoView({behavior: "smooth"});
+    };
 
     useEffect(() => {
-        scrollToBottom()
+        scrollToBottom();
     }, [shutdownLogs]);
 
     useEffect(() => {
         const key = searchParams.get("key");
         if (key) {
             const oldKey = Cookies.get("api_key");
-            Cookies.set("api_key", key, { sameSite: 'strict' });
+            Cookies.set("api_key", key, {sameSite: "strict"});
             searchParams.delete("key");
             setSearchParams(searchParams);
             if (key !== oldKey) {
@@ -50,30 +50,32 @@ export function Header() {
     useInterval(() => {
         const onlineNow = triblerService.isOnline();
         if (online !== onlineNow) {
-            if (!online)
-                setShutdownLogs([]);
+            if (!online) setShutdownLogs([]);
             setOnline(onlineNow);
-
         }
     }, 1000);
 
     useEffect(() => {
         (async () => {
-            triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent) })();
-            triblerService.getNewVersion().then(
-                (result) => {
-                    if (result && !isErrorDict(result)) toast(t("VersionAvailable") + ": " + result, {icon: "ℹ", });},
-                (error) => {}
-            );
+            triblerService.addEventListener("tribler_shutdown_state", OnShutdownEvent);
+        })();
+        triblerService.getNewVersion().then(
+            (result) => {
+                if (result && !isErrorDict(result)) toast(t("VersionAvailable") + ": " + result, {icon: "ℹ"});
+            },
+            (error) => {}
+        );
         return () => {
-            (async () => { triblerService.removeEventListener("tribler_shutdown_state", OnShutdownEvent) })();
-        }
+            (async () => {
+                triblerService.removeEventListener("tribler_shutdown_state", OnShutdownEvent);
+            })();
+        };
     }, []);
 
     const OnShutdownEvent = (event: MessageEvent) => {
         const data = JSON.parse(event.data);
-        setShutdownLogs(prevLogs => [...prevLogs, data.state]);
-    }
+        setShutdownLogs((prevLogs) => [...prevLogs, data.state]);
+    };
 
     return (
         <div className="h-fit">
@@ -82,30 +84,40 @@ export function Header() {
                     closable={false}
                     onInteractOutside={(e) => {
                         e.preventDefault();
-                    }}
-                >
+                    }}>
                     <DialogHeader>
                         <DialogTitle className="flex items-center justify-center mb-3">
-                            {online ? <Loader className="inline mr-3 animate-[spin_3s_linear_infinite]" /> : <Ban className="inline mr-3" />}
+                            {online ? (
+                                <Loader className="inline mr-3 animate-[spin_3s_linear_infinite]" />
+                            ) : (
+                                <Ban className="inline mr-3" />
+                            )}
                             {online
                                 ? "Tribler is shutting down"
-                                : (shutdownLogs.length > 0
-                                    ? "Tribler has shutdown"
-                                    : "Failed to connect to Tribler")}
+                                : shutdownLogs.length > 0
+                                  ? "Tribler has shutdown"
+                                  : "Failed to connect to Tribler"}
                         </DialogTitle>
 
-                        {!online && shutdownLogs.length === 0
-                            ? <DialogDescription className="text-center text-xs">
+                        {!online && shutdownLogs.length === 0 ? (
+                            <DialogDescription className="text-center text-xs">
                                 Tribler may not be running or your browser is missing a cookie.
-                                <br />In latter case please re-open Tribler from the system tray
+                                <br />
+                                In latter case please re-open Tribler from the system tray
                             </DialogDescription>
-                            : <ScrollArea className="max-h-[380px]">
+                        ) : (
+                            <ScrollArea className="max-h-[380px]">
                                 <DialogDescription className="text-xs font-mono">
-                                    {shutdownLogs.map(log => <p>{log}<br /></p>)}
+                                    {shutdownLogs.map((log) => (
+                                        <p>
+                                            {log}
+                                            <br />
+                                        </p>
+                                    ))}
                                     <div ref={logsEndRef} />
                                 </DialogDescription>
                             </ScrollArea>
-                        }
+                        )}
                     </DialogHeader>
                 </DialogContent>
             </Dialog>
@@ -127,26 +139,25 @@ export function Header() {
                     </div>
                     {/* right */}
                     <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-                        <div className="w-full flex-1 md:w-auto md:flex-none">
-                            {/* <CommandMenu /> */}
-                        </div>
+                        <div className="w-full flex-1 md:w-auto md:flex-none">{/* <CommandMenu /> */}</div>
                         <nav className="flex items-center space-x-2">
                             <LanguageSelect />
                             <ModeToggle />
-                            <EasyTooltip content={t('Shutdown')}>
+                            <EasyTooltip content={t("Shutdown")}>
                                 <Button
                                     variant="ghost"
                                     className="w-9 px-0"
                                     onClick={() => {
                                         triblerService.shutdown().then((response) => {
                                             if (response === undefined) {
-                                                toast.error(`${t("ToastErrorShutdown")} ${t("ToastErrorGenNetworkErr")}`);
+                                                toast.error(
+                                                    `${t("ToastErrorShutdown")} ${t("ToastErrorGenNetworkErr")}`
+                                                );
                                             } else if (isErrorDict(response)) {
                                                 toast.error(`${t("ToastErrorShutdown")} ${response.error.message}`);
                                             }
-                                        })
-                                    }}
-                                >
+                                        });
+                                    }}>
                                     <ExitIcon />
                                 </Button>
                             </EasyTooltip>
@@ -158,9 +169,9 @@ export function Header() {
             <Toaster
                 position="bottom-left"
                 toastOptions={{
-                    className: 'bg-accent text-foreground font-light',
+                    className: "bg-accent text-foreground font-light",
                 }}
             />
         </div>
-    )
+    );
 }

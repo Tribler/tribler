@@ -1,15 +1,14 @@
-import { Bucket, DHTStats, Values } from "@/models/bucket.model";
-import { Circuit } from "@/models/circuit.model";
-import { Drift } from "@/models/drift.model";
-import { Exit } from "@/models/exit.model";
-import { Overlay, OverlayStats } from "@/models/overlay.model";
-import { Relay } from "@/models/relay.model";
-import { Swarm } from "@/models/swarm.model";
-import { Task } from "@/models/task.model";
-import { Peer } from "@/models/tunnelpeer.model";
-import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { ErrorDict, formatAxiosError } from "./reporting";
-
+import {Bucket, DHTStats, Values} from "@/models/bucket.model";
+import {Circuit} from "@/models/circuit.model";
+import {Drift} from "@/models/drift.model";
+import {Exit} from "@/models/exit.model";
+import {Overlay, OverlayStats} from "@/models/overlay.model";
+import {Relay} from "@/models/relay.model";
+import {Swarm} from "@/models/swarm.model";
+import {Task} from "@/models/task.model";
+import {Peer} from "@/models/tunnelpeer.model";
+import axios, {AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig} from "axios";
+import {ErrorDict, formatAxiosError} from "./reporting";
 
 export class IPv8Service {
     private http: AxiosInstance;
@@ -22,17 +21,17 @@ export class IPv8Service {
         });
     }
 
-    addRequestInterceptor(callback: ((value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>)) {
+    addRequestInterceptor(callback: (value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>) {
         this.http.interceptors.request.use(callback);
     }
 
-    addResponseInterceptor(callback: ((value: AxiosResponse<any, any>) => AxiosResponse<any, any>)) {
+    addResponseInterceptor(callback: (value: AxiosResponse<any, any>) => AxiosResponse<any, any>) {
         this.http.interceptors.response.use(callback);
     }
 
     async enableDrift(enable: boolean): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put('/asyncio/drift', { enable })).data.success;
+            return (await this.http.put("/asyncio/drift", {enable})).data.success;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -40,7 +39,7 @@ export class IPv8Service {
 
     async getDrift(): Promise<undefined | ErrorDict | Drift[]> {
         try {
-            return (await this.http.get('/asyncio/drift')).data.measurements;
+            return (await this.http.get("/asyncio/drift")).data.measurements;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -48,7 +47,7 @@ export class IPv8Service {
 
     async getTasks(): Promise<undefined | ErrorDict | Task[]> {
         try {
-            return (await this.http.get('/asyncio/tasks')).data.tasks;
+            return (await this.http.get("/asyncio/tasks")).data.tasks;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -56,7 +55,8 @@ export class IPv8Service {
 
     async setAsyncioDebug(enable: boolean, slownessThreshold: number): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put('/asyncio/debug', { enable: enable, slow_callback_duration: slownessThreshold })).data.success;
+            return (await this.http.put("/asyncio/debug", {enable: enable, slow_callback_duration: slownessThreshold}))
+                .data.success;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -64,7 +64,7 @@ export class IPv8Service {
 
     async getAsyncioDebug(): Promise<undefined | ErrorDict | any> {
         try {
-            return (await this.http.get('/asyncio/debug')).data;
+            return (await this.http.get("/asyncio/debug")).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -72,7 +72,7 @@ export class IPv8Service {
 
     async getOverlays(): Promise<undefined | ErrorDict | Overlay[]> {
         try {
-            return (await this.http.get('/overlays')).data.overlays;
+            return (await this.http.get("/overlays")).data.overlays;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -80,7 +80,7 @@ export class IPv8Service {
 
     async getOverlayStatistics(): Promise<undefined | ErrorDict | OverlayStats[]> {
         try {
-            return (await this.http.get('/overlays/statistics')).data.statistics;
+            return (await this.http.get("/overlays/statistics")).data.statistics;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -88,7 +88,7 @@ export class IPv8Service {
 
     async getTunnelPeers(): Promise<undefined | ErrorDict | Peer[]> {
         try {
-            return (await this.http.get('/tunnel/peers')).data.peers;
+            return (await this.http.get("/tunnel/peers")).data.peers;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -96,7 +96,7 @@ export class IPv8Service {
 
     async getCircuits(): Promise<undefined | ErrorDict | Circuit[]> {
         try {
-            return (await this.http.get('/tunnel/circuits')).data.circuits;
+            return (await this.http.get("/tunnel/circuits")).data.circuits;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -104,7 +104,7 @@ export class IPv8Service {
 
     async getRelays(): Promise<undefined | ErrorDict | Relay[]> {
         try {
-            return (await this.http.get('/tunnel/relays')).data.relays;
+            return (await this.http.get("/tunnel/relays")).data.relays;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -112,7 +112,7 @@ export class IPv8Service {
 
     async getExits(): Promise<undefined | ErrorDict | Exit[]> {
         try {
-            return (await this.http.get('/tunnel/exits')).data.exits;
+            return (await this.http.get("/tunnel/exits")).data.exits;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -120,7 +120,7 @@ export class IPv8Service {
 
     async getSwarms(): Promise<undefined | ErrorDict | Swarm[]> {
         try {
-            return (await this.http.get('/tunnel/swarms')).data.swarms;
+            return (await this.http.get("/tunnel/swarms")).data.swarms;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -128,23 +128,23 @@ export class IPv8Service {
 
     async testCircuit(circuitId: number, callback: (data: any) => void): Promise<undefined | ErrorDict> {
         try {
-            await this.http.get(`/tunnel/circuits/${circuitId}/test`, {
-                headers: {
-                    'Accept': 'text/event-stream',
-                },
-                responseType: 'stream',
-                adapter: 'fetch',
-            })
+            await this.http
+                .get(`/tunnel/circuits/${circuitId}/test`, {
+                    headers: {
+                        Accept: "text/event-stream",
+                    },
+                    responseType: "stream",
+                    adapter: "fetch",
+                })
                 .then(async (response) => {
                     const reader = response.data.pipeThrough(new TextDecoderStream()).getReader();
                     while (true) {
-                        const { value, done } = await reader.read();
+                        const {value, done} = await reader.read();
                         if (done) break;
-                        var i = value.indexOf(':');
+                        var i = value.indexOf(":");
                         callback(JSON.parse(value.slice(i + 1)));
                     }
-                })
-
+                });
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -152,7 +152,7 @@ export class IPv8Service {
 
     async getDHTStatistics(): Promise<undefined | ErrorDict | DHTStats> {
         try {
-            return (await this.http.get('/dht/statistics')).data.statistics;
+            return (await this.http.get("/dht/statistics")).data.statistics;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -160,7 +160,7 @@ export class IPv8Service {
 
     async getBuckets(): Promise<undefined | ErrorDict | Bucket[]> {
         try {
-            return (await this.http.get('/dht/buckets')).data.buckets;
+            return (await this.http.get("/dht/buckets")).data.buckets;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

@@ -1,17 +1,16 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radiogroup";
-import { Settings } from "@/models/settings.model";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import toast from 'react-hot-toast';
+import {Input} from "@/components/ui/input";
+import {Label} from "@/components/ui/label";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radiogroup";
+import {Settings} from "@/models/settings.model";
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
+import {useState} from "react";
+import {useTranslation} from "react-i18next";
+import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
 
-
 export default function Seeding() {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
     if (!settings) {
@@ -19,7 +18,7 @@ export default function Seeding() {
             const response = await triblerService.getSettings();
             if (response === undefined) {
                 toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if (isErrorDict(response)){
+            } else if (isErrorDict(response)) {
                 toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
             } else {
                 setSettings(response);
@@ -40,16 +39,15 @@ export default function Seeding() {
                                 ...settings.libtorrent,
                                 download_defaults: {
                                     ...settings.libtorrent.download_defaults,
-                                    seeding_mode: value
-                                }
-                            }
+                                    seeding_mode: value,
+                                },
+                            },
                         });
                     }
-                }}
-            >
+                }}>
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="ratio" id="seeding_ratio" />
-                    <Label htmlFor="seeding_ratio">{t('SeedRatio')}</Label>
+                    <Label htmlFor="seeding_ratio">{t("SeedRatio")}</Label>
                     <Input
                         id="seeding_ratio"
                         type="number"
@@ -64,9 +62,9 @@ export default function Seeding() {
                                         ...settings.libtorrent,
                                         download_defaults: {
                                             ...settings.libtorrent.download_defaults,
-                                            seeding_ratio: Math.max(0, +event.target.value)
-                                        }
-                                    }
+                                            seeding_ratio: Math.max(0, +event.target.value),
+                                        },
+                                    },
                                 });
                             }
                         }}
@@ -74,11 +72,11 @@ export default function Seeding() {
                 </div>
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="forever" id="forever" />
-                    <Label htmlFor="forever">{t('SeedForever')}</Label>
+                    <Label htmlFor="forever">{t("SeedForever")}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="time" id="seeding_time" />
-                    <Label htmlFor="seeding_time">{t('SeedTime')}</Label>
+                    <Label htmlFor="seeding_time">{t("SeedTime")}</Label>
                     <Input
                         id="seeding_time"
                         type="number"
@@ -92,9 +90,9 @@ export default function Seeding() {
                                         ...settings.libtorrent,
                                         download_defaults: {
                                             ...settings.libtorrent.download_defaults,
-                                            seeding_time: Math.max(0, +event.target.value)
-                                        }
-                                    }
+                                            seeding_time: Math.max(0, +event.target.value),
+                                        },
+                                    },
                                 });
                             }
                         }}
@@ -102,23 +100,23 @@ export default function Seeding() {
                 </div>
                 <div className="flex items-center space-x-2">
                     <RadioGroupItem value="never" id="never" />
-                    <Label htmlFor="never">{t('NoSeeding')}</Label>
+                    <Label htmlFor="never">{t("NoSeeding")}</Label>
                 </div>
             </RadioGroup>
-            <p className="text-xs pt-2 pb-4 text-muted-foreground">{t('SeedingNote')}</p>
+            <p className="text-xs pt-2 pb-4 text-muted-foreground">{t("SeedingNote")}</p>
 
             <SaveButton
                 onClick={async () => {
-                    if (settings){
+                    if (settings) {
                         const response = await triblerService.setSettings(settings);
                         if (response === undefined) {
                             toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-                        } else if (isErrorDict(response)){
+                        } else if (isErrorDict(response)) {
                             toast.error(`${t("ToastErrorSetSettings")} ${response.error.message}`);
                         }
                     }
                 }}
             />
         </div>
-    )
+    );
 }

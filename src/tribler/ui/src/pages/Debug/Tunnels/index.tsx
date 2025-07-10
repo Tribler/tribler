@@ -1,10 +1,9 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Circuits from "./Circuits"
-import Relays from "./Relays"
-import Exits from "./Exits"
-import Swarms from "./Swarms"
-import Peers from "./Peers"
-
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import Circuits from "./Circuits";
+import Relays from "./Relays";
+import Exits from "./Exits";
+import Swarms from "./Swarms";
+import Peers from "./Peers";
 
 export default function Tunnels() {
     return (
@@ -16,7 +15,7 @@ export default function Tunnels() {
                 <TabsTrigger value="swarms">Hidden swarms</TabsTrigger>
                 <TabsTrigger value="peers">Peers</TabsTrigger>
             </TabsList>
-            <TabsContent value="circuits" className="contents" >
+            <TabsContent value="circuits" className="contents">
                 <Circuits />
             </TabsContent>
             <TabsContent value="relays" className="contents">
@@ -32,5 +31,5 @@ export default function Tunnels() {
                 <Peers />
             </TabsContent>
         </Tabs>
-    )
+    );
 }

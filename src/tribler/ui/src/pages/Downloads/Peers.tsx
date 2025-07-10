@@ -1,13 +1,13 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { formatBytes } from "@/lib/utils";
-import { Download } from "@/models/download.model";
-import { Peer } from "@/models/bittorrentpeer.model";
-import SimpleTable, { getHeader } from "@/components/ui/simple-table";
-import { EasyTooltip } from "@/components/ui/tooltip";
-import { useTranslation } from "react-i18next";
+import {ColumnDef} from "@tanstack/react-table";
+import {formatBytes} from "@/lib/utils";
+import {Download} from "@/models/download.model";
+import {Peer} from "@/models/bittorrentpeer.model";
+import SimpleTable, {getHeader} from "@/components/ui/simple-table";
+import {EasyTooltip} from "@/components/ui/tooltip";
+import {useTranslation} from "react-i18next";
 
 const peerFlags = (peer: Peer): [string, string[]] => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
     let state = "";
     let stateDescription = [];
@@ -70,7 +70,7 @@ const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
         header: getHeader("PeerIpPort"),
-        cell: ({ row }) => {
+        cell: ({row}) => {
             return (
                 <span>
                     {row.original.ip} ({row.original.port})
@@ -81,30 +81,34 @@ const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "completed",
         header: getHeader("Completed"),
-        cell: ({ row }) => {
+        cell: ({row}) => {
             return <span>{(row.original.completed * 100).toFixed(0)}%</span>;
         },
     },
     {
         accessorKey: "downrate",
         header: getHeader("SpeedDown"),
-        cell: ({ row }) => {
+        cell: ({row}) => {
             return <span>{formatBytes(row.original.downrate)}/s</span>;
         },
     },
     {
         accessorKey: "uprate",
         header: getHeader("SpeedUp"),
-        cell: ({ row }) => {
+        cell: ({row}) => {
             return <span>{formatBytes(row.original.uprate)}/s</span>;
         },
     },
     {
         accessorKey: "flags",
         header: getHeader("Flags"),
-        cell: ({ row }) => {
+        cell: ({row}) => {
             const [state, stateDescription] = peerFlags(row.original);
-            return <EasyTooltip content={stateDescription}><span>{state}</span></EasyTooltip>
+            return (
+                <EasyTooltip content={stateDescription}>
+                    <span>{state}</span>
+                </EasyTooltip>
+            );
         },
     },
     {
@@ -113,7 +117,7 @@ const peerColumns: ColumnDef<Peer>[] = [
     },
 ];
 
-export default function Peers({ download, style }: { download: Download; style?: React.CSSProperties }) {
+export default function Peers({download, style}: {download: Download; style?: React.CSSProperties}) {
     if (!download.peers) return null;
 
     return <SimpleTable data={download.peers} columns={peerColumns} style={style} />;

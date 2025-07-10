@@ -1,120 +1,119 @@
-import { triblerService } from "@/services/tribler.service";
-import { DownloadIcon, ExclamationTriangleIcon, GearIcon, StarIcon } from "@radix-ui/react-icons";
-import { IconProps } from "@radix-ui/react-icons/dist/types";
+import {triblerService} from "@/services/tribler.service";
+import {DownloadIcon, ExclamationTriangleIcon, GearIcon, StarIcon} from "@radix-ui/react-icons";
+import {IconProps} from "@radix-ui/react-icons/dist/types";
 
-type IconType = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>
+type IconType = React.ForwardRefExoticComponent<IconProps & React.RefAttributes<SVGSVGElement>>;
 
 interface NavItem {
-    title: string
-    to?: string
-    href?: string
-    disabled?: boolean
-    external?: boolean
-    icon?: IconType
-    label?: string
-    hide?: () => boolean
+    title: string;
+    to?: string;
+    href?: string;
+    disabled?: boolean;
+    external?: boolean;
+    icon?: IconType;
+    label?: string;
+    hide?: () => boolean;
 }
 
 interface NavItemWithChildren extends NavItem {
-    items?: NavItem[]
+    items?: NavItem[];
 }
 
 export const sideMenu: NavItemWithChildren[] = [
-
     {
-        title: 'Downloads',
+        title: "Downloads",
         icon: DownloadIcon,
         items: [
             {
-                title: 'All',
-                to: '/downloads/all',
+                title: "All",
+                to: "/downloads/all",
             },
             {
-                title: 'Downloading',
-                to: '/downloads/downloading',
+                title: "Downloading",
+                to: "/downloads/downloading",
             },
             {
-                title: 'Completed',
-                to: '/downloads/completed',
+                title: "Completed",
+                to: "/downloads/completed",
             },
             {
-                title: 'Active',
-                to: '/downloads/active',
+                title: "Active",
+                to: "/downloads/active",
             },
             {
-                title: 'Inactive',
-                to: '/downloads/inactive',
+                title: "Inactive",
+                to: "/downloads/inactive",
             },
         ],
     },
     {
-        title: 'Popular',
+        title: "Popular",
         icon: StarIcon,
-        to: '/popular',
+        to: "/popular",
     },
     {
-        title: 'Settings',
+        title: "Settings",
         icon: GearIcon,
         items: [
             {
-                title: 'General',
-                to: '/settings/general',
+                title: "General",
+                to: "/settings/general",
             },
             {
-                title: 'Connection',
-                to: '/settings/connection',
+                title: "Connection",
+                to: "/settings/connection",
             },
             {
-                title: 'Bandwidth',
-                to: '/settings/bandwidth',
+                title: "Bandwidth",
+                to: "/settings/bandwidth",
             },
             {
-                title: 'Seeding',
-                to: '/settings/seeding',
+                title: "Seeding",
+                to: "/settings/seeding",
             },
             {
-                title: 'Anonymity',
-                to: '/settings/anonymity',
+                title: "Anonymity",
+                to: "/settings/anonymity",
             },
             {
-                title: 'Debug',
-                to: '/settings/debugging',
+                title: "Debug",
+                to: "/settings/debugging",
             },
             {
-                title: 'Versions',
-                to: '/settings/versions',
+                title: "Versions",
+                to: "/settings/versions",
             },
         ],
     },
     {
-        title: 'Debug',
+        title: "Debug",
         icon: ExclamationTriangleIcon,
         hide: () => triblerService.guiSettings.dev_mode !== true,
         items: [
             {
-                title: 'General',
-                to: '/debug/general',
+                title: "General",
+                to: "/debug/general",
             },
             {
-                title: 'Asyncio',
-                to: '/debug/asyncio',
+                title: "Asyncio",
+                to: "/debug/asyncio",
             },
             {
-                title: 'IPv8',
-                to: '/debug/ipv8',
+                title: "IPv8",
+                to: "/debug/ipv8",
             },
             {
-                title: 'Tunnels',
-                to: '/debug/tunnels',
+                title: "Tunnels",
+                to: "/debug/tunnels",
             },
             {
-                title: 'DHT',
-                to: '/debug/dht',
+                title: "DHT",
+                to: "/debug/dht",
             },
             {
-                title: 'Libtorrent',
-                to: '/debug/libtorrent',
+                title: "Libtorrent",
+                to: "/debug/libtorrent",
             },
         ],
     },
-]
+];

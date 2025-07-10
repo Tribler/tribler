@@ -1,8 +1,7 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import Tasks from "./Tasks";
-import Health from "./Health"
+import Health from "./Health";
 import SlowTasks from "./SlowTasks";
-
 
 export default function IPv8() {
     return (
@@ -22,5 +21,5 @@ export default function IPv8() {
                 <Health />
             </TabsContent>
         </Tabs>
-     )
+    );
 }

@@ -1,13 +1,13 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-import { category } from "@/models/torrent.model";
-import { File, FileLink, FileTreeItem } from "@/models/file.model";
-import { CheckedState } from "@radix-ui/react-checkbox";
+import {type ClassValue, clsx} from "clsx";
+import {twMerge} from "tailwind-merge";
+import {category} from "@/models/torrent.model";
+import {File, FileLink, FileTreeItem} from "@/models/file.model";
+import {CheckedState} from "@radix-ui/react-checkbox";
 import JSZip from "jszip";
-import { triblerService } from "@/services/tribler.service";
+import {triblerService} from "@/services/tribler.service";
 
 export function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
+    return twMerge(clsx(inputs));
 }
 
 export function capitalize(name: string) {
@@ -16,18 +16,18 @@ export function capitalize(name: string) {
 
 export function unhexlify(input: string) {
     // Solution by SuperStormer @ https://stackoverflow.com/a/76241398
-    return new TextDecoder().decode(new Uint8Array([...input.matchAll(/[0-9a-f]{2}/g)].map(a => parseInt(a[0], 16))));
-};
+    return new TextDecoder().decode(new Uint8Array([...input.matchAll(/[0-9a-f]{2}/g)].map((a) => parseInt(a[0], 16))));
+}
 
 export function getMagnetLink(infohash: string, name: string, trackers: string[]): string {
-    const tr = trackers.length > 0  ? `&${trackers.map((t) => `tr=${encodeURIComponent(t)}`).join("&")}` : "";
+    const tr = trackers.length > 0 ? `&${trackers.map((t) => `tr=${encodeURIComponent(t)}`).join("&")}` : "";
     return `magnet:?xt=urn:btih:${infohash}&dn=${encodeURIComponent(name)}${tr}`;
 }
 
 export function unwrapMagnetSO(selectedFiles: string): Set<number> {
     const out = new Set<number>();
-    for (var indices of selectedFiles.split(',')){
-        for (var index of indices.split('-')) {
+    for (var indices of selectedFiles.split(",")) {
+        for (var index of indices.split("-")) {
             out.add(+index);
         }
     }
@@ -36,72 +36,87 @@ export function unwrapMagnetSO(selectedFiles: string): Set<number> {
 
 export function categoryIcon(name: category): string {
     const categoryEmojis: Record<string, string> = {
-        Video: '🎦',
-        VideoClips: '📹',
-        Audio: '🎧',
-        Documents: '📝',
-        'CD/DVD/BD': '📀',
-        Compressed: '🗜',
-        Games: '👾',
-        Pictures: '📷',
-        Books: '📚',
-        Comics: '💢',
-        Software: '💾',
-        Science: '🔬',
-        XXX: '💋',
-        Other: '🤔',
+        Video: "🎦",
+        VideoClips: "📹",
+        Audio: "🎧",
+        Documents: "📝",
+        "CD/DVD/BD": "📀",
+        Compressed: "🗜",
+        Games: "👾",
+        Pictures: "📷",
+        Books: "📚",
+        Comics: "💢",
+        Software: "💾",
+        Science: "🔬",
+        XXX: "💋",
+        Other: "🤔",
     };
-    return categoryEmojis[name] || '';
+    return categoryEmojis[name] || "";
 }
 
 export function formatDateTime(ts: number) {
     const dtf = new Intl.DateTimeFormat(undefined, {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', hourCycle: "h24", minute: '2-digit', second: '2-digit'
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        hourCycle: "h24",
+        minute: "2-digit",
+        second: "2-digit",
     });
     return dtf.format(new Date(ts * 1000));
 }
 
 export function formatTimeRelative(ts: number, epochTime: boolean = true) {
     // Returns passed/future time as human readable text
-    if (ts === 0) { return '-'; }
-    if (epochTime) { ts = ts - (Date.now() / 1000); }
-    if (ts > 86400 * 365 * 10) { return '-'; }  // Consider > 10 years the same as never
+    if (ts === 0) {
+        return "-";
+    }
+    if (epochTime) {
+        ts = ts - Date.now() / 1000;
+    }
+    if (ts > 86400 * 365 * 10) {
+        return "-";
+    } // Consider > 10 years the same as never
     const cutoffs = [60, 3600, 86400, 86400 * 7, 86400 * 30, 86400 * 365, Infinity];
     const units: Intl.RelativeTimeFormatUnit[] = ["second", "minute", "hour", "day", "week", "month", "year"];
-    const index = cutoffs.findIndex(cutoff => cutoff > Math.abs(ts));
+    const index = cutoffs.findIndex((cutoff) => cutoff > Math.abs(ts));
     const divisor = index ? cutoffs[index - 1] : 1;
-    let locale = triblerService.guiSettings.lang ?? 'en_US';
-    const rtf = new Intl.RelativeTimeFormat(locale.replace("_", "-"), { numeric: "auto" });
+    let locale = triblerService.guiSettings.lang ?? "en_US";
+    const rtf = new Intl.RelativeTimeFormat(locale.replace("_", "-"), {numeric: "auto"});
     return divisor === Infinity ? "-" : rtf.format(Math.round(ts / divisor), units[index]);
 }
 
 export function formatTimeRelativeISO(ts: number) {
     // Returns passed time as HH:mm:ss
-    if (ts === 0) { return '-'; }
+    if (ts === 0) {
+        return "-";
+    }
     const date = new Date(0);
-    date.setSeconds((Date.now() / 1000) - ts);
+    date.setSeconds(Date.now() / 1000 - ts);
     return date.toISOString().substr(11, 8);
 }
 
 export function formatBytes(bytes: number, digits: number = 2) {
-    if (bytes === 0) { return `0${digits > 0 ? "."+"0".repeat(digits) : ""} B`; }
+    if (bytes === 0) {
+        return `0${digits > 0 ? "." + "0".repeat(digits) : ""} B`;
+    }
     const e = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, e)).toFixed(digits) + ' ' + ' KMGTP'.charAt(e) + 'B';
+    return (bytes / Math.pow(1024, e)).toFixed(digits) + " " + " KMGTP".charAt(e) + "B";
 }
 
 export function formatFlags(flags: number[]) {
     const flagToString: Record<number, string> = {
-        1: 'RELAY',
-        2: 'EXIT_BT',
-        4: 'EXIT_IPV8',
-        8: 'SPEEDTEST',
-        32768: 'EXIT_HTTP'
+        1: "RELAY",
+        2: "EXIT_BT",
+        4: "EXIT_IPV8",
+        8: "SPEEDTEST",
+        32768: "EXIT_HTTP",
     };
-    let result = '';
+    let result = "";
     for (let flag of flags) {
         if (result) {
-            result += ', ';
+            result += ", ";
         }
         result = result + (flagToString[flag] || flag);
     }
@@ -113,7 +128,9 @@ export function average(numbers: number[]) {
 }
 
 export function median(numbers: number[]) {
-    if (numbers.length === 0) { return 0; }
+    if (numbers.length === 0) {
+        return 0;
+    }
 
     numbers.sort((a, b) => a - b);
 
@@ -135,79 +152,87 @@ export function getRowSelection(input: any[], selected_func: (item: any) => bool
 
 export function filterDuplicates(data: any[], key: string) {
     const seen = new Set();
-    return data.filter(item => {
+    return data.filter((item) => {
         const duplicate = seen.has(item[key]);
         seen.add(item[key]);
         return !duplicate;
     });
 }
 
-export const filesToTree = (files: FileTreeItem[], defaultName = "root", preSelected: Set<number> = new Set(), separator: string = '\\') => {
+export const filesToTree = (
+    files: FileTreeItem[],
+    defaultName = "root",
+    preSelected: Set<number> = new Set(),
+    separator: string = "\\"
+) => {
     if (files.length <= 1) {
-        if (files.length == 1 && files[0].included == undefined)
-            files[0].included = true;
+        if (files.length == 1 && files[0].included == undefined) files[0].included = true;
         return files;
     }
 
     let result: any[] = [];
-    let level = { result };
+    let level = {result};
 
-    files.forEach(file => {
+    files.forEach((file) => {
         file.name.split(separator).reduce((r: any, name, i, a) => {
             if (!r[name]) {
-                r[name] = { result: [] };
-                r.result.push({ included: (preSelected.size == 0) || preSelected.has(file.index), ...file, name, subRows: r[name].result })
+                r[name] = {result: []};
+                r.result.push({
+                    included: preSelected.size == 0 || preSelected.has(file.index),
+                    ...file,
+                    name,
+                    subRows: r[name].result,
+                });
             }
             return r[name];
-        }, level)
-    })
+        }, level);
+    });
 
-    files = [{
-        index: -1,
-        name: defaultName,
-        size: 1,
-        progress: 1,
-        included: true,
-        subRows: result,
-    }];
+    files = [
+        {
+            index: -1,
+            name: defaultName,
+            size: 1,
+            progress: 1,
+            included: true,
+            subRows: result,
+        },
+    ];
     fixTreeProps(files[0]);
     return files;
-}
+};
 
-export const fixTreeProps = (tree: FileTreeItem): { size: number, downloaded: number, included: CheckedState | undefined } => {
+export const fixTreeProps = (
+    tree: FileTreeItem
+): {size: number; downloaded: number; included: CheckedState | undefined} => {
     if (tree.subRows && tree.subRows.length) {
         tree.size = tree.downloaded = 0;
         tree.included = undefined;
         for (const item of tree.subRows) {
-            const { size, downloaded, included } = fixTreeProps(item);
+            const {size, downloaded, included} = fixTreeProps(item);
             tree.size += size;
             tree.downloaded += downloaded;
-            if (tree.included !== undefined)
-                tree.included = tree.included == included ? included : 'indeterminate';
-            else
-                tree.included = included;
+            if (tree.included !== undefined) tree.included = tree.included == included ? included : "indeterminate";
+            else tree.included = included;
         }
         tree.progress = (tree.downloaded || 0) / tree.size;
     }
     return {
         size: tree.size,
         downloaded: tree.size * (tree.progress || 0),
-        included: tree.included
+        included: tree.included,
     };
-}
+};
 
 export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean = true) => {
     const selectedFiles: number[] = [];
     if (tree.subRows && tree.subRows.length) {
         for (const item of tree.subRows) {
-            for (const i of getSelectedFilesFromTree(item, included))
-                selectedFiles.push(i);
+            for (const i of getSelectedFilesFromTree(item, included)) selectedFiles.push(i);
         }
-    }
-    else if (tree.included === included)
-        selectedFiles.push(tree.index);
+    } else if (tree.included === included) selectedFiles.push(tree.index);
     return selectedFiles;
-}
+};
 
 export function downloadFile(file: FileLink) {
     var link = document.createElement("a");
@@ -226,7 +251,7 @@ export async function downloadFilesAsZip(files: FileLink[], zipName: string) {
         zip.file(files[i].name, blob);
 
         if (i == files.length - 1) {
-            const zipData = await zip.generateAsync({ type: "blob" });
+            const zipData = await zip.generateAsync({type: "blob"});
             const link = document.createElement("a");
             link.href = window.URL.createObjectURL(zipData);
             link.download = zipName;
@@ -236,14 +261,14 @@ export async function downloadFilesAsZip(files: FileLink[], zipName: string) {
 }
 
 export function isMac() {
-    return navigator.userAgent.includes('Mac');
+    return navigator.userAgent.includes("Mac");
 }
 
-var streamableExtensions = ['mp4', 'm4v', 'mov', 'mkv'];
+var streamableExtensions = ["mp4", "m4v", "mov", "mkv"];
 export function getStreamableFiles(files: File[]) {
     const results: File[] = [];
     for (const file of files) {
-        const extension = file.name.split('.').pop();
+        const extension = file.name.split(".").pop();
         if (extension && streamableExtensions.includes(extension)) {
             results.push(file);
         }
