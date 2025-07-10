@@ -1,20 +1,20 @@
-import { useInterval } from "@/hooks/useInterval";
-import { formatBytes } from "@/lib/utils";
-import { ipv8Service } from "@/services/ipv8.service";
-import { isErrorDict } from "@/services/reporting";
-import { triblerService } from "@/services/tribler.service";
-import { DesktopIcon, DoubleArrowDownIcon, DoubleArrowUpIcon, GlobeIcon } from "@radix-ui/react-icons";
-import { AxiosResponse } from "axios";
-import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { EasyTooltip } from "../ui/tooltip";
-import { TriblerStatistics } from "@/models/statistics.model";
+import {useInterval} from "@/hooks/useInterval";
+import {formatBytes} from "@/lib/utils";
+import {ipv8Service} from "@/services/ipv8.service";
+import {isErrorDict} from "@/services/reporting";
+import {triblerService} from "@/services/tribler.service";
+import {DesktopIcon, DoubleArrowDownIcon, DoubleArrowUpIcon, GlobeIcon} from "@radix-ui/react-icons";
+import {AxiosResponse} from "axios";
+import {useEffect, useState} from "react";
+import {useTranslation} from "react-i18next";
+import {EasyTooltip} from "../ui/tooltip";
+import {TriblerStatistics} from "@/models/statistics.model";
 
 export function Footer() {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
-    const [statistics, setStatistics] = useState<TriblerStatistics>({ peers: 0, db_size: 0, num_torrents: 0 });
-    const [speeds, setSpeeds] = useState({ up: 0, down: 0 });
+    const [statistics, setStatistics] = useState<TriblerStatistics>({peers: 0, db_size: 0, num_torrents: 0});
+    const [speeds, setSpeeds] = useState({up: 0, down: 0});
     const [interactions, setInteractions] = useState(0);
 
     useInterval(async () => {

@@ -1,15 +1,14 @@
-import { Checkbox } from "@/components/ui/checkbox";
-import { Settings } from "@/models/settings.model";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import toast from 'react-hot-toast';
+import {Checkbox} from "@/components/ui/checkbox";
+import {Settings} from "@/models/settings.model";
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
+import {useState} from "react";
+import {useTranslation} from "react-i18next";
+import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
 
-
 export default function Debugging() {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
     if (!settings) {
@@ -17,7 +16,7 @@ export default function Debugging() {
             const response = await triblerService.getSettings();
             if (response === undefined) {
                 toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-            } else if (isErrorDict(response)){
+            } else if (isErrorDict(response)) {
                 toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
             } else {
                 setSettings(response);
@@ -37,28 +36,27 @@ export default function Debugging() {
                                 ...settings,
                                 ui: {
                                     ...settings.ui,
-                                    dev_mode: !!value
-                                }
-                            })
-
+                                    dev_mode: !!value,
+                                },
+                            });
                         }
                     }}
-                    id="dev_mode" />
+                    id="dev_mode"
+                />
                 <label
                     htmlFor="dev_mode"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('EnableDevMode')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("EnableDevMode")}
                 </label>
             </div>
 
             <SaveButton
                 onClick={async () => {
-                    if (settings){
+                    if (settings) {
                         const response = await triblerService.setSettings(settings);
                         if (response === undefined) {
                             toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
-                        } else if (isErrorDict(response)){
+                        } else if (isErrorDict(response)) {
                             toast.error(`${t("ToastErrorSetSettings")} ${response.error.message}`);
                         } else {
                             window.location.reload();
@@ -67,5 +65,5 @@ export default function Debugging() {
                 }}
             />
         </div>
-    )
+    );
 }

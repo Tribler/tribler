@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom";
-import { Header } from "./Header";
+import {Outlet} from "react-router-dom";
+import {Header} from "./Header";
 
 export function Applayout() {
     return (
@@ -11,5 +11,5 @@ export function Applayout() {
                 </div>
             </div>
         </>
-    )
+    );
 }

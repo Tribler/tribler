@@ -1,15 +1,15 @@
-import { PathInput } from "@/components/path-input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { AutoManageSettings, Settings } from "@/models/settings.model";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import toast from 'react-hot-toast';
+import {PathInput} from "@/components/path-input";
+import {Checkbox} from "@/components/ui/checkbox";
+import {Label} from "@/components/ui/label";
+import {AutoManageSettings, Settings} from "@/models/settings.model";
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
+import {useState} from "react";
+import {useTranslation} from "react-i18next";
+import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea";
 
 const autoManageOptions = [
     {
@@ -42,7 +42,7 @@ const autoManageOptions = [
         translationKey: "ActiveLSDLimit",
         default: 60,
     },
-        {
+    {
         settingsKey: "active_limit",
         translationKey: "ActiveLimit",
         default: 500,
@@ -50,7 +50,7 @@ const autoManageOptions = [
 ];
 
 export default function General() {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
     const [moveCompleted, setMoveCompleted] = useState<boolean>(false);
 
@@ -63,7 +63,7 @@ export default function General() {
                 toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
             } else {
                 setSettings(response);
-                setMoveCompleted((response?.libtorrent?.download_defaults?.completed_dir || '').length > 0)
+                setMoveCompleted((response?.libtorrent?.download_defaults?.completed_dir || "").length > 0);
             }
         })();
         return null;
@@ -71,10 +71,10 @@ export default function General() {
 
     return (
         <div className="p-5 w-full">
-            <div className="pb-2 font-semibold">{t('WebServerSettings')}</div>
+            <div className="pb-2 font-semibold">{t("WebServerSettings")}</div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="http_port" className="whitespace-nowrap pr-5">
-                    {t('Port')}
+                    {t("Port")}
                 </Label>
                 <Input
                     id="http_port"
@@ -89,19 +89,19 @@ export default function General() {
                                 ...settings,
                                 api: {
                                     ...settings.api,
-                                    http_port: +event.target.value
-                                }
+                                    http_port: +event.target.value,
+                                },
                             });
                         }
                     }}
                 />
             </div>
-            <p className="text-xs p-0 pb-4 text-muted-foreground">{t('ZeroIsRandomPort')}</p>
+            <p className="text-xs p-0 pb-4 text-muted-foreground">{t("ZeroIsRandomPort")}</p>
 
-            <div className="pt-5 py-2 font-semibold">{t('DefaultDownloadSettings')}</div>
+            <div className="pt-5 py-2 font-semibold">{t("DefaultDownloadSettings")}</div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="saveas" className="whitespace-nowrap pr-5">
-                    {t('SaveFilesTo')}
+                    {t("SaveFilesTo")}
                 </Label>
                 <PathInput
                     path={settings?.libtorrent?.download_defaults?.saveas}
@@ -113,9 +113,9 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        saveas: path
-                                    }
-                                }
+                                        saveas: path,
+                                    },
+                                },
                             });
                         }
                     }}
@@ -123,7 +123,7 @@ export default function General() {
             </div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="trackers_file" className="whitespace-nowrap pr-5">
-                    {t('DefaultTrackersFile')}
+                    {t("DefaultTrackersFile")}
                 </Label>
                 <PathInput
                     path={settings?.libtorrent?.download_defaults?.trackers_file}
@@ -136,9 +136,9 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        trackers_file: path
-                                    }
-                                }
+                                        trackers_file: path,
+                                    },
+                                },
                             });
                         }
                     }}
@@ -146,7 +146,7 @@ export default function General() {
             </div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="torrent_folder" className="whitespace-nowrap pr-5">
-                    {t('BackupTorrentFolder')}
+                    {t("BackupTorrentFolder")}
                 </Label>
                 <PathInput
                     path={settings?.libtorrent?.download_defaults?.torrent_folder}
@@ -158,9 +158,9 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        torrent_folder: path
-                                    }
-                                }
+                                        torrent_folder: path,
+                                    },
+                                },
                             });
                         }
                     }}
@@ -171,12 +171,12 @@ export default function General() {
                     <Checkbox
                         checked={moveCompleted}
                         id="move_completed"
-                        onCheckedChange={(value) => setMoveCompleted(value === true)} />
+                        onCheckedChange={(value) => setMoveCompleted(value === true)}
+                    />
                     <label
                         htmlFor="move_completed"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2"
-                    >
-                        {t('MoveAfterCompletion')}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2">
+                        {t("MoveAfterCompletion")}
                     </label>
                 </div>
                 <PathInput
@@ -190,9 +190,9 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        completed_dir: path
-                                    }
-                                }
+                                        completed_dir: path,
+                                    },
+                                },
                             });
                         }
                     }}
@@ -208,17 +208,17 @@ export default function General() {
                                 ...settings,
                                 libtorrent: {
                                     ...settings.libtorrent,
-                                    check_after_complete: !!value
-                                }
+                                    check_after_complete: !!value,
+                                },
                             });
                         }
                     }}
-                    id="check_after_complete" />
+                    id="check_after_complete"
+                />
                 <label
                     htmlFor="check_after_complete"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('CheckAfterCompletion')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("CheckAfterCompletion")}
                 </label>
             </div>
 
@@ -231,17 +231,17 @@ export default function General() {
                                 ...settings,
                                 ui: {
                                     ...settings?.ui,
-                                    ask_download_settings: !!value
-                                }
+                                    ask_download_settings: !!value,
+                                },
                             });
                         }
                     }}
-                    id="anonymity_enabled" />
+                    id="anonymity_enabled"
+                />
                 <label
                     htmlFor="anonymity_enabled"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('AlwaysAsk')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("AlwaysAsk")}
                 </label>
             </div>
             <div className="flex items-center space-x-2 py-2">
@@ -255,18 +255,18 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        anonymity_enabled: !!value
-                                    }
-                                }
+                                        anonymity_enabled: !!value,
+                                    },
+                                },
                             });
                         }
                     }}
-                    id="anonymity_enabled" />
+                    id="anonymity_enabled"
+                />
                 <label
                     htmlFor="anonymity_enabled"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('DownloadAnon')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("DownloadAnon")}
                 </label>
             </div>
             <div className="flex items-center space-x-2 py-2">
@@ -280,18 +280,18 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        safeseeding_enabled: !!value
-                                    }
-                                }
+                                        safeseeding_enabled: !!value,
+                                    },
+                                },
                             });
                         }
                     }}
-                    id="safeseeding_enabled" />
+                    id="safeseeding_enabled"
+                />
                 <label
                     htmlFor="safeseeding_enabled"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('SeedAnon')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("SeedAnon")}
                 </label>
             </div>
 
@@ -307,17 +307,16 @@ export default function General() {
                                     ...settings.libtorrent,
                                     download_defaults: {
                                         ...settings.libtorrent.download_defaults,
-                                        auto_managed: !!value
-                                    }
-                                }
+                                        auto_managed: !!value,
+                                    },
+                                },
                             });
                         }
                     }}
                 />
                 <label
                     htmlFor="auto_manage"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap"
-                >
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap">
                     {t("AutoManageEnable")}
                 </label>
             </div>
@@ -354,7 +353,7 @@ export default function General() {
                 </div>
             </div>
 
-            <div className="pt-5 py-2 font-semibold">{t('WatchFolder')}</div>
+            <div className="pt-5 py-2 font-semibold">{t("WatchFolder")}</div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
                     checked={settings?.watch_folder?.enabled}
@@ -364,22 +363,22 @@ export default function General() {
                                 ...settings,
                                 watch_folder: {
                                     ...settings.watch_folder,
-                                    enabled: !!value
-                                }
+                                    enabled: !!value,
+                                },
                             });
                         }
                     }}
-                    id="watch_folder" />
+                    id="watch_folder"
+                />
                 <label
                     htmlFor="watch_folder"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    {t('EnableWatchFolder')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("EnableWatchFolder")}
                 </label>
             </div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="saveas" className="whitespace-nowrap pr-5">
-                    {t('TorrentWatchFolder')}
+                    {t("TorrentWatchFolder")}
                 </Label>
                 <PathInput
                     path={settings?.watch_folder?.directory}
@@ -389,8 +388,8 @@ export default function General() {
                                 ...settings,
                                 watch_folder: {
                                     ...settings.watch_folder,
-                                    directory: path
-                                }
+                                    directory: path,
+                                },
                             });
                         }
                     }}
@@ -404,15 +403,15 @@ export default function General() {
                 <Textarea
                     defaultValue={settings?.rss?.urls.join("\n")}
                     onChange={(elem) => {
-                        var urls = elem.target.value.split("\n")
+                        var urls = elem.target.value.split("\n");
                         if (settings) {
                             setSettings({
                                 ...settings,
                                 rss: {
                                     ...settings.rss,
                                     urls: urls,
-                                    enabled: !!urls
-                                }
+                                    enabled: !!urls,
+                                },
                             });
                         }
                     }}
@@ -429,9 +428,11 @@ export default function General() {
                                 ...settings.libtorrent,
                                 download_defaults: {
                                     ...settings.libtorrent.download_defaults,
-                                    completed_dir: moveCompleted ? settings.libtorrent.download_defaults.completed_dir : ''
-                                }
-                            }
+                                    completed_dir: moveCompleted
+                                        ? settings.libtorrent.download_defaults.completed_dir
+                                        : "",
+                                },
+                            },
                         });
                         if (response === undefined) {
                             toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
@@ -442,5 +443,5 @@ export default function General() {
                 }}
             />
         </div>
-    )
+    );
 }

@@ -7,7 +7,7 @@ export interface TriblerStatistics {
     libtorrent?: {
         total_sent_bytes: number;
         total_recv_bytes: number;
-        sessions:  {
+        sessions: {
             hops: boolean;
             recv_bytes: number;
             sent_bytes: string;

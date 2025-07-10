@@ -1,8 +1,8 @@
-import { createHashRouter, Await, useRouteError } from "react-router-dom";
-import { Suspense } from 'react';
-import { SideLayout } from "./components/layouts/SideLayout";
-import { filterActive, filterAll, filterCompleted, filterDownloading, filterInactive } from "./pages/Downloads";
-import { handleHTTPError } from "./services/reporting";
+import {createHashRouter, Await, useRouteError} from "react-router-dom";
+import {Suspense} from "react";
+import {SideLayout} from "./components/layouts/SideLayout";
+import {filterActive, filterAll, filterCompleted, filterDownloading, filterInactive} from "./pages/Downloads";
+import {handleHTTPError} from "./services/reporting";
 import NoMatch from "./pages/NoMatch";
 import Dashboard from "./pages/Dashboard";
 import Downloads from "./pages/Downloads";
@@ -23,20 +23,28 @@ import Libtorrent from "./pages/Debug/Libtorrent";
 import Asyncio from "./pages/Debug/Asyncio";
 
 var raiseUnhandledError: (reason?: any) => void;
-const errorPromise = new Promise(function(resolve, reject){
-  raiseUnhandledError = reject;
+const errorPromise = new Promise(function (resolve, reject) {
+    raiseUnhandledError = reject;
 });
 
-
 function ErrorBoundary() {
-  handleHTTPError(useRouteError() as Error);
-  return <div>The GUI crashed beyond repair. Please report the error and refresh the page.</div>;
+    handleHTTPError(useRouteError() as Error);
+    return <div>The GUI crashed beyond repair. Please report the error and refresh the page.</div>;
 }
 
 export const router = createHashRouter([
     {
         path: "/",
-        element: <div className="flex-1 flex"><SideLayout /><div className="h-0 hidden invisible"><Suspense><Await children={[]} resolve={errorPromise}></Await></Suspense></div></div>,
+        element: (
+            <div className="flex-1 flex">
+                <SideLayout />
+                <div className="h-0 hidden invisible">
+                    <Suspense>
+                        <Await children={[]} resolve={errorPromise}></Await>
+                    </Suspense>
+                </div>
+            </div>
+        ),
         errorElement: <ErrorBoundary />,
         children: [
             {
@@ -129,10 +137,10 @@ export const router = createHashRouter([
         path: "*",
         element: <NoMatch />,
     },
-])
+]);
 
 window.addEventListener("unhandledrejection", (event) => {
-  let exc = event.reason;
-  raiseUnhandledError(exc as Error);
-  event.preventDefault();
+    let exc = event.reason;
+    raiseUnhandledError(exc as Error);
+    event.preventDefault();
 });

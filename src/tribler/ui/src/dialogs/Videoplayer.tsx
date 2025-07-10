@@ -1,32 +1,31 @@
-import { DialogProps } from "@radix-ui/react-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import React, { JSX, useEffect, useState } from 'react';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
-import { Download } from "@/models/download.model";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn, getStreamableFiles } from "@/lib/utils";
-import { File } from "@/models/file.model";
-import { usePrevious } from "@/hooks/usePrevious";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-
+import {DialogProps} from "@radix-ui/react-dialog";
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import React, {JSX, useEffect, useState} from "react";
+import videojs from "video.js";
+import "video.js/dist/video-js.css";
+import {Download} from "@/models/download.model";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {Button} from "@/components/ui/button";
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
+import {Check, ChevronsUpDown} from "lucide-react";
+import {cn, getStreamableFiles} from "@/lib/utils";
+import {File} from "@/models/file.model";
+import {usePrevious} from "@/hooks/usePrevious";
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
 
 export interface VideoDialogProps extends JSX.IntrinsicAttributes, DialogProps {
     download: Download | null;
 }
 
 export function VideoDialog(props: VideoDialogProps) {
-    const [open, setOpen] = React.useState(false)
+    const [open, setOpen] = React.useState(false);
     const [selectedFile, setSelectedFile] = React.useState<File | undefined>();
     const prevDownload = usePrevious(props.download);
 
     const [videoFiles, setVideoFiles] = useState<File[]>([]);
     const [videoJsOptions, setVideoJsOptions] = useState({
-        autoplay: 'play',
+        autoplay: "play",
         controls: true,
         responsive: true,
         fluid: true,
@@ -49,15 +48,13 @@ export function VideoDialog(props: VideoDialogProps) {
         if (prevDownload?.infohash !== props.download?.infohash) {
             triblerService.getDownloadFiles(props.download.infohash).then((response) => {
                 if (response !== undefined && !isErrorDict(response)) {
-                    setVideoFiles(getStreamableFiles(response).sort((a, b) => a.name > b.name ? 1 : -1));
-                }
-                else {
+                    setVideoFiles(getStreamableFiles(response).sort((a, b) => (a.name > b.name ? 1 : -1)));
+                } else {
                     setVideoFiles([]);
                 }
             });
         }
     }, [props.download]);
-
 
     useEffect(() => {
         // By default we select the first streamable file in the download.
@@ -65,14 +62,16 @@ export function VideoDialog(props: VideoDialogProps) {
     }, [videoFiles]);
 
     useEffect(() => {
-        setVideoJsOptions(prevOptions => ({
-            ...prevOptions, sources: [{
-                src: "/api/downloads/" + props.download?.infohash + "/stream/" + selectedFile?.index,
-                type: "video/mp4"
-            }]
+        setVideoJsOptions((prevOptions) => ({
+            ...prevOptions,
+            sources: [
+                {
+                    src: "/api/downloads/" + props.download?.infohash + "/stream/" + selectedFile?.index,
+                    type: "video/mp4",
+                },
+            ],
         }));
     }, [selectedFile]);
-
 
     return (
         <Dialog {...props}>
@@ -83,12 +82,7 @@ export function VideoDialog(props: VideoDialogProps) {
                 <div>
                     <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={open}
-                                className="justify-between"
-                            >
+                            <Button variant="outline" role="combobox" aria-expanded={open} className="justify-between">
                                 {selectedFile
                                     ? videoFiles.find((videoFile) => videoFile.index === selectedFile.index)?.name
                                     : "Select video file..."}
@@ -106,16 +100,19 @@ export function VideoDialog(props: VideoDialogProps) {
                                                 key={videoFile.index}
                                                 value={videoFile.name}
                                                 onSelect={(currentName) => {
-                                                    const file = videoFiles.find((videoFile) => videoFile.name === currentName);
+                                                    const file = videoFiles.find(
+                                                        (videoFile) => videoFile.name === currentName
+                                                    );
                                                     console.log("Changed selected video file to " + file?.name);
                                                     setSelectedFile(file);
-                                                    setOpen(false)
-                                                }}
-                                            >
+                                                    setOpen(false);
+                                                }}>
                                                 <Check
                                                     className={cn(
                                                         "mr-2 h-4 w-4",
-                                                        selectedFile?.index === videoFile.index ? "opacity-100" : "opacity-0"
+                                                        selectedFile?.index === videoFile.index
+                                                            ? "opacity-100"
+                                                            : "opacity-0"
                                                     )}
                                                 />
                                                 {videoFile.name}
@@ -131,31 +128,28 @@ export function VideoDialog(props: VideoDialogProps) {
                 </div>
             </DialogContent>
         </Dialog>
-    )
+    );
 }
 
-
-export const VideoJS = (props: { options: any; onReady?: any; open?: boolean}) => {
+export const VideoJS = (props: {options: any; onReady?: any; open?: boolean}) => {
     const videoRef = React.useRef(null);
     const playerRef = React.useRef(null);
-    const { options, onReady } = props;
+    const {options, onReady} = props;
     const prevOpen = usePrevious(props.open);
 
-
     React.useEffect(() => {
-
         // Make sure Video.js player is only initialized once
         if (!playerRef.current) {
             // The Video.js player needs to be _inside_ the component el for React 18 Strict Mode.
             const videoElement = document.createElement("video-js");
 
-            videoElement.classList.add('vjs-big-play-centered');
+            videoElement.classList.add("vjs-big-play-centered");
             // @ts-ignore
             videoRef.current.appendChild(videoElement);
             // @ts-ignore
-            const player = playerRef.current = videojs(videoElement, options, () => {
+            const player = (playerRef.current = videojs(videoElement, options, () => {
                 onReady && onReady(player);
-            });
+            }));
         } else {
             const player = playerRef.current;
             // @ts-ignore
@@ -191,6 +185,6 @@ export const VideoJS = (props: { options: any; onReady?: any; open?: boolean}) =
             <div ref={videoRef} />
         </div>
     );
-}
+};
 
 export default VideoJS;

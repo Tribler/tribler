@@ -1,7 +1,6 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Overlays from "./Overlays"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import Overlays from "./Overlays";
 import Details from "./Details";
-
 
 export default function IPv8() {
     return (
@@ -17,5 +16,5 @@ export default function IPv8() {
                 <Details />
             </TabsContent>
         </Tabs>
-     )
+    );
 }

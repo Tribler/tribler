@@ -7,16 +7,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { DialogProps } from "@radix-ui/react-dialog";
-import { JSX } from "react/jsx-runtime";
-import { Label } from "@/components/ui/label";
-import { useTranslation } from "react-i18next";
-import { PathInput } from "@/components/path-input";
-import { useEffect, useState } from "react";
-import { Download } from "@/models/download.model";
-import { TFunction } from "i18next";
-import { Checkbox } from "@/components/ui/checkbox";
+import {Button} from "@/components/ui/button";
+import {DialogProps} from "@radix-ui/react-dialog";
+import {JSX} from "react/jsx-runtime";
+import {Label} from "@/components/ui/label";
+import {useTranslation} from "react-i18next";
+import {PathInput} from "@/components/path-input";
+import {useEffect, useState} from "react";
+import {Download} from "@/models/download.model";
+import {TFunction} from "i18next";
+import {Checkbox} from "@/components/ui/checkbox";
 
 interface MoveStorageProps {
     selectedDownloads: Download[];
@@ -24,7 +24,7 @@ interface MoveStorageProps {
 }
 
 export default function MoveStorage(props: JSX.IntrinsicAttributes & DialogProps & MoveStorageProps) {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [storageLocation, setStorageLocation] = useState("");
     const [completedLocation, setCompletedLocation] = useState("");
     const [moveCompleted, setMoveCompleted] = useState<boolean>(false);
@@ -65,8 +65,7 @@ export default function MoveStorage(props: JSX.IntrinsicAttributes & DialogProps
                         />
                         <label
                             htmlFor="move_completed"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2"
-                        >
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap pl-2">
                             {t("MoveAfterCompletion")}
                         </label>
                     </div>
@@ -90,8 +89,7 @@ export default function MoveStorage(props: JSX.IntrinsicAttributes & DialogProps
                                 t
                             );
                             props.onOpenChange?.(false);
-                        }}
-                    >
+                        }}>
                         {t("ChangeStorageButton")}
                     </Button>
                     <DialogClose asChild>

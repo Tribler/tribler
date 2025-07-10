@@ -1,9 +1,20 @@
 // For compile-time type checking and code completion
 
-
-export type category = "Video" | "VideoClips" | "Audio" | "Documents"
-    | "CD/DVD/BD" | "Compressed" | "Games" | "Pictures" | "Books"
-    | "Comics" | "Software" | "Science" | "XXX" | "Other";
+export type category =
+    | "Video"
+    | "VideoClips"
+    | "Audio"
+    | "Documents"
+    | "CD/DVD/BD"
+    | "Compressed"
+    | "Games"
+    | "Pictures"
+    | "Books"
+    | "Comics"
+    | "Software"
+    | "Science"
+    | "XXX"
+    | "Other";
 
 export interface Torrent {
     name: string;

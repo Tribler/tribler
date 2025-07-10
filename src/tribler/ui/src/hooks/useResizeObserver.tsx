@@ -1,6 +1,6 @@
-import { useEffect, useState, RefObject, useRef } from 'react'
+import {useEffect, useState, RefObject, useRef} from "react";
 
-export const useResizeObserver = ({ref, element}: {ref?: RefObject<HTMLElement>, element?: Element | null}) => {
+export const useResizeObserver = ({ref, element}: {ref?: RefObject<HTMLElement>; element?: Element | null}) => {
     const observer = useRef<ResizeObserver | null>(null);
     const [rect, setRect] = useState<DOMRectReadOnly>();
     useEffect(() => {
@@ -10,7 +10,7 @@ export const useResizeObserver = ({ref, element}: {ref?: RefObject<HTMLElement>,
             }
         });
 
-        let observable  = (ref) ? ref.current : element;
+        let observable = ref ? ref.current : element;
         if (observable) {
             observer.current.observe(observable);
         }
@@ -19,8 +19,8 @@ export const useResizeObserver = ({ref, element}: {ref?: RefObject<HTMLElement>,
             if (observer.current) {
                 observer.current.disconnect();
             }
-        }
+        };
     }, [ref, element]);
 
     return rect;
-}
+};

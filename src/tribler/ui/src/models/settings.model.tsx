@@ -11,7 +11,7 @@ export interface Settings {
         https_certfile: string;
         refresh_port_on_start: boolean;
         key: string;
-    },
+    };
     ipv8: {
         interfaces: {
             interface: string;
@@ -32,22 +32,22 @@ export interface Settings {
         overlay: {
             class: string;
             key: string;
-            walkers: Object[]
+            walkers: Object[];
             bootstrappers: Object[];
             initialize: Object;
             on_start: [string, Object][];
         };
-    },
+    };
     statistics: boolean;
     content_discovery_community: {
         enabled: boolean;
-    },
+    };
     database: {
         enabled: boolean;
-    },
+    };
     dht_discovery: {
         enabled: boolean;
-    },
+    };
     libtorrent: {
         socks_listen_ports: number[];
         listen_interface: string;
@@ -82,28 +82,28 @@ export interface Settings {
             trackers_file: string;
             torrent_folder: string;
             auto_managed: boolean;
-        },
-    } & AutoManageSettings,
+        };
+    } & AutoManageSettings;
     rendezvous: {
         enabled: boolean;
-    },
+    };
     rss: {
         enabled: boolean;
         urls: string[];
-    },
+    };
     torrent_checker: {
         enabled: boolean;
-    },
+    };
     tunnel_community: {
         enabled: boolean;
         min_circuits: number;
         max_circuits: number;
-    },
-    watch_folder : {
+    };
+    watch_folder: {
         enabled: boolean;
         directory: string;
         check_interval: number;
-    }
+    };
     state_dir: string;
     memory_db: boolean;
     ui: GuiSettings;

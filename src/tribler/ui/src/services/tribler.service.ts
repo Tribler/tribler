@@ -1,20 +1,19 @@
-import { Download } from "@/models/download.model";
-import { DownloadConfig } from "@/models/downloadconfig.model";
-import { File as BTFile } from "@/models/file.model";
-import { Path } from "@/models/path.model";
-import { GuiSettings, Settings } from "@/models/settings.model";
-import { Torrent } from "@/models/torrent.model";
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { ErrorDict, formatAxiosError, handleHTTPError } from "./reporting";
-import { TriblerStatistics } from "@/models/statistics.model";
+import {Download} from "@/models/download.model";
+import {DownloadConfig} from "@/models/downloadconfig.model";
+import {File as BTFile} from "@/models/file.model";
+import {Path} from "@/models/path.model";
+import {GuiSettings, Settings} from "@/models/settings.model";
+import {Torrent} from "@/models/torrent.model";
+import axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
+import {ErrorDict, formatAxiosError, handleHTTPError} from "./reporting";
+import {TriblerStatistics} from "@/models/statistics.model";
 
-export type QueueOperation = "queue_up" | "queue_top" | "queue_down" | "queue_bottom"
+export type QueueOperation = "queue_up" | "queue_top" | "queue_down" | "queue_bottom";
 
 const OnError = (event: MessageEvent) => {
     const data = JSON.parse(event.data);
     handleHTTPError(new Error(data.traceback));
 };
-
 
 export class TriblerService {
     private http: AxiosInstance;
@@ -28,17 +27,17 @@ export class TriblerService {
             baseURL: this.baseURL,
             withCredentials: true,
         });
-        this.events = new EventSource(this.baseURL + '/events', { withCredentials: true });
+        this.events = new EventSource(this.baseURL + "/events", {withCredentials: true});
         this.addEventListener("tribler_exception", OnError);
         // Gets the GuiSettings
         this.getSettings();
     }
 
-    addRequestInterceptor(callback: ((value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>)) {
+    addRequestInterceptor(callback: (value: InternalAxiosRequestConfig<any>) => InternalAxiosRequestConfig<any>) {
         this.http.interceptors.request.use(callback);
     }
 
-    addResponseInterceptor(callback: ((value: AxiosResponse<any, any>) => AxiosResponse<any, any>)) {
+    addResponseInterceptor(callback: (value: AxiosResponse<any, any>) => AxiosResponse<any, any>) {
         this.http.interceptors.response.use(callback);
     }
 
@@ -58,9 +57,18 @@ export class TriblerService {
 
     // Downloads
 
-    async getDownloads(infohash: string = '', getPeers: boolean = false, getPieces: boolean = false, getAvailability: boolean = false): Promise<undefined | ErrorDict | Download[]> {
+    async getDownloads(
+        infohash: string = "",
+        getPeers: boolean = false,
+        getPieces: boolean = false,
+        getAvailability: boolean = false
+    ): Promise<undefined | ErrorDict | Download[]> {
         try {
-            return (await this.http.get(`/downloads?infohash=${infohash}&get_peers=${+getPeers}&get_pieces=${+getPieces}&get_availability=${+getAvailability}`)).data.downloads;
+            return (
+                await this.http.get(
+                    `/downloads?infohash=${infohash}&get_peers=${+getPeers}&get_pieces=${+getPieces}&get_availability=${+getAvailability}`
+                )
+            ).data.downloads;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -76,7 +84,7 @@ export class TriblerService {
 
     async startDownload(uri: string, params: DownloadConfig = {}): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put('/downloads', { ...params, uri: uri })).data.started;
+            return (await this.http.put("/downloads", {...params, uri: uri})).data.started;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -87,25 +95,32 @@ export class TriblerService {
         const raw_bytes = new Uint8Array(await torrent.arrayBuffer());
 
         // Create the new data blocks
-        const new_key = new Uint8Array([49, 52, 58, 115, 101, 108, 101, 99, 116, 101, 100, 95, 102, 105, 108, 101, 115])  // b"14:selected_files"
-        if ((selected_files !== undefined) && (selected_files.length > 0)){
-            const str_selected = selected_files.join('ei');
-            var new_list = new Uint8Array(4 + str_selected.length);  // b"li" + str_selected + b"ee"
-            new_list[0] = 108;  // b"l"
-            new_list[1] = 105;  // b"i"
-            new_list.set(str_selected.split('').map((c) => { return c.charCodeAt(0); }), 2);
-            new_list[new_list.length - 2] = 101;  // b"e"
-            new_list[new_list.length - 1] = 101;  // b"e"
+        const new_key = new Uint8Array([
+            49, 52, 58, 115, 101, 108, 101, 99, 116, 101, 100, 95, 102, 105, 108, 101, 115,
+        ]); // b"14:selected_files"
+        if (selected_files !== undefined && selected_files.length > 0) {
+            const str_selected = selected_files.join("ei");
+            var new_list = new Uint8Array(4 + str_selected.length); // b"li" + str_selected + b"ee"
+            new_list[0] = 108; // b"l"
+            new_list[1] = 105; // b"i"
+            new_list.set(
+                str_selected.split("").map((c) => {
+                    return c.charCodeAt(0);
+                }),
+                2
+            );
+            new_list[new_list.length - 2] = 101; // b"e"
+            new_list[new_list.length - 1] = 101; // b"e"
         } else {
-            var new_list = new Uint8Array([108, 101]);  // b"le"
+            var new_list = new Uint8Array([108, 101]); // b"le"
         }
 
         // Merge everything into the output buffer
-        const buf_len = raw_bytes.length + new_list.length + 17;  // (raw_bytes.length - 1) + 17 + new_list.length + 1
+        const buf_len = raw_bytes.length + new_list.length + 17; // (raw_bytes.length - 1) + 17 + new_list.length + 1
         const modified_data = new Uint8Array(buf_len);
         modified_data.set(raw_bytes, 0);
-        modified_data.set(new_key, raw_bytes.length - 1);  // [!] this overwrites the last byte of raw_bytes
-        modified_data.set(new_list, raw_bytes.length + 16);  // (raw_bytes.length - 1) + 17
+        modified_data.set(new_key, raw_bytes.length - 1); // [!] this overwrites the last byte of raw_bytes
+        modified_data.set(new_list, raw_bytes.length + 16); // (raw_bytes.length - 1) + 17
         modified_data[buf_len - 1] = 101; // b"e"
 
         return modified_data;
@@ -116,14 +131,14 @@ export class TriblerService {
             // The way selected files are URL encoded leads to the pattern "&selected_files[]=<<FILE_NUMBER>>",
             // roughly 20 characters per file in a torrent. With the max of 8190 bytes for a URL, this will lead to
             // HTTP 400 errors for torrents that go over +- 400 files.
-            return (await this.http.put('/downloads',
-                                        await this._mixSelectedIntoMetainfo(torrent, params.selected_files), {
-                                            params: {...params, "selected_files": []},
-                                            headers: {
-                                                'Content-Type': 'applications/x-bittorrent'
-                                            }
-                                        }
-            )).data.started;
+            return (
+                await this.http.put("/downloads", await this._mixSelectedIntoMetainfo(torrent, params.selected_files), {
+                    params: {...params, selected_files: []},
+                    headers: {
+                        "Content-Type": "applications/x-bittorrent",
+                    },
+                })
+            ).data.started;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -131,7 +146,7 @@ export class TriblerService {
 
     async stopDownload(infohash: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { state: 'stop' })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {state: "stop"})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -139,7 +154,7 @@ export class TriblerService {
 
     async resumeDownload(infohash: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { state: 'resume' })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {state: "resume"})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -147,7 +162,7 @@ export class TriblerService {
 
     async recheckDownload(infohash: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { state: 'recheck' })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {state: "recheck"})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -155,7 +170,7 @@ export class TriblerService {
 
     async updateQueuePosition(infohash: string, operation: QueueOperation): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { queue_position: operation })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {queue_position: operation})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -163,16 +178,20 @@ export class TriblerService {
 
     async setAutoManaged(infohash: string, value: boolean): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { auto_managed: value })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {auto_managed: value})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
     }
 
-    async moveDownload(infohash: string, dest_dir: string, completed_dir: string): Promise<undefined | ErrorDict | boolean> {
+    async moveDownload(
+        infohash: string,
+        dest_dir: string,
+        completed_dir: string
+    ): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`,
-                { state: 'move_storage', dest_dir, completed_dir })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {state: "move_storage", dest_dir, completed_dir}))
+                .data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -180,7 +199,7 @@ export class TriblerService {
 
     async setDownloadHops(infohash: string, anon_hops: number): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { anon_hops: anon_hops })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {anon_hops: anon_hops})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -188,7 +207,7 @@ export class TriblerService {
 
     async setDownloadFiles(infohash: string, selected_files: number[]): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { selected_files: selected_files })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {selected_files: selected_files})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -196,7 +215,8 @@ export class TriblerService {
 
     async removeDownload(infohash: string, removeData: boolean): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.delete(`/downloads/${infohash}`, { data: { remove_data: (removeData) ? 1 : 0 } })).data.removed;
+            return (await this.http.delete(`/downloads/${infohash}`, {data: {remove_data: removeData ? 1 : 0}})).data
+                .removed;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -204,7 +224,7 @@ export class TriblerService {
 
     async addDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put(`/downloads/${infohash}/trackers`, { url: trackerUrl })).data.added;
+            return (await this.http.put(`/downloads/${infohash}/trackers`, {url: trackerUrl})).data.added;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -212,7 +232,7 @@ export class TriblerService {
 
     async removeDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.delete(`/downloads/${infohash}/trackers`, { data: { url: trackerUrl } })).data.removed;
+            return (await this.http.delete(`/downloads/${infohash}/trackers`, {data: {url: trackerUrl}})).data.removed;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -220,7 +240,8 @@ export class TriblerService {
 
     async forceCheckDownloadTracker(infohash: string, trackerUrl: string): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put(`/downloads/${infohash}/tracker_force_announce`, { url: trackerUrl })).data.forced;
+            return (await this.http.put(`/downloads/${infohash}/tracker_force_announce`, {url: trackerUrl})).data
+                .forced;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -228,7 +249,7 @@ export class TriblerService {
 
     async setUploadLimit(infohash: string, limit: number): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { upload_limit: limit })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {upload_limit: limit})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -236,7 +257,7 @@ export class TriblerService {
 
     async setDownloadLimit(infohash: string, limit: number): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, { download_limit: limit })).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, {download_limit: limit})).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -244,9 +265,9 @@ export class TriblerService {
 
     // Statistics
 
-    async getIPv8Statistics(): Promise<undefined | ErrorDict | {total_up: number, total_down: number}> {
+    async getIPv8Statistics(): Promise<undefined | ErrorDict | {total_up: number; total_down: number}> {
         try {
-            return (await this.http.get('/statistics/ipv8')).data.ipv8_statistics;
+            return (await this.http.get("/statistics/ipv8")).data.ipv8_statistics;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -254,7 +275,7 @@ export class TriblerService {
 
     async getTriblerStatistics(): Promise<undefined | ErrorDict | TriblerStatistics> {
         try {
-            return (await this.http.get('/statistics/tribler')).data.tribler_statistics;
+            return (await this.http.get("/statistics/tribler")).data.tribler_statistics;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -262,7 +283,7 @@ export class TriblerService {
 
     async getLogs(): Promise<undefined | ErrorDict | string> {
         try {
-            return (await this.http.get('/logging')).data;
+            return (await this.http.get("/logging")).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -270,7 +291,20 @@ export class TriblerService {
 
     // Torrents / search
 
-    async getMetainfo(uri: string, skipMagnet: boolean, config?: AxiosRequestConfig): Promise<undefined | ErrorDict | {files: {index: number, name: string, size: number}[], name: string, download_exists: boolean, valid_certificate: boolean}> {
+    async getMetainfo(
+        uri: string,
+        skipMagnet: boolean,
+        config?: AxiosRequestConfig
+    ): Promise<
+        | undefined
+        | ErrorDict
+        | {
+              files: {index: number; name: string; size: number}[];
+              name: string;
+              download_exists: boolean;
+              valid_certificate: boolean;
+          }
+    > {
         try {
             return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`, config)).data;
         } catch (error) {
@@ -278,13 +312,24 @@ export class TriblerService {
         }
     }
 
-    async getMetainfoFromFile(torrent: File): Promise<undefined | ErrorDict | {infohash: string, files: {index: number, name: string, size: number}[], name: string, download_exists: boolean}> {
+    async getMetainfoFromFile(torrent: File): Promise<
+        | undefined
+        | ErrorDict
+        | {
+              infohash: string;
+              files: {index: number; name: string; size: number}[];
+              name: string;
+              download_exists: boolean;
+          }
+    > {
         try {
-            return (await this.http.put('/torrentinfo', torrent, {
-                headers: {
-                    'Content-Type': 'applications/x-bittorrent'
-                }
-            })).data;
+            return (
+                await this.http.put("/torrentinfo", torrent, {
+                    headers: {
+                        "Content-Type": "applications/x-bittorrent",
+                    },
+                })
+            ).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -292,13 +337,23 @@ export class TriblerService {
 
     async getPopularTorrents(): Promise<undefined | ErrorDict | Torrent[]> {
         try {
-            return (await this.http.get(`/metadata/torrents/popular?metadata_type=300&metadata_type=220&include_total=1&first=1&last=50`)).data.results;
+            return (
+                await this.http.get(
+                    `/metadata/torrents/popular?metadata_type=300&metadata_type=220&include_total=1&first=1&last=50`
+                )
+            ).data.results;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
     }
 
-    async getTorrentHealth(infohash: string): Promise<undefined | ErrorDict | { infohash: string, num_seeders: number, num_leechers: number, last_tracker_check: number }> {
+    async getTorrentHealth(
+        infohash: string
+    ): Promise<
+        | undefined
+        | ErrorDict
+        | {infohash: string; num_seeders: number; num_leechers: number; last_tracker_check: number}
+    > {
         try {
             return (await this.http.get(`/metadata/torrents/${infohash}/health`)).data;
         } catch (error) {
@@ -316,15 +371,26 @@ export class TriblerService {
 
     async searchTorrentsLocal(txt_filter: string): Promise<undefined | ErrorDict | Torrent[]> {
         try {
-            return (await this.http.get(`/metadata/search/local?first=1&last=200&metadata_type=300&exclude_deleted=1&fts_text=${txt_filter}`)).data.results;
+            return (
+                await this.http.get(
+                    `/metadata/search/local?first=1&last=200&metadata_type=300&exclude_deleted=1&fts_text=${txt_filter}`
+                )
+            ).data.results;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
     }
 
-    async searchTorrentsRemote(txt_filter: string, popular: boolean): Promise<undefined | ErrorDict | { request_uuid: string, peers: string[] }> {
+    async searchTorrentsRemote(
+        txt_filter: string,
+        popular: boolean
+    ): Promise<undefined | ErrorDict | {request_uuid: string; peers: string[]}> {
         try {
-            return (await this.http.put(`/search/remote?fts_text=${txt_filter}&popular=${+popular}&metadata_type=300&exclude_deleted=1`)).data;
+            return (
+                await this.http.put(
+                    `/search/remote?fts_text=${txt_filter}&popular=${+popular}&metadata_type=300&exclude_deleted=1`
+                )
+            ).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -334,9 +400,9 @@ export class TriblerService {
 
     async getSettings(): Promise<undefined | ErrorDict | Settings> {
         try {
-            const settings = (await this.http.get('/settings')).data.settings;
+            const settings = (await this.http.get("/settings")).data.settings;
             this.guiSettings = {...settings?.ui, ...this.guiSettings};
-            return settings
+            return settings;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -345,13 +411,13 @@ export class TriblerService {
     async setSettings(settings: Partial<Settings>): Promise<undefined | ErrorDict | boolean> {
         try {
             this.guiSettings = {...this.guiSettings, ...settings?.ui};
-            return (await this.http.post('/settings', settings)).data.modified;
+            return (await this.http.post("/settings", settings)).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
     }
 
-    async getLibtorrentSession(hops: number): Promise<undefined | ErrorDict | { [s: string]: unknown; }> {
+    async getLibtorrentSession(hops: number): Promise<undefined | ErrorDict | {[s: string]: unknown}> {
         try {
             return (await this.http.get(`/libtorrent/session?hop=${hops}`)).data.session;
         } catch (error) {
@@ -359,7 +425,7 @@ export class TriblerService {
         }
     }
 
-    async getLibtorrentSettings(hops: number): Promise<undefined | ErrorDict | { [s: string]: unknown; }> {
+    async getLibtorrentSettings(hops: number): Promise<undefined | ErrorDict | {[s: string]: unknown}> {
         try {
             return (await this.http.get(`/libtorrent/settings?hop=${hops}`)).data.settings;
         } catch (error) {
@@ -367,7 +433,7 @@ export class TriblerService {
         }
     }
 
-    async updateRSS(urls: string[]): Promise<undefined | ErrorDict | { modified: boolean; }> {
+    async updateRSS(urls: string[]): Promise<undefined | ErrorDict | {modified: boolean}> {
         try {
             return (await this.http.put(`/rss`, {urls: urls})).data;
         } catch (error) {
@@ -387,13 +453,13 @@ export class TriblerService {
     async getNewVersion(): Promise<undefined | ErrorDict | boolean> {
         try {
             const version_info_json = (await this.http.get(`/versioning/versions/check`)).data;
-            return (version_info_json.has_version ? version_info_json.new_version : false);
+            return version_info_json.has_version ? version_info_json.new_version : false;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
     }
 
-    async getVersions(): Promise<undefined | ErrorDict | {versions: string[], current: string}> {
+    async getVersions(): Promise<undefined | ErrorDict | {versions: string[]; current: string}> {
         try {
             return (await this.http.get(`/versioning/versions`)).data;
         } catch (error) {
@@ -437,16 +503,20 @@ export class TriblerService {
 
     async clickedResult(query: string, clicked: Torrent, results: Torrent[]): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put(`/recommender/clicked`, {
-                        query: query,
-                        chosen_index: results.findIndex((e) => e.infohash == clicked.infohash),
-                        timestamp: Date.now(),
-                        results: results.map((x) => { return {
+            return (
+                await this.http.put(`/recommender/clicked`, {
+                    query: query,
+                    chosen_index: results.findIndex((e) => e.infohash == clicked.infohash),
+                    timestamp: Date.now(),
+                    results: results.map((x) => {
+                        return {
                             infohash: x.infohash,
                             seeders: x.num_seeders,
-                            leechers: x.num_leechers
-                        };})
-                    })).data.added;
+                            leechers: x.num_leechers,
+                        };
+                    }),
+                })
+            ).data.added;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -454,7 +524,10 @@ export class TriblerService {
 
     // Misc
 
-    async browseFiles(path: string, showFiles: boolean): Promise<undefined | ErrorDict | { current: string, paths: Path[], separator: string }> {
+    async browseFiles(
+        path: string,
+        showFiles: boolean
+    ): Promise<undefined | ErrorDict | {current: string; paths: Path[]; separator: string}> {
         try {
             return (await this.http.get(`/files/browse?path=${path}&files=${+showFiles}`)).data;
         } catch (error) {
@@ -462,7 +535,7 @@ export class TriblerService {
         }
     }
 
-    async listFiles(path: string, recursively: boolean): Promise<undefined | ErrorDict | { paths: Path[] }> {
+    async listFiles(path: string, recursively: boolean): Promise<undefined | ErrorDict | {paths: Path[]}> {
         try {
             return (await this.http.get(`/files/list?path=${path}&recursively=${+recursively}`)).data;
         } catch (error) {
@@ -470,7 +543,7 @@ export class TriblerService {
         }
     }
 
-    async createDirectory(path: string, recursively: boolean): Promise<undefined | ErrorDict | { paths: Path[] }> {
+    async createDirectory(path: string, recursively: boolean): Promise<undefined | ErrorDict | {paths: Path[]}> {
         try {
             return (await this.http.get(`/files/create?path=${path}&recursively=${+recursively}`)).data;
         } catch (error) {
@@ -478,14 +551,22 @@ export class TriblerService {
         }
     }
 
-    async createTorrent(name: string, description: string, files: string[], exportDir: string, download: boolean): Promise<undefined | ErrorDict | { torrent: string }> {
+    async createTorrent(
+        name: string,
+        description: string,
+        files: string[],
+        exportDir: string,
+        download: boolean
+    ): Promise<undefined | ErrorDict | {torrent: string}> {
         try {
-            return (await this.http.post(`/createtorrent?download=${+download}`, {
-                name: name,
-                description: description,
-                files: files,
-                export_dir: exportDir
-            })).data.torrent;
+            return (
+                await this.http.post(`/createtorrent?download=${+download}`, {
+                    name: name,
+                    description: description,
+                    files: files,
+                    export_dir: exportDir,
+                })
+            ).data.torrent;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

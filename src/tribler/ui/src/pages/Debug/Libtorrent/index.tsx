@@ -1,13 +1,20 @@
-import SimpleTable, { getHeader } from "@/components/ui/simple-table";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { KeyValue } from "@/models/keyvalue.model";
-import { triblerService } from "@/services/tribler.service";
-import { isErrorDict } from "@/services/reporting";
-import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
-import { useInterval } from '@/hooks/useInterval';
-
+import SimpleTable, {getHeader} from "@/components/ui/simple-table";
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
+import {KeyValue} from "@/models/keyvalue.model";
+import {triblerService} from "@/services/tribler.service";
+import {isErrorDict} from "@/services/reporting";
+import {ColumnDef} from "@tanstack/react-table";
+import {useState} from "react";
+import {useInterval} from "@/hooks/useInterval";
 
 export const libtorrentColumns: ColumnDef<KeyValue>[] = [
     {
@@ -18,35 +25,38 @@ export const libtorrentColumns: ColumnDef<KeyValue>[] = [
         accessorKey: "value",
         header: getHeader("Value", false),
     },
-]
+];
 
 export default function Libtorrent() {
-    const [hops, setHops] = useState<number>(0)
-    const [settings, setSettings] = useState<KeyValue[]>([])
-    const [session, setSession] = useState<KeyValue[]>([])
+    const [hops, setHops] = useState<number>(0);
+    const [settings, setSettings] = useState<KeyValue[]>([]);
+    const [session, setSession] = useState<KeyValue[]>([]);
 
-    useInterval(async () => {
-        const libtorrentSettings = await triblerService.getLibtorrentSettings(hops);
-        if (!(libtorrentSettings === undefined) && !isErrorDict(libtorrentSettings)) {
-            // Don't bother the user on error, just try again later.
-            let settings = [];
-            for (const [key, value] of Object.entries(libtorrentSettings)) {
-                settings.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+    useInterval(
+        async () => {
+            const libtorrentSettings = await triblerService.getLibtorrentSettings(hops);
+            if (!(libtorrentSettings === undefined) && !isErrorDict(libtorrentSettings)) {
+                // Don't bother the user on error, just try again later.
+                let settings = [];
+                for (const [key, value] of Object.entries(libtorrentSettings)) {
+                    settings.push({key: key, value: typeof value !== "string" ? JSON.stringify(value) : value});
+                }
+                setSettings(settings);
             }
-            setSettings(settings)
-        }
 
-        const libtorrentSession = await triblerService.getLibtorrentSession(hops);
-        if (!(libtorrentSession === undefined) && !isErrorDict(libtorrentSession)) {
-            // Don't bother the user on error, just try again later.
-            let session = [];
-            for (const [key, value] of Object.entries(libtorrentSession)) {
-                session.push({ key: key, value: (typeof value !== 'string') ? JSON.stringify(value) : value });
+            const libtorrentSession = await triblerService.getLibtorrentSession(hops);
+            if (!(libtorrentSession === undefined) && !isErrorDict(libtorrentSession)) {
+                // Don't bother the user on error, just try again later.
+                let session = [];
+                for (const [key, value] of Object.entries(libtorrentSession)) {
+                    session.push({key: key, value: typeof value !== "string" ? JSON.stringify(value) : value});
+                }
+                setSession(session);
             }
-            setSession(session)
-        }
-
-    }, 5000, true);
+        },
+        5000,
+        true
+    );
 
     return (
         <Tabs defaultValue="settings" className="w-full flex flex-col flex-wrap">
@@ -56,7 +66,7 @@ export default function Libtorrent() {
                 <div className="flex items-center flex-1"></div>
                 <div className="flex items-center pr-2">
                     <Select defaultValue="0" onValueChange={(hops) => setHops(Number(hops))}>
-                        <SelectTrigger >
+                        <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -87,5 +97,5 @@ export default function Libtorrent() {
                 />
             </TabsContent>
         </Tabs>
-    )
+    );
 }
