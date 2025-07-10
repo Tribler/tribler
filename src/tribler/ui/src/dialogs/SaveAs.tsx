@@ -121,6 +121,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const navigate = useNavigate();
 
     useEffect(() => {
+        const controller = new AbortController();
+
         async function reload() {
             // Reset state
             setMoveCompleted(false);
@@ -156,9 +158,11 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 response = await triblerService.getMetainfoFromFile(torrent);
             }
             else if (uri) {
-                response = await triblerService.getMetainfo(uri, false);
+                response = await triblerService.getMetainfo(uri, false, {signal: controller.signal});
                 magnet_selected_files = new URLSearchParams(uri).get("so");
             }
+
+            if(controller.signal.aborted) return;
 
             if (response === undefined) {
                 setError(`${t("ToastErrorGetMetainfo")} ${t("ToastErrorGenNetworkErr")}`);
@@ -175,6 +179,10 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             }
         }
         reload();
+
+        return () => {
+            controller.abort()
+        };
     }, [uri, torrent]);
 
     function OnDownloadClicked() {
@@ -190,7 +198,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         }
 
         if (props.onOpenChange) {
-            props.onOpenChange(false)
+            props.onOpenChange(false);
             navigate("/downloads/all");
         }
     }

@@ -74,7 +74,7 @@ export default function Search() {
 
     const [open, setOpen] = useState<boolean>(false)
     const [torrents, setTorrents] = useState<Torrent[]>([])
-    const [torrentDoubleClicked, setTorrentDoubleClicked] = useState<Torrent | undefined>();
+    const [torrentClicked, setTorrentClicked] = useState<Torrent | undefined>();
     const [request, setRequest] = useState<string>("");
 
     useEffect(() => {
@@ -131,7 +131,7 @@ export default function Search() {
     }
 
     const handleDownload = useCallback((torrent: Torrent) => {
-        setTorrentDoubleClicked(torrent);
+        setTorrentClicked(torrent);
         setOpen(true);
     }, []);
 
@@ -139,16 +139,16 @@ export default function Search() {
 
     return (
         <>
-            {torrentDoubleClicked &&
+            {torrentClicked &&
                 <SaveAs
                     open={open}
                     onOpenChange={() => {
                         if (query !== null)
-                            triblerService.clickedResult(query, torrentDoubleClicked, torrents);
-                        setTorrentDoubleClicked(undefined);
+                            triblerService.clickedResult(query, torrentClicked, torrents);
+                        setTorrentClicked(undefined);
                         setOpen(false);
                     }}
-                    uri={getMagnetLink(torrentDoubleClicked.infohash, torrentDoubleClicked.name)}
+                    uri={getMagnetLink(torrentClicked.infohash, torrentClicked.name, torrentClicked.trackers)}
                 />
             }
             <SimpleTable
