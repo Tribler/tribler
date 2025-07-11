@@ -21,7 +21,7 @@ from marshmallow.fields import Boolean, Float, Integer, List, String
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream, StreamReader
-from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -60,14 +60,14 @@ class JSONFilesInfo(TypedDict):
 
 
 @lru_cache(maxsize=1)
-def cached_read(tracker_file: str, _: int) -> list[bytes]:
+def cached_read(tracker_file: str, _: int) -> list[str]:
     """
     Keep one cache for one tracker file at a time (by default: for a max of 120 seconds, see caller).
 
     When adding X torrents at once, this avoids reading the same file X times.
     """
     try:
-        with open(tracker_file, "rb") as f:
+        with open(tracker_file) as f:
             return [line.rstrip() for line in f if line.rstrip()]  # uTorrent format contains blank lines between URLs
     except OSError:
         logger.exception("Failed to read tracker file!")
@@ -155,15 +155,18 @@ class DownloadsEndpoint(RESTEndpoint):
         Return file information as JSON from a specified download.
         """
         files_json = []
+        tinfo = download.get_def().torrent_info
+        if tinfo is None:
+            return []
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
         index_mapping = download.get_def().get_file_indices()
-        num_files = download.get_def().torrent_info.num_files() if download.get_def().torrent_info else 0
+        num_files = tinfo.num_files() if tinfo else 0
         for file_index in range(num_files):
-            fn = Path(download.get_def().torrent_info.file_at(file_index).path)
+            fn = Path(tinfo.file_at(file_index).path)
             if num_files > 1:
-                fn = fn.relative_to(download.get_def().torrent_info.name())
-            size = download.get_def().torrent_info.file_at(file_index).size
+                fn = fn.relative_to(tinfo.name())
+            size = tinfo.file_at(file_index).size
             files_json.append(cast("JSONFilesInfo", {
                 "index": index_mapping[file_index],
                 # We always return files in Posix format to make GUI independent of Core and simplify testing
@@ -261,7 +264,7 @@ class DownloadsEndpoint(RESTEndpoint):
                     "get_pieces flag is set. Note that setting this flag has a negative impact on performance "
                     "and should only be used in situations where this data is required. "
     )
-    async def get_downloads(self, request: Request) -> RESTResponse:  # noqa: C901
+    async def get_downloads(self, request: Request) -> RESTResponse:
         """
         Return all downloads, both active and inactive.
         """
@@ -341,12 +344,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if unfiltered or params.get("infohash") == info["infohash"]:
                 # Add peers information if requested
                 if get_peers:
-                    peer_list = state.get_peer_list(include_have=False)
-                    for peer_info in peer_list:
-                        if "extended_version" in peer_info:
-                            peer_info["extended_version"] = self._safe_extended_peer_info(peer_info["extended_version"])
-
-                    info["peers"] = peer_list
+                    info["peers"] = state.get_peer_list(include_have=False)
 
                 # Add piece information if requested
                 if get_pieces:
@@ -359,7 +357,7 @@ class DownloadsEndpoint(RESTEndpoint):
             result.append(info)
         return RESTResponse({"downloads": result, "checkpoints": checkpoints})
 
-    def _get_default_trackers(self) -> list[bytes]:
+    def _get_default_trackers(self) -> list[str]:
         """
         Get the default trackers from the configured tracker file.
 
@@ -432,7 +430,7 @@ class DownloadsEndpoint(RESTEndpoint):
             body = await request.read()
 
             try:
-                metainfo = cast("dict[bytes, Any]", lt.bdecode(body))
+                metainfo = cast("MetainfoDict", lt.bdecode(body))
                 packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
                 if packed_selected_files is not None:
                     params["selected_files"] = packed_selected_files
@@ -460,7 +458,7 @@ class DownloadsEndpoint(RESTEndpoint):
             if tdef:
                 download = await self.download_manager.start_download(tdef=tdef, config=download_config)
             else:  # guaranteed to have uri
-                download = await self.download_manager.start_download_from_uri(uri, config=download_config)
+                download = await self.download_manager.start_download_from_uri(cast("str", uri), config=download_config)
             if (self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
                     and (not download.tdef.torrent_info or not download.tdef.torrent_info.priv())):
                 await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
@@ -714,7 +712,8 @@ class DownloadsEndpoint(RESTEndpoint):
 
         try:
             download.add_trackers([url])
-            download.handle.force_reannounce(0, len(download.handle.trackers()) - 1)
+            handle = cast("lt.torrent_handle", download.handle)
+            handle.force_reannounce(0, len(handle.trackers()) - 1)
         except RuntimeError as e:
             return RESTResponse({"error": {
                                     "handled": True,
@@ -761,8 +760,9 @@ class DownloadsEndpoint(RESTEndpoint):
                                 }}, status=HTTP_BAD_REQUEST)
 
         try:
-            download.handle.replace_trackers([tracker for tracker in download.handle.trackers()
-                                              if tracker["url"] != url])
+            handle = cast("lt.torrent_handle", download.handle)
+            handle.replace_trackers(cast("list[dict[str, Any]]",
+                                         [tracker for tracker in handle.trackers() if tracker["url"] != url]))
         except RuntimeError as e:
             return RESTResponse({"error": {
                                     "handled": True,
@@ -811,9 +811,10 @@ class DownloadsEndpoint(RESTEndpoint):
                                 }}, status=HTTP_BAD_REQUEST)
 
         try:
-            for i, tracker in enumerate(download.handle.trackers()):
+            handle = cast("lt.torrent_handle", download.handle)
+            for i, tracker in enumerate(handle.trackers()):
                 if tracker["url"] == url:
-                    download.handle.force_reannounce(0, i)
+                    handle.force_reannounce(0, i)
                     break
         except RuntimeError as e:
             return RESTResponse({"error": {
@@ -881,25 +882,6 @@ class DownloadsEndpoint(RESTEndpoint):
 
         return status
 
-    def _safe_extended_peer_info(self, ext_peer_info: bytes) -> str:
-        """
-        Given a string describing peer info, return a json.dumps() safe representation.
-
-        :param ext_peer_info: the string to convert to a dumpable format
-        :return: the safe string
-        """
-        # First see if we can use this as-is
-        if not ext_peer_info:
-            return ""
-
-        try:
-            return ext_peer_info.decode()
-        except UnicodeDecodeError as e:
-            # We might have some special unicode characters in here
-            self._logger.warning("Error while decoding peer info: %s. %s: %s",
-                                 str(ext_peer_info), e.__class__.__name__, str(e))
-            return ''.join(map(chr, ext_peer_info))
-
     @docs(
         tags=["Libtorrent"],
         summary="Stream the contents of a file that is being downloaded.",
@@ -952,11 +934,12 @@ class TorrentStreamResponse(StreamResponse):
         """
         Prepare the response.
         """
-        num_files = self._download.get_def().torrent_info.num_files()
-        file_name = Path(self._download.get_def().torrent_info.file_at(self._file_index).path)
+        torrent_info = cast("lt.torrent_info", self._download.get_def().torrent_info)
+        num_files = torrent_info.num_files()
+        file_name = Path(torrent_info.file_at(self._file_index).path)
         if num_files > 1:
-            file_name = file_name.relative_to(self._download.get_def().torrent_info.name())
-        file_size = self._download.get_def().torrent_info.file_at(self._file_index).size
+            file_name = file_name.relative_to(torrent_info.name())
+        file_size = torrent_info.file_at(self._file_index).size
         try:
             start = request.http_range.start
             stop = request.http_range.stop

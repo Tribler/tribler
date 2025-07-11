@@ -122,7 +122,7 @@ class HttpTrackerSession(TrackerSession):
     """
 
     def __init__(self, tracker_url: str, tracker_address: tuple[str, int], announce_page: str, timeout: float,
-                 proxy: tuple) -> None:
+                 proxy: tuple | None) -> None:
         """
         Create a new HTTP tracker session.
         """
@@ -223,7 +223,7 @@ class UdpSocketManager(DatagramProtocol):
         self.transport: Socks5Client | None = None
         self.proxy_transports: dict[tuple, Socks5Client] = {}
 
-    def connection_made(self, transport: Socks5Client) -> None:
+    def connection_made(self, transport: Socks5Client) -> None:  # type: ignore[override]
         """
         Callback for when a connection is established.
         """
@@ -285,7 +285,7 @@ class UdpTrackerSession(TrackerSession):
     _active_session_dict: dict[UdpTrackerSession, int] = {}
 
     def __init__(self, tracker_url: str, tracker_address: tuple[str, int], announce_page: str,
-                 timeout: float, proxy: tuple, socket_mgr: UdpSocketManager) -> None:
+                 timeout: float, proxy: tuple | None, socket_mgr: UdpSocketManager) -> None:
         """
         Create a session for UDP trackers.
         """
@@ -502,16 +502,13 @@ class FakeBep33DHTSession(FakeDHTSession):
         """
         Query the bittorrent DHT using BEP33 to avoid joining the swarm.
         """
-        coros = [self.download_manager.dht_health_manager.get_health(infohash, timeout=self.timeout)
-                 for infohash in self.infohash_list]
-        results: list[HealthInfo] = []
-        for coroutine in coros:
-            local_results = [result for result in (await coroutine) if not isinstance(result, Exception)]
-            results = [*results, *local_results]
-        return TrackerResponse(url="DHT", torrent_health_list=results)
+        dht_health_manager = self.download_manager.dht_health_manager
+        health_infos = [await dht_health_manager.get_health(infohash, timeout=self.timeout)
+                        for infohash in self.infohash_list] if dht_health_manager is not None else []
+        return TrackerResponse(url="DHT", torrent_health_list=health_infos)
 
 
-def create_tracker_session(tracker_url: str, timeout: float, proxy: tuple,
+def create_tracker_session(tracker_url: str, timeout: float, proxy: tuple | None,
                            socket_manager: UdpSocketManager) -> TrackerSession:
     """
     Creates a tracker session with the given tracker URL.

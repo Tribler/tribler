@@ -100,9 +100,8 @@ class TestCreateTorrentEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
-        self.assertFalse(call_params[b"nodes"])
-        self.assertFalse(call_params[b"httpseeds"])
-        self.assertFalse(call_params[b"encoding"])
+        self.assertIsNone(call_params[b"nodes"])
+        self.assertIsNone(call_params[b"httpseeds"])
         self.assertEqual(0, call_params[b"piece length"])
 
     async def test_create_with_comment(self) -> None:

@@ -52,7 +52,8 @@ class Socks5Server:
         """
         Stop the socks5 server.
         """
-        [s.close("stopping") for s in self.sessions]
+        for s in self.sessions:
+            s.close("stopping")
         self.sessions = []
 
         if self.server:

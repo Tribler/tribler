@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import socket
 from asyncio import BaseTransport, wait_for
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from aiohttp import TCPConnector
 from aiohttp.abc import AbstractResolver
@@ -10,6 +10,7 @@ from aiohttp.abc import AbstractResolver
 from tribler.core.socks5.client import Socks5Client, Socks5ClientUDPConnection
 
 if TYPE_CHECKING:
+    from asyncio import DatagramTransport
     from collections.abc import Callable
 
     from aiohttp.abc import ResolveResult
@@ -64,7 +65,7 @@ class Socks5Connector(TCPConnector):
             await client.connect_tcp((host, port))
 
         proto = protocol_factory()
-        transport = client.transport
-        transport._protocol = proto  # noqa: SLF001
+        transport = cast("DatagramTransport", client.transport)
+        transport._protocol = proto  # type: ignore[attr-defined]  # noqa: SLF001
         proto.transport = transport
         return transport, proto

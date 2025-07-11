@@ -394,7 +394,7 @@ class TestTrackerSession(TestBase):
         Test the metainfo lookup of the BEP33 DHT session.
         """
         infohash_health = HealthInfo(b"a" * 20, seeders=1, leechers=2)
-        mock_dlmgr = Mock(dht_health_manager=Mock(get_health=Mock(return_value=succeed([infohash_health]))))
+        mock_dlmgr = Mock(dht_health_manager=Mock(get_health=Mock(return_value=succeed(infohash_health))))
         self.session = FakeBep33DHTSession(mock_dlmgr, 10)
         self.session.add_infohash(b"a" * 20)
 

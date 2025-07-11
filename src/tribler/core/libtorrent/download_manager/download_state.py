@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
 
@@ -61,7 +61,7 @@ class DownloadState:
     cf. libtorrent torrent_status
     """
 
-    def __init__(self, download: Download, lt_status: libtorrent.torrent_status, error: str | None) -> None:
+    def __init__(self, download: Download, lt_status: libtorrent.torrent_status | None, error: str | None) -> None:
         """
         Internal constructor.
 
@@ -78,7 +78,10 @@ class DownloadState:
         """
         Create a pretty printed string.
         """
-        return f"DownloadState(infohash={self.download.tdef.infohash}, lt_status={self.lt_status}, error={self.error})"
+        return f"DownloadState(infohash={
+            self.download.tdef.infohash!r}, lt_status={
+            self.lt_status}, error={
+            self.error})"
 
     def get_download(self) -> Download:
         """
@@ -290,7 +293,7 @@ class DownloadState:
                 # For large torrents, the handle can be invalid at this point.
                 # See https://github.com/Tribler/tribler/issues/6454
                 progress = None
-            if progress and len(progress) == num_files:
+            if tinfo is not None and progress and len(progress) == num_files:
                 for index in range(num_files):
                     path = Path(tinfo.file_at(index).path)
                     if num_files > 1:
@@ -298,7 +301,8 @@ class DownloadState:
                     size = tinfo.file_at(index).size
                     completion_frac = (float(progress[index]) / size) if size > 0 else 1
                     completion.append((path, completion_frac))
-            elif progress and len(progress) > num_files and self.download.tdef.torrent_info is not None:
+            elif (tinfo is not None and progress and len(progress) > num_files
+                  and self.download.tdef.torrent_info is not None):
                 # We need to remap
                 remapping = self.download.tdef.get_file_indices()
                 for index in range(num_files):
@@ -335,7 +339,7 @@ class DownloadState:
         peers = self.get_peer_list()
         for peer in peers:
             completed = peer.get('completed', 0)
-            have = peer.get('have', [])
+            have = cast("list[bool]", peer.get('have', []))
 
             if completed == 1 or (have and all(have)):
                 nr_seeders_complete += 1

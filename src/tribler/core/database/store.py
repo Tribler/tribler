@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from os.path import getsize
 from pathlib import Path
 from time import sleep, time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from lz4.frame import LZ4FrameDecompressor
 from pony import orm
@@ -531,7 +531,7 @@ class MetadataStore:
                 ORDER BY coalesce(ts.seeders, 0) DESC, fts.rowid DESC
                 LIMIT 1000
             """)
-        return left_join(g for g in self.TorrentMetadata if g.rowid in fts_ids)
+        return left_join(g for g in cast("TorrentMetadata", self.TorrentMetadata) if g.rowid in fts_ids)
 
     @db_session
     def get_entries_query(  # noqa: C901, PLR0912, PLR0913
@@ -586,7 +586,7 @@ class MetadataStore:
                            ;
                            """)
         else:
-            pony_query = left_join(g for g in self.TorrentMetadata)
+            pony_query = left_join(g for g in cast("TorrentMetadata", self.TorrentMetadata))
 
         infohash_set = infohash_set or ({infohash} if infohash else None)
 
@@ -736,7 +736,7 @@ class MetadataStore:
         """
         Get the highest-known row id.
         """
-        return select(max(obj.rowid) for obj in self.TorrentMetadata).get() or 0
+        return (select(max(obj.rowid) for obj in cast("TorrentMetadata", self.TorrentMetadata)).get() or 0)
 
     fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
 

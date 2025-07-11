@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pony.orm import count, db_session
 
@@ -22,7 +22,7 @@ class TrackerManager:
     A manager for tracker info in the database.
     """
 
-    def __init__(self, state_dir: Path | None = None, metadata_store: MetadataStore = None) -> None:
+    def __init__(self, metadata_store: MetadataStore, state_dir: Path | None = None) -> None:
         """
         Create a new tracker manager.
         """
@@ -43,7 +43,8 @@ class TrackerManager:
         if blacklist_file.exists():
             with open(blacklist_file) as blacklist_file_handle:
                 # Note that get_uniformed_tracker_url will strip the newline at the end of .readlines()
-                self.blacklist.extend([get_uniformed_tracker_url(url) for url in blacklist_file_handle])
+                self.blacklist.extend([blurl for url in blacklist_file_handle
+                                       if (blurl := get_uniformed_tracker_url(url))])
         else:
             self._logger.info("No tracker blacklist file found at %s.", blacklist_file)
 
@@ -79,7 +80,7 @@ class TrackerManager:
             return
 
         with db_session:
-            num = count(g for g in self.TrackerState if g.url == sanitized_tracker_url)
+            num = count(g for g in cast("TrackerState", self.TrackerState) if g.url == sanitized_tracker_url)
             if num > 0:
                 self._logger.debug("skip existing tracker: %s", repr(tracker_url))
                 return
@@ -89,7 +90,7 @@ class TrackerManager:
                               last_check=0,
                               failures=0,
                               alive=True,
-                              torrents={})
+                              torrents=set())
 
     def remove_tracker(self, tracker_url: str) -> None:
         """
@@ -103,7 +104,7 @@ class TrackerManager:
 
         with db_session:
             options = self.TrackerState.select(lambda g: g.url in [tracker_url, sanitized_tracker_url])
-            for option in options[:]:
+            for option in list(options)[:]:
                 option.delete()
 
     @db_session

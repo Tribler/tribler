@@ -5,7 +5,7 @@ from asyncio.exceptions import TimeoutError as AsyncTimeoutError
 from binascii import hexlify, unhexlify
 from pathlib import Path
 from ssl import SSLError
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
 
 import libtorrent as lt
 from aiohttp import (
@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from aiohttp.web_request import Request
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,16 @@ def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
             raise
     return obj
 
+
+@overload
+async def query_uri(uri: str, connector: BaseConnector | None = None, headers: LooseHeaders | None = None,
+                    timeout: ClientTimeout | None = None, return_json: Literal[False] = False,
+                    valid_cert: bool = True) -> bytes: ...
+
+@overload
+async def query_uri(uri: str, connector: BaseConnector | None = None, headers: LooseHeaders | None = None,
+                    timeout: ClientTimeout | None = None, return_json: Literal[True] = True,
+                    valid_cert: bool = True) -> dict: ...
 
 async def query_uri(uri: str, connector: BaseConnector | None = None, headers: LooseHeaders | None = None,
                     timeout: ClientTimeout | None = None, return_json: bool = False,
@@ -117,12 +128,13 @@ class TorrentInfoEndpoint(RESTEndpoint):
         Get a list of files from the given torrent definition.
         """
         remapped_indices = tdef.get_file_indices()
-        num_files = tdef.atp.ti.num_files()
+        torrent_info = cast("lt.torrent_info", tdef.atp.ti)
+        num_files = torrent_info.num_files()
         return [JSONMiniFileInfo(index=remapped_indices[fi],
-                                 name=(str(Path(tdef.atp.ti.file_at(fi).path).relative_to(tdef.atp.ti.name()))
-                                       if num_files > 1 else str(Path(tdef.atp.ti.file_at(fi).path))),
-                                 size=tdef.atp.ti.file_at(fi).size)
-                for fi in range(tdef.atp.ti.num_files())]
+                                 name=(str(Path(torrent_info.file_at(fi).path).relative_to(torrent_info.name()))
+                                       if num_files > 1 else str(Path(torrent_info.file_at(fi).path))),
+                                 size=torrent_info.file_at(fi).size)
+                for fi in range(torrent_info.num_files())]
 
     @docs(
         tags=["Libtorrent"],
@@ -230,11 +242,12 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 if skip_check_metainfo:
                     metainfo = None
                 else:
-                    metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
-                                                                        url=response.decode())
+                    metainfo = cast("MetainfoDict | MetainfoV2Dict",
+                                    await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
+                                                                             url=response.decode()))
             else:
                 try:
-                    metainfo = lt.bdecode(response)
+                    metainfo = cast("MetainfoDict | MetainfoV2Dict", lt.bdecode(response))
                     skip_check_metainfo = False
                 except RuntimeError:
                     return RESTResponse(
@@ -258,7 +271,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
             if skip_check_metainfo:
                 metainfo = None
             else:
-                metainfo = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
+                metainfo = cast("MetainfoDict | MetainfoV2Dict",
+                                await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri))
         else:
             return RESTResponse({"error": {
                                     "handled": True,
@@ -292,7 +306,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
         download_is_metainfo_request = download == metainfo_download
 
         return RESTResponse({"files": self.get_files(torrent_def),
-                             "name": torrent_def.atp.ti.name(),
+                             "name": cast("lt.torrent_info", torrent_def.atp.ti).name(),
                              "download_exists": download and not download_is_metainfo_request,
                              "valid_certificate": valid_cert})
 

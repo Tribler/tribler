@@ -3,6 +3,8 @@ from typing import Literal, NotRequired, TypedDict, overload
 
 # ruff: noqa: PYI021
 
+VERSION_SUBDIR: str
+
 IPv8BootstrapperConfig = TypedDict("IPv8BootstrapperConfig", {
     "class": str,
     "init": dict
@@ -17,37 +19,25 @@ IPv8OverlayConfig = TypedDict("IPv8OverlayConfig", {
     "on_start": list
 })
 
-class TunnelCommunityConfig(TypedDict):
+class ApiConfig(TypedDict):
     """
-    Settings for the tunnel community component.
-    """
-
-    enabled: bool
-    min_circuits: int
-    max_circuits: int
-
-class WatchFolderConfig(TypedDict):
-    """
-    Settings for the watch folder component.
+    Settings for the API key component.
     """
 
-    enabled: bool
-    directory: str
-    check_interval: float
+    key: str
+    http_enabled: bool
+    http_port: int
+    http_host: str
+    https_enabled: bool
+    https_host: str
+    https_port: int
+    https_certfile: str
+    http_port_running: int
+    https_port_running: int
 
-class IPv8InterfaceConfig(TypedDict):
+class RendezvousConfig(TypedDict):
     """
-    An IPv8 network interface.
-    """
-
-    interface: str
-    ip: str
-    port: int
-    worker_threads: NotRequired[int]
-
-class DatabaseConfig(TypedDict):
-    """
-    Settings for the database component.
+    Settings for the rendezvous component.
     """
 
     enabled: bool
@@ -58,33 +48,6 @@ class IPv8LoggerConfig(TypedDict):
     """
 
     level: str
-
-class RecommenderConfig(TypedDict):
-    """
-    Settings for the user recommender component.
-    """
-
-    enabled: bool
-
-class IPv8Config(TypedDict):
-    """
-    The main IPv8 configuration dictionary.
-    """
-
-    interfaces: list[IPv8InterfaceConfig]
-    keys: list[IPv8KeysConfig]
-    logger: IPv8LoggerConfig
-    working_directory: str
-    walker_interval: float
-    overlays: list[IPv8OverlayConfig]
-
-class RSSConfig(TypedDict):
-    """
-    Settings for the rss component.
-    """
-
-    enabled: bool
-    urls: list[str]
 
 class TriblerConfig(TypedDict):
     """
@@ -118,6 +81,31 @@ class ContentDiscoveryCommunityConfig(TypedDict):
 
     enabled: bool
 
+class RSSConfig(TypedDict):
+    """
+    Settings for the rss component.
+    """
+
+    enabled: bool
+    urls: list[str]
+
+class IPv8InterfaceConfig(TypedDict):
+    """
+    An IPv8 network interface.
+    """
+
+    interface: str
+    ip: str
+    port: int
+    worker_threads: NotRequired[int]
+
+class VersioningConfig(TypedDict):
+    """
+    Settings for the versioning component.
+    """
+
+    enabled: bool
+
 class DownloadDefaultsConfig(TypedDict):
     """
     Settings for default downloads, used by libtorrent.
@@ -135,29 +123,46 @@ class DownloadDefaultsConfig(TypedDict):
     trackers_file: str
     torrent_folder: str
     auto_managed: bool
+    completed_dir: str
 
-class IPv8WalkerConfig(TypedDict):
+class DatabaseConfig(TypedDict):
     """
-    An IPv8 walker configuration.
-    """
-
-    strategy: str
-    peers: int
-    init: dict
-
-class VersioningConfig(TypedDict):
-    """
-    Settings for the versioning component.
+    Settings for the database component.
     """
 
     enabled: bool
 
-class RendezvousConfig(TypedDict):
+class TorrentCheckerConfig(TypedDict):
     """
-    Settings for the rendezvous component.
+    Settings for the torrent checker component.
     """
 
     enabled: bool
+
+class RecommenderConfig(TypedDict):
+    """
+    Settings for the user recommender component.
+    """
+
+    enabled: bool
+
+class TunnelCommunityConfig(TypedDict):
+    """
+    Settings for the tunnel community component.
+    """
+
+    enabled: bool
+    min_circuits: int
+    max_circuits: int
+
+class WatchFolderConfig(TypedDict):
+    """
+    Settings for the watch folder component.
+    """
+
+    enabled: bool
+    directory: str
+    check_interval: float
 
 class LibtorrentConfig(TypedDict):
     """
@@ -194,20 +199,26 @@ class LibtorrentConfig(TypedDict):
     active_lsd_limit: int
     active_limit: int
 
-class ApiConfig(TypedDict):
+class IPv8WalkerConfig(TypedDict):
     """
-    Settings for the API key component.
+    An IPv8 walker configuration.
     """
 
-    key: str
-    http_enabled: bool
-    http_port: int
-    http_host: str
-    https_enabled: bool
-    https_host: str
-    https_port: int
-    http_port_running: int
-    https_port_running: int
+    strategy: str
+    peers: int
+    init: dict
+
+class IPv8Config(TypedDict):
+    """
+    The main IPv8 configuration dictionary.
+    """
+
+    interfaces: list[IPv8InterfaceConfig]
+    keys: list[IPv8KeysConfig]
+    logger: IPv8LoggerConfig
+    working_directory: str
+    walker_interval: float
+    overlays: list[IPv8OverlayConfig]
 
 class IPv8KeysConfig(TypedDict):
     """
@@ -217,13 +228,6 @@ class IPv8KeysConfig(TypedDict):
     alias: str
     generation: str
     file: str
-
-class TorrentCheckerConfig(TypedDict):
-    """
-    Settings for the torrent checker component.
-    """
-
-    enabled: bool
 
 
 class TriblerConfigManager:
@@ -281,6 +285,8 @@ class TriblerConfigManager:
     def set(self, option: Literal["api/https_host"], value: str) -> None: ...
     @overload
     def set(self, option: Literal["api/https_port"], value: int) -> None: ...
+    @overload
+    def set(self, option: Literal["api/https_certfile"], value: str) -> None: ...
     @overload
     def set(self, option: Literal["api/http_port_running"], value: int) -> None: ...
     @overload
@@ -386,8 +392,6 @@ class TriblerConfigManager:
     @overload
     def set(self, option: Literal["ipv8/interfaces/port"], value: int) -> None: ...
     @overload
-    def set(self, option: Literal["ipv8/interfaces/worker_threads"], value: NotRequired) -> None: ...
-    @overload
     def set(self, option: Literal["ipv8/keys/alias"], value: str) -> None: ...
     @overload
     def set(self, option: Literal["ipv8/keys/generation"], value: str) -> None: ...
@@ -431,6 +435,8 @@ class TriblerConfigManager:
     def set(self, option: Literal["libtorrent/download_defaults/torrent_folder"], value: str) -> None: ...
     @overload
     def set(self, option: Literal["libtorrent/download_defaults/auto_managed"], value: bool) -> None: ...
+    @overload
+    def set(self, option: Literal["libtorrent/download_defaults/completed_dir"], value: str) -> None: ...
     @overload
     def set(self, option: Literal["ipv8/overlays/walkers/strategy"], value: str) -> None: ...
     @overload
@@ -488,6 +494,8 @@ class TriblerConfigManager:
     def get(self, option: Literal["api/https_host"]) -> str: ...
     @overload
     def get(self, option: Literal["api/https_port"]) -> int: ...
+    @overload
+    def get(self, option: Literal["api/https_certfile"]) -> str: ...
     @overload
     def get(self, option: Literal["api/http_port_running"]) -> int: ...
     @overload
@@ -593,8 +601,6 @@ class TriblerConfigManager:
     @overload
     def get(self, option: Literal["ipv8/interfaces/port"]) -> int: ...
     @overload
-    def get(self, option: Literal["ipv8/interfaces/worker_threads"]) -> NotRequired: ...
-    @overload
     def get(self, option: Literal["ipv8/keys/alias"]) -> str: ...
     @overload
     def get(self, option: Literal["ipv8/keys/generation"]) -> str: ...
@@ -638,6 +644,8 @@ class TriblerConfigManager:
     def get(self, option: Literal["libtorrent/download_defaults/torrent_folder"]) -> str: ...
     @overload
     def get(self, option: Literal["libtorrent/download_defaults/auto_managed"]) -> bool: ...
+    @overload
+    def get(self, option: Literal["libtorrent/download_defaults/completed_dir"]) -> str: ...
     @overload
     def get(self, option: Literal["ipv8/overlays/walkers/strategy"]) -> str: ...
     @overload
