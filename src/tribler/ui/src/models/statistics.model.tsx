@@ -13,4 +13,5 @@ export interface TriblerStatistics {
             sent_bytes: string;
         }[];
     };
+    endpoint_version?: string;
 }

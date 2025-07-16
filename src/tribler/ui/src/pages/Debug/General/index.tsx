@@ -4,8 +4,9 @@ import {KeyValue} from "@/models/keyvalue.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {ColumnDef} from "@tanstack/react-table";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useState} from "react";
 import {useInterval} from "@/hooks/useInterval";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
 
 const generalColumns: ColumnDef<KeyValue>[] = [
     {
@@ -38,49 +39,19 @@ export default function General() {
 
     useInterval(
         async () => {
-            const newStats = new Array<KeyValue>();
-
             const triblerStats = await triblerService.getTriblerStatistics();
-            if (triblerStats === undefined || isErrorDict(triblerStats)) {
-                if (stats) {
-                    newStats.push({
-                        key: "Database size",
-                        value: stats.filter((entry) => entry.key == "Database size")[0].value,
-                    });
-                    newStats.push({
-                        key: "Number of torrents collected",
-                        value: stats.filter((entry) => entry.key == "Number of torrents collected")[0].value,
-                    });
-                } else {
-                    newStats.push({key: "Database size", value: "?"});
-                    newStats.push({key: "Number of torrents collected", value: "?"});
-                }
-            } else {
+            const ipv8Stats = await triblerService.getIPv8Statistics();
+
+            if (triblerStats !== undefined && !isErrorDict(triblerStats) &&
+                ipv8Stats !== undefined && !isErrorDict(ipv8Stats)) {
+                const newStats = new Array<KeyValue>();
                 newStats.push({key: "Database size", value: formatBytes(triblerStats.db_size)});
                 newStats.push({key: "Number of torrents collected", value: "" + triblerStats.num_torrents});
-            }
-
-            const ipv8Stats = await triblerService.getIPv8Statistics();
-            if (ipv8Stats === undefined || isErrorDict(ipv8Stats)) {
-                if (stats) {
-                    newStats.push({
-                        key: "Total IPv8 bytes up",
-                        value: stats.filter((entry) => entry.key == "Total IPv8 bytes up")[0].value,
-                    });
-                    newStats.push({
-                        key: "Total IPv8 bytes down",
-                        value: stats.filter((entry) => entry.key == "Total IPv8 bytes down")[0].value,
-                    });
-                } else {
-                    newStats.push({key: "Total IPv8 bytes up", value: "?"});
-                    newStats.push({key: "Total IPv8 bytes down", value: "?"});
-                }
-            } else {
+                newStats.push({key: "Endpoint version", value: "" + triblerStats.endpoint_version});
                 newStats.push({key: "Total IPv8 bytes up", value: formatBytes(ipv8Stats.total_up)});
                 newStats.push({key: "Total IPv8 bytes down", value: formatBytes(ipv8Stats.total_down)});
+                setStats(newStats);
             }
-
-            setStats(newStats);
 
             const logOutput = await triblerService.getLogs();
             if (logOutput !== undefined && !isErrorDict(logOutput)) {

@@ -20,6 +20,7 @@ class TestStatisticsEndpoint(TestBase):
 
         response = endpoint.get_tribler_stats(request)
         response_body_json = await response_to_json(response)
+        response_body_json["tribler_statistics"].pop("endpoint_version")
 
         self.assertEqual({}, response_body_json["tribler_statistics"])
 

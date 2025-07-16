@@ -91,6 +91,14 @@ class StatisticsEndpoint(RESTEndpoint):
                                                                  if session.udp_connection])}
                                              for server in self.session.socks_servers]
 
+        try:
+            from ipv8_rust_tunnels import rust_endpoint  # noqa: PLC0415
+        except ImportError:
+            stats_dict["endpoint_version"] = None
+        else:
+            version = getattr(rust_endpoint, "__version__", "unknown")
+            stats_dict["endpoint_version"] = "git" if version == "0.1.0" else version
+
         return RESTResponse({"tribler_statistics": stats_dict})
 
     @docs(
