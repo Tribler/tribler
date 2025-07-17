@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from aiohttp import web
 from aiohttp_apispec import docs
@@ -11,6 +11,7 @@ from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, R
 
 if TYPE_CHECKING:
     from tribler.core.session import Session
+    from tribler.core.socks5.udp_connection import RustUDPConnection
 
 
 class StatisticsEndpoint(RESTEndpoint):
@@ -85,11 +86,16 @@ class StatisticsEndpoint(RESTEndpoint):
             stats_dict["libtorrent"] = lt_stats
 
         if self.session and self.session.socks_servers:
-            stats_dict["socks5_sessions"] = [{"hops": server.hops,
-                                              "sessions": len(server.sessions),
-                                              "associates": sum([1 for session in server.sessions
-                                                                 if session.udp_connection])}
-                                             for server in self.session.socks_servers]
+            stats_dict["socks5_sessions"] = []
+
+            for server in self.session.socks_servers:
+                stats_dict["socks5_sessions"].append({
+                    "hops": server.hops,
+                    "sessions": len(server.sessions),
+                    "associates": [server.rust_endpoint.get_associated_circuits(cast("RustUDPConnection",
+                                                                                     session.udp_connection).port)
+                                   for session in server.sessions
+                                   if session.udp_connection] if server.rust_endpoint else None})
 
         try:
             from ipv8_rust_tunnels import rust_endpoint  # noqa: PLC0415
