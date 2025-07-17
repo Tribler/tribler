@@ -4,7 +4,7 @@ import {RadioGroup, RadioGroupItem} from "@/components/ui/radiogroup";
 import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
@@ -13,7 +13,7 @@ export default function Seeding() {
     const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) {
+    useEffect(() => {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
@@ -24,8 +24,7 @@ export default function Seeding() {
                 setSettings(response);
             }
         })();
-        return null;
-    }
+    }, []);
 
     return (
         <div className="p-6 w-full">
@@ -53,7 +52,11 @@ export default function Seeding() {
                         type="number"
                         step="0.1"
                         className="w-20"
-                        value={settings?.libtorrent?.download_defaults?.seeding_ratio}
+                        value={
+                            settings?.libtorrent?.download_defaults
+                                ? settings?.libtorrent?.download_defaults?.seeding_ratio
+                                : 2
+                        }
                         onChange={(event) => {
                             if (settings) {
                                 setSettings({
@@ -81,7 +84,11 @@ export default function Seeding() {
                         id="seeding_time"
                         type="number"
                         className="w-20"
-                        value={settings?.libtorrent?.download_defaults?.seeding_time}
+                        value={
+                            settings?.libtorrent?.download_defaults
+                                ? settings?.libtorrent?.download_defaults?.seeding_time
+                                : 60
+                        }
                         onChange={(event) => {
                             if (settings) {
                                 setSettings({

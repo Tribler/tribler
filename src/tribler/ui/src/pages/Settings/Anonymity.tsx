@@ -4,14 +4,14 @@ import {Slider} from "@/components/ui/slider";
 import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 
 export default function Anonimity() {
     const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) {
+    useEffect(() => {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
@@ -22,8 +22,7 @@ export default function Anonimity() {
                 setSettings(response);
             }
         })();
-        return null;
-    }
+    }, []);
 
     function hopsToString(hops: number | undefined) {
         switch (hops) {

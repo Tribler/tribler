@@ -696,9 +696,9 @@ class Download(TaskManager):
         peer_infos = self.handle.get_peer_info() if self.handle and self.handle.is_valid() else []
         for peer_info in peer_infos:
             try:
-                extended_version = peer_info.client
+                extended_version = peer_info.client.decode()
             except UnicodeDecodeError:
-                extended_version = b"unknown"
+                extended_version = "unknown"
             peer_dict: PeerDict | PeerDictHave = cast("PeerDict", {
                 "id": hexlify(peer_info.pid.to_bytes()).decode(),
                 "extended_version": extended_version,

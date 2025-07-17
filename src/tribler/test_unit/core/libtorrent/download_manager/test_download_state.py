@@ -19,7 +19,7 @@ class TestDownloadState(TestBase):
     Tests for the DownloadState class.
     """
 
-    base_peer_info = {"client": "unknown", "pid": Mock(to_bytes=Mock(return_value=b"\x01")), "ip": ("127.0.0.1", 42),
+    base_peer_info = {"client": b"unknown", "pid": Mock(to_bytes=Mock(return_value=b"\x01")), "ip": ("127.0.0.1", 42),
                       "flags":0, "local_connection": 1, "remote_interested": 0, "remote_choked": 0, "upload_only": 1,
                       "upload_queue_length": 1, "used_send_buffer": 1, "interesting": 1, "choked": 0, "seed": 1,
                       "dht": 1, "pex": 2, "lsd": 4, "source": 1}

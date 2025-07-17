@@ -5,7 +5,7 @@ import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVal
 import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
@@ -46,7 +46,7 @@ export default function Connection() {
     const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) {
+    useEffect(() => {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
@@ -57,8 +57,7 @@ export default function Connection() {
                 setSettings(response);
             }
         })();
-        return null;
-    }
+    }, []);
 
     return (
         <div className="p-5 w-full">
@@ -70,7 +69,17 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="ipv8_ipv4"
-                    value={settings?.ipv8?.interfaces.filter((e) => e.interface == "UDPIPv4")?.[0]?.ip}
+                    value={
+                        (
+                            settings?.ipv8?.interfaces || [
+                                {
+                                    interface: "UDPIPv4",
+                                    ip: "",
+                                    port: 0,
+                                },
+                            ]
+                        ).filter((e) => e.interface == "UDPIPv4")?.[0]?.ip
+                    }
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -93,7 +102,17 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="ipv8_ipv6"
-                    value={settings?.ipv8?.interfaces.filter((e) => e.interface == "UDPIPv6")?.[0]?.ip}
+                    value={
+                        (
+                            settings?.ipv8?.interfaces || [
+                                {
+                                    interface: "UDPIPv6",
+                                    ip: "",
+                                    port: 0,
+                                },
+                            ]
+                        ).filter((e) => e.interface == "UDPIPv6")?.[0]?.ip
+                    }
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -128,8 +147,7 @@ export default function Connection() {
                             });
                         }
                     }}
-                    value={settings?.libtorrent.proxy_type.toString()}
-                    defaultValue="0">
+                    value={settings ? settings.libtorrent.proxy_type.toString() : "0"}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select a proxy type" />
                     </SelectTrigger>
@@ -150,7 +168,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="proxy_server"
-                    value={settings?.libtorrent?.proxy_server.split(":")[0]}
+                    value={(settings?.libtorrent?.proxy_server || ":").split(":")[0]}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -170,7 +188,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="proxy_port"
-                    value={settings?.libtorrent?.proxy_server.split(":")[1]}
+                    value={(settings?.libtorrent?.proxy_server || ":").split(":")[1]}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -190,7 +208,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="proxy_user"
-                    value={settings?.libtorrent?.proxy_auth.split(":")[0]}
+                    value={(settings?.libtorrent?.proxy_auth || ":").split(":")[0]}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -209,7 +227,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="proxy_pass"
-                    value={settings?.libtorrent?.proxy_auth.split(":")[1]}
+                    value={(settings?.libtorrent?.proxy_auth || ":").split(":")[1]}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -230,7 +248,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="libtorrent_ip"
-                    value={settings?.libtorrent?.listen_interface}
+                    value={settings?.libtorrent ? settings.libtorrent.listen_interface : ""}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -250,7 +268,7 @@ export default function Connection() {
                 <Checkbox
                     id="utp"
                     className="my-2"
-                    checked={settings?.libtorrent.utp}
+                    checked={!!settings?.libtorrent.utp}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
@@ -270,7 +288,7 @@ export default function Connection() {
                 <Input
                     id="max_connections_download"
                     type="number"
-                    value={settings?.libtorrent?.max_connections_download}
+                    value={settings?.libtorrent ? settings.libtorrent.max_connections_download : 0}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -295,7 +313,7 @@ export default function Connection() {
                     checked={
                         settings?.libtorrent.announce_to_all_tiers !== settings?.libtorrent.announce_to_all_trackers
                             ? "indeterminate"
-                            : settings?.libtorrent.announce_to_all_tiers
+                            : !!settings?.libtorrent.announce_to_all_tiers
                     }
                     onCheckedChange={(value) => {
                         if (settings) {
@@ -317,11 +335,7 @@ export default function Connection() {
                 <Input
                     id="max_concurrent_http_announces"
                     type="number"
-                    value={
-                        settings?.libtorrent?.max_concurrent_http_announces === undefined
-                            ? 50
-                            : settings?.libtorrent?.max_concurrent_http_announces
-                    }
+                    value={settings?.libtorrent ? settings?.libtorrent?.max_concurrent_http_announces : 50}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
