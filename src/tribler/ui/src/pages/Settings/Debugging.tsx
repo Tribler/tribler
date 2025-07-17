@@ -2,7 +2,7 @@ import {Checkbox} from "@/components/ui/checkbox";
 import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
@@ -11,7 +11,7 @@ export default function Debugging() {
     const {t} = useTranslation();
     const [settings, setSettings] = useState<Settings>();
 
-    if (!settings) {
+    useEffect(() => {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
@@ -22,8 +22,7 @@ export default function Debugging() {
                 setSettings(response);
             }
         })();
-        return null;
-    }
+    }, []);
 
     return (
         <div className="p-6">

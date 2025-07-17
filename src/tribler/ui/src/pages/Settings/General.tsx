@@ -4,7 +4,7 @@ import {Label} from "@/components/ui/label";
 import {AutoManageSettings, Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import {useTranslation} from "react-i18next";
 import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
@@ -54,7 +54,7 @@ export default function General() {
     const [settings, setSettings] = useState<Settings>();
     const [moveCompleted, setMoveCompleted] = useState<boolean>(false);
 
-    if (!settings) {
+    useEffect(() => {
         (async () => {
             const response = await triblerService.getSettings();
             if (response === undefined) {
@@ -66,8 +66,7 @@ export default function General() {
                 setMoveCompleted((response?.libtorrent?.download_defaults?.completed_dir || "").length > 0);
             }
         })();
-        return null;
-    }
+    }, []);
 
     return (
         <div className="p-5 w-full">
@@ -82,7 +81,7 @@ export default function General() {
                     type="number"
                     min="0"
                     max="65535"
-                    value={settings?.api?.http_port}
+                    value={settings?.api ? settings?.api?.http_port : 0}
                     onChange={(event) => {
                         if (settings) {
                             setSettings({
@@ -201,7 +200,7 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.libtorrent?.check_after_complete}
+                    checked={!!settings?.libtorrent?.check_after_complete}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
@@ -224,7 +223,7 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.ui?.ask_download_settings !== false}
+                    checked={!!settings?.ui?.ask_download_settings}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
@@ -246,7 +245,7 @@ export default function General() {
             </div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.libtorrent?.download_defaults?.anonymity_enabled}
+                    checked={!!settings?.libtorrent?.download_defaults?.anonymity_enabled}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
@@ -271,7 +270,7 @@ export default function General() {
             </div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.libtorrent?.download_defaults?.safeseeding_enabled}
+                    checked={!!settings?.libtorrent?.download_defaults?.safeseeding_enabled}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
@@ -297,7 +296,7 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.libtorrent?.download_defaults?.auto_managed}
+                    checked={!!settings?.libtorrent?.download_defaults?.auto_managed}
                     id="auto_manage"
                     onCheckedChange={(value) => {
                         if (settings) {
@@ -325,38 +324,49 @@ export default function General() {
                 <Label htmlFor="active_downloads" className="whitespace-nowrap">
                     {t("AutoManageMax")}
                 </Label>
-                <div className="grid grid-cols-2 gap-2 items-center pt-2 pl-10">
-                    {autoManageOptions.map((option) => (
-                        <>
-                            <Label htmlFor="active_downloads" className="whitespace-nowrap">
-                                {t(option.translationKey)}
-                            </Label>
-                            <Input
-                                type="number"
-                                id={option.settingsKey}
-                                defaultValue={option.default}
-                                value={settings && settings?.libtorrent[option.settingsKey as keyof AutoManageSettings]}
-                                onChange={(event) => {
-                                    if (settings) {
-                                        setSettings({
-                                            ...settings,
-                                            libtorrent: {
-                                                ...settings.libtorrent,
-                                                [option.settingsKey]: +event.target.value,
-                                            },
-                                        });
-                                    }
-                                }}
-                            />
-                        </>
-                    ))}
-                </div>
+                <table className="border-separate border-spacing-2 items-center pt-2 pl-10 w-full">
+                    <tbody>
+                        {autoManageOptions.map((option) => (
+                            <tr key={option.settingsKey}>
+                                <td>
+                                    <Label htmlFor="active_downloads" className="whitespace-nowrap">
+                                        {t(option.translationKey)}
+                                    </Label>
+                                </td>
+                                <td>
+                                    <Input
+                                        type="number"
+                                        id={option.settingsKey}
+                                        value={
+                                            settings
+                                                ? settings?.libtorrent[
+                                                      option.settingsKey as keyof AutoManageSettings
+                                                  ] || option.default
+                                                : ""
+                                        }
+                                        onChange={(event) => {
+                                            if (settings) {
+                                                setSettings({
+                                                    ...settings,
+                                                    libtorrent: {
+                                                        ...settings.libtorrent,
+                                                        [option.settingsKey]: +event.target.value,
+                                                    },
+                                                });
+                                            }
+                                        }}
+                                    />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
 
             <div className="pt-5 py-2 font-semibold">{t("WatchFolder")}</div>
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={settings?.watch_folder?.enabled}
+                    checked={!!settings?.watch_folder?.enabled}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({

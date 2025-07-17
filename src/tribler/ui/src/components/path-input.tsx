@@ -28,7 +28,7 @@ export function PathInput(props: PathInputProps & JSX.IntrinsicAttributes) {
                 }}
             />
             <Input
-                value={props.path}
+                value={props.path || ""}
                 disabled={props.disabled}
                 onChange={(event) => {
                     if (props.onPathChange) props.onPathChange(event.target.value);
