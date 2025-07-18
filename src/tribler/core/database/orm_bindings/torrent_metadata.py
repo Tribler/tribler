@@ -318,7 +318,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 "origin_id": self.origin_id,
                 "public_key": hexlify(self.public_key).decode(),
                 "status": self.status,
-                "trackers": self.tracker_info.split(",") if self.tracker_info else [],
+                "trackers": [self.tracker_info] if self.tracker_info else [],
             }
 
         def get_type(self) -> int:

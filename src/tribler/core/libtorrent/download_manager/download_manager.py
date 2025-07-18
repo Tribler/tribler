@@ -546,14 +546,6 @@ class DownloadManager(TaskManager):
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
             self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(),
                                                                  meta_info=metainfo)
-            self.notifier.notify(Notification.torrent_metadata_added, metadata={
-                "infohash": infohash,
-                "size": cast("lt.torrent_info", download.tdef.atp.ti).total_size(),
-                "title": download.tdef.name,
-                "metadata_type": 300,
-                "tracker_info": (download.tdef.atp.trackers or [""])[0]
-            })
-
             seeders, leechers = download.get_state().get_num_seeds_peers()
             metainfo[b"seeders"] = seeders
             metainfo[b"leechers"] = leechers
