@@ -498,6 +498,17 @@ class Download(TaskManager):
         if not torrent_info:
             return
 
+        # We're deliberately calling the notifier before adding the trackers from the handle
+        # to avoid including all trackers from the default tracker file.
+        if self.notifier and self.tdef.atp is not None:
+            self.notifier.notify(Notification.torrent_metadata_added, metadata={
+                "infohash": torrent_info.info_hash().to_bytes(),
+                "size": torrent_info.total_size(),
+                "title": torrent_info.name(),
+                "metadata_type": 300,
+                "tracker_info": (self.tdef.atp.trackers or [t.url for t in torrent_info.trackers()] or [""])[0]
+            })
+
         try:
             metadata = cast("MetainfoDict", {b"info": lt.bdecode(torrent_info.metadata())})
         except (RuntimeError, ValueError) as e:
@@ -505,7 +516,7 @@ class Download(TaskManager):
             return
 
         tracker_urls = []
-        trackers = []
+        trackers: list[lt._AnnounceEntryDict] = []
         try:
             trackers = handle.trackers()
         except UnicodeDecodeError as e:

@@ -306,7 +306,7 @@ export class TriblerService {
           }
     > {
         try {
-            return (await this.http.get(`/torrentinfo?uri=${uri}&skipmagnet=${skipMagnet}`, config)).data;
+            return (await this.http.get(`/torrentinfo`, {params: {uri, skipmagnet: skipMagnet}, ...config})).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
