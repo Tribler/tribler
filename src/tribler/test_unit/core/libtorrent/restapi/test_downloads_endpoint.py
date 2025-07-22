@@ -19,7 +19,12 @@ from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS, TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
+from tribler.test_unit.core.libtorrent.mocks import (
+    TORRENT_WITH_DIRS,
+    TORRENT_WITH_DIRS_CONTENT,
+    TORRENT_WITH_VIDEO,
+    FakeTDef,
+)
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
@@ -87,8 +92,7 @@ class TestDownloadsEndpoint(TestBase):
         conf.validate(Validator())
         config = DownloadConfig(conf)
         config.set_dest_dir(Path(""))
-        return Download(TorrentDef.load_only_sha1(b"\x01" * 20, "test", ""), self.download_manager, config,
-                        hidden=False, checkpoint_disabled=True)
+        return Download(FakeTDef(), self.download_manager, config, hidden=False, checkpoint_disabled=True)
 
     def test_create_dconf_safe_default_safe(self) -> None:
         """
@@ -189,7 +193,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if an empty list is returned if there are only hidden downloads.
         """
-        self.set_loaded_downloads([Download(TorrentDef.load_only_sha1(b"\x01" * 20, "test", ""), self.download_manager,
+        self.set_loaded_downloads([Download(FakeTDef(), self.download_manager,
                                             Mock(), hidden=True, checkpoint_disabled=True)])
         request = MockRequest("/api/downloads", query={})
 

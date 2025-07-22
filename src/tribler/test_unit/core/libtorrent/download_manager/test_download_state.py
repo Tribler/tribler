@@ -10,7 +10,7 @@ from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadState, DownloadStatus
 from tribler.core.libtorrent.torrentdef import TorrentDef
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
+from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
@@ -29,7 +29,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download without a status.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download_state = DownloadState(download, None, None)
 
@@ -50,7 +50,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download with a status.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download_state = DownloadState(download, libtorrent.torrent_status(), None)
 
@@ -69,7 +69,7 @@ class TestDownloadState(TestBase):
         """
         Test if DownloadState gets properly initialized from a download with a mocked status.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.config.set_selected_files(["test"])
         download_state = DownloadState(download, Mock(num_pieces=6, pieces=[1, 1, 1, 0, 0, 0], progress=0.75,
@@ -168,7 +168,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if another peer has no pieces.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
@@ -181,7 +181,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if another peer has all pieces.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
@@ -194,7 +194,7 @@ class TestDownloadState(TestBase):
         """
         Testing if the right availability of a file is returned if one peer is complete and the other is not.
         """
-        download = Download(TorrentDef.load_only_sha1(b"\x01" * 20, "name", ""), self.dlmngr, checkpoint_disabled=True,
+        download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
                             config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,

@@ -320,24 +320,6 @@ class TorrentDef:
         body = await response.read()
         return TorrentDef.load_from_memory(body)
 
-    @staticmethod
-    def load_only_sha1(infohash: bytes, name: str, url: str) -> TorrentDef:
-        """
-        This loads a TorrentDef with only the SHA-1, without resolving it from the given URI.
-        """
-        atp = lt.add_torrent_params()
-        atp.info_hash = lt.sha1_hash(infohash)
-        atp.name = name
-        atp.url = url
-        return TorrentDef(atp)
-
-    async def load_torrent_info(self) -> None:
-        """
-        Load the torrent info from the stored url.
-        """
-        if self.torrent_info is None:
-            self.atp = (await self.load_from_url(self.atp.url)).atp
-
     def get_metainfo(self) -> MetainfoDict | MetainfoV2Dict | None:
         """
         Returns the metainfo of the torrent. Might be None if no metainfo is provided.

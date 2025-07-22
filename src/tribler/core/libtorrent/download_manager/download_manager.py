@@ -521,7 +521,9 @@ class DownloadManager(TaskManager):
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
-            tdef = TorrentDef.load_only_sha1(infohash, "metainfo request", url or "")
+            atp = lt.parse_magnet_uri(url) if url and url.startswith("magnet") else lt.add_torrent_params()
+            atp.name, atp.info_hash, atp.url = "metainfo request", lt.sha1_hash(infohash), url or ""
+            tdef = TorrentDef(atp)
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
@@ -972,7 +974,7 @@ class DownloadManager(TaskManager):
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
-    async def load_checkpoint(self, filename: Path | str) -> bool:
+    async def load_checkpoint(self, filename: Path | str) -> bool:  # noqa: C901,PLR0912
         """
         Load a checkpoint from a given file name.
         """
@@ -995,10 +997,14 @@ class DownloadManager(TaskManager):
         resumedata = config.get_engineresumedata()
         if resumedata is None or resumedata.info_hash.to_bytes() == (b"\x00" * 20):
             try:
-                url = metainfo.get(b"url")
-                url = url.decode() if url is not None else ""
-                tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
-                        if b"infohash" in metainfo else TorrentDef.load_from_dict(cast("MetainfoDict", metainfo)))
+                url = metainfo.get(b"url", b"").decode()
+                if b"infohash" in metainfo:
+                    atp = lt.add_torrent_params()
+                    atp.name, atp.info_hash = metainfo[b"name"].decode(), lt.sha1_hash(metainfo[b"infohash"])
+                    atp.url = url
+                    tdef = TorrentDef(atp)
+                else:
+                    tdef = TorrentDef.load_from_dict(cast("MetainfoDict", metainfo))
             except (KeyError, ValueError) as e:
                 self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
                 return False

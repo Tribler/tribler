@@ -13,7 +13,7 @@ from tribler.core.libtorrent.download_manager.download_manager import MetainfoLo
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint, recursive_unicode
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO
+from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO, FakeTDef
 
 
 async def mock_unshorten(uri: str) -> tuple[str, bool]:
@@ -67,8 +67,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
 
-        tdef = TorrentDef.load_only_sha1(b"\x01" * 20, "test", "")
-        with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
+        with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=FakeTDef())):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
