@@ -28,7 +28,7 @@ from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict, TorrentDef
-from tribler.core.libtorrent.uris import unshorten, url_to_path
+from tribler.core.libtorrent.uris import get_url, unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
 
@@ -594,8 +594,7 @@ class DownloadManager(TaskManager):
 
         if scheme in ("http", "https"):
             logger.info("Http(s) scheme detected")
-            tdef = await TorrentDef.load_from_url(uri)
-            return await self.start_download(tdef=tdef, config=config)
+            return await self.start_download(tdef=TorrentDef.load_from_memory(await get_url(uri)), config=config)
         if scheme == "magnet":
             logger.info("Magnet scheme detected")
             tdef = TorrentDef(lt.parse_magnet_uri(uri))
@@ -619,8 +618,7 @@ class DownloadManager(TaskManager):
             return await self.start_download(tdef=tdef, config=config)
         if scheme == "file":
             logger.info("File scheme detected")
-            file = url_to_path(uri)
-            return await self.start_download(torrent_file=file, config=config)
+            return await self.start_download(torrent_file=url_to_path(uri), config=config)
         msg = "invalid uri"
         raise Exception(msg)
 

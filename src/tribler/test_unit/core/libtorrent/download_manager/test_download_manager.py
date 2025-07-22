@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import libtorrent
+from aiohttp import ClientResponseError
 from configobj import ConfigObj
 from configobj.validate import Validator, VdtParamError
 from ipv8.test.base import TestBase
@@ -392,6 +393,28 @@ class TestDownloadManager(TestBase):
 
         self.assertEqual([download], self.manager.get_downloads_by_name("test"))
         self.assertEqual([], self.manager.get_downloads_by_name("bla"))
+
+    async def test_start_download_from_url(self) -> None:
+        """
+        Test if torrents can be loaded from a URL.
+        """
+        with (patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
+                         get_url=AsyncMock(return_value=TORRENT_WITH_DIRS_CONTENT),
+                         unshorten=lambda x: succeed((x, True))),
+              patch.object(self.manager, "start_download", AsyncMock(return_value=Mock()))):
+            await self.manager.start_download_from_uri("http://127.0.0.1:1234/ubuntu.torrent")
+            tdef = self.manager.start_download.call_args.kwargs["tdef"]
+
+        self.assertEqual(b"\xb3\xba\x19\xc93\xda\x95\x84k\xfd\xf7Z\xd0\x8a\x94\x9cl\xea\xc7\xbc", tdef.infohash)
+
+    async def test_start_download_from_url_404(self) -> None:
+        """
+        Test if 404 errors are not caught.
+        """
+        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
+                        get_url=AsyncMock(side_effect=ClientResponseError(None, None, status=404)),
+                        unshorten=lambda x: succeed((x, True))), self.assertRaises(ClientResponseError):
+            await self.manager.start_download_from_uri("http://127.0.0.1:1234/ubuntu.torrent")
 
     async def test_start_download_from_magnet_no_name(self) -> None:
         """

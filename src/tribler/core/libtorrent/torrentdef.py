@@ -4,7 +4,6 @@ from asyncio import get_running_loop
 from binascii import hexlify
 from typing import TYPE_CHECKING, Any
 
-import aiohttp
 import libtorrent as lt
 
 if TYPE_CHECKING:
@@ -307,18 +306,6 @@ class TorrentDef:
             return TorrentDef.load_from_memory(lt.bencode(metainfo))
         except RuntimeError as e:
             raise ValueError from e
-
-    @staticmethod
-    async def load_from_url(url: str) -> TorrentDef:
-        """
-        Create a TorrentDef with information from a remote source.
-
-        :param url: The HTTP/HTTPS url where to fetch the torrent info from.
-        """
-        session = aiohttp.ClientSession(raise_for_status=True)
-        response = await session.get(url)
-        body = await response.read()
-        return TorrentDef.load_from_memory(body)
 
     def get_metainfo(self) -> MetainfoDict | MetainfoV2Dict | None:
         """
