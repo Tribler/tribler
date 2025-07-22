@@ -28,7 +28,7 @@ from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict, TorrentDef
-from tribler.core.libtorrent.uris import unshorten, url_to_path
+from tribler.core.libtorrent.uris import get_url, unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
 
@@ -521,7 +521,9 @@ class DownloadManager(TaskManager):
         elif infohash in self.downloads:
             download = self.downloads[infohash]
         else:
-            tdef = TorrentDef.load_only_sha1(infohash, "metainfo request", url or "")
+            atp = lt.parse_magnet_uri(url) if url and url.startswith("magnet") else lt.add_torrent_params()
+            atp.name, atp.info_hash, atp.url = "metainfo request", lt.sha1_hash(infohash), url or ""
+            tdef = TorrentDef(atp)
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
             dcfg.set_upload_mode(True)  # Upload mode should prevent libtorrent from creating files
@@ -592,8 +594,7 @@ class DownloadManager(TaskManager):
 
         if scheme in ("http", "https"):
             logger.info("Http(s) scheme detected")
-            tdef = await TorrentDef.load_from_url(uri)
-            return await self.start_download(tdef=tdef, config=config)
+            return await self.start_download(tdef=TorrentDef.load_from_memory(await get_url(uri)), config=config)
         if scheme == "magnet":
             logger.info("Magnet scheme detected")
             tdef = TorrentDef(lt.parse_magnet_uri(uri))
@@ -617,8 +618,7 @@ class DownloadManager(TaskManager):
             return await self.start_download(tdef=tdef, config=config)
         if scheme == "file":
             logger.info("File scheme detected")
-            file = url_to_path(uri)
-            return await self.start_download(torrent_file=file, config=config)
+            return await self.start_download(torrent_file=url_to_path(uri), config=config)
         msg = "invalid uri"
         raise Exception(msg)
 
@@ -972,7 +972,7 @@ class DownloadManager(TaskManager):
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
-    async def load_checkpoint(self, filename: Path | str) -> bool:
+    async def load_checkpoint(self, filename: Path | str) -> bool:  # noqa: C901,PLR0912
         """
         Load a checkpoint from a given file name.
         """
@@ -995,10 +995,14 @@ class DownloadManager(TaskManager):
         resumedata = config.get_engineresumedata()
         if resumedata is None or resumedata.info_hash.to_bytes() == (b"\x00" * 20):
             try:
-                url = metainfo.get(b"url")
-                url = url.decode() if url is not None else ""
-                tdef = (TorrentDef.load_only_sha1(metainfo[b"infohash"], metainfo[b"name"].decode(), url)
-                        if b"infohash" in metainfo else TorrentDef.load_from_dict(cast("MetainfoDict", metainfo)))
+                url = metainfo.get(b"url", b"").decode()
+                if b"infohash" in metainfo:
+                    atp = lt.add_torrent_params()
+                    atp.name, atp.info_hash = metainfo[b"name"].decode(), lt.sha1_hash(metainfo[b"infohash"])
+                    atp.url = url
+                    tdef = TorrentDef(atp)
+                else:
+                    tdef = TorrentDef.load_from_dict(cast("MetainfoDict", metainfo))
             except (KeyError, ValueError) as e:
                 self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
                 return False

@@ -1,5 +1,7 @@
 import libtorrent
 
+from tribler.core.libtorrent.torrentdef import TorrentDef
+
 TORRENT_WITH_DIRS_CONTENT = (
     b'd'
         b'7:comment16:Test description'
@@ -111,3 +113,17 @@ Torrent structure:
 
   > [File] ubuntu-15.04-desktop-amd64.iso (1150844928 bytes)
 """
+
+
+class FakeTDef(TorrentDef):
+    """
+    A convenience TorrentDef with near-empty atp.
+    """
+
+    def __init__(self, name: str = "test", info_hash: bytes = b"\x01" * 20, url: str = "") -> None:
+        """
+        Initialize with a near-empty atp.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.name, atp.info_hash, atp.url = name, libtorrent.sha1_hash(info_hash), url
+        super().__init__(atp)

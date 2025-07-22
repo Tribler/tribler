@@ -4,7 +4,6 @@ from asyncio import get_running_loop
 from binascii import hexlify
 from typing import TYPE_CHECKING, Any
 
-import aiohttp
 import libtorrent as lt
 
 if TYPE_CHECKING:
@@ -83,47 +82,6 @@ if TYPE_CHECKING:
 
         @overload
         def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
-
-        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
-
-
-    class TorrentParameters(dict):  # noqa: D101
-
-        @overload  # type: ignore[override]
-        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"name"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"name.utf-8"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"piece length"]) -> int | None: ...
 
         def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
 
@@ -217,8 +175,6 @@ else:
     DirectoryV2 = dict[bytes, Any]
     MetainfoV2Dict = dict[bytes, Any]
 
-    TorrentParameters = dict
-
 
 class TorrentDef:
     """
@@ -307,36 +263,6 @@ class TorrentDef:
             return TorrentDef.load_from_memory(lt.bencode(metainfo))
         except RuntimeError as e:
             raise ValueError from e
-
-    @staticmethod
-    async def load_from_url(url: str) -> TorrentDef:
-        """
-        Create a TorrentDef with information from a remote source.
-
-        :param url: The HTTP/HTTPS url where to fetch the torrent info from.
-        """
-        session = aiohttp.ClientSession(raise_for_status=True)
-        response = await session.get(url)
-        body = await response.read()
-        return TorrentDef.load_from_memory(body)
-
-    @staticmethod
-    def load_only_sha1(infohash: bytes, name: str, url: str) -> TorrentDef:
-        """
-        This loads a TorrentDef with only the SHA-1, without resolving it from the given URI.
-        """
-        atp = lt.add_torrent_params()
-        atp.info_hash = lt.sha1_hash(infohash)
-        atp.name = name
-        atp.url = url
-        return TorrentDef(atp)
-
-    async def load_torrent_info(self) -> None:
-        """
-        Load the torrent info from the stored url.
-        """
-        if self.torrent_info is None:
-            self.atp = (await self.load_from_url(self.atp.url)).atp
 
     def get_metainfo(self) -> MetainfoDict | MetainfoV2Dict | None:
         """

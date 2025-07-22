@@ -21,6 +21,7 @@ from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
 from tribler.core.socks5.server import Socks5Server
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
+from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
@@ -211,9 +212,7 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         """
         config = await self.add_mock_download_config(self.download_manager_downloader, 1)
 
-        return await self.download_manager_downloader.start_download(tdef=TorrentDef.load_only_sha1(infohash,
-                                                                                                    "test", ""),
-                                                                     config=config)
+        return await self.download_manager_downloader.start_download(tdef=FakeTDef(info_hash=infohash), config=config)
 
     async def test_hidden_services(self) -> None:
         """

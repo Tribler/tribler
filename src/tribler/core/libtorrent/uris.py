@@ -67,3 +67,12 @@ async def unshorten(uri: str) -> tuple[str, bool]:
 
     logger.info("Unshorted URI: %s", uri)
     return uri, cert_valid
+
+
+async def get_url(url: str) -> bytes:
+    """
+    Get the body of the given URL.
+    """
+    session = ClientSession(raise_for_status=True)
+    response = await session.get(url)
+    return await response.read()

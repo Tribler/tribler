@@ -3,7 +3,7 @@ from __future__ import annotations
 from ipv8.test.base import TestBase
 
 from tribler.core.database.orm_bindings.torrent_metadata import entries_to_chunk, infohash_to_id, tdef_to_metadata_dict
-from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 
 
 class MockTorrentMetadata:
@@ -52,12 +52,12 @@ class TestTorrentMetadata(TestBase):
         """
         Test if TorrentDef instances are correctly represented by dictionaries.
         """
-        tdef = TorrentDef.load_only_sha1(b"\x01" * 20, "torrent name", "http://test.url/")
+        tdef = FakeTDef(url="http://test.url/")
 
         value = tdef_to_metadata_dict(tdef)
 
         self.assertEqual(b"\x01" * 20, value["infohash"])
-        self.assertEqual("torrent name", value["title"])
+        self.assertEqual("test", value["title"])
         self.assertEqual("Unknown", value["tags"])
         self.assertEqual(0, value["size"])
         self.assertEqual("", value["tracker_info"])
