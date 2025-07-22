@@ -13,9 +13,51 @@ import libtorrent as lt
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from pathlib import Path
+    from typing import Any, Literal, overload
 
     from tribler.core.libtorrent.download_manager.download import Download
-    from tribler.core.libtorrent.torrentdef import TorrentParameters
+
+    class TorrentParameters(dict):  # noqa: D101
+
+        @overload  # type: ignore[override]
+        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"name.utf-8"]) -> bytes | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
+
+        @overload
+        def __getitem__(self, key: Literal[b"piece length"]) -> int | None: ...
+
+        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
+else:
+    TorrentParameters = dict
 
 logger = logging.getLogger(__name__)
 
