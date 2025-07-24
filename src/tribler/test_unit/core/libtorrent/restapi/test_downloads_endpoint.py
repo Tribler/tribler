@@ -7,6 +7,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call, mock_open, patch
 
+import libtorrent
 from aiohttp.web_urldispatcher import UrlMappingMatchInfo
 from configobj import ConfigObj
 from ipv8.test.base import TestBase
@@ -1139,3 +1140,47 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(500, response.status)
         self.assertEqual("invalid torrent handle used", response_body_json["error"]["message"])
+
+    def test_get_files_info_json_v1(self) -> None:
+        """
+        Test if files can be shown for v1 torrents.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha1_hash(b"\x01" * 20))
+        atp.ti.files().add_file("d/a.txt", 16, flags=1)  # pad file
+        atp.ti.files().add_file("d/b.txt", 16)
+        tdef = TorrentDef(atp)
+        download = self.create_mock_download()
+        download.tdef = tdef
+        download.config.set_selected_files([1])
+
+        included_files = self.endpoint.get_files_info_json(download)
+
+        self.assertEqual(1, len(included_files))
+        self.assertEqual(1, included_files[0]["index"])
+        self.assertEqual(Path("d/b.txt"), Path(included_files[0]["name"]))
+        self.assertEqual(16, included_files[0]["size"])
+        self.assertTrue(included_files[0]["included"])
+        self.assertFalse(atp.ti.info_hashes().has_v2())
+
+    def test_get_files_info_json_v2(self) -> None:
+        """
+        Test if files can be shown for v2 torrents.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha256_hash(b"\x01" * 32))
+        atp.ti.files().add_file("d/a.txt", 16, flags=1)  # pad file
+        atp.ti.files().add_file("d/b.txt", 16)
+        tdef = TorrentDef(atp)
+        download = self.create_mock_download()
+        download.tdef = tdef
+        download.config.set_selected_files([1])
+
+        included_files = self.endpoint.get_files_info_json(download)
+
+        self.assertEqual(1, len(included_files))
+        self.assertEqual(1, included_files[0]["index"])
+        self.assertEqual(Path("d/b.txt"), Path(included_files[0]["name"]))
+        self.assertEqual(16, included_files[0]["size"])
+        self.assertTrue(included_files[0]["included"])
+        self.assertTrue(atp.ti.info_hashes().has_v2())

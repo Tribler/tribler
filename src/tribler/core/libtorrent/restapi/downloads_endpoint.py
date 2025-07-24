@@ -161,20 +161,21 @@ class DownloadsEndpoint(RESTEndpoint):
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
         index_mapping = download.get_def().get_file_indices()
-        num_files = tinfo.num_files() if tinfo else 0
-        for file_index in range(num_files):
+        for file_index in index_mapping:
             fn = Path(tinfo.file_at(file_index).path)
-            if num_files > 1:
+            if len(index_mapping) > 1:
                 fn = fn.relative_to(tinfo.name())
             size = tinfo.file_at(file_index).size
-            files_json.append(cast("JSONFilesInfo", {
-                "index": index_mapping[file_index],
-                # We always return files in Posix format to make GUI independent of Core and simplify testing
-                "name": str(fn.as_posix()),
-                "size": size,
-                "included": (selected_files is None or index_mapping[file_index] in selected_files),
-                "progress": files_completion.get(fn, 0.0)
-            }))
+            files_json.append(
+                JSONFilesInfo(
+                    index=file_index,
+                    # We always return files in Posix format to make GUI independent of Core and simplify testing
+                    name=str(fn.as_posix()),
+                    size=size,
+                    included=(selected_files is None or file_index in selected_files),
+                    progress= files_completion.get(fn, 0.0),
+                )
+            )
         return files_json
 
     @docs(
