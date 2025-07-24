@@ -595,3 +595,39 @@ class TestTorrentInfoEndpoint(TestBase):
         expected = {"list": ["binary", {}], "sub dict": {"sub list": [1, "binary", {"": ""}]}}
 
         self.assertEqual(expected, recursive_unicode(obj))
+
+    def test_get_files_v1(self) -> None:
+        """
+        Test if files can be shown for v1 torrents.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha1_hash(b"\x01" * 20))
+        atp.ti.files().add_file("d/a.txt", 16, flags=1)  # pad file
+        atp.ti.files().add_file("d/b.txt", 16)
+        tdef = TorrentDef(atp)
+
+        included_files = self.endpoint.get_files(tdef)
+
+        self.assertEqual(1, len(included_files))
+        self.assertEqual(1, included_files[0]["index"])
+        self.assertEqual(Path("d/b.txt"), Path(included_files[0]["name"]))
+        self.assertEqual(16, included_files[0]["size"])
+        self.assertFalse(atp.ti.info_hashes().has_v2())
+
+    def test_get_files_v2(self) -> None:
+        """
+        Test if files can be shown for v2 torrents.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha256_hash(b"\x01" * 32))
+        atp.ti.files().add_file("d/a.txt", 16, flags=1)  # pad file
+        atp.ti.files().add_file("d/b.txt", 16)
+        tdef = TorrentDef(atp)
+
+        included_files = self.endpoint.get_files(tdef)
+
+        self.assertEqual(1, len(included_files))
+        self.assertEqual(1, included_files[0]["index"])
+        self.assertEqual(Path("d/b.txt"), Path(included_files[0]["name"]))
+        self.assertEqual(16, included_files[0]["size"])
+        self.assertTrue(atp.ti.info_hashes().has_v2())

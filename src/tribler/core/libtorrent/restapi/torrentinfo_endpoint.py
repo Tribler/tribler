@@ -129,43 +129,51 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         remapped_indices = tdef.get_file_indices()
         torrent_info = cast("lt.torrent_info", tdef.atp.ti)
-        num_files = torrent_info.num_files()
-        return [JSONMiniFileInfo(index=remapped_indices[fi],
-                                 name=(str(Path(torrent_info.file_at(fi).path).relative_to(torrent_info.name()))
-                                       if num_files > 1 else str(Path(torrent_info.file_at(fi).path))),
-                                 size=torrent_info.file_at(fi).size)
-                for fi in range(torrent_info.num_files())]
+        return [
+            JSONMiniFileInfo(
+                index=fi,
+                name=(str(Path(torrent_info.file_at(fi).path).relative_to(torrent_info.name()))
+                      if len(remapped_indices) > 1 else str(Path(torrent_info.file_at(fi).path))),
+                size=torrent_info.file_at(fi).size,
+            )
+            for fi in remapped_indices
+        ]
 
     @docs(
         tags=["Libtorrent"],
         summary="Return metainfo from a torrent found at a provided URI.",
-        parameters=[{
-            "in": "query",
-            "name": "uri",
-            "description": "URI for which to return torrent information. This URI can either represent "
-                           "a file location, a magnet link or a HTTP(S) url.",
-            "type": "string",
-            "required": True
-        }, {
-            "in": "query",
-            "name": "hops",
-            "description": "The number of anonymization hops to use.",
-            "type": "number",
-            "required": False
-        }, {
-            "in": "query",
-            "name": "skipmagnet",
-            "description": "Don't resolve magnet link metainfo, if you want an immediate response.",
-            "type": "boolean",
-            "required": False
-        }],
+        parameters=[
+            {
+                "in": "query",
+                "name": "uri",
+                "description": "URI for which to return torrent information. This URI can either represent "
+                "a file location, a magnet link or a HTTP(S) url.",
+                "type": "string",
+                "required": True,
+            },
+            {
+                "in": "query",
+                "name": "hops",
+                "description": "The number of anonymization hops to use.",
+                "type": "number",
+                "required": False,
+            },
+            {
+                "in": "query",
+                "name": "skipmagnet",
+                "description": "Don't resolve magnet link metainfo, if you want an immediate response.",
+                "type": "boolean",
+                "required": False,
+            },
+        ],
         responses={
             200: {
                 "description": "Return a hex-encoded json-encoded string with torrent metainfo",
-                "schema": schema(GetMetainfoResponse={"metainfo": String, "download_exists": Boolean,
-                                                      "valid_certificate": Boolean})
+                "schema": schema(
+                    GetMetainfoResponse={"metainfo": String, "download_exists": Boolean, "valid_certificate": Boolean}
+                ),
             }
-        }
+        },
     )
     async def get_torrent_info(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0911, PLR0912, PLR0915
         """
