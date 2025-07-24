@@ -868,3 +868,55 @@ class TestDownload(TestBase):
         await sleep(0)
 
         self.assertEqual(None, download.handle.force_recheck.call_args)
+
+    async def test_move_after_finish(self) -> None:
+        """
+        Test if a move to a valid path is triggered after finishing.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True),
+                               status=Mock(return_value=libtorrent.torrent_status()))
+        download.config.set_dest_dir(".")
+        download.config.set_completed_dir("folder")
+
+        download.on_torrent_finished_alert(Mock())
+
+        self.assertEqual(call("folder"), download.handle.move_storage.call_args)
+        self.assertEqual(Path("folder"), download.config.get_dest_dir())
+
+    async def test_move_after_finish_unset(self) -> None:
+        """
+        Test if a move to None does not lead to a move.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True),
+                               status=Mock(return_value=libtorrent.torrent_status()))
+        download.config.set_dest_dir("folder")
+        # Using the setter is not allowed, but this can still happen in the config file itself:
+        del download.config.config["download_defaults"]["completed_dir"]
+
+        download.on_torrent_finished_alert(Mock())
+
+        self.assertEqual(None, download.handle.move_storage.call_args)
+        self.assertEqual(Path("folder"), download.config.get_dest_dir())
+
+    async def test_move_after_finish_empty_str(self) -> None:
+        """
+        Test if a move to "" does not lead to a move.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True),
+                               status=Mock(return_value=libtorrent.torrent_status()))
+        download.config.set_dest_dir("folder")
+        download.config.set_completed_dir("")
+
+        download.on_torrent_finished_alert(Mock())
+
+        self.assertEqual(None, download.handle.move_storage.call_args)
+        self.assertEqual(Path("folder"), download.config.get_dest_dir())
