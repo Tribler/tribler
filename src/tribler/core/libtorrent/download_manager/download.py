@@ -605,7 +605,7 @@ class Download(TaskManager):
             self.notifier.notify(Notification.torrent_finished, infohash=infohash, name=name, hidden=self.hidden)
 
         completed_dir = self.config.get_completed_dir()
-        if completed_dir is not None and completed_dir != self.config.get_dest_dir():
+        if completed_dir and completed_dir != self.config.get_dest_dir():
             self.move_storage(Path(completed_dir))
 
     def update_lt_status(self, lt_status: lt.torrent_status) -> None:
