@@ -451,9 +451,9 @@ class DownloadManager(TaskManager):
             if is_process_alert:
                 download.process_alert(cast("lt.torrent_alert", alert), alert_type)
             else:
-                logger.debug("Got alert for download without handle %s: %s", infohash, alert)
+                logger.debug("Got alert for download without handle %s: %s", infohash, str(alert))
         elif infohash:
-            logger.debug("Got alert for unknown download %s: %s", infohash, alert)
+            logger.debug("Got alert for unknown download %s: %s", infohash, str(alert))
             if alert_type == "add_torrent_alert":
                 # A torrent got added, but the download is already removed.
                 handle = cast("lt.add_torrent_alert", alert).handle
