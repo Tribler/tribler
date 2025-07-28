@@ -29,7 +29,7 @@ export default function Seeding() {
     return (
         <div className="p-6 w-full">
             <RadioGroup
-                defaultValue={settings?.libtorrent?.download_defaults?.seeding_mode || "forever"}
+                value={settings?.libtorrent?.download_defaults?.seeding_mode || "forever"}
                 onValueChange={(value) => {
                     if (settings) {
                         setSettings({
