@@ -71,7 +71,7 @@ class WatchFolderManager:
         logger.debug("Add watched torrent file: %s", str(path))
         try:
             if path.name.endswith(".torrent"):
-                tdef = await TorrentDef.load(path)
+                tdef = await TorrentDef.load(str(path))
                 if not self.session.download_manager.download_exists(tdef.infohash):
                     logger.info("Starting download from torrent file %s", path.name)
                     await self.session.download_manager.start_download(torrent_file=str(path), tdef=tdef)
