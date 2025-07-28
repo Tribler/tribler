@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 import libtorrent as lt
 
 if TYPE_CHECKING:
-    from os import PathLike
     from typing import Literal, overload
 
     ###############
@@ -220,7 +219,7 @@ class TorrentDef:
         return self.atp.info_hash.to_bytes()
 
     @staticmethod
-    def _threaded_load_job(filepath: str | bytes | PathLike) -> TorrentDef:
+    def _threaded_load_job(filepath: str) -> TorrentDef:
         """
         Perform the actual loading of the torrent.
 
@@ -232,7 +231,7 @@ class TorrentDef:
             raise ValueError from e
 
     @staticmethod
-    async def load(filepath: str | bytes | PathLike) -> TorrentDef:
+    async def load(filepath: str) -> TorrentDef:
         """
         Create a TorrentDef object from a .torrent file.
 
