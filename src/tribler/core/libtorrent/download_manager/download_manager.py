@@ -678,7 +678,7 @@ class DownloadManager(TaskManager):
                             download_manager=self)
         logger.info("Download created: %s", str(download))
 
-        logger.info("ATP: %s", str(lt.write_resume_data(tdef.atp)))
+        logger.debug("ATP: %s", str(lt.write_resume_data(tdef.atp)))
         # Keep metainfo downloads in self.downloads for now because we will need to remove it later,
         # and removing the download at this point will stop us from receiving any further alerts.
         if infohash not in self.metainfo_requests or self.metainfo_requests[infohash].download == download:
