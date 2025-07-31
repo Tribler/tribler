@@ -659,7 +659,7 @@ class Download(TaskManager):
         Move the output files to a different location.
         """
         if self.tdef.torrent_info is not None:
-            handle.move_storage(str(new_dir))
+            handle.move_storage(str(new_dir), lt.move_flags_t.dont_replace)
         self.config.set_dest_dir(new_dir)
         return True
 

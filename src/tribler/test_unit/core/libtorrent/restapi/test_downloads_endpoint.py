@@ -707,7 +707,8 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["modified"])
         self.assertEqual("01" * 20, response_body_json["infohash"])
-        self.assertEqual(call(str(Path(__file__).parent)), download.handle.move_storage.call_args)
+        self.assertEqual(call(str(Path(__file__).parent), libtorrent.move_flags_t.dont_replace),
+                         download.handle.move_storage.call_args)
 
     async def test_update_download_nothing(self) -> None:
         """

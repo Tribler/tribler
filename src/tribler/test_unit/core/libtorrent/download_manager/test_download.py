@@ -102,7 +102,8 @@ class TestDownload(TestBase):
 
         self.assertTrue(success)
         self.assertEqual(Path("some_path"), download.config.get_dest_dir())
-        self.assertEqual(call("some_path"), download.handle.move_storage.call_args)
+        self.assertEqual(call("some_path", libtorrent.move_flags_t.dont_replace),
+                         download.handle.move_storage.call_args)
 
     def test_move_storage_no_metainfo(self) -> None:
         """
@@ -883,7 +884,7 @@ class TestDownload(TestBase):
 
         download.on_torrent_finished_alert(Mock())
 
-        self.assertEqual(call("folder"), download.handle.move_storage.call_args)
+        self.assertEqual(call("folder", libtorrent.move_flags_t.dont_replace), download.handle.move_storage.call_args)
         self.assertEqual(Path("folder"), download.config.get_dest_dir())
 
     async def test_move_after_finish_unset(self) -> None:
