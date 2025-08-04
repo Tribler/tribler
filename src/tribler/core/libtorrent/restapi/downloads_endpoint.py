@@ -329,7 +329,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "upload_limit": download.get_upload_limit(),
                 "download_limit": download.get_download_limit(),
                 "destination": str(download.config.get_dest_dir()),
-                "completed_dir": download.config.get_completed_dir(),
+                "completed_dir": str(download.config.get_completed_dir() or ""),
                 "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),

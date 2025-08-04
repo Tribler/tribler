@@ -192,11 +192,12 @@ class DownloadConfig:
         """
         self.config["download_defaults"]["completed_dir"] = str(path)
 
-    def get_completed_dir(self) -> str | None:
+    def get_completed_dir(self) -> Path | None:
         """
         Gets the directory where to move this Download upon completed.
         """
-        return self.config["download_defaults"].get("completed_dir")
+        completed_dir = self.config["download_defaults"].get("completed_dir")
+        return Path(completed_dir) if completed_dir else None
 
     def set_hops(self, hops: int) -> None:
         """
