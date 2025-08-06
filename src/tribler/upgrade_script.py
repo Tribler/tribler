@@ -199,6 +199,7 @@ def _inject_ChannelNode_inner(db: Database, batch: list) -> None:
                                 globals(), locals())
             results = [(cursor.lastrowid,)]
         health_id, = results[0]
+        tag_processor_version = tag_processor_version or 0  # noqa: PLW2901
 
         # Insert channel ChannelNode
         results = list(db.execute("SELECT rowid FROM ChannelNode WHERE public_key=$public_key AND id_=$id_",
