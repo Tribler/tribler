@@ -59,6 +59,16 @@ class TestDownloadManager(TestBase):
         config.set_dest_dir(Path(""))
         return config
 
+    def atp_from_dict(self, tinfo_dict: "libtorrent._Entry") -> libtorrent.add_torrent_params:
+        """
+        Create an add_torrent_params object with correct info hash.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(tinfo_dict)
+        atp.info_hash = atp.ti.info_hash()
+        atp.info_hashes = atp.ti.info_hashes()
+        return atp
+
     async def test_get_metainfo_valid_metadata(self) -> None:
         """
         Testing if the metainfo is retrieved when the handle has valid metadata immediately.
@@ -66,6 +76,7 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(is_valid=Mock(return_value=True))
+        download.future_metainfo = succeed(None)
         download.get_state = Mock(return_value=Mock(get_num_seeds_peers=Mock(return_value=(42, 7))))
         config = self.create_mock_download_config()
 
@@ -73,9 +84,9 @@ class TestDownloadManager(TestBase):
                  patch.object(self.manager, "remove_download", AsyncMock()), \
                  patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
             metainfo = await self.manager.get_metainfo(download.tdef.infohash)
-            self.assertEqual(7, metainfo.pop(b"leechers"))
-            self.assertEqual(42, metainfo.pop(b"seeders"))
-            self.assertEqual(download.tdef.get_metainfo(), metainfo)
+            self.assertEqual(7, metainfo.get("leechers"))
+            self.assertEqual(42, metainfo.get("seeders"))
+            self.assertEqual(download.tdef.infohash, metainfo["tdef"].infohash)
 
     async def test_get_metainfo_add_fail(self) -> None:
         """
@@ -94,13 +105,14 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
+        download.future_metainfo = succeed(None)
         config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)), \
                 patch.object(self.manager, "remove_download", AsyncMock()), \
                 patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
-            results = await asyncio.gather(self.manager.get_metainfo(b"\x00" * 20),
-                                           self.manager.get_metainfo(b"\x00" * 20))
+            results = await asyncio.gather(self.manager.get_metainfo(download.tdef.infohash),
+                                           self.manager.get_metainfo(download.tdef.infohash))
 
         self.assertDictEqual(*results)
 
@@ -108,9 +120,16 @@ class TestDownloadManager(TestBase):
         """
         Testing if cached metainfo is returned, if available.
         """
-        self.manager.metainfo_cache[b"a" * 20] = {'meta_info': 'test', 'time': 0}
+        atp = libtorrent.add_torrent_params()
+        atp.name = "test"
+        self.manager.metainfo_cache[b"a" * 20] = {
+            "tdef": TorrentDef(atp),
+            "time": 0,
+            "seeders": 1,
+            "leechers": 2
+        }
 
-        self.assertEqual("test", await self.manager.get_metainfo(b"a" * 20))
+        self.assertEqual("test", (await self.manager.get_metainfo(b"a" * 20))["tdef"].name)
 
     async def test_get_metainfo_with_already_added_torrent(self) -> None:
         """
@@ -119,12 +138,12 @@ class TestDownloadManager(TestBase):
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
                             checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
         download.handle = Mock(is_valid=Mock(return_value=True))
+        download.future_metainfo = succeed(None)
         self.manager.downloads[download.tdef.infohash] = download
 
         metainfo = await self.manager.get_metainfo(download.tdef.infohash)
-        metainfo.pop(b"seeders")
-        metainfo.pop(b"leechers")
-        self.assertEqual(download.tdef.get_metainfo(), metainfo)
+
+        self.assertEqual(download.tdef, metainfo["tdef"])
 
     async def test_start_download_while_getting_metainfo(self) -> None:
         """
@@ -148,12 +167,14 @@ class TestDownloadManager(TestBase):
         """
         Test if a torrent can be added to the download manager.
         """
-        mock_handle = Mock(info_hash=Mock(return_value=Mock(to_bytes=Mock(return_value=b"\x01" * 20))),
-                           is_valid=Mock(return_value=True))
+        infohashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+        mock_handle = Mock(info_hashes=Mock(return_value=infohashes), is_valid=Mock(return_value=True),
+                           flags=Mock(return_value=0))
         mock_alert = type("add_torrent_alert", (object,), {"handle": mock_handle,
                                                            "error": Mock(value=Mock(return_value=None)),
                                                            "category": MagicMock(return_value=None),
-                                                           "params": Mock(added_time=0)})
+                                                           "params": libtorrent.add_torrent_params()})
+        mock_alert.params.info_hashes = infohashes
         self.manager.ltsessions[0].result().async_add_torrent = lambda _: self.manager.process_alert(mock_alert())
 
         with patch.object(self.manager, "remove_download", AsyncMock()):
@@ -195,8 +216,9 @@ class TestDownloadManager(TestBase):
         """
         Test if torrents can be added when there is a pre-existing handle.
         """
-        mock_handle = Mock(info_hash=Mock(return_value=Mock(to_bytes=Mock(return_value=b"\x01" * 20))),
-                           is_valid=Mock(return_value=True))
+        infohashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+        mock_handle = Mock(info_hashes=Mock(return_value=infohashes), is_valid=Mock(return_value=True),
+                           flags=Mock(return_value=0))
         self.manager.ltsessions[0].result().get_torrents = Mock(return_value=[mock_handle])
         download = await self.manager.start_download(tdef=FakeTDef(),
                                                      config=self.create_mock_download_config(),
@@ -265,24 +287,28 @@ class TestDownloadManager(TestBase):
         Test if no checkpoint can be loaded from a file with empty metainfo.
         """
         download_config = self.create_mock_download_config()
-        download_config.set_metainfo({b"info": {}, b"url": ""})
+        download_config.set_engineresumedata(libtorrent.add_torrent_params())
         with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}):
+                        {"ConfigObj": Mock(return_value=download_config.config)}), \
+                patch("os.remove") as remove_mock:
             value = await self.manager.load_checkpoint("foo.conf")
 
         self.assertFalse(value)
+        self.assertEqual(call("foo.conf"), remove_mock.call_args)
 
     async def test_load_checkpoint_bad_url(self) -> None:
         """
         Test if no checkpoint can be loaded from a file with a bad url.
         """
         download_config = self.create_mock_download_config()
-        download_config.set_metainfo({b"url": b"\x80", b"info": {
+        atp = self.atp_from_dict({b"url": b"\x80", b"info": {
             b"name": b"torrent name",
             b"files": [{b"path": [b"a.txt"], b"length": 123}],
             b"piece length": 128,
             b"pieces": b"\x00" * 20
         }})
+        atp.url = b"\x80"
+        download_config.set_engineresumedata(atp)
         with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
                         {"ConfigObj": Mock(return_value=download_config.config)}):
             value = await self.manager.load_checkpoint("foo.conf")
@@ -294,12 +320,12 @@ class TestDownloadManager(TestBase):
         Test if a checkpoint can be loaded.
         """
         download_config = self.create_mock_download_config()
-        download_config.set_metainfo({b"info": {
+        download_config.set_engineresumedata(self.atp_from_dict({b"info": {
             b"name": b"torrent name",
             b"files": [{b"path": [b"a.txt"], b"length": 123}],
             b"piece length": 128,
             b"pieces": b"\x00" * 20
-        }})
+        }}))
         download_config.set_dest_dir(Path(__file__).absolute().parent)
         with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
                         {"ConfigObj": Mock(return_value=download_config.config)}), \
@@ -307,15 +333,84 @@ class TestDownloadManager(TestBase):
             value = await self.manager.load_checkpoint("foo.conf")
 
         self.assertTrue(value)
+        self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v1())
+        self.assertFalse(download_config.get_engineresumedata().info_hashes.has_v2())
+
+    async def test_load_checkpoint_hybrid(self) -> None:
+        """
+        Test if a hybrid torrent checkpoint can be loaded.
+        """
+        download_config = self.create_mock_download_config()
+        download_config.set_engineresumedata(self.atp_from_dict({
+            b"info": {
+                b"name": b"torrent name",
+                b"meta version": 2,
+                b"files": [{b"path": [b"a.txt"], b"length": 123},
+                           {b"path": [b".pad", b"524165"], b"length": 524165, b"attr": b"p"}],
+                b"file tree": {
+                    b"a.txt": {
+                        b"": {
+                            b"length": 123,
+                            b"pieces root": b"\x01" * 32
+                        }
+                    }
+                },
+                b"piece length": 524288,
+                b"pieces": b"\x01" * 20,
+            },
+            b"piece layers": [b"\x01" * 32]
+        }))
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
+                        {"ConfigObj": Mock(return_value=download_config.config)}), \
+                patch.object(self.manager, "start_download", AsyncMock()):
+            value = await self.manager.load_checkpoint("foo.conf")
+
+        self.assertTrue(value)
+        self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v1())
+        self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v2())
+
+    async def test_load_checkpoint_v2(self) -> None:
+        """
+        Test if a v2 torrent checkpoint can be loaded.
+        """
+        download_config = self.create_mock_download_config()
+        download_config.set_engineresumedata(self.atp_from_dict({
+            b"info": {
+                b"name": b"torrent name",
+                b"meta version": 2,
+                b"file tree": {
+                    b"a.txt": {
+                        b"": {
+                            b"length": 123,
+                            b"pieces root": b"\x01" * 32
+                        }
+                    }
+                },
+                b"piece length": 524288,
+            },
+            b"piece layers": [b"\x01" * 32]
+        }))
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
+                        {"ConfigObj": Mock(return_value=download_config.config)}), \
+                patch.object(self.manager, "start_download", AsyncMock()):
+            value = await self.manager.load_checkpoint("foo.conf")
+
+        self.assertTrue(value)
+        self.assertFalse(download_config.get_engineresumedata().info_hashes.has_v1())
+        self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v2())
 
     async def test_load_checkpoint_zeroed_engineresumedata(self) -> None:
         """
         Test if no checkpoint is restored from uninitialized engineresumedata.
         """
         download_config = self.create_mock_download_config()
-        download_config.set_metainfo({b"name": b"torrent name", b"infohash": b"\x01" * 20})
+        atp = libtorrent.add_torrent_params()
+        atp.name = "torrent name"
+        atp.info_hashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+        download_config.set_engineresumedata(atp)
         download_config.set_dest_dir(Path(__file__).absolute().parent)
-        download_config.set_engineresumedata(libtorrent.add_torrent_params())
         self.manager.start_download = AsyncMock()
         with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
                         {"ConfigObj": Mock(return_value=download_config.config)}):
@@ -497,10 +592,9 @@ class TestDownloadManager(TestBase):
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
-        self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce1"])
+        self.manager.update_trackers(download.tdef.infohash, ["127.0.0.1/test-announce1"])
 
-        self.assertEqual(b"127.0.0.1/test-announce1", download.tdef.get_metainfo()[b"announce"])
-        self.assertListEqual([b"127.0.0.1/test-announce1"], download.tdef.get_metainfo()[b"announce-list"][0])
+        self.assertEqual(download.tdef.atp.trackers, ["127.0.0.1/test-announce1"])
 
     def test_update_trackers_list(self) -> None:
         """
@@ -510,12 +604,10 @@ class TestDownloadManager(TestBase):
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
-        self.manager.update_trackers(download.tdef.infohash, [f"127.0.0.1/test-announce{i}".encode() for i in range(2)])
+        self.manager.update_trackers(download.tdef.infohash, [f"127.0.0.1/test-announce{i}" for i in range(2)])
 
-        self.assertIn(download.tdef.get_metainfo()[b"announce"], [b"127.0.0.1/test-announce0",
-                                                                  b"127.0.0.1/test-announce1"])
-        self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
-                            {t[0] for t in download.tdef.get_metainfo()[b"announce-list"]})
+        self.assertEqual(sorted(download.tdef.atp.trackers),
+                         sorted(["127.0.0.1/test-announce0", "127.0.0.1/test-announce1"]))
 
     def test_update_trackers_list_append(self) -> None:
         """
@@ -525,10 +617,7 @@ class TestDownloadManager(TestBase):
                             checkpoint_disabled=True, config=self.create_mock_download_config())
         self.manager.downloads[download.tdef.infohash] = download
 
-        self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce0"])
-        self.manager.update_trackers(download.tdef.infohash, [b"127.0.0.1/test-announce1"])
+        self.manager.update_trackers(download.tdef.infohash, ["127.0.0.1/test-announce0"])
+        self.manager.update_trackers(download.tdef.infohash, ["127.0.0.1/test-announce1"])
 
-        self.assertIn(download.tdef.get_metainfo()[b"announce"],
-                      [b"127.0.0.1/test-announce0", b"127.0.0.1/test-announce1"])
-        self.assertSetEqual({f"127.0.0.1/test-announce{i}".encode() for i in range(2)},
-                            {t[0] for t in download.tdef.get_metainfo()[b"announce-list"]})
+        self.assertEqual(download.tdef.atp.trackers, ["127.0.0.1/test-announce0", "127.0.0.1/test-announce1"])

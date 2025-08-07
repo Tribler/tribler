@@ -7,11 +7,10 @@ from email.utils import formatdate, parsedate
 from io import BytesIO
 from ssl import SSLError
 from time import mktime, time
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
-import libtorrent
 from aiohttp import ClientConnectorError, ClientResponseError, ClientSession, ServerConnectionError
 from aiohttp.web_exceptions import HTTPNotModified, HTTPOk
 
@@ -26,8 +25,6 @@ if TYPE_CHECKING:
 
     from aiohttp import ClientResponse
     from ipv8.taskmanager import TaskManager
-
-    from tribler.core.libtorrent.torrentdef import MetainfoDict
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +80,11 @@ class RSSWatcher:
                 continue
 
             try:
-                metainfo = libtorrent.bdecode(response)
-            except RuntimeError as e:
+                torrent_def = TorrentDef.load_from_memory(response)
+            except ValueError as e:
                 logger.warning("Error while reading http uri response: %s", str(e))
                 continue
 
-            torrent_def = TorrentDef.load_from_dict(cast("MetainfoDict", metainfo))
             metadata_dict = tdef_to_metadata_dict(torrent_def)
             self.notifier.notify(Notification.torrent_metadata_added, metadata=metadata_dict)
 

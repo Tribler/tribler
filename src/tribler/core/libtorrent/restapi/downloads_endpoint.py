@@ -20,8 +20,8 @@ from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
-from tribler.core.libtorrent.download_manager.stream import Stream, StreamReader
-from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
+from tribler.core.libtorrent.download_manager.stream import StreamReader
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -39,6 +39,7 @@ if TYPE_CHECKING:
 
     from tribler.core.libtorrent.download_manager.download import Download, TrackerStatusDict
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.libtorrent.download_manager.stream import Stream
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 TOTAL = "total"
@@ -432,11 +433,12 @@ class DownloadsEndpoint(RESTEndpoint):
             body = await request.read()
 
             try:
-                metainfo = cast("MetainfoDict", lt.bdecode(body))
-                packed_selected_files = cast("list[int] | None", metainfo.pop(b"selected_files", None))
+                metainfo = lt.bdecode(body)
+                packed_selected_files = cast("list[int] | None",
+                                             cast("dict", metainfo).pop(b"selected_files", None))
                 if packed_selected_files is not None:
                     params["selected_files"] = packed_selected_files
-                tdef = TorrentDef.load_from_dict(metainfo)
+                tdef = TorrentDef.load_from_memory(lt.bencode(metainfo))
             except Exception as e:
                 return RESTResponse({"error": {"handled": True, "message": f"corrupt torrent file ({e!s})"}},
                                     status=HTTP_INTERNAL_SERVER_ERROR)

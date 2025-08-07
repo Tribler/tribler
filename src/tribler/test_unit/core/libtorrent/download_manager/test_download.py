@@ -161,7 +161,7 @@ class TestDownload(TestBase):
 
         self.assertIsNone(value)
         self.assertEqual(None, alerts[0].category())
-        self.assertEqual(b"\x00" * 20, alerts[0].params.info_hash.to_bytes())
+        self.assertEqual(b"\x01" * 20, alerts[0].params.info_hashes.v1.to_bytes())
 
     async def test_save_checkpoint_no_handle_existing(self) -> None:
         """
@@ -424,57 +424,7 @@ class TestDownload(TestBase):
         download.on_metadata_received_alert(Mock())
 
         self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
-        self.assertEqual(b"http://google.com", download.tdef.get_metainfo()[b"announce"])
-
-    def test_on_metadata_received_alert_unicode_error_encode(self) -> None:
-        """
-        Test if no exception is raised when the url is not unicode compatible.
-        """
-        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(trackers=Mock(return_value=[{"url": "\uD800"}]),
-                               torrent_file=Mock(return_value=download.tdef.torrent_info),
-                               get_peer_info=Mock(return_value=[]))
-
-        download.on_metadata_received_alert(Mock())
-
-        self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
-        self.assertEqual(b"", tdef.get_metainfo()[b"announce"])
-
-    def test_on_metadata_received_alert_unicode_error_decode(self) -> None:
-        """
-        Test if no exception is raised when the url is not unicode compatible.
-
-        See: https://github.com/Tribler/tribler/issues/7223
-        """
-        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(trackers=lambda: [{"url": b"\xFD".decode()}],
-                               torrent_file=Mock(return_value=download.tdef.torrent_info),
-                               get_peer_info=Mock(return_value=[]))
-
-        download.on_metadata_received_alert(Mock())
-
-        self.assertEqual(tdef.infohash, download.tdef.infohash)
-        self.assertDictEqual(tdef.get_metainfo()[b"info"], download.tdef.get_metainfo()[b"info"])
-        self.assertEqual(b"", download.tdef.get_metainfo()[b"announce"])
-
-    def test_metadata_received_invalid_torrent_with_error(self) -> None:
-        """
-        Test if no torrent def is loaded when a RuntimeError/ValueError occurs when parsing the metadata.
-        """
-        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
-        download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(trackers=Mock(return_value=[]),
-                               torrent_file=Mock(return_value=Mock(metadata=Mock(return_value=b""))),
-                               get_peer_info=Mock(return_value=[]))
-        download.tdef = None
-
-        download.on_metadata_received_alert(Mock())
-
-        self.assertIsNone(download.tdef)
+        self.assertEqual(["http://google.com"], download.tdef.atp.trackers)
 
     def test_torrent_checked_alert_no_pause_no_checkpoint(self) -> None:
         """
@@ -606,8 +556,10 @@ class TestDownload(TestBase):
                             config=PermissionErrorDownloadConfig(self.create_mock_download_config().config))
         download.checkpoint_disabled = False
         download.download_manager = Mock(get_checkpoint_dir=Mock(return_value=Path(__file__).absolute().parent))
+        atp = libtorrent.add_torrent_params()
+        atp.name = "test"
 
-        download.on_save_resume_data_alert(Mock(params=libtorrent.add_torrent_params()))
+        download.on_save_resume_data_alert(Mock(params=atp))
 
         self.assertTrue(download.config.config["TEST_CRASH"])
         self.assertEqual("test", download.config.config["download_defaults"]["name"])
@@ -692,12 +644,12 @@ class TestDownload(TestBase):
         metainfo = libtorrent.bdecode(TORRENT_WITH_DIRS_CONTENT)
         metainfo[b"info"][b"files"][0][b"length"] = 60000
         metainfo[b"info"][b"pieces"] = b"\x01" * 80
-        tdef = TorrentDef.load_from_dict(metainfo)
+        tdef = TorrentDef.load_from_memory(libtorrent.bencode(metainfo))
         download = Download(tdef, self.dlmngr, checkpoint_disabled=True, config=self.create_mock_download_config())
 
         file1 = download.file_piece_range(Path("abc") / "file2.txt")
         other_indices = [download.file_piece_range(Path(
-            *[p.decode() for p in tdef.get_metainfo()[b"info"][b"files"][-1-i][b"path"]]
+            *[p.decode() for p in metainfo[b"info"][b"files"][-1-i][b"path"]]
         )) for i in range(5)]
 
         self.assertEqual([0, 1, 2], file1)

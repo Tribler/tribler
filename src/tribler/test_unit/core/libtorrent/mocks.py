@@ -125,5 +125,5 @@ class FakeTDef(TorrentDef):
         Initialize with a near-empty atp.
         """
         atp = libtorrent.add_torrent_params()
-        atp.name, atp.info_hash, atp.url = name, libtorrent.sha1_hash(info_hash), url
+        atp.name, atp.info_hashes, atp.url = name, libtorrent.info_hash_t(libtorrent.sha1_hash(info_hash)), url
         super().__init__(atp)

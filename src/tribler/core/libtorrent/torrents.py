@@ -13,51 +13,8 @@ import libtorrent as lt
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
     from pathlib import Path
-    from typing import Any, Literal, overload
 
     from tribler.core.libtorrent.download_manager.download import Download
-
-    class TorrentParameters(dict):  # noqa: D101
-
-        @overload  # type: ignore[override]
-        def __getitem__(self, key: Literal[b"announce"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"announce-list"]) -> list[list[bytes]] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"comment"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"created by"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"creation date"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"encoding"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"httpseeds"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"name"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"name.utf-8"]) -> bytes | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"nodes"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
-
-        @overload
-        def __getitem__(self, key: Literal[b"piece length"]) -> int | None: ...
-
-        def __getitem__(self, key: bytes) -> Any: ...  # noqa: D105
-else:
-    TorrentParameters = dict
 
 logger = logging.getLogger(__name__)
 
@@ -158,12 +115,20 @@ class TorrentFileResult(TypedDict):
     success: bool
     base_dir: Path
     torrent_file_path: str | None
-    metainfo: bytes
+    atp: lt.add_torrent_params
     infohash: bytes
 
 
-def create_torrent_file(file_path_list: list[Path], params: TorrentParameters,  # noqa: C901
-                        torrent_filepath: str | None = None) -> TorrentFileResult:
+def create_torrent_file(file_path_list: list[Path],  # noqa: C901,PLR0912,PLR0913
+                        announce: str | None = None,
+                        announce_list: list[str] | None = None,
+                        comment: str | None = None,
+                        created_by: str | None = None,
+                        http_seeds: list[str] | None = None,
+                        nodes: list[tuple[str, int]] | None = None,
+                        piece_size: int = 0,
+                        torrent_filepath: str | None = None,
+                        url_list: list[str] | None = None) -> TorrentFileResult:
     """
     Create a torrent file from the given paths and parameters.
 
@@ -182,38 +147,39 @@ def create_torrent_file(file_path_list: list[Path], params: TorrentParameters,  
         relative = path.relative_to(base_dir)
         fs.add_file(str(relative), getsize(str(path)))
 
-    piece_size = params.get(b"piece length", 0)
     flag_v1_only = 2**6  # Backward compatibility for libtorrent < 2.x
     flags = lt.create_torrent_flags_t.optimize | flag_v1_only
 
     torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
-    if (user_comment := params.get(b"comment")) is not None:
-        torrent.set_comment(user_comment.decode())
-    if (user_created_by := params.get(b"created by")) is not None:
-        torrent.set_creator(user_created_by.decode())
+    if comment is not None:
+        torrent.set_comment(comment)
+    if created_by is not None:
+        torrent.set_creator(created_by)
     # main tracker
-    if (user_announce := params.get(b"announce")) is not None:
-        torrent.add_tracker(user_announce.decode())
+    if announce is not None:
+        torrent.add_tracker(announce)
     # tracker list
-    if (user_announce_list := params.get(b"announce-list")) is not None:
+    if announce_list is not None:
         tier = 1
-        for tracker in user_announce_list:
-            torrent.add_tracker(tracker[0].decode(), tier=tier)
+        for tracker in announce_list:
+            torrent.add_tracker(tracker, tier=tier)
             tier += 1
     # DHT nodes
     # http://www.bittorrent.org/beps/bep_0005.html
-    if (user_nodes := params.get(b"nodes")) is not None:
-        for node in user_nodes:
-            torrent.add_node(node[0].decode(), node[1])
+    if nodes is not None:
+        for node in nodes:
+            torrent.add_node(*node)
     # HTTP seeding
     # http://www.bittorrent.org/beps/bep_0017.html
-    if (user_http_seeds := params.get(b"httpseeds")) is not None:
-        torrent.add_http_seed(user_http_seeds.decode())
+    if http_seeds is not None:
+        for http_seed in http_seeds:
+            torrent.add_http_seed(http_seed)
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
-    if len(file_path_list) == 1 and (user_urllist := params.get(b"urllist")) is not None:
-        torrent.add_url_seed(user_urllist.decode())
+    if len(file_path_list) == 1 and url_list is not None:
+        for url_lentry in url_list:
+            torrent.add_url_seed(url_lentry)
 
     # read the files and calculate the hashes
     lt.set_piece_hashes(torrent, str(base_dir))
@@ -229,7 +195,7 @@ def create_torrent_file(file_path_list: list[Path], params: TorrentParameters,  
         "success": True,
         "base_dir": base_dir,
         "torrent_file_path": torrent_filepath,
-        "metainfo": torrent_bytes,
+        "atp": lt.load_torrent_buffer(torrent_bytes),  # type: ignore[attr-defined]
         "infohash": sha1(lt.bencode(t1[b"info"])).digest()
     }
 

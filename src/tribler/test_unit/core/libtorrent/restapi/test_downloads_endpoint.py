@@ -957,8 +957,6 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(b"", download.tdef.get_metainfo()[b"announce"])
-        self.assertEqual([], download.tdef.get_metainfo()[b"announce-list"])
         self.assertEqual([], download.tdef.atp.trackers)
 
     async def test_remove_tracker_from_metainfo_announce_list(self) -> None:
@@ -979,8 +977,8 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
+        self.assertEqual(1, len(download.tdef.atp.trackers))
+        self.assertEqual("http://127.0.0.1/somethingelse", download.tdef.atp.trackers[0])
 
     async def test_remove_tracker_from_metainfo_announce_both_first(self) -> None:
         """
@@ -1003,9 +1001,8 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce"])
+        self.assertEqual(1, len(download.tdef.atp.trackers))
+        self.assertEqual("http://127.0.0.1/somethingelse", download.tdef.atp.trackers[0])
 
     async def test_remove_tracker_from_metainfo_announce_both_second(self) -> None:
         """
@@ -1028,9 +1025,8 @@ class TestDownloadsEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["removed"])
-        self.assertEqual(1, len(download.tdef.get_metainfo()[b"announce-list"]))
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce-list"][0][0])
-        self.assertEqual(b"http://127.0.0.1/somethingelse", download.tdef.get_metainfo()[b"announce"])
+        self.assertEqual(1, len(download.tdef.atp.trackers))
+        self.assertEqual("http://127.0.0.1/somethingelse", download.tdef.atp.trackers[0])
 
     async def test_remove_tracker_no_download(self) -> None:
         """
