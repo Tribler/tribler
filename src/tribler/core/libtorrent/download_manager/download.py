@@ -25,7 +25,6 @@ from ipv8.util import succeed
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
-from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import TriblerConfigManager
@@ -34,7 +33,7 @@ if TYPE_CHECKING:
     from collections.abc import Awaitable
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
-    from tribler.core.libtorrent.torrentdef import MetainfoDict
+    from tribler.core.libtorrent.torrentdef import TorrentDef
 
 Getter = Callable[[Any], Any]
 
@@ -162,7 +161,7 @@ class Download(TaskManager):
         self.future_added = self.wait_for_alert("add_torrent_alert", lambda a: a.handle)
         self.future_removed = self.wait_for_alert("torrent_removed_alert")
         self.future_finished = self.wait_for_alert("torrent_finished_alert")
-        self.future_metainfo = self.wait_for_alert("metadata_received_alert", lambda a: self.tdef.get_metainfo())
+        self.future_metainfo = self.wait_for_alert("metadata_received_alert")
 
         if self.download_manager.config.get("libtorrent/check_after_complete"):
             self.register_task("Recheck torrent after finish", self._recheck_after_finish)
@@ -416,17 +415,8 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
-        if self.tdef.torrent_info is not None:
-            self.config.set_metainfo(cast("MetainfoDict", self.tdef.get_metainfo()))
-        else:
-            self.config.set_metainfo({
-                "infohash": self.tdef.infohash,
-                "name": self.tdef.name,
-                "url": self.tdef.atp.url
-            })
-
         resume_data = alert.params
-        if resume_data.info_hash.to_bytes() != (b"\x00" * 20):
+        if resume_data.info_hashes.v1.to_bytes() != (b"\x00" * 20):
             self._logger.debug("Resume data is valid for %s", self.tdef.name)
             # Make save_path relative if the torrent is saved in the Tribler state directory
             if self.state_dir:
@@ -435,7 +425,7 @@ class Download(TaskManager):
             self.config.set_engineresumedata(resume_data)
         else:
             self._logger.debug("Resume data is not available for %s", self.tdef.name)
-            self.config.config["state"]["engineresumedata"] = ""
+            self.config.set_engineresumedata(self.tdef.atp)
 
         # Save it to file
         basename = hexlify(self.tdef.infohash).decode() + ".conf"
@@ -510,35 +500,11 @@ class Download(TaskManager):
                 "tracker_info": (self.tdef.atp.trackers or [t.url for t in torrent_info.trackers()] or [""])[0]
             })
 
-        try:
-            metadata = cast("MetainfoDict", {b"info": lt.bdecode(torrent_info.metadata())})
-        except (RuntimeError, ValueError) as e:
-            self._logger.warning(e)
-            return
-
-        tracker_urls = []
-        trackers: list[lt._AnnounceEntryDict] = []
-        try:
-            trackers = handle.trackers()
-        except UnicodeDecodeError as e:
-            self._logger.warning(e)
-        for tracker in trackers:
-            url = tracker["url"]
-            try:
-                tracker_urls.append(url.encode())
-            except UnicodeEncodeError as e:
-                self._logger.warning(e)
-
-        if len(tracker_urls) > 1:
-            metadata[b"announce-list"] = [[tracker] for tracker in tracker_urls]
-        elif tracker_urls:
-            metadata[b"announce"] = tracker_urls[0]
-
-        try:
-            self.set_def(TorrentDef.load_from_dict(metadata))
-        except ValueError as ve:
-            self._logger.exception(ve)
-            return
+        self.tdef.atp.ti = torrent_info
+        tracker_set = set(self.tdef.atp.trackers)
+        tracker_set |= {tracker["url"] for tracker in handle.trackers()}
+        tracker_set |= {tracker.url for tracker in torrent_info.trackers()}
+        self.tdef.atp.trackers = list(tracker_set)
 
         self.set_selected_files()
         self.checkpoint()
@@ -900,21 +866,10 @@ class Download(TaskManager):
                 #    lose it when we crash or restart before the download becomes known.
                 resume_data = self.config.get_engineresumedata()
                 if resume_data is None:
-                    resume_data = lt.add_torrent_params()
+                    resume_data = self.tdef.atp
                 self.post_alert("save_resume_data_alert", {"params": resume_data})
             return succeed(None)
         return self.save_resume_data()
-
-    def set_def(self, tdef: TorrentDef) -> None:
-        """
-        Set the torrent definition for this download.
-        """
-        if (self.tdef.torrent_info is None and tdef.torrent_info is not None
-                and len(self.tdef.atp.info_hash.to_bytes()) != 20):
-            # We store SHA-1 conf files. v2 torrents start with SHA-256 infohashes.
-            basename = hexlify(self.tdef.atp.info_hash.to_bytes()).decode() + ".conf"
-            Path(self.download_manager.get_checkpoint_dir() / basename).unlink(missing_ok=True)
-        self.tdef = tdef
 
     @check_handle(None)
     def add_trackers(self, handle: lt.torrent_handle, trackers: list[str]) -> None:

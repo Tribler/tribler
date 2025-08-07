@@ -27,7 +27,7 @@ from yarl import URL
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
-from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict, TorrentDef
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.uris import get_url, unshorten, url_to_path
 from tribler.core.notifier import Notification, Notifier
 from tribler.tribler_config import VERSION_SUBDIR
@@ -77,7 +77,9 @@ class MetainfoLookupResult(TypedDict):
     """
 
     time: float
-    meta_info: MetainfoDict | MetainfoV2Dict
+    tdef: TorrentDef
+    seeders: int
+    leechers: int
 
 
 def encode_atp(atp: dict) -> dict:
@@ -498,7 +500,7 @@ class DownloadManager(TaskManager):
                                                               bytearray(decoded[b"r"][b"BFpe"]))
 
     async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = -1,
-                           url: str | None = None) -> dict | None:
+                           url: str | None = None) -> MetainfoLookupResult | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
@@ -512,17 +514,20 @@ class DownloadManager(TaskManager):
         infohash_hex = hexlify(infohash)
         if infohash in self.metainfo_cache:
             logger.info("Returning metainfo from cache for %s", infohash_hex)
-            return self.metainfo_cache[infohash]["meta_info"]
+            return self.metainfo_cache[infohash]
 
+        tdef: TorrentDef | None = None
         logger.info("Trying to fetch metainfo for %s", infohash_hex)
         if infohash in self.metainfo_requests:
             download = self.metainfo_requests[infohash].download
             self.metainfo_requests[infohash].pending += 1
+            tdef = download.tdef
         elif infohash in self.downloads:
             download = self.downloads[infohash]
+            tdef = download.tdef
         else:
             atp = lt.parse_magnet_uri(url) if url and url.startswith("magnet") else lt.add_torrent_params()
-            atp.name, atp.info_hash, atp.url = "metainfo request", lt.sha1_hash(infohash), url or ""
+            atp.name, atp.info_hashes, atp.url = "metainfo request", lt.info_hash_t(lt.sha1_hash(infohash)), url or ""
             tdef = TorrentDef(atp)
             dcfg = DownloadConfig.from_defaults(self.config)
             dcfg.set_hops(hops or self.config.get("libtorrent/download_defaults/number_hops"))
@@ -538,20 +543,19 @@ class DownloadManager(TaskManager):
             self.metainfo_requests[infohash] = MetainfoLookup(download, 1)
 
         try:
-            metainfo = cast("MetainfoDict", download.tdef.get_metainfo()
-                            or await wait_for(shield(download.future_metainfo), timeout))
+            await wait_for(shield(download.future_metainfo), timeout)
         except (CancelledError, TimeoutError) as e:
             logger.warning("%s: %s (timeout=%f)", type(e).__name__, str(e), timeout)
             logger.info("Failed to retrieve metainfo for %s", infohash_hex)
             return None
         else:
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
-            self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(),
-                                                                 meta_info=metainfo)
             seeders, leechers = download.get_state().get_num_seeds_peers()
-            metainfo[b"seeders"] = seeders
-            metainfo[b"leechers"] = leechers
-            return metainfo
+            self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(),
+                                                                 tdef=tdef,
+                                                                 seeders=seeders,
+                                                                 leechers=leechers)
+            return self.metainfo_cache[infohash]
         finally:
             if infohash in self.metainfo_requests:
                 self.metainfo_requests[infohash].pending -= 1
@@ -609,7 +613,7 @@ class DownloadManager(TaskManager):
             logger.info("Name: %s. Infohash: %s", tdef.name, tdef.infohash)
             if tdef.infohash in self.metainfo_cache:
                 logger.info("Metainfo found in cache")
-                tdef = TorrentDef.load_from_dict(self.metainfo_cache[tdef.infohash]["meta_info"])
+                tdef = self.metainfo_cache[tdef.infohash]["tdef"]
 
                 # Merge existing tdef with tdef parsed from magnet
                 tdef.atp.trackers = magnet_trackers
@@ -972,7 +976,7 @@ class DownloadManager(TaskManager):
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
-    async def load_checkpoint(self, filename: Path | str) -> bool:  # noqa: C901,PLR0912
+    async def load_checkpoint(self, filename: Path | str) -> bool:
         """
         Load a checkpoint from a given file name.
         """
@@ -986,33 +990,12 @@ class DownloadManager(TaskManager):
             self._logger.exception("Could not open checkpoint file %s", filename)
             return False
 
-        metainfo = config.get_metainfo()
-        if not isinstance(metainfo, dict):
-            self._logger.error("Could not resume checkpoint %s; metainfo is not dict %s %s",
-                               filename, type(metainfo), repr(metainfo))
+        resumedata = config.get_engineresumedata()
+        if resumedata is None or resumedata.info_hashes.v1.to_bytes() == (b"\x00" * 20):
+            self._logger.exception("Could not open checkpoint file %s, missing resumedata.", filename)
             return False
 
-        resumedata = config.get_engineresumedata()
-        if resumedata is None or resumedata.info_hash.to_bytes() == (b"\x00" * 20):
-            try:
-                url = metainfo.get(b"url", b"").decode()
-                if b"infohash" in metainfo:
-                    atp = lt.add_torrent_params()
-                    atp.name, atp.info_hash = metainfo[b"name"].decode(), lt.sha1_hash(metainfo[b"infohash"])
-                    atp.url = url
-                    tdef = TorrentDef(atp)
-                else:
-                    tdef = TorrentDef.load_from_dict(cast("MetainfoDict", metainfo))
-            except (KeyError, ValueError) as e:
-                self._logger.exception("Could not restore tdef from metainfo dict: %s %s ", e, metainfo)
-                return False
-        else:
-            tdef = TorrentDef(resumedata)
-            if b'info' in metainfo:
-                try:
-                    tdef.atp.ti = lt.torrent_info(metainfo)
-                except RuntimeError as e:
-                    self._logger.exception("Could not load torrent_info: %s %s ", e, metainfo)
+        tdef = TorrentDef(resumedata)
 
         if config.get_dest_dir() == "":  # removed torrent ignoring
             self._logger.info("Removing checkpoint %s destdir is %s", filename, config.get_dest_dir())

@@ -3,6 +3,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
+import libtorrent
 from configobj import ConfigObj
 from ipv8.test.base import TestBase
 from ipv8.test.REST.rest_base import MockRequest, response_to_json
@@ -90,36 +91,49 @@ class TestCreateTorrentEndpoint(TestBase):
         Test if creating a torrent from defaults works.
         """
         request = MockRequest("/api/createtorrent", "POST", {"files": [str(Path(__file__))]})
-        mocked_create_torrent_file = Mock(return_value={"metainfo": TORRENT_WITH_DIRS_CONTENT})
+        mocked_create_torrent_file = Mock(return_value={
+            "success": True,
+            "base_dir": str(Path(__file__).parent),
+            "torrent_file_path": None,
+            "atp": libtorrent.load_torrent_buffer(TORRENT_WITH_DIRS_CONTENT),
+            "infohash": b"\x01" * 20
+        })
 
         with patch.dict(ep_module.__dict__, {"create_torrent_file": mocked_create_torrent_file}):
             response = await self.endpoint.create_torrent(request)
         response_body_json = await response_to_json(response)
 
-        _, call_params, __ = mocked_create_torrent_file.call_args.args
+        call_args = mocked_create_torrent_file.call_args.args
 
         self.assertEqual(200, response.status)
         self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
-        self.assertIsNone(call_params[b"nodes"])
-        self.assertIsNone(call_params[b"httpseeds"])
-        self.assertEqual(0, call_params[b"piece length"])
+        self.assertIsNone(call_args[5])
+        self.assertIsNone(call_args[6])
+        self.assertEqual(0, call_args[7])
 
     async def test_create_with_comment(self) -> None:
         """
         Test if creating a torrent with a custom comment works.
         """
         request = MockRequest("/api/createtorrent", "POST", {"files": [str(Path(__file__))], "description": "test"})
-        mocked_create_torrent_file = Mock(return_value={"metainfo": TORRENT_WITH_DIRS_CONTENT})
+        mocked_create_torrent_file = Mock(return_value={
+            "success": True,
+            "base_dir": str(Path(__file__).parent),
+            "torrent_file_path": None,
+            "atp": libtorrent.load_torrent_buffer(TORRENT_WITH_DIRS_CONTENT),
+            "infohash": b"\x01" * 20
+        })
 
         with patch.dict(ep_module.__dict__, {"create_torrent_file": mocked_create_torrent_file}):
             response = await self.endpoint.create_torrent(request)
         response_body_json = await response_to_json(response)
 
-        _, call_params, __ = mocked_create_torrent_file.call_args.args
+        call_args = mocked_create_torrent_file.call_args.args
+        comment = call_args[3]
 
         self.assertEqual(200, response.status)
         self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
-        self.assertEqual(b"test", call_params[b"comment"])
+        self.assertEqual("test", comment)
 
     async def test_create_with_trackers(self) -> None:
         """
@@ -129,35 +143,26 @@ class TestCreateTorrentEndpoint(TestBase):
             "files": [str(Path(__file__))],
             "trackers": ["http://127.0.0.1/announce", "http://10.0.0.2/announce"]
         })
-        mocked_create_torrent_file = Mock(return_value={"metainfo": TORRENT_WITH_DIRS_CONTENT})
+        mocked_create_torrent_file = Mock(return_value={
+            "success": True,
+            "base_dir": str(Path(__file__).parent),
+            "torrent_file_path": None,
+            "atp": libtorrent.load_torrent_buffer(TORRENT_WITH_DIRS_CONTENT),
+            "infohash": b"\x01" * 20
+        })
 
         with patch.dict(ep_module.__dict__, {"create_torrent_file": mocked_create_torrent_file}):
             response = await self.endpoint.create_torrent(request)
         response_body_json = await response_to_json(response)
 
-        _, call_params, __ = mocked_create_torrent_file.call_args.args
+        call_args = mocked_create_torrent_file.call_args.args
+        announce = call_args[1]
+        announce_list = call_args[2]
 
         self.assertEqual(200, response.status)
         self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
-        self.assertEqual(b"http://127.0.0.1/announce", call_params[b"announce"])
-        self.assertEqual([b"http://127.0.0.1/announce", b"http://10.0.0.2/announce"], call_params[b"announce-list"])
-
-    async def test_create_with_name(self) -> None:
-        """
-        Test if creating a torrent with a custom name works.
-        """
-        request = MockRequest("/api/createtorrent", "POST", {"files": [str(Path(__file__))], "name": "test"})
-        mocked_create_torrent_file = Mock(return_value={"metainfo": TORRENT_WITH_DIRS_CONTENT})
-
-        with patch.dict(ep_module.__dict__, {"create_torrent_file": mocked_create_torrent_file}):
-            response = await self.endpoint.create_torrent(request)
-        response_body_json = await response_to_json(response)
-
-        _, call_params, __ = mocked_create_torrent_file.call_args.args
-
-        self.assertEqual(200, response.status)
-        self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
-        self.assertEqual(b"test", call_params[b"name"])
+        self.assertEqual("http://127.0.0.1/announce", announce)
+        self.assertEqual(["http://127.0.0.1/announce", "http://10.0.0.2/announce"], announce_list)
 
     async def test_create_and_start(self) -> None:
         """
@@ -166,8 +171,13 @@ class TestCreateTorrentEndpoint(TestBase):
         self.download_manager.config = MockTriblerConfigManager()
         self.download_manager.start_download = AsyncMock()
         request = MockRequest("/api/createtorrent", "POST", {"files": [str(Path(__file__))], "download": "1"})
-        mocked_create = Mock(return_value={"metainfo": TORRENT_WITH_DIRS_CONTENT,
-                                           "base_dir": str(Path(__file__).parent)})
+        mocked_create = Mock(return_value={
+            "success": True,
+            "base_dir": str(Path(__file__).parent),
+            "torrent_file_path": None,
+            "atp": libtorrent.load_torrent_buffer(TORRENT_WITH_DIRS_CONTENT),
+            "infohash": b"\x01" * 20
+        })
 
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))), patch.dict(ep_module.__dict__,

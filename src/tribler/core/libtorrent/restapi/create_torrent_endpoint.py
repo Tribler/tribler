@@ -3,7 +3,6 @@ import base64
 import json
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -14,7 +13,7 @@ from marshmallow.fields import String
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
-from tribler.core.libtorrent.torrentdef import MetainfoDict, TorrentDef
+from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
@@ -23,22 +22,6 @@ from tribler.core.restapi.rest_endpoint import (
     RESTResponse,
     return_handled_exception,
 )
-
-
-def recursive_bytes(obj):  # noqa: ANN001, ANN201
-    """
-    Converts any unicode strings within a Python data structure to bytes. Strings will be encoded using UTF-8.
-
-    :param obj: object comprised of lists/dicts/strings/bytes
-    :return: obj: object comprised of lists/dicts/bytes
-    """
-    if isinstance(obj, dict):
-        return {recursive_bytes(k): recursive_bytes(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [recursive_bytes(i) for i in obj]
-    if isinstance(obj, str):
-        return obj.encode('utf8')
-    return obj
 
 
 class CreateTorrentEndpoint(RESTEndpoint):
@@ -91,7 +74,6 @@ class CreateTorrentEndpoint(RESTEndpoint):
         Create a torrent from local files and return it in base64 encoding.
         """
         parameters = await request.json()
-        params = {}
 
         if parameters.get("files"):
             file_path_list = [Path(p) for p in parameters["files"]]
@@ -101,18 +83,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
                                     "message": "files parameter missing"
                                 }}, status=HTTP_BAD_REQUEST)
 
-        if parameters.get("description"):
-            params["comment"] = parameters["description"]
-
-        if parameters.get("trackers"):
-            tracker_url_list = parameters["trackers"]
-            params["announce"] = tracker_url_list[0]
-            params["announce-list"] = tracker_url_list
-
-        name = "unknown"
-        if parameters.get("name"):
-            name = parameters["name"]
-            params["name"] = name
+        tracker_url_list = parameters.get("trackers", [])
 
         export_dir = None
         if parameters.get("export_dir"):
@@ -122,30 +93,36 @@ class CreateTorrentEndpoint(RESTEndpoint):
             v = version("tribler")
         except PackageNotFoundError:
             v = "git"
-        params["created by"] = f"Tribler version: {v}"
-        params["nodes"] = None
-        params["httpseeds"] = None
-        params["piece length"] = 0  # auto
-
-        save_path = str(export_dir / f"{name}.torrent") if export_dir and export_dir.exists() else None
 
         try:
-            result = await asyncio.get_event_loop().run_in_executor(None, create_torrent_file,
-                                                                    file_path_list, recursive_bytes(params),
-                                                                    save_path)
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                create_torrent_file,
+                file_path_list,
+                tracker_url_list[0] if tracker_url_list else None,
+                tracker_url_list if tracker_url_list else None,
+                parameters.get("description"),
+                f"Tribler version: {v}",
+                None,
+                None,
+                0,
+                (str(export_dir / f"{parameters.get("name", "unknown")}.torrent")
+                 if export_dir and export_dir.exists() else None),
+                None
+            )
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)
             return return_handled_exception(e)
-
-        metainfo_dict = lt.bdecode(result["metainfo"])
 
         # Download this torrent if specified
         if "download" in request.query and request.query["download"] and request.query["download"] == "1":
             download_config = DownloadConfig.from_defaults(self.download_manager.config)
             download_config.set_dest_dir(result["base_dir"])
             download_config.set_hops(self.download_manager.config.get("libtorrent/download_defaults/number_hops"))
-            await self.download_manager.start_download(save_path,
-                                                       TorrentDef.load_from_dict(cast("MetainfoDict", metainfo_dict)),
+            await self.download_manager.start_download(result["torrent_file_path"],
+                                                       TorrentDef(result["atp"]),
                                                        download_config)
 
-        return RESTResponse(json.dumps({"torrent": base64.b64encode(result["metainfo"]).decode()}))
+        return RESTResponse(json.dumps({"torrent": base64.b64encode(
+            lt.bencode(lt.write_torrent_file(result["atp"]))  # type: ignore[attr-defined]
+        ).decode()}))

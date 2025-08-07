@@ -171,10 +171,8 @@ class TestStream(TestBase):
 
         The pieces are 20 byte hashes for the number of pieces in a 6-byte file per 6 files.
         """
-        metainfo = download.tdef.get_metainfo()
-        metainfo[b"info"][b"piece length"] = piece_size
-        metainfo[b"info"][b"pieces"] = b"\x01" * 20 * (6 // piece_size) * 6
-        download.tdef = TorrentDef.load_from_dict(metainfo)
+        download.tdef.atp.ti.files().set_piece_length(piece_size)
+        download.tdef.atp.ti.files().set_num_pieces((6 // piece_size) * 6)
 
     async def test_enable(self) -> None:
         """

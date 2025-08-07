@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from asyncio.exceptions import TimeoutError as AsyncTimeoutError
-from binascii import hexlify, unhexlify
+from binascii import hexlify
 from pathlib import Path
 from ssl import SSLError
 from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
@@ -41,7 +41,6 @@ if TYPE_CHECKING:
     from aiohttp.web_request import Request
 
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
-    from tribler.core.libtorrent.torrentdef import MetainfoDict, MetainfoV2Dict
 
 logger = logging.getLogger(__name__)
 
@@ -203,11 +202,11 @@ class TorrentInfoEndpoint(RESTEndpoint):
         uri, valid_cert = await unshorten(p_uri)
         scheme = URL(uri).scheme
 
+        torrent_def: TorrentDef | None = None
         if scheme == "file":
             file_path = url_to_path(uri)
             try:
-                tdef = await TorrentDef.load(file_path)
-                metainfo = tdef.get_metainfo()
+                torrent_def = await TorrentDef.load(file_path)
                 skip_check_metainfo = False
             except (OSError, TypeError, ValueError, RuntimeError):
                 return RESTResponse({"error": {
@@ -238,7 +237,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
             if response.startswith(b'magnet'):
                 try:
-                    infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
+                    infohash = lt.parse_magnet_uri(uri).info_hashes.v1.to_bytes()
                 except RuntimeError as e:
                     return RESTResponse(
                         {"error": {
@@ -247,17 +246,16 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         }}, status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
-                if skip_check_metainfo:
-                    metainfo = None
-                else:
-                    metainfo = cast("MetainfoDict | MetainfoV2Dict",
-                                    await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
-                                                                             url=response.decode()))
+                if not skip_check_metainfo:
+                    lookup = (await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops,
+                                                                       url=response.decode()))
+                    if lookup is not None:
+                        torrent_def = lookup["tdef"]
             else:
                 try:
-                    metainfo = cast("MetainfoDict | MetainfoV2Dict", lt.bdecode(response))
+                    torrent_def = TorrentDef.load_from_memory(response)
                     skip_check_metainfo = False
-                except RuntimeError:
+                except ValueError:
                     return RESTResponse(
                         {"error": {
                             "handled": True,
@@ -268,7 +266,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
             self._logger.info("magnet scheme detected")
 
             try:
-                infohash = unhexlify(str(lt.parse_magnet_uri(uri).info_hash))
+                infohash = lt.parse_magnet_uri(uri).info_hashes.v1.to_bytes()
             except RuntimeError as e:
                 return RESTResponse(
                     {"error": {
@@ -276,11 +274,10 @@ class TorrentInfoEndpoint(RESTEndpoint):
                         "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
                     }}, status=HTTP_BAD_REQUEST
                 )
-            if skip_check_metainfo:
-                metainfo = None
-            else:
-                metainfo = cast("MetainfoDict | MetainfoV2Dict",
-                                await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri))
+            if not skip_check_metainfo:
+                lookup = await self.download_manager.get_metainfo(infohash, timeout=60, hops=i_hops, url=uri)
+                if lookup is not None:
+                    torrent_def = lookup["tdef"]
         else:
             return RESTResponse({"error": {
                                     "handled": True,
@@ -290,21 +287,13 @@ class TorrentInfoEndpoint(RESTEndpoint):
         if skip_check_metainfo:
             return RESTResponse({"metainfo": "", "download_exists": False, "valid_certificate": True})
 
-        if not metainfo:
+        if not torrent_def or not torrent_def.atp.ti:
             return RESTResponse({"error": {
                                     "handled": True,
                                     "message": "metainfo error"
                                 }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-        if not isinstance(metainfo, dict) or b"info" not in metainfo:
-            self._logger.warning("Received metainfo is not a valid dictionary")
-            return RESTResponse({"error": {
-                                    "handled": True,
-                                    "message": "invalid response"
-                                }}, status=HTTP_INTERNAL_SERVER_ERROR)
-
         # Add the torrent to metadata.db
-        torrent_def = TorrentDef.load_from_dict(metainfo)
         metadata_dict = tdef_to_metadata_dict(torrent_def)
         self.download_manager.notifier.notify(Notification.torrent_metadata_added, metadata=metadata_dict)
 

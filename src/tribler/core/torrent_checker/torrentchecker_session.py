@@ -483,10 +483,10 @@ class FakeDHTSession(TrackerSession):
         health_list = []
         now = int(time.time())
         for infohash in self.infohash_list:
-            metainfo = await self.download_manager.get_metainfo(infohash, timeout=self.timeout)
-            if metainfo is None:
+            lookup = await self.download_manager.get_metainfo(infohash, timeout=self.timeout)
+            if lookup is None:
                 continue
-            health = HealthInfo(infohash, seeders=metainfo[b"seeders"], leechers=metainfo[b"leechers"],
+            health = HealthInfo(infohash, seeders=lookup["seeders"], leechers=lookup["leechers"],
                                 last_check=now, self_checked=True)
             health_list.append(health)
 

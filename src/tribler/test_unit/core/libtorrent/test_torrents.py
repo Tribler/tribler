@@ -183,43 +183,43 @@ class TestTorrents(TestBase):
         """
         Test if torrents can be created from an existing file without any parameters.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {})
+        result = create_torrent_file([Path(__file__).absolute()])
 
         self.assertTrue(result["success"])
         self.assertIsNone(result["torrent_file_path"])
-        self.assertEqual(b"test_torrents.py", libtorrent.bdecode(result["metainfo"])[b"info"][b"name"])
+        self.assertEqual("test_torrents.py", result["atp"].ti.name())
 
     def test_create_torrent_file_with_piece_length(self) -> None:
         """
         Test if torrents can be created with a specified piece length.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"piece length": 16})
+        result = create_torrent_file([Path(__file__).absolute()], piece_size=16)
 
-        self.assertEqual(16, libtorrent.bdecode(result["metainfo"])[b"info"][b"piece length"])
+        self.assertEqual(16, result["atp"].ti.piece_length())
 
     def test_create_torrent_file_with_comment(self) -> None:
         """
         Test if torrents can be created with a specified comment.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"comment": b"test"})
+        result = create_torrent_file([Path(__file__).absolute()], comment="test")
 
-        self.assertEqual(b"test", libtorrent.bdecode(result["metainfo"])[b"comment"])
+        self.assertEqual("test", result["atp"].ti.comment())
 
     def test_create_torrent_file_with_created_by(self) -> None:
         """
         Test if torrents can be created with a specified created by field.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"created by": b"test"})
+        result = create_torrent_file([Path(__file__).absolute()], created_by="test")
 
-        self.assertEqual(b"test", libtorrent.bdecode(result["metainfo"])[b"created by"])
+        self.assertEqual("test", result["atp"].ti.creator())
 
     def test_create_torrent_file_with_announce(self) -> None:
         """
         Test if torrents can be created with a specified announce field.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"announce": b"http://127.0.0.1/announce"})
+        result = create_torrent_file([Path(__file__).absolute()], announce="http://127.0.0.1/announce")
 
-        self.assertEqual(b"http://127.0.0.1/announce", libtorrent.bdecode(result["metainfo"])[b"announce"])
+        self.assertEqual("http://127.0.0.1/announce", result["atp"].trackers[0])
 
     def test_create_torrent_file_with_announce_list(self) -> None:
         """
@@ -227,32 +227,32 @@ class TestTorrents(TestBase):
 
         Note that the announce list becomes a list of lists after creating the torrent.
         """
-        tracker_list = [[b"http://127.0.0.1/announce"], [b"http://10.0.0.2/announce"]]
-        result = create_torrent_file([Path(__file__).absolute()], {b"announce-list": tracker_list})
+        tracker_list = ["http://127.0.0.1/announce", "http://10.0.0.2/announce"]
+        result = create_torrent_file([Path(__file__).absolute()], announce_list=tracker_list)
 
-        self.assertEqual(tracker_list, libtorrent.bdecode(result["metainfo"])[b"announce-list"])
+        self.assertEqual(sorted(tracker_list), sorted(result["atp"].trackers))
 
     def test_create_torrent_file_with_nodes(self) -> None:
         """
         Test if torrents can be created with a specified node list.
         """
-        node_list = [[b"127.0.0.1", 80], [b"10.0.0.2", 22]]
-        result = create_torrent_file([Path(__file__).absolute()], {b"nodes": node_list})
+        node_list = [("127.0.0.1", 80), ("10.0.0.2", 22)]
+        result = create_torrent_file([Path(__file__).absolute()], nodes=node_list)
 
-        self.assertEqual(node_list, libtorrent.bdecode(result["metainfo"])[b"nodes"])
+        self.assertEqual(node_list, result["atp"].dht_nodes)
 
     def test_create_torrent_file_with_http_seed(self) -> None:
         """
         Test if torrents can be created with a specified http seed.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"httpseeds": b"http://127.0.0.1/file"})
+        result = create_torrent_file([Path(__file__).absolute()], http_seeds=["http://127.0.0.1/file"])
 
-        self.assertEqual(b"http://127.0.0.1/file", libtorrent.bdecode(result["metainfo"])[b"httpseeds"])
+        self.assertEqual("http://127.0.0.1/file", result["atp"].http_seeds[0])
 
     def test_create_torrent_file_with_url_list(self) -> None:
         """
         Test if torrents can be created with a specified url list.
         """
-        result = create_torrent_file([Path(__file__).absolute()], {b"urllist": b"http://127.0.0.1/file"})
+        result = create_torrent_file([Path(__file__).absolute()], url_list=["http://127.0.0.1/file"])
 
-        self.assertEqual(b"http://127.0.0.1/file", libtorrent.bdecode(result["metainfo"])[b"url-list"])
+        self.assertEqual(["http://127.0.0.1/file"], result["atp"].url_seeds)
