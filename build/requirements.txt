@@ -1,7 +1,6 @@
 -r ../requirements.txt
 
-# cx_Freeze>=8.0.0 causes https://github.com/Tribler/tribler/issues/8636
-cx_Freeze==7.2.10; sys_platform != 'darwin'
+cx_Freeze; sys_platform != 'darwin'
 PyInstaller; sys_platform == 'darwin'
 
 setuptools
