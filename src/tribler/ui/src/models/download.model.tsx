@@ -47,6 +47,7 @@ export interface Download {
     total_pieces: number;
     error: string;
     time_added: number;
+    time_finished: number;
     availability?: number;
     pieces?: string;
     peers: Peer[];

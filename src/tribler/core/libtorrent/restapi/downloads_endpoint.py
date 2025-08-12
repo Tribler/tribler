@@ -333,6 +333,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
                 "error": repr(state.get_error()) if state.get_error() else "",
                 "time_added": download.config.get_time_added(),
+                "time_finished": download.tdef.atp.completed_time,
                 # To prevent the queue_position from becoming stale, we get it directly from the download
                 "queue_position": download.get_queue_position(),
                 "auto_managed": download.config.get_auto_managed(),
