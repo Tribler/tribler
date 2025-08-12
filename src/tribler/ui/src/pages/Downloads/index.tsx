@@ -174,6 +174,16 @@ const downloadColumns: ColumnDef<Download>[] = [
             return <span>{formatDateTime(row.original.time_added)}</span>;
         },
     },
+    {
+        accessorKey: "time_finished",
+        header: getHeader("CompletedOn"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            return <span>{row.original.time_finished > 0 ? formatDateTime(row.original.time_finished) : "-"}</span>;
+        },
+    },
 ];
 
 function Progress({progress, color}: {progress: number; color: string}) {

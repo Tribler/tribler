@@ -9,6 +9,7 @@ import asyncio
 import base64
 import itertools
 import logging
+import time
 from asyncio import CancelledError, Future, sleep, wait_for
 from binascii import hexlify
 from collections import defaultdict
@@ -627,10 +628,15 @@ class Download(TaskManager):
             mode = self.download_manager.config.get("libtorrent/download_defaults/seeding_mode")
             seeding_ratio = self.download_manager.config.get("libtorrent/download_defaults/seeding_ratio")
             seeding_time = self.download_manager.config.get("libtorrent/download_defaults/seeding_time")
+            if self.tdef.atp.completed_time == 0:
+                self.tdef.atp.completed_time = int(time.time())
             if (mode == "never" or
                     (mode == "ratio" and state.get_all_time_ratio() >= seeding_ratio) or
                     (mode == "time" and state.get_seeding_time() >= seeding_time)):
                 self.stop()
+        elif state.get_status() == DownloadStatus.DOWNLOADING and self.tdef.atp.completed_time != 0:
+            # We have previously completed, but we are downloading again.
+            self.tdef.atp.completed_time = 0
 
     @check_handle(None)
     def set_selected_files(self, handle: lt.torrent_handle, selected_files: list[int] | None = None, prio: int = 4,
