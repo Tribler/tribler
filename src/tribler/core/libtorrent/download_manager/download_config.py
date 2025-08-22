@@ -303,18 +303,6 @@ class DownloadConfig:
         """
         return self.config["download_defaults"]["bootstrap_download"]
 
-    def set_metainfo(self, metainfo: dict) -> None:
-        """
-        Set the metainfo dict for this download.
-        """
-        self.config["state"]["metainfo"] = _from_dict(metainfo)
-
-    def get_metainfo(self) -> dict | None:
-        """
-        Get the metainfo dict for this download or None if it cannot be decoded.
-        """
-        return _to_dict(self.config["state"]["metainfo"])
-
     def set_engineresumedata(self, engineresumedata: lt.add_torrent_params) -> None:
         """
         Set the engine resume data dict for this download.

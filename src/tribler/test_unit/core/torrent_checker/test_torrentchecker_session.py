@@ -369,7 +369,7 @@ class TestTrackerSession(TestBase):
         """
         Test if metainfo can be looked up for a DHT session.
         """
-        metainfo = {b'seeders': 42, b'leechers': 42}
+        metainfo = {"seeders": 42, "leechers": 42}
         self.fake_dht_session.download_manager.get_metainfo = Mock(return_value=succeed(metainfo))
         self.fake_dht_session.add_infohash(b'a' * 20)
         response = await self.fake_dht_session.connect_to_tracker()

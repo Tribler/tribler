@@ -9,7 +9,7 @@ from ipv8.test.REST.rest_base import MockRequest, response_to_json
 from ipv8.util import succeed
 
 import tribler
-from tribler.core.libtorrent.download_manager.download_manager import MetainfoLookup
+from tribler.core.libtorrent.download_manager.download_manager import MetainfoLookup, MetainfoLookupResult
 from tribler.core.libtorrent.restapi.torrentinfo_endpoint import TorrentInfoEndpoint, recursive_unicode
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
@@ -149,7 +149,7 @@ class TestTorrentInfoEndpoint(TestBase):
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"lt": Mock(parse_magnet_uri=type("test", (object, ), {
-                            "info_hash": property(Mock(side_effect=RuntimeError)),
+                            "info_hashes": property(Mock(side_effect=RuntimeError)),
                             "__init__": lambda _, __: None
                         }))}):
             response = await self.endpoint.get_torrent_info(request)
@@ -163,9 +163,9 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when no metainfo is available for a magnet.
         """
-        self.download_manager.get_metainfo = AsyncMock(return_value=None)
+        self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet://"})
-        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
+        alert = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
@@ -451,7 +451,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when no metainfo is available for a http link.
         """
-        self.download_manager.get_metainfo = AsyncMock(return_value=None)
+        self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__, {"unshorten": mock_unshorten}), \
@@ -461,13 +461,13 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"]["message"])
+        self.assertEqual("Could not read torrent from https://127.0.0.1/file", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_https_no_metainfo(self) -> None:
         """
         Test if a graceful error is returned when no metainfo is available for a https link.
         """
-        self.download_manager.get_metainfo = AsyncMock(return_value=None)
+        self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__, {"unshorten": mock_unshorten}), \
@@ -477,22 +477,22 @@ class TestTorrentInfoEndpoint(TestBase):
         response_body_json = await response_to_json(response)
 
         self.assertEqual(HTTP_INTERNAL_SERVER_ERROR, response.status)
-        self.assertEqual("metainfo error", response_body_json["error"]["message"])
+        self.assertEqual("Could not read torrent from https://127.0.0.1/file", response_body_json["error"]["message"])
 
     async def test_get_torrent_info_http_redirect_magnet_no_metainfo(self) -> None:
         """
         Test if a graceful error is returned when no metainfo is available for a magnet returned by a HTTP link.
         """
-        self.download_manager.get_metainfo = AsyncMock(return_value=None)
+        self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
-        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
+        atp = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
                       AsyncMock(return_value=b"magnet://")), \
                 patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
-                           {"lt": Mock(parse_magnet_uri=Mock(return_value=alert))}):
+                           {"lt": Mock(parse_magnet_uri=Mock(return_value=atp))}):
             response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
 
@@ -507,9 +507,9 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when no metainfo is available for a magnet returned by a HTTPS link.
         """
-        self.download_manager.get_metainfo = AsyncMock(return_value=None)
+        self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
         request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
-        alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
+        alert = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
