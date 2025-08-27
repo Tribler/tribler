@@ -6,6 +6,7 @@ Author(s): Egbert Bouman
 from __future__ import annotations
 
 import asyncio
+import base64
 import dataclasses
 import logging
 import os
@@ -977,6 +978,68 @@ class DownloadManager(TaskManager):
         self.all_checkpoints_are_loaded = True
         self._logger.info("Checkpoints are loaded")
 
+    def resume_from_legacy(self, metainfo: str, filename: str) -> lt.add_torrent_params:
+        """
+        Generate resume data from the legacy metainfo format. Don't use this unless you are loading a checkpoint!
+
+        Old metainfo was:
+         a. {infohash: ..., name: ..., url: ...}
+         b. fully qualified resume data (with or without b"info" section).
+        """
+        raw = base64.b64decode(metainfo)
+        decoded = lt.bdecode(raw)
+        if "infohash" in decoded:  # type: ignore[operator]
+            atp = lt.add_torrent_params()
+            atp.name = decoded["name"]  # type: ignore[call-overload,index]
+            atp.url = decoded.get("url", "")  # type: ignore[call-overload,union-attr]
+            if len(decoded["infohash"]) == 20:  # type: ignore[call-overload,index]
+                atp.info_hashes = lt.info_hash_t(lt.sha1_hash(decoded["infohash"]))  # type: ignore[call-overload,index]
+            else:
+                atp.info_hashes = lt.info_hash_t(lt.sha256_hash(
+                    decoded["infohash"]  # type: ignore[call-overload,index]
+                ))
+        else:
+            try:
+                atp = lt.load_torrent_buffer(raw)  # type: ignore[attr-defined]
+            except RuntimeError:
+                decoded[b"file-format"] = b"libtorrent resume file"  # type: ignore[call-overload,index]
+                decoded[b"file-version"] = 1  # type: ignore[call-overload,index]
+                decoded[b"info-hash"] = unhexlify(filename[:-5])  # type: ignore[call-overload,index]
+                atp = lt.read_resume_data(lt.bencode(decoded))
+        return atp
+
+    def load_legacy_checkpoint(self, resumedata: lt.add_torrent_params | None,
+                               config: DownloadConfig, filename: str) -> lt.add_torrent_params | None:
+        """
+        Deal with legacy checkpoints. This is deprecated functionality: remove later.
+
+        Once enough people use the new format, this method can be removed and the given resumedata can simply be used.
+        Deprecation introduced in version: Tribler 8.3.0
+        """
+        if resumedata is None:
+            # This is a legacy checkpoint or simply a broken file.
+            if "metainfo" in config.config["state"]:
+                self._logger.info("Reading legacy checkpoint file %s", filename)
+                try:
+                    resumedata = self.resume_from_legacy(config.config["state"]["metainfo"], Path(filename).parts[-1])
+                except Exception:
+                    self._logger.exception("Failed to read legacy metainfo from checkpoint file %s", filename)
+                    return None
+            else:
+                self._logger.exception("Could not open checkpoint file %s, missing resumedata.", filename)
+                return None
+        # At this point we can start, but we might be missing out on legacy info: try to inject it.
+        if resumedata.ti is None and "metainfo" in config.config["state"]:
+            self._logger.info("Checking legacy checkpoint file %s for torrent info", filename)
+            try:
+                legacy_data = self.resume_from_legacy(config.config["state"]["metainfo"], Path(filename).parts[-1])
+                if legacy_data.ti is not None:
+                    self._logger.info("Injecting legacy torrent info from checkpoint file %s", filename)
+                    resumedata.ti = legacy_data.ti
+            except Exception:
+                self._logger.exception("Failed to read legacy metainfo from checkpoint file %s", filename)
+        return resumedata
+
     async def load_checkpoint(self, filename: Path | str) -> bool:
         """
         Load a checkpoint from a given file name.
@@ -991,7 +1054,8 @@ class DownloadManager(TaskManager):
             self._logger.exception("Could not open checkpoint file %s", filename)
             return False
 
-        resumedata = config.get_engineresumedata()
+        # Replace the following line with ``resumedata = config.get_engineresumedata()`` to drop legacy
+        resumedata = self.load_legacy_checkpoint(config.get_engineresumedata(), config, str(filename))
         if resumedata is None:
             self._logger.exception("Could not open checkpoint file %s, missing resumedata.", filename)
             return False

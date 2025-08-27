@@ -621,3 +621,90 @@ class TestDownloadManager(TestBase):
         self.manager.update_trackers(download.tdef.infohash, ["127.0.0.1/test-announce1"])
 
         self.assertEqual(download.tdef.atp.trackers, ["127.0.0.1/test-announce0", "127.0.0.1/test-announce1"])
+
+    def test_resume_from_legacy_complete(self) -> None:
+        """
+        Check if we can load legacy format with complete torrent info.
+
+        Deprecated functionality, remove later.
+        """
+        atp = self.manager.resume_from_legacy("ZDg6YW5ub3VuY2UwOjEzOmFubm91bmNlLWxpc3RsZTc6Y29tbWVudDA6MTA6"
+                                              "Y3JlYXRlZCBieTA6MTM6Y3JlYXRpb24gZGF0ZWkwZTg6ZW5jb2Rpbmc1OlVU"
+                                              "Ri04OTpodHRwc2VlZHNsZTQ6aW5mb2Q2Omxlbmd0aGkzNTE0N2U0Om5hbWUx"
+                                              "MTpncGwtMy4wLnR4dDEyOnBpZWNlIGxlbmd0aGkzMjc2OGU2OnBpZWNlczQw"
+                                              "Ok5AiJjjmd4Pmm396qLN9JJN54SOmqVGlilmIiYdASJg1UiK5X4C/Hc3OnBy"
+                                              "aXZhdGVpMGVlNTpub2Rlc2xlNzp1cmxsaXN0bGVl",
+                                              "1f739d935676111cfff4b4693e3816e664797050.conf")
+
+        self.assertEqual(352440, atp.flags)
+        self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.info_hashes.v1.to_bytes())
+        self.assertEqual("gpl-3.0.txt", atp.ti.name())
+
+    def test_resume_from_legacy_no_info(self) -> None:
+        """
+        Check if we can load legacy format without torrent info.
+
+        Deprecated functionality, remove later.
+        """
+        atp = self.manager.resume_from_legacy("ZDg6YW5ub3VuY2UwOjEzOmFubm91bmNlLWxpc3RsZTc6Y29tbWVudDA6MTA6"
+                                              "Y3JlYXRlZCBieTA6MTM6Y3JlYXRpb24gZGF0ZWkwZTg6ZW5jb2Rpbmc1OlVU"
+                                              "Ri04OTpodHRwc2VlZHNsZTQ6bmFtZTExOmdwbC0zLjAudHh0NTpub2Rlc2xl"
+                                              "Nzp1cmxsaXN0bGVl",
+                                              "1f739d935676111cfff4b4693e3816e664797050.conf")
+
+        self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.info_hashes.v1.to_bytes())
+        self.assertEqual("gpl-3.0.txt", atp.name)
+        self.assertIsNone(atp.ti)
+
+    def test_resume_from_legacy_pre_start(self) -> None:
+        """
+        Check if we can load legacy format that has not started yet.
+
+        Deprecated functionality, remove later.
+        """
+        atp = self.manager.resume_from_legacy("ZDg6aW5mb2hhc2g0MDoxZjczOWQ5MzU2NzYxMTFjZmZmNGI0NjkzZTM4MTZl"
+                                              "NjY0Nzk3MDUwNDpuYW1lMTE6Z3BsLTMuMC50eHRl",
+                                              "1f739d935676111cfff4b4693e3816e664797050.conf")
+
+        self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.info_hashes.v1.to_bytes())
+        self.assertEqual("gpl-3.0.txt", atp.name)
+        self.assertIsNone(atp.ti)
+
+    def test_load_legacy_checkpoint_full_legacy(self) -> None:
+        """
+        Check if missing resume data treats the checkpoint as fully legacy.
+
+        Deprecated functionality, remove later.
+        """
+        config = self.create_mock_download_config()
+        config.config["state"]["metainfo"] = ("ZDg6aW5mb2hhc2g0MDoxZjczOWQ5MzU2NzYxMTFjZmZmNGI0NjkzZTM4MTZl"
+                                              "NjY0Nzk3MDUwNDpuYW1lMTE6Z3BsLTMuMC50eHRl")
+        atp = self.manager.load_legacy_checkpoint(None, config, "dir/1f739d935676111cfff4b4693e3816e664797050.conf")
+
+        self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.info_hashes.v1.to_bytes())
+        self.assertEqual("gpl-3.0.txt", atp.name)
+        self.assertIsNone(atp.ti)
+
+    def test_load_legacy_checkpoint_enrich(self) -> None:
+        """
+        Check if resume data with missing torrent info fetches its info from legacy metainfo.
+
+        Deprecated functionality, remove later.
+        """
+        existing = libtorrent.add_torrent_params()
+        existing.name = "test name"
+        existing.info_hashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+        config = self.create_mock_download_config()
+        config.config["state"]["metainfo"] = ("ZDg6YW5ub3VuY2UwOjEzOmFubm91bmNlLWxpc3RsZTc6Y29tbWVudDA6MTA6"
+                                              "Y3JlYXRlZCBieTA6MTM6Y3JlYXRpb24gZGF0ZWkwZTg6ZW5jb2Rpbmc1OlVU"
+                                              "Ri04OTpodHRwc2VlZHNsZTQ6aW5mb2Q2Omxlbmd0aGkzNTE0N2U0Om5hbWUx"
+                                              "MTpncGwtMy4wLnR4dDEyOnBpZWNlIGxlbmd0aGkzMjc2OGU2OnBpZWNlczQw"
+                                              "Ok5AiJjjmd4Pmm396qLN9JJN54SOmqVGlilmIiYdASJg1UiK5X4C/Hc3OnBy"
+                                              "aXZhdGVpMGVlNTpub2Rlc2xlNzp1cmxsaXN0bGVl")
+        atp = self.manager.load_legacy_checkpoint(existing, config, "dir/1f739d935676111cfff4b4693e3816e664797050.conf")
+
+        self.assertEqual(b"\x01" * 20, atp.info_hashes.v1.to_bytes())
+        self.assertEqual("test name", atp.name)
+        self.assertIsNotNone(atp.ti)
+        self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.ti.info_hashes().v1.to_bytes())
+        self.assertEqual("gpl-3.0.txt", atp.ti.name())
