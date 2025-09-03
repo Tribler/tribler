@@ -238,5 +238,8 @@
     "MoveToBottomShort": "바닥으로 이동하십시오",
     "MoveDownShort": "아래로 이동하십시오",
     "ToastErrorDownloadQueue": "큐 위치를 업데이트하지 못했습니다!",
-    "ToastErrorDownloadAutoManaged": "자동 관리 깃발을 업데이트하지 못했습니다!"
+    "ToastErrorDownloadAutoManaged": "자동 관리 깃발을 업데이트하지 못했습니다!",
+    "Advanced": "고급의",
+    "Description": "설명",
+    "InitialNodes": "초기 노드"
 }

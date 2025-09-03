@@ -238,5 +238,8 @@
     "MoveToBottomShort": "Mova -se para o fundo",
     "MoveDownShort": "Mover para baixo",
     "ToastErrorDownloadQueue": "Falha ao atualizar a posição da fila!",
-    "ToastErrorDownloadAutoManaged": "Falha ao atualizar a bandeira gerenciada automaticamente!"
+    "ToastErrorDownloadAutoManaged": "Falha ao atualizar a bandeira gerenciada automaticamente!",
+    "Advanced": "Avançado",
+    "Description": "Descrição",
+    "InitialNodes": "Nós iniciais"
 }

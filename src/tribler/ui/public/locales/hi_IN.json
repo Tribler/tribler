@@ -238,5 +238,8 @@
     "MoveToBottomShort": "नीचे की ओर बढ़ें",
     "MoveDownShort": "नीचे की ओर",
     "ToastErrorDownloadQueue": "कतार की स्थिति को अपडेट करने में विफल!",
-    "ToastErrorDownloadAutoManaged": "ऑटो-प्रबंधित ध्वज को अपडेट करने में विफल!"
+    "ToastErrorDownloadAutoManaged": "ऑटो-प्रबंधित ध्वज को अपडेट करने में विफल!",
+    "Advanced": "विकसित",
+    "Description": "विवरण",
+    "InitialNodes": "प्रारंभिक नोड्स"
 }

@@ -41,4 +41,20 @@ export const Icons = {
             </svg>
         );
     },
+    checkmark: (props: IconProps) => {
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" {...props}>
+                <circle cx="12" cy="12" r="12" fill="#62c955"/>
+                <path d="M 7 12 l 4 5 l 6 -11" fill="transparent" stroke="white" strokeWidth="2" />
+            </svg>
+        )
+    },
+    redcross: (props: IconProps) => {
+        return (
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" {...props}>
+                <circle cx="12" cy="12" r="12" fill="#c96155"/>
+                <path d="M 6 6 l 12 12 M 6 18 l 12 -12" fill="transparent" stroke="white" strokeWidth="2" />
+            </svg>
+        )
+    },
 };

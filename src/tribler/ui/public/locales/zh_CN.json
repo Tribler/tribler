@@ -238,5 +238,8 @@
     "MoveToBottomShort": "移至底部",
     "MoveDownShort": "向下移动",
     "ToastErrorDownloadQueue": "无法更新队列位置！",
-    "ToastErrorDownloadAutoManaged": "无法更新自动管理的标志！"
+    "ToastErrorDownloadAutoManaged": "无法更新自动管理的标志！",
+    "Advanced": "先进的",
+    "Description": "描述",
+    "InitialNodes": "初始节点"
 }
