@@ -69,6 +69,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="ipv8_ipv4"
+                    placeholder="0.0.0.0"
                     value={
                         (
                             settings?.ipv8?.interfaces || [
@@ -102,6 +103,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="ipv8_ipv6"
+                    placeholder="::"
                     value={
                         (
                             settings?.ipv8?.interfaces || [
