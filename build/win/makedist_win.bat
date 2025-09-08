@@ -48,7 +48,7 @@ REM --- Doing this in ugly way for now
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
     openssl req  -nodes -new -x509 -config build\win\keygen_config.txt -keyout key.pem -out pub_key.pem
     openssl pkcs12 -export -in pub_key.pem -inkey key.pem -out ot_cert.pfx -passout pass:
-    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f ot_cert.pfx /d "Tribler" /t "http://timestamp.digicert.com" dist\tribler\tribler.exe
+    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /f ot_cert.pfx /fd SHA256 /d "Tribler" /t "http://timestamp.digicert.com" dist\tribler\tribler.exe
 )
 
 @echo Running NSIS
@@ -60,7 +60,7 @@ move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (
-    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f ..\ot_cert.pfx /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
+    "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\signtool.exe" sign /f ..\ot_cert.pfx /fd SHA256 /d "Tribler" /t "http://timestamp.digicert.com" Tribler_*.exe
 )
 
 endlocal

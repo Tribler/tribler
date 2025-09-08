@@ -17,6 +17,12 @@ jobs:
       ########################################
       # NSIS installer (Windows, always x86) #
       ########################################
+      - name: Install NSIS
+        if: matrix.os == 'windows-latest'
+        run: |
+          Invoke-WebRequest https://deac-riga.dl.sourceforge.net/project/nsis/NSIS%203/3.10/nsis-3.10.zip?viasf=1 -OutFile C:\WINDOWS\Temp\nsis-3.10.zip
+          Expand-Archive -LiteralPath "C:\WINDOWS\Temp\nsis-3.10.zip" -DestinationPath "C:\WINDOWS\Temp\unzip-nsis-3.10"
+          Move-Item -Path "C:\WINDOWS\Temp\unzip-nsis-3.10\nsis-3.10" -Destination "C:\Program Files (x86)\NSIS"
       - name: Check out SimpleFC repository (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/checkout@v4
@@ -42,6 +48,7 @@ jobs:
           msbuild nsProcess.vcxproj /p:PlatformToolset=v143 /p:Configuration="Release UNICODE"
           copy "Release UNICODE\nsProcess.dll" "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\nsProcess.dll"
           cd ../Include
+          New-Item -ItemType Directory -Force -Path "C:\Program Files (x86)\NSIS\Include"
           copy nsProcess.nsh "C:\Program Files (x86)\NSIS\Include\nsProcess.nsh"
 
       #######################
@@ -103,7 +110,7 @@ jobs:
       - name: Determine release tag
         shell: bash
         run: |
-          git fetch --tags
+          git fetch --no-tags origin 'refs/tags/v*:refs/tags/v*'
           git for-each-ref --count=1 --sort=-creatordate --format '%(refname)' refs/tags > raw_tag.txt
           GITHUB_TAG=$(git name-rev --tags --name-only $(cat raw_tag.txt))
           echo "GITHUB_TAG=${GITHUB_TAG#v}" >> $GITHUB_ENV
@@ -173,6 +180,14 @@ jobs:
         run: |
           vcpkg install libsodium
           Copy C:/vcpkg/packages/libsodium_x64-windows/bin/libsodium.dll src/libsodium.dll
+      - name: Fetch old OpenSSL for libtorrent (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Remove-Item -Path "C:\Program Files\OpenSSL" -Force -Recurse
+          Write-Output '{"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json","dependencies": ["openssl"],"overrides": [{"name": "openssl","version-string": "1.1.1n"}]}' | Out-File -FilePath ".\vcpkg.json"
+          vcpkg x-update-baseline --add-initial-baseline
+          vcpkg install
+          New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x64-windows\"
       - name: Build Executables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
