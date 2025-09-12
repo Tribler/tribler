@@ -238,5 +238,8 @@
     "MoveToBottomShort": "Move to bottom",
     "MoveDownShort": "Move down",
     "ToastErrorDownloadQueue": "Failed to update queue position!",
-    "ToastErrorDownloadAutoManaged": "Failed to update auto-managed flag!"
+    "ToastErrorDownloadAutoManaged": "Failed to update auto-managed flag!",
+    "Advanced": "Advanced",
+    "Description": "Description",
+    "InitialNodes": "Initial nodes"
 }

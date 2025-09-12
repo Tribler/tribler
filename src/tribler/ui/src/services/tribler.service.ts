@@ -551,20 +551,41 @@ export class TriblerService {
         }
     }
 
-    async createTorrent(
+    async dryCreateTorrent(
         name: string,
-        description: string,
-        files: string[],
-        exportDir: string,
-        download: boolean
+        exportDir: string
     ): Promise<undefined | ErrorDict | {torrent: string}> {
         try {
             return (
-                await this.http.post(`/createtorrent?download=${+download}`, {
+                await this.http.post("/createtorrent/dryrun", {
+                    name: name,
+                    export_dir: exportDir,
+                })
+            ).data.success;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async createTorrent(
+        name: string,
+        description: string,
+        filenames: string[],
+        files: string[],
+        exportDir: string,
+        trackers: string[],
+        initialNodes: string[]
+    ): Promise<undefined | ErrorDict | {torrent: string}> {
+        try {
+            return (
+                await this.http.post("/createtorrent", {
                     name: name,
                     description: description,
+                    filenames: filenames,
                     files: files,
                     export_dir: exportDir,
+                    trackers: trackers,
+                    initial_nodes: initialNodes
                 })
             ).data.torrent;
         } catch (error) {

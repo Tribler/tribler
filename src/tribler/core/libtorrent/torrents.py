@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import logging
+import os
+import shutil
 from asyncio import CancelledError, Future
 from contextlib import suppress
 from functools import wraps
 from hashlib import sha1
 from os.path import getsize
+from pathlib import Path
 from typing import TYPE_CHECKING, Concatenate, TypedDict, cast
 
 import libtorrent as lt
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-    from pathlib import Path
 
     from tribler.core.libtorrent.download_manager.download import Download
 
@@ -98,13 +100,27 @@ def common_prefix(paths_list: list[Path]) -> Path:
     return sorted(base_set, reverse=True)[0]
 
 
-def _existing_files(path_list: list[Path]) -> Iterable[Path]:
-    for path in path_list:
+def _existing_files(path_list: list[Path], names: list[str] | None) -> Iterable[tuple[str, Path]]:
+    if names is not None and len(path_list) != len(names):
+        msg = "Source paths and their names in the torrent should be equal length lists!"
+        raise ValueError(msg)
+    for i, path in enumerate(path_list):
         if not path.exists():
             msg = f"Path does not exist: {path}"
             raise OSError(msg)
         elif path.is_file():
-            yield path
+            if names is not None and names[i]:
+                yield names[i], path.absolute()
+            else:
+                yield path.parts[-1], path.absolute()
+        elif path.is_dir():
+            for dirpath, _, files in path.walk(follow_symlinks=True):
+                for file in files:
+                    rel_file_path = (dirpath / file).relative_to(path)
+                    if names is not None and names[i]:
+                        yield str(Path(names[i]) / rel_file_path) , (dirpath / file).absolute()
+                    else:
+                        yield str(rel_file_path), (dirpath / file).absolute()
 
 
 class TorrentFileResult(TypedDict):
@@ -114,12 +130,33 @@ class TorrentFileResult(TypedDict):
 
     success: bool
     base_dir: Path
-    torrent_file_path: str | None
     atp: lt.add_torrent_params
     infohash: bytes
 
 
-def create_torrent_file(file_path_list: list[Path],  # noqa: C901,PLR0912,PLR0913
+def most_efficient_file_dupe(src: Path, dst: Path) -> None:
+    """
+    Get dst into src in the most efficient way possible:
+     1. Symlink.
+     2. Hardlink.
+     3. Copy.
+
+    If all three fail, we crash.
+    """
+    os.makedirs(str(dst.parent), exist_ok=True)
+    try:
+        dst.symlink_to(src, False)
+    except OSError:
+        try:
+            dst.hardlink_to(src)
+        except OSError:
+            shutil.copy(str(src), str(dst))
+
+
+def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
+                        file_path_list: list[Path],
+                        files_names: list[str] | None = None,
+                        name: str | None = None,
                         announce: str | None = None,
                         announce_list: list[str] | None = None,
                         comment: str | None = None,
@@ -127,7 +164,6 @@ def create_torrent_file(file_path_list: list[Path],  # noqa: C901,PLR0912,PLR091
                         http_seeds: list[str] | None = None,
                         nodes: list[tuple[str, int]] | None = None,
                         piece_size: int = 0,
-                        torrent_filepath: str | None = None,
                         url_list: list[str] | None = None) -> TorrentFileResult:
     """
     Create a torrent file from the given paths and parameters.
@@ -135,17 +171,25 @@ def create_torrent_file(file_path_list: list[Path],  # noqa: C901,PLR0912,PLR091
     If an output file path is omitted, no file will be written to disk.
     """
     fs = lt.file_storage()
+    torrent_name = name or (common_prefix(file_path_list).parts or ["unknown"])[-1]
 
-    # filter all non-files
-    path_list = list(_existing_files(file_path_list))
+    path_list = list(_existing_files(file_path_list, files_names))
+    base_dir = (Path(export_dir) / torrent_name) if len(path_list) > 1 else Path(export_dir)
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-    # ACHTUNG!
-    # In the case of a multi-file torrent, the torrent name plays the role of the toplevel dir name.
-    # get the directory where these files are in. If there are multiple files, take the common directory they are in
-    base_dir = (common_prefix(path_list).parent if len(path_list) > 1 else path_list[0].parent).absolute()
-    for path in path_list:
-        relative = path.relative_to(base_dir)
-        fs.add_file(str(relative), getsize(str(path)))
+    for fname, src in path_list:
+        in_torrent_file = base_dir / fname
+        ignore = False
+        if in_torrent_file.exists():
+            logger.warning("Ignoring file %s, would overwrite existing file!", str(in_torrent_file))
+        else:
+            try:
+                most_efficient_file_dupe(src, in_torrent_file)
+            except OSError:
+                ignore = True
+                logger.exception("Failed to copy file %s, unable to copy!")
+        if not ignore:
+            fs.add_file(str(in_torrent_file.relative_to(export_dir)), getsize(str(src)))
 
     flag_v1_only = 2**6  # Backward compatibility for libtorrent < 2.x
     flags = lt.create_torrent_flags_t.optimize | flag_v1_only
@@ -182,19 +226,14 @@ def create_torrent_file(file_path_list: list[Path],  # noqa: C901,PLR0912,PLR091
             torrent.add_url_seed(url_lentry)
 
     # read the files and calculate the hashes
-    lt.set_piece_hashes(torrent, str(base_dir))
+    lt.set_piece_hashes(torrent, str(export_dir))
 
     t1 = torrent.generate()
     torrent_bytes = lt.bencode(t1)
 
-    if torrent_filepath:
-        with open(torrent_filepath, "wb") as f:
-            f.write(torrent_bytes)
-
     return {
         "success": True,
         "base_dir": base_dir,
-        "torrent_file_path": torrent_filepath,
         "atp": lt.load_torrent_buffer(torrent_bytes),  # type: ignore[attr-defined]
         "infohash": sha1(lt.bencode(t1[b"info"])).digest()
     }

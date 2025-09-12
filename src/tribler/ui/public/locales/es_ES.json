@@ -238,5 +238,8 @@
     "MoveToBottomShort": "Moverse a la parte inferior",
     "MoveDownShort": "Moverse hacia abajo",
     "ToastErrorDownloadQueue": "¡No se pudo actualizar la posición de la cola!",
-    "ToastErrorDownloadAutoManaged": "¡No se pudo actualizar la bandera administrada automáticamente!"
+    "ToastErrorDownloadAutoManaged": "¡No se pudo actualizar la bandera administrada automáticamente!",
+    "Advanced": "Avanzado",
+    "Description": "Descripción",
+    "InitialNodes": "Nodos iniciales"
 }

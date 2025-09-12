@@ -238,5 +238,8 @@
     "MoveToBottomShort": "Перейти к дне",
     "MoveDownShort": "Двигаться вниз",
     "ToastErrorDownloadQueue": "Не удалось обновить позицию очереди!",
-    "ToastErrorDownloadAutoManaged": "Не удалось обновить флаг с автоматическим управлением!"
+    "ToastErrorDownloadAutoManaged": "Не удалось обновить флаг с автоматическим управлением!",
+    "Advanced": "Передовой",
+    "Description": "Описание",
+    "InitialNodes": "Начальные узлы"
 }

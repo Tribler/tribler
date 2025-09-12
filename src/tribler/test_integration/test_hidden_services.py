@@ -198,7 +198,8 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         with open(config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso", "wb") as f:  # noqa: ASYNC230
             f.write(bytes([0] * 524288))
 
-        atp = create_torrent_file([config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"])["atp"]
+        atp = create_torrent_file(str(config.get_dest_dir()),
+                                  [config.get_dest_dir() / "ubuntu-15.04-desktop-amd64.iso"])["atp"]
         tdef = TorrentDef(atp)
 
         download = await self.download_manager_seeder.start_download(tdef=tdef, config=config)
