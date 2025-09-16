@@ -12,7 +12,7 @@ from ipv8.requestcache import NumberCache, RequestCache
 from tribler.core.recommender.payload import Crawl, CrawlInfo, CrawlResponse
 
 if TYPE_CHECKING:
-    from ipv8.types import Peer
+    from ipv8.peer import Peer
 
     from tribler.core.recommender.manager import Manager
 

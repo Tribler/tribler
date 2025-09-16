@@ -10,7 +10,7 @@ from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.serialization import VarLenUtf8, default_serializer
 
 if TYPE_CHECKING:
-    from ipv8.types import PrivateKey
+    from ipv8.keyvault.keys import PrivateKey
 
 default_serializer.add_packer("varlenIutf8", VarLenUtf8(">I"))
 EPOCH = datetime(1970, 1, 1)  # noqa: DTZ001
@@ -68,7 +68,7 @@ class UnknownBlobTypeException(Exception):
     """
 
 
-def read_payload_with_offset(data: bytes, offset: int = 0) -> tuple[TorrentMetadataPayload, int]:
+def read_payload_with_offset(data: bytes, offset: int = 0) -> tuple[SignedPayload, int]:
     """
     Read the next payload from the data buffer (at the given offset).
     """

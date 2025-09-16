@@ -22,6 +22,8 @@ from tribler.core.socks5.conversion import (
 from tribler.core.socks5.udp_connection import RustUDPConnection, SocksUDPConnection
 
 if TYPE_CHECKING:
+    from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
+
     from tribler.core.socks5.server import Socks5Server
 
 
@@ -53,7 +55,7 @@ class Socks5Connection(Protocol):
         self._logger.setLevel(logging.WARNING)
         self.socksserver = socksserver
         self.transport: WriteTransport | None = None
-        self.connect_to = None
+        self.connect_to: DomainAddress | UDPv4Address | None = None
 
         self.udp_connection: RustUDPConnection | SocksUDPConnection | None = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST

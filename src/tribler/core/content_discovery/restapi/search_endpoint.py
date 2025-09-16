@@ -43,7 +43,7 @@ class SearchEndpoint(RESTEndpoint):
         """
         super().__init__(middlewares, client_max_size)
 
-        self.content_discovery_community = None
+        self.content_discovery_community: ContentDiscoveryCommunity | None = None
         self.required_components = ("content_discovery_community", )
 
         self.app.add_routes([web.put("/remote", self.remote_search)])

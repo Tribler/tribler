@@ -198,12 +198,14 @@ class RESTManager:
     def get_endpoint(self, name: str) -> RESTEndpoint:
         """
         Get an endpoint by its name, including the first forward slash.
+
+        Requesting a non-Tribler (i.e., IPv8) endpoint will cause a crash.
         """
         ep = self.root_endpoint.endpoints.get(name)
         if ep is None:
             msg = f"REST Endpoint {name} does not exist!"
             raise LookupError(msg)
-        return ep
+        return cast("RESTEndpoint", ep)  # This could still be the IPv8 root endpoint
 
     def get_api_port(self) -> int | None:
         """
@@ -304,5 +306,6 @@ class RESTManager:
         if self.runner:
             await self.runner.cleanup()
         for endpoint in self.root_endpoint.endpoints.values():
-            await endpoint.shutdown_task_manager()
+            if isinstance(endpoint, RESTEndpoint):
+                await endpoint.shutdown_task_manager()
         self._logger.info("Stopped")

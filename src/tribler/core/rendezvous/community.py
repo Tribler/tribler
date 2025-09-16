@@ -8,7 +8,7 @@ from ipv8.lazy_community import lazy_wrapper
 from tribler.core.rendezvous.payload import PullRecordPayload, RecordPayload
 
 if TYPE_CHECKING:
-    from ipv8.types import Peer
+    from ipv8.peer import Peer
 
     from tribler.core.rendezvous.database import RendezvousDatabase
 

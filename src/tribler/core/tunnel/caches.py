@@ -3,17 +3,19 @@ from __future__ import annotations
 from asyncio import Future
 from typing import TYPE_CHECKING
 
-from ipv8.requestcache import RandomNumberCache
+from ipv8.requestcache import RandomNumberCacheWithName
 
 if TYPE_CHECKING:
     from tribler.core.tunnel.community import TriblerTunnelCommunity
     from tribler.core.tunnel.payload import HTTPResponsePayload
 
 
-class HTTPRequestCache(RandomNumberCache):
+class HTTPRequestCache(RandomNumberCacheWithName):
     """
     A cache to keep track of an HTTP request.
     """
+
+    name = "http-request"
 
     def __init__(self, community: TriblerTunnelCommunity, circuit_id: int) -> None:
         """

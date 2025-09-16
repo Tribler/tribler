@@ -165,6 +165,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(0).settings.remove_tunnel_delay = 5.0
 
         _ = self.overlay(0).remove_circuit(3, remove_now=False)
+        await sleep(0)
 
         self.assertIn(3, self.overlay(0).circuits)
         self.assertEqual(CIRCUIT_STATE_CLOSING, circuit.state)

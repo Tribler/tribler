@@ -48,7 +48,7 @@ class RootEndpoint(RESTEndpoint):
         Create a new root endpoint.
         """
         super().__init__(middlewares, client_max_size)
-        self.endpoints: dict[str, RESTEndpoint] = {}
+        self.endpoints: dict[str, RESTEndpoint | IPV8RootEndpoint] = {}
 
     def add_endpoint(self, prefix: str, endpoint: RESTEndpoint | IPV8RootEndpoint) -> None:
         """

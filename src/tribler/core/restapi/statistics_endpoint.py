@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
 from aiohttp import web
 from aiohttp_apispec import docs
@@ -10,8 +10,60 @@ from marshmallow.fields import Integer, String
 from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
+    from ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint as IPv8StatsEndpoint
+
+    from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.session import Session
     from tribler.core.socks5.udp_connection import RustUDPConnection
+
+
+class Socks5StatsDict(TypedDict):
+    """
+    Socks5 statistics entry.
+    """
+
+    hops: int
+    sessions: int
+    associates: list[int] | None
+
+
+class LibtorrentSessionStatsDict(TypedDict):
+    """
+    Statistics for a single libtorrent session.
+    """
+
+    recv_bytes: int
+    sent_bytes: int
+    dht_recv_bytes: int
+    dht_sent_bytes: int
+    tracker_recv_bytes: int
+    tracker_sent_bytes: int
+    payload_recv_bytes: int
+    payload_sent_bytes: int
+    hops: int
+
+
+class LibtorrentStatsDict(TypedDict):
+    """
+    Statistics for the entirety of libtorrent.
+    """
+
+    sessions: list[LibtorrentSessionStatsDict]
+    total_recv_bytes: int
+    total_sent_bytes: int
+
+
+class TriblerStatsDict(TypedDict):
+    """
+    Tribler statistics.
+    """
+
+    peers: NotRequired[int]
+    db_size: NotRequired[int]
+    num_torrents: NotRequired[int]
+    endpoint_version: NotRequired[str | None]
+    socks5_sessions: NotRequired[list[Socks5StatsDict]]
+    libtorrent: NotRequired[LibtorrentStatsDict]
 
 
 class StatisticsEndpoint(RESTEndpoint):
@@ -27,7 +79,7 @@ class StatisticsEndpoint(RESTEndpoint):
         """
         super().__init__(middlewares, client_max_size)
         self.session: Session | None = None
-        self.content_discovery_community = None
+        self.content_discovery_community: ContentDiscoveryCommunity | None = None
 
         self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
                              web.get("/ipv8", self.get_ipv8_stats)])
@@ -58,7 +110,7 @@ class StatisticsEndpoint(RESTEndpoint):
         """
         Return general statistics of Tribler.
         """
-        stats_dict = {}
+        stats_dict: TriblerStatsDict = TriblerStatsDict()
 
         if self.session and self.content_discovery_community:
             stats_dict["peers"] = len(self.content_discovery_community.get_peers())
@@ -68,7 +120,11 @@ class StatisticsEndpoint(RESTEndpoint):
                                "num_torrents": self.session.mds.get_num_torrents()})
 
         if self.session and self.session.download_manager:
-            lt_stats: dict[str, list[dict]] = {"sessions": []}
+            lt_stats: LibtorrentStatsDict = LibtorrentStatsDict(
+                sessions=[],
+                total_recv_bytes=0,
+                total_sent_bytes=0
+            )
             for hops, stats in self.session.download_manager.session_stats.items():
                 lt_stats["sessions"].append({
                     "recv_bytes": stats.get("net.recv_bytes", 0),
@@ -89,13 +145,14 @@ class StatisticsEndpoint(RESTEndpoint):
             stats_dict["socks5_sessions"] = []
 
             for server in self.session.socks_servers:
-                stats_dict["socks5_sessions"].append({
-                    "hops": server.hops,
-                    "sessions": len(server.sessions),
-                    "associates": [server.rust_endpoint.get_associated_circuits(cast("RustUDPConnection",
-                                                                                     session.udp_connection).port)
-                                   for session in server.sessions
-                                   if session.udp_connection] if server.rust_endpoint else None})
+                stats_dict["socks5_sessions"].append(Socks5StatsDict(
+                    hops=server.hops,
+                    sessions=len(server.sessions),
+                    associates=[server.rust_endpoint.get_associated_circuits(cast("RustUDPConnection",
+                                                                                  session.udp_connection).port)
+                                for session in server.sessions
+                                if session.udp_connection] if server.rust_endpoint else None
+                ))
 
         try:
             from ipv8_rust_tunnels import rust_endpoint  # noqa: PLC0415
@@ -127,8 +184,9 @@ class StatisticsEndpoint(RESTEndpoint):
         """
         stats_dict = {}
         if self.session and self.session.ipv8:
+            stats_ep = cast("IPv8StatsEndpoint", self.session.ipv8.endpoint)
             stats_dict = {
-                "total_up": self.session.ipv8.endpoint.bytes_up,
-                "total_down": self.session.ipv8.endpoint.bytes_down
+                "total_up": stats_ep.bytes_up,
+                "total_down": stats_ep.bytes_down
             }
         return RESTResponse({"ipv8_statistics": stats_dict})
