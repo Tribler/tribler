@@ -31,7 +31,11 @@ jobs:
         with:
           path: src/libsodium.dll
           key: cache_libsodium_dll
-      - run: python -m pip install -r requirements.txt
+      - run: |
+          python -m pip install -r requirements.txt
+
+          # Windows libtorrent 2.0.11 OpenSSL 1.1.1n workaround (only for tests, not for production!)
+          python -m pip install libtorrent-windows-dll
       - name: Run unit tests
         run: |
           cd src
