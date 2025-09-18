@@ -36,6 +36,7 @@ export interface Download {
     all_time_upload: number;
     all_time_download: number;
     all_time_ratio: number;
+    last_upload: number;
     trackers: Tracker[];
     hops: number;
     anon_download: boolean;

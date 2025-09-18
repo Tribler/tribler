@@ -71,6 +71,18 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
     {
+        accessorKey: "all_time_upload",
+        header: getHeader("TotalUp"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            if (row.original.all_time_upload == 0)
+                return <span>-</span>;
+            return <span>{formatBytes(row.original.all_time_upload)}</span>;
+        },
+    },
+    {
         accessorKey: "progress",
         header: getHeader("Status"),
         cell: ({row}) => {
@@ -162,6 +174,18 @@ const downloadColumns: ColumnDef<Download>[] = [
             if (row.original.progress === 1 || row.original.status_code !== StatusCode.DOWNLOADING)
                 return <span>-</span>;
             return <span>{formatTimeRelative(row.original.eta, false)}</span>;
+        },
+    },
+    {
+        accessorKey: "last_upload",
+        header: getHeader("LastUpload"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            if (row.original.last_upload == 0)
+                return <span>-</span>;
+            return <span>{formatDateTime(row.original.last_upload, false)}</span>;
         },
     },
     {
