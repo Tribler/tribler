@@ -185,7 +185,7 @@ const downloadColumns: ColumnDef<Download>[] = [
         cell: ({row}) => {
             if (row.original.last_upload == 0)
                 return <span>-</span>;
-            return <span>{formatDateTime(row.original.last_upload, false)}</span>;
+            return <span>{formatDateTime(row.original.last_upload)}</span>;
         },
     },
     {

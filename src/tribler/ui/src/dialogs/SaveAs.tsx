@@ -25,6 +25,7 @@ import {DialogProps} from "@radix-ui/react-dialog";
 import {JSX} from "react/jsx-runtime";
 import {Checkbox} from "@/components/ui/checkbox";
 import {Label} from "@/components/ui/label";
+import {Slider} from "@/components/ui/slider";
 import {ColumnDef, Row} from "@tanstack/react-table";
 import {useNavigate} from "react-router-dom";
 import {Settings} from "@/models/settings.model";
@@ -334,6 +335,21 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                         {t("DownloadAnon")}
                     </label>
+                    <div className="grow" />
+                    <div className="relative items-enter mb-3">
+                        <Slider
+                            className="w-64"
+                            value={[params.anon_hops === undefined ? 0 : params.anon_hops]}
+                            min={0}
+                            max={3}
+                            step={1}
+                            onValueChange={(value) => {setParams({...params, anon_hops: value[0]})}}
+                        />
+                        <label className="absolute left-0 text-xs">
+                            {params.anon_hops == 0 ? "" : (params.anon_hops == 1 ? t("OneHop")
+                                : (params.anon_hops == 2 ? t("TwoHops") : t("ThreeHops")))}
+                        </label>
+                    </div>
                 </div>
                 <div className="flex items-center space-x-2">
                     <Checkbox
