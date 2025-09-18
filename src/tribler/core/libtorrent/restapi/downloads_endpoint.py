@@ -323,6 +323,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "all_time_upload": state.all_time_upload,
                 "all_time_download": state.all_time_download,
                 "all_time_ratio": state.get_all_time_ratio(),
+                "last_upload": state.get_last_up(),
                 "trackers": tracker_info,
                 "hops": download.config.get_hops(),
                 "anon_download": download.get_anon_mode(),

@@ -233,6 +233,12 @@ class DownloadState:
         """
         return self.lt_status.finished_time if self.lt_status else 0
 
+    def get_last_up(self) -> int:
+        """
+        The timestamp of the last upload activity.
+        """
+        return int(self.lt_status.last_upload.timestamp()) if self.lt_status and self.lt_status.last_upload else 0
+
     def get_eta(self) -> float:
         """
         Returns the estimated time to finish of download.
