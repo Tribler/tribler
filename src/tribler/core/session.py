@@ -15,6 +15,7 @@ from ipv8.loader import IPv8CommunityLoader
 from ipv8_service import IPv8
 
 from tribler.core.components import (
+    CommunityLauncherWEndpoints,
     ContentDiscoveryComponent,
     DatabaseComponent,
     DHTDiscoveryComponent,
@@ -47,6 +48,9 @@ if TYPE_CHECKING:
     from collections.abc import Generator
     from types import TracebackType
 
+    from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+    from ipv8.REST.overlays_endpoint import OverlaysEndpoint
+
     from tribler.core.database.store import MetadataStore
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
     from tribler.tribler_config import TriblerConfigManager
@@ -71,8 +75,8 @@ def rust_enhancements(session: Session) -> Generator[None]:
                 ifc["worker_threads"] = ifc.get("worker_threads", session.config.get("tunnel_community/max_circuits"))
             yield
             if if_specs:
-                ipv4_endpoint = session.ipv8.endpoint.interfaces["UDPIPv4"]
-                session.ipv8.endpoint.get_statistics = ipv4_endpoint.get_statistics
+                ipv4_endpoint = cast("DispatcherEndpoint", session.ipv8.endpoint).interfaces["UDPIPv4"]
+                session.ipv8.endpoint.get_statistics = ipv4_endpoint.get_statistics  # type: ignore[attr-defined]
                 for server in session.socks_servers:
                     server.rust_endpoint = ipv4_endpoint if isinstance(ipv4_endpoint, RustEndpoint) else None
         except ImportError:
@@ -141,7 +145,7 @@ class Session:
         # IPv8
         rescue_keys(self.config)
         with rust_enhancements(self):
-            self.ipv8 = IPv8(self.config.get("ipv8"))
+            self.ipv8 = IPv8(cast("dict[str, Any]", self.config.get("ipv8")))
         self.loader = IPv8CommunityLoader()
 
         # REST
@@ -158,7 +162,7 @@ class Session:
         for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent,
                                RecommenderComponent, RendezvousComponent, RSSComponent, TorrentCheckerComponent,
                                TunnelComponent, VersioningComponent, WatchFolderComponent]:
-            instance = launcher_class()
+            instance: CommunityLauncherWEndpoints = cast("CommunityLauncherWEndpoints", launcher_class())
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
             self.loader.set_launcher(instance)
@@ -238,10 +242,10 @@ class Session:
         await self.ipv8.start()
 
         # REST (2/2)
-        self.rest_manager.get_endpoint("/api/ipv8").initialize(self.ipv8)
-        self.rest_manager.get_endpoint("/api/statistics").ipv8 = self.ipv8
+        ipv8_root_endpoint = cast("IPv8RootEndpoint", self.rest_manager.get_endpoint("/api/ipv8"))
+        ipv8_root_endpoint.initialize(self.ipv8)
 
-        overlays_endpoint = self.rest_manager.get_endpoint("/api/ipv8").endpoints["/overlays"]
+        overlays_endpoint = cast("OverlaysEndpoint", ipv8_root_endpoint.endpoints["/overlays"])
         # Enable statistics for IPv8 StatisticsEndpoint
         if overlays_endpoint.statistics_supported:
             overlays_endpoint.enable_overlay_statistics(True, None, True)

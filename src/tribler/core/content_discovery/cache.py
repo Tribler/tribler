@@ -8,7 +8,7 @@ from ipv8.requestcache import RandomNumberCache, RequestCache
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from ipv8.types import Peer
+    from ipv8.peer import Peer
 
     from tribler.core.database.store import ProcessingResult
 
@@ -38,7 +38,7 @@ class SelectRequest(RandomNumberCache):
 
         self.timeout_callback = timeout_callback
 
-    def on_timeout(self) -> None:
+    def on_timeout(self: Self) -> None:
         """
         Call the timeout callback, if one is registered.
         """

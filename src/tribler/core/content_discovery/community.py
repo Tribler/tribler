@@ -8,7 +8,7 @@ import uuid
 from binascii import hexlify, unhexlify
 from importlib.metadata import PackageNotFoundError, version
 from itertools import count
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from ipv8.community import Community, CommunitySettings
 from ipv8.lazy_community import lazy_wrapper
@@ -32,7 +32,7 @@ from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
-    from ipv8.types import Peer
+    from ipv8.peer import Peer
 
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
@@ -368,7 +368,8 @@ class ContentDiscoveryCommunity(Community):
         """
         self.logger.debug("Response from %s", hexlify(peer.mid).decode())
 
-        request: SelectRequest | None = self.request_cache.get(hexlify(peer.mid).decode(), response_payload.id)
+        request: SelectRequest | None = cast("SelectRequest | None",
+                                             self.request_cache.get(hexlify(peer.mid).decode(), response_payload.id))
         if request is None:
             return None
 

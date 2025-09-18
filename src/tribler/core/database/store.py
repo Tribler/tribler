@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from sqlite3 import Connection
 
-    from ipv8.types import PrivateKey
+    from ipv8.keyvault.keys import PrivateKey
     from pony.orm.core import Entity, Query
 
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata

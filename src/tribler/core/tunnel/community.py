@@ -3,10 +3,10 @@ from __future__ import annotations
 import hashlib
 import math
 import time
-from asyncio import Future, open_connection, timeout
+from asyncio import CancelledError, open_connection, timeout
 from binascii import hexlify, unhexlify
 from collections import Counter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
@@ -19,7 +19,6 @@ from ipv8.messaging.anonymization.tunnel import (
 )
 from ipv8.peerdiscovery.network import Network
 from ipv8.taskmanager import task
-from ipv8.util import succeed
 from libtorrent import bdecode
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
@@ -29,12 +28,13 @@ from tribler.core.tunnel.dispatcher import TunnelDispatcher
 from tribler.core.tunnel.payload import HTTPRequestPayload, HTTPResponsePayload
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
     from pathlib import Path
 
     from ipv8.messaging.anonymization.exit_socket import TunnelExitSocket
     from ipv8.messaging.anonymization.payload import CreatedPayload, CreatePayload, ExtendedPayload
-    from ipv8.types import Address
+    from ipv8.messaging.interfaces.endpoint import Endpoint
+    from ipv8.messaging.interfaces.udp.endpoint import Address
+    from ipv8.peer import Peer
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -86,7 +86,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Create a new tunnel community.
         """
         super().__init__(settings)
-        self.settings.endpoint = self.crypto_endpoint
+        self.settings.endpoint = cast("Endpoint", self.crypto_endpoint)
 
         if settings.exitnode_enabled:
             self.settings.peer_flags |= {PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8, PEER_FLAG_EXIT_HTTP}
@@ -151,15 +151,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         else:
             self.logger.warning("Could not retrieve backup exitnode cache, file does not exist!")
 
-    def should_join_circuit(self, create_payload: CreatePayload, previous_node_address: Address) -> Future[bool]:
+    async def should_join_circuit(self, create_payload: CreatePayload, previous_node_address: Address) -> bool:
         """
         Check whether we should join a circuit. Returns a future that fires with a boolean.
         """
         joined_circuits = len(self.relay_from_to) + len(self.exit_sockets)
         if self.settings.max_joined_circuits <= joined_circuits:
             self.logger.warning("too many relays (%d)", joined_circuits)
-            return succeed(False)
-        return succeed(True)
+            return False
+        return True
 
     def readd_bittorrent_peers(self) -> None:
         """
@@ -190,14 +190,15 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if self.find_circuits():
                 self.readd_bittorrent_peers()
 
-    def remove_circuit(self, circuit_id: int, additional_info: str = "", remove_now: bool = False,
-                       destroy: bool = False) -> Awaitable[None]:
+    @task
+    async def remove_circuit(self, circuit_id: int, additional_info: str = "", remove_now: bool = False,
+                             destroy: bool | int = False) -> None:
         """
         Remove the circuit that belongs to the given circuit id.
         """
         if circuit_id not in self.circuits:
             self.logger.warning("Circuit %d not found when trying to remove it", circuit_id)
-            return succeed(None)
+            return
 
         circuit = self.circuits[circuit_id]
 
@@ -216,8 +217,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.update_torrent(affected_peers, download)
 
         # Now we actually remove the circuit
-        return super().remove_circuit(circuit_id, additional_info=additional_info,
-                                      remove_now=remove_now, destroy=destroy)
+        await super().remove_circuit(circuit_id, additional_info=additional_info, remove_now=remove_now,
+                                     destroy=destroy)
 
     @task
     async def remove_relay(self, circuit_id: int, additional_info: str = "", remove_now: bool = False,
@@ -234,8 +235,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.settings.notifier.notify(Notification.circuit_removed, circuit=removed_relay,
                                           additional_info=additional_info)
 
-    def remove_exit_socket(self, circuit_id: int, additional_info:str = "", remove_now: bool = False,
-                           destroy: bool = False) -> TunnelExitSocket | None:
+    async def remove_exit_socket(self, circuit_id: int, additional_info:str = "", remove_now: bool = False,
+                                 destroy: bool = False) -> TunnelExitSocket | None:
         """
         Remove the exit socket that belongs to the given circuit id.
         """
@@ -244,8 +245,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.settings.notifier.notify(Notification.circuit_removed, circuit=exit_socket,
                                           additional_info=additional_info)
 
-        return super().remove_exit_socket(circuit_id, additional_info=additional_info,
-                                          remove_now=remove_now, destroy=destroy)
+        return await super().remove_exit_socket(circuit_id, additional_info=additional_info, remove_now=remove_now,
+                                                destroy=destroy)
 
     def _ours_on_created_extended(self, circuit_id: int, payload: CreatedPayload | ExtendedPayload) -> None:
         """
@@ -333,8 +334,10 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             active = [DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING, DownloadStatus.METADATA]
             if state_changed and new_state in active:
                 if old_state != DownloadStatus.METADATA or new_state != DownloadStatus.DOWNLOADING:
+                    def on_join_swarm(addr: Address, ih: bytes = info_hash) -> None:
+                        self.on_e2e_finished(addr, ih)
                     self.join_swarm(info_hash, hops[info_hash], seeding=new_state == DownloadStatus.SEEDING,
-                                    callback=lambda addr, ih=info_hash: self.on_e2e_finished(addr, ih))
+                                    callback=on_join_swarm)
             elif state_changed and new_state in [DownloadStatus.STOPPED, None]:
                 self.leave_swarm(info_hash)
 
@@ -367,7 +370,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         return None
 
     @task
-    async def create_introduction_point(self, info_hash: bytes, required_ip: Address | None = None) -> None:
+    async def create_introduction_point(self, info_hash: bytes, required_ip: Peer | None = None) -> None:
         """
         Start creating an introduction point.
         """
@@ -464,17 +467,17 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         Callback for when an HTTP response is received.
         """
-        if not self.request_cache.has("http-request", payload.identifier):
+        cache = self.request_cache.get(HTTPRequestCache, payload.identifier)
+        if cache is None:
             self.logger.warning("Received unexpected http-response")
             return
-        cache = self.request_cache.get("http-request", payload.identifier)
         if cache.circuit_id != payload.circuit_id:
             self.logger.warning("Received http-response from wrong circuit %s != %s", cache.circuit_id, circuit_id)
             return
 
         self.logger.debug("Got http-response from %s", source_address)
         if cache.add_response(payload):
-            self.request_cache.pop("http-request", payload.identifier)
+            self.request_cache.pop(HTTPRequestCache, payload.identifier)
 
     async def perform_http_request(self, destination: Address, request: bytes, hops: int = 1) -> bytes:
         """
@@ -498,5 +501,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             raise RuntimeError(msg)
 
         cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        self.send_cell(circuit.hop.address, HTTPRequestPayload(circuit.circuit_id, cache.number, destination, request))
-        return await cache.response_future
+        if cache is not None:
+            self.send_cell(circuit.hop.address, HTTPRequestPayload(circuit.circuit_id, cache.number, destination,
+                                                                   request))
+            return await cache.response_future
+        raise CancelledError

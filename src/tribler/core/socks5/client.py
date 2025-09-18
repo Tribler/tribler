@@ -6,7 +6,7 @@ import socket
 from asyncio import BaseTransport, DatagramProtocol, DatagramTransport, Protocol, Queue, WriteTransport, get_event_loop
 from typing import TYPE_CHECKING, cast
 
-from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
+from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
 from ipv8.messaging.serialization import PackError
 
 from tribler.core.socks5.conversion import (
@@ -43,7 +43,7 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         """
         self.callback = callback
         self.transport: DatagramTransport | None = None
-        self.proxy_udp_addr = None
+        self.proxy_udp_addr: DomainAddress | UDPv4Address | None = None
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def connection_made(self, transport: BaseTransport) -> None:
@@ -57,7 +57,7 @@ class Socks5ClientUDPConnection(DatagramProtocol):
         Callback for when data is received over our transport.
         """
         try:
-            request, _ = socks5_serializer.unpack_serializable(UdpPacket, data)
+            request, __ = socks5_serializer.unpack_serializable(UdpPacket, data)
         except PackError:
             self.logger.warning("Error while decoding packet", exc_info=True)
         else:

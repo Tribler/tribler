@@ -43,6 +43,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Generator
     from dataclasses import dataclass
 
+    from ipv8.keyvault.keys import PrivateKey
+
     from tribler.core.database.orm_bindings.torrent_state import TorrentState
     from tribler.core.libtorrent.torrentdef import TorrentDef
 
@@ -349,7 +351,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 return b";"
             return b"%d,%d,%d;" % (health.seeders or 0, health.leechers or 0, health.last_check or 0)
 
-        def serialized(self, key: bytes | None = None) -> bytes:
+        def serialized(self, key: PrivateKey | None = None) -> bytes:
             """
             Serializes the object and returns the result with added signature (blob output).
 

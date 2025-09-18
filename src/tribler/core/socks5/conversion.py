@@ -89,7 +89,7 @@ class CommandResponse(VariablePayload):
     version: int
     reply: int
     rsv: int
-    destination: DomainAddress | UDPv4Address
+    bind: DomainAddress | UDPv4Address
 
 
 @vp_compile
@@ -132,6 +132,7 @@ class Socks5Address(Packer[DomainAddress | tuple, Any]):
         """
         address_type, = struct.unpack_from(">B", data, offset)
         offset += 1
+        address: DomainAddress | UDPv4Address
 
         if address_type == ADDRESS_TYPE_IPV4:
             host = socket.inet_ntoa(data[offset:offset + 4])

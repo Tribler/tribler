@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 from ipv8.messaging.lazy_payload import VariablePayloadWID, vp_compile
+from ipv8.messaging.serialization import Serializable
 
 
 @vp_compile
@@ -19,7 +20,7 @@ class CrawlInfo(VariablePayloadWID):
     unknown: bytes
 
 
-class JSONPayload:
+class JSONPayload(Serializable):
     """
     A generic JSON-based payload.
     """

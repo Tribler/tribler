@@ -8,7 +8,7 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
 
 if TYPE_CHECKING:
-    from ipv8.types import Peer
+    from ipv8.peer import Peer
 
     from tribler.core.tunnel.community import TriblerTunnelCommunity
 

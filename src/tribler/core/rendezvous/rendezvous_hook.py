@@ -2,8 +2,8 @@ import logging
 import time
 
 from ipv8.community import Community
+from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network, PeerObserver
-from ipv8.types import Peer
 from pony.orm import db_session
 
 from tribler.core.rendezvous.database import RendezvousDatabase

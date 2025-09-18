@@ -19,7 +19,7 @@ from tribler.core.socks5.conversion import UdpPacket, socks5_serializer
 if TYPE_CHECKING:
     from asyncio import Future
 
-    from ipv8.messaging.interfaces.udp.endpoint import DomainAddress, UDPv4Address
+    from ipv8.messaging.interfaces.udp.endpoint import Address, DomainAddress, UDPv4Address
 
     from tribler.core.socks5.connection import Socks5Connection
     from tribler.core.socks5.server import Socks5Server
@@ -95,9 +95,10 @@ class TunnelDispatcher(TaskManager):
         try:
             circuit = self.con_to_cir[connection][request.destination]
         except KeyError:
-            circuit = self.select_circuit(connection, request)
-            if circuit is None:
+            selected_circuit = self.select_circuit(connection, request)
+            if selected_circuit is None:
                 return False
+            circuit = selected_circuit
 
         if circuit.state != CIRCUIT_STATE_READY:
             self._logger.debug("Circuit not ready, dropping %d bytes to %s", len(request.data), request.destination)
@@ -133,7 +134,7 @@ class TunnelDispatcher(TaskManager):
 
         return True
 
-    def select_circuit(self, connection: Socks5Connection, request: UdpPacket) -> int | None:
+    def select_circuit(self, connection: Socks5Connection, request: UdpPacket) -> Circuit | None:
         """
         Get a circuit number for the given connection and request.
         """
@@ -175,7 +176,7 @@ class TunnelDispatcher(TaskManager):
         self._logger.debug("Select circuit %d for %s", circuit.circuit_id, request.destination)
         return circuit
 
-    def circuit_dead(self, broken_circuit: Circuit) -> set[tuple[str, int]]:
+    def circuit_dead(self, broken_circuit: Circuit) -> set[Address]:
         """
         When a circuit dies, we update the destinations dictionary and remove all peers that are affected.
         """
@@ -183,7 +184,7 @@ class TunnelDispatcher(TaskManager):
         if con is None:
             return set()
 
-        destinations = set()
+        destinations: set[Address] = set()
         destination_to_circuit = self.con_to_cir.get(con, {})
         for destination, circuit in list(destination_to_circuit.items()):
             if circuit == broken_circuit:

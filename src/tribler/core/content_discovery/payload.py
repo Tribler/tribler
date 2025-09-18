@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, cast
 
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
 from ipv8.messaging.serialization import default_serializer
@@ -35,8 +35,8 @@ class TorrentInfoFormat(VariablePayload):
         """
         Convert the given bytes to a list of this payload.
         """
-        return default_serializer.unpack_serializable_list([cls] * (len(serialized) // cls.length),
-                                                           serialized, consume_all=False)[:-1]
+        return cast("list[Self]", default_serializer.unpack_serializable_list([cls] * (len(serialized) // cls.length),
+                                                                              serialized, consume_all=False)[:-1])
 
 
 @vp_compile
