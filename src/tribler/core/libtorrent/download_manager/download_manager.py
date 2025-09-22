@@ -804,9 +804,6 @@ class DownloadManager(TaskManager):
 
         for lt_hops, lt_session in self.ltsessions.items():
             if hops is None or lt_hops == hops:
-                # For now, we use a hard-coded limit of 500KiB/s for metainfo downloading.
-                if lt_hops == -1:
-                    settings["download_rate_limit"] = 500 * 1024
                 lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
 
     async def remove_download(self, download: Download, remove_content: bool = False,
