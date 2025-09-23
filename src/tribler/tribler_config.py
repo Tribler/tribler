@@ -196,6 +196,8 @@ class LibtorrentConfig(TypedDict):
     active_lsd_limit: int
     active_limit: int
 
+    ask_download_settings: bool
+
 
 class RecommenderConfig(TypedDict):
     """
@@ -338,7 +340,8 @@ DEFAULT_CONFIG = {
         active_dht_limit=88,
         active_tracker_limit=1600,
         active_lsd_limit=60,
-        active_limit=500
+        active_limit=500,
+        ask_download_settings=False
         ),
     "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),
@@ -506,7 +509,7 @@ if __name__ == "__main__":
             typed_dicts_sources.append("".join(getlines(__file__)[entry.lineno-1:entry.end_lineno]))
             unsourced.remove(entry.targets[0].id)
     typed_dicts_sources += [inspect.getsource(globals()[k]) for k in unsourced]
-    src_typed_dicts = "\n".join(typed_dicts_sources)
+    src_typed_dicts = "\n".join(sorted(typed_dicts_sources))
 
     mypy_opts = Options()
     ast_tcm = ast.parse(inspect.getsource(TriblerConfigManager))

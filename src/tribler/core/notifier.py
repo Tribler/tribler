@@ -49,6 +49,7 @@ class Notification(Enum):
     torrent_metadata_added = Desc("torrent_metadata_added", ["metadata"], [dict])
     new_torrent_metadata_created = Desc("new_torrent_metadata_created", ["infohash", "title"],
                                         [(bytes, type(None)), (str, type(None))])
+    ask_add_download = Desc("ask_add_download", ["uri"], [str])
 
 
 class Notifier:

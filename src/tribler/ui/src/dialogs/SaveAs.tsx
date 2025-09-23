@@ -238,7 +238,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         }
     }
 
-    if (props.open && props.onOpenChange && triblerService.guiSettings.ask_download_settings === false) {
+    if (props.open && props.onOpenChange && settings?.libtorrent?.ask_download_settings === false) {
         OnDownloadClicked();
         return <></>;
     }

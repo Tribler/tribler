@@ -1,4 +1,4 @@
-import {useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import toast from "react-hot-toast";
 import {Button} from "./ui/button";
@@ -38,6 +38,26 @@ export function AddTorrent() {
     const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false);
 
     const [torrent, setTorrent] = useState<File | undefined>();
+
+    useEffect(() => {
+        (async () => {
+            triblerService.addEventListener("ask_add_download", OnCoreAskDownload);
+        })();
+        return () => {
+            (async () => {
+                triblerService.removeEventListener("ask_add_download", OnCoreAskDownload);
+            })();
+        };
+    }, []);
+
+    const OnCoreAskDownload = (event: MessageEvent) => {
+        const message = JSON.parse(event.data);
+        if (message.uri) {
+            setUriInput(message.uri);
+            setTorrent(undefined);
+            setSaveAsDialogOpen(true);
+        }
+    };
 
     return (
         <>
@@ -170,14 +190,23 @@ export function AddTorrent() {
                 ref={fileInputRef}
                 type="file"
                 accept=".torrent"
-                onChange={(event) => {
+                onChange={async (event) => {
                     if (!event.target.files || event.target.files.length === 0) {
                         return;
                     }
                     const files = Array.from(event.target.files as ArrayLike<File>);
                     event.target.value = "";
+                    const settings = await triblerService.getSettings();
 
-                    if (triblerService.guiSettings.ask_download_settings !== false) {
+                    if (settings === undefined) {
+                        toast.error(`${t("ToastErrorDownloadStart")} ${t("ToastErrorGenNetworkErr")}`);
+                        return;
+                    } else if (isErrorDict(settings)) {
+                        toast.error(`${t("ToastErrorDownloadStart")} ${settings.error.message}`);
+                        return;
+                    }
+
+                    if (settings?.libtorrent?.ask_download_settings === true) {
                         (async () => {
                             for (let file of files) {
                                 // Open SaveAs dialog for 1 torrent at a time

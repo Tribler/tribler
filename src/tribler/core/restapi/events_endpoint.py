@@ -31,6 +31,7 @@ topics_to_send_to_gui = [
     Notification.remote_query_results,
     Notification.low_space,
     Notification.report_config_error,
+    Notification.ask_add_download,
 ]
 
 
