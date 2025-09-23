@@ -68,6 +68,7 @@ export interface Settings {
         announce_to_all_trackers: boolean;
         max_concurrent_http_announces: number;
         check_after_complete: boolean;
+        ask_download_settings: boolean;
         download_defaults: {
             anonymity_enabled: boolean;
             number_hops: number;
@@ -121,7 +122,6 @@ export interface AutoManageSettings {
 
 export interface GuiSettings {
     translation?: string;
-    ask_download_settings?: boolean;
     dev_mode?: boolean;
     lang?: string;
     theme?: string;

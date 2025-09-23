@@ -35,45 +35,6 @@ class ApiConfig(TypedDict):
     http_port_running: int
     https_port_running: int
 
-class RendezvousConfig(TypedDict):
-    """
-    Settings for the rendezvous component.
-    """
-
-    enabled: bool
-
-class IPv8LoggerConfig(TypedDict):
-    """
-    The IPv8 logger configuration.
-    """
-
-    level: str
-
-class TriblerConfig(TypedDict):
-    """
-    The main Tribler settings and all of its components' sub-settings.
-    """
-
-    api: ApiConfig
-    headless: bool
-
-    ipv8: IPv8Config
-    statistics: bool
-
-    content_discovery_community: ContentDiscoveryCommunityConfig
-    database: DatabaseConfig
-    libtorrent: LibtorrentConfig
-    recommender: RecommenderConfig
-    rendezvous: RendezvousConfig
-    rss: RSSConfig
-    torrent_checker: TorrentCheckerConfig
-    tunnel_community: TunnelCommunityConfig
-    versioning: VersioningConfig
-    watch_folder: WatchFolderConfig
-
-    state_dir: str
-    memory_db: bool
-
 class ContentDiscoveryCommunityConfig(TypedDict):
     """
     Settings for the content discovery component.
@@ -81,27 +42,9 @@ class ContentDiscoveryCommunityConfig(TypedDict):
 
     enabled: bool
 
-class RSSConfig(TypedDict):
+class DatabaseConfig(TypedDict):
     """
-    Settings for the rss component.
-    """
-
-    enabled: bool
-    urls: list[str]
-
-class IPv8InterfaceConfig(TypedDict):
-    """
-    An IPv8 network interface.
-    """
-
-    interface: str
-    ip: str
-    port: int
-    worker_threads: NotRequired[int]
-
-class VersioningConfig(TypedDict):
-    """
-    Settings for the versioning component.
+    Settings for the database component.
     """
 
     enabled: bool
@@ -125,44 +68,52 @@ class DownloadDefaultsConfig(TypedDict):
     auto_managed: bool
     completed_dir: str
 
-class DatabaseConfig(TypedDict):
+class IPv8Config(TypedDict):
     """
-    Settings for the database component.
-    """
-
-    enabled: bool
-
-class TorrentCheckerConfig(TypedDict):
-    """
-    Settings for the torrent checker component.
+    The main IPv8 configuration dictionary.
     """
 
-    enabled: bool
+    interfaces: list[IPv8InterfaceConfig]
+    keys: list[IPv8KeysConfig]
+    logger: IPv8LoggerConfig
+    working_directory: str
+    walker_interval: float
+    overlays: list[IPv8OverlayConfig]
 
-class RecommenderConfig(TypedDict):
+class IPv8InterfaceConfig(TypedDict):
     """
-    Settings for the user recommender component.
-    """
-
-    enabled: bool
-
-class TunnelCommunityConfig(TypedDict):
-    """
-    Settings for the tunnel community component.
+    An IPv8 network interface.
     """
 
-    enabled: bool
-    min_circuits: int
-    max_circuits: int
+    interface: str
+    ip: str
+    port: int
+    worker_threads: NotRequired[int]
 
-class WatchFolderConfig(TypedDict):
+class IPv8KeysConfig(TypedDict):
     """
-    Settings for the watch folder component.
+    An IPv8 key configuration.
     """
 
-    enabled: bool
-    directory: str
-    check_interval: float
+    alias: str
+    generation: str
+    file: str
+
+class IPv8LoggerConfig(TypedDict):
+    """
+    The IPv8 logger configuration.
+    """
+
+    level: str
+
+class IPv8WalkerConfig(TypedDict):
+    """
+    An IPv8 walker configuration.
+    """
+
+    strategy: str
+    peers: int
+    init: dict
 
 class LibtorrentConfig(TypedDict):
     """
@@ -199,35 +150,86 @@ class LibtorrentConfig(TypedDict):
     active_lsd_limit: int
     active_limit: int
 
-class IPv8WalkerConfig(TypedDict):
+    ask_download_settings: bool
+
+class RSSConfig(TypedDict):
     """
-    An IPv8 walker configuration.
+    Settings for the rss component.
     """
 
-    strategy: str
-    peers: int
-    init: dict
+    enabled: bool
+    urls: list[str]
 
-class IPv8Config(TypedDict):
+class RecommenderConfig(TypedDict):
     """
-    The main IPv8 configuration dictionary.
-    """
-
-    interfaces: list[IPv8InterfaceConfig]
-    keys: list[IPv8KeysConfig]
-    logger: IPv8LoggerConfig
-    working_directory: str
-    walker_interval: float
-    overlays: list[IPv8OverlayConfig]
-
-class IPv8KeysConfig(TypedDict):
-    """
-    An IPv8 key configuration.
+    Settings for the user recommender component.
     """
 
-    alias: str
-    generation: str
-    file: str
+    enabled: bool
+
+class RendezvousConfig(TypedDict):
+    """
+    Settings for the rendezvous component.
+    """
+
+    enabled: bool
+
+class TorrentCheckerConfig(TypedDict):
+    """
+    Settings for the torrent checker component.
+    """
+
+    enabled: bool
+
+class TriblerConfig(TypedDict):
+    """
+    The main Tribler settings and all of its components' sub-settings.
+    """
+
+    api: ApiConfig
+    headless: bool
+
+    ipv8: IPv8Config
+    statistics: bool
+
+    content_discovery_community: ContentDiscoveryCommunityConfig
+    database: DatabaseConfig
+    libtorrent: LibtorrentConfig
+    recommender: RecommenderConfig
+    rendezvous: RendezvousConfig
+    rss: RSSConfig
+    torrent_checker: TorrentCheckerConfig
+    tunnel_community: TunnelCommunityConfig
+    versioning: VersioningConfig
+    watch_folder: WatchFolderConfig
+
+    state_dir: str
+    memory_db: bool
+
+class TunnelCommunityConfig(TypedDict):
+    """
+    Settings for the tunnel community component.
+    """
+
+    enabled: bool
+    min_circuits: int
+    max_circuits: int
+
+class VersioningConfig(TypedDict):
+    """
+    Settings for the versioning component.
+    """
+
+    enabled: bool
+
+class WatchFolderConfig(TypedDict):
+    """
+    Settings for the watch folder component.
+    """
+
+    enabled: bool
+    directory: str
+    check_interval: float
 
 
 class TriblerConfigManager:
@@ -361,6 +363,8 @@ class TriblerConfigManager:
     def set(self, option: Literal["libtorrent/active_lsd_limit"], value: int) -> None: ...
     @overload
     def set(self, option: Literal["libtorrent/active_limit"], value: int) -> None: ...
+    @overload
+    def set(self, option: Literal["libtorrent/ask_download_settings"], value: bool) -> None: ...
     @overload
     def set(self, option: Literal["recommender/enabled"], value: bool) -> None: ...
     @overload
@@ -570,6 +574,8 @@ class TriblerConfigManager:
     def get(self, option: Literal["libtorrent/active_lsd_limit"]) -> int: ...
     @overload
     def get(self, option: Literal["libtorrent/active_limit"]) -> int: ...
+    @overload
+    def get(self, option: Literal["libtorrent/ask_download_settings"]) -> bool: ...
     @overload
     def get(self, option: Literal["recommender/enabled"]) -> bool: ...
     @overload

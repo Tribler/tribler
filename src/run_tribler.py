@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+from asyncio import sleep
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
@@ -9,6 +10,8 @@ if TYPE_CHECKING:
 
     from pystray import Icon
 
+
+# ruff: noqa: PLC0415
 
 @overload
 def show_error(exc: Exception, shutdown: Literal[True] = True) -> NoReturn:
@@ -121,9 +124,27 @@ async def start_download(config: TriblerConfigManager, server_url: str, torrent_
     """
     Start a download by calling the REST API.
     """
+    always_ask = config.get("libtorrent/ask_download_settings")
+    no_gui = True
+    # Edge case for when the GUI is still starting, but we want to user to OK every download
+    while always_ask and no_gui:
+        async with ClientSession() as client, client.get(server_url + "/api/events/info",
+                                                         headers={"X-Api-Key": config.get("api/key")}) as response:
+            if response.status == 200:
+                data_body = await response.content.read()
+                if data_body != b"":
+                    sessions_info = json.loads(data_body)
+                    logger.info("Waiting for GUI to offload start of %s", torrent_uri)
+                    if int(sessions_info.get("sessions", "0")) > 0:
+                        no_gui = False
+                        continue  # Skip the sleep
+            else:
+                logger.warning("Waiting for GUI connection")
+        await sleep(0.5)
+
     async with ClientSession() as client, client.put(server_url + "/api/downloads",
                                                      headers={"X-Api-Key": config.get("api/key")},
-                                                     json={"uri": torrent_uri}) as response:
+                                                     json={"uri": torrent_uri, "cli": True}) as response:
         if response.status == 200:
             logger.info("Successfully started torrent %s", torrent_uri)
         else:
@@ -244,13 +265,14 @@ async def main() -> None:
         headless = parsed_args.get("server") | config.get("headless")
         if server_url:
             logger.info("Core already running at %s", server_url)
-            if torrent_uri:
-                logger.info("Starting torrent using existing core")
-                await start_download(config, server_url, torrent_uri)
             # Don't open a new tab if we're (a) only adding a torrent with a session open, or (b) running headless.
             if not headless and (not torrent_uri or (initial_message is not None
                                                      and json.loads(initial_message).get("sessions", "0") == "0")):
                 open_webbrowser_tab(server_url + f"?key={config.get('api/key')}")
+            # Block this process until our download has been delivered.
+            if torrent_uri:
+                logger.info("Starting torrent using existing core")
+                await start_download(config, server_url, torrent_uri)
             logger.info("Shutting down")
             return
 
@@ -259,9 +281,11 @@ async def main() -> None:
         show_error(exc, True)
 
     server_url, _ = await session.find_api_server()
-    if server_url and torrent_uri:
-        await start_download(config, server_url, torrent_uri)
     icon = None if headless else spawn_tray_icon(session, config)
+
+    if server_url and torrent_uri:
+        # Don't block a "shutdown" event while waiting for a GUI that may never come.
+        session.download_manager.register_task("Download on start", start_download, config, server_url, torrent_uri)
 
     await session.shutdown_event.wait()
     await session.shutdown()

@@ -22,6 +22,7 @@ from tribler.core.libtorrent.download_manager.download_config import DownloadCon
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.core.notifier import Notification
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     HTTP_INTERNAL_SERVER_ERROR,
@@ -416,6 +417,7 @@ class DownloadsEndpoint(RESTEndpoint):
         "destination": (String, "The download destination path of the torrent"),
         "uri*": (String, "The URI of the torrent file that should be downloaded. This URI can either represent a file "
                          "location, a magnet link or a HTTP(S) url."),
+        "cli": (Boolean, "This was invoked from CLI, we might still need to ask user permission/settings.")
     }))
     async def add_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
         """
@@ -451,6 +453,11 @@ class DownloadsEndpoint(RESTEndpoint):
                                         "handled": True,
                                         "message": "uri parameter missing"
                                     }}, status=HTTP_BAD_REQUEST)
+
+        ask_download = self.download_manager.config.get("libtorrent/ask_download_settings")
+        if uri and params.get("cli") and ask_download:
+            self.download_manager.notifier.notify(Notification.ask_add_download, uri=uri)
+            return RESTResponse({"started": False, "infohash": ""})
 
         download_config, error = self.create_dconfig_from_params(params)
         if error:

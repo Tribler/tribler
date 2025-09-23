@@ -223,13 +223,13 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
-                    checked={!!settings?.ui?.ask_download_settings}
+                    checked={!!settings?.libtorrent?.ask_download_settings}
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
                                 ...settings,
-                                ui: {
-                                    ...settings?.ui,
+                                libtorrent: {
+                                    ...settings?.libtorrent,
                                     ask_download_settings: !!value,
                                 },
                             });
