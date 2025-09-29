@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "¡No se pudo actualizar la bandera administrada automáticamente!",
     "Advanced": "Avanzado",
     "Description": "Descripción",
-    "InitialNodes": "Nodos iniciales"
+    "InitialNodes": "Nodos iniciales",
+    "Appearance": "Apariencia",
+    "TrayIconColor": "Cambiar el color del ícono de la bandeja"
 }

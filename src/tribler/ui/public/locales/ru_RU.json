@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "Не удалось обновить флаг с автоматическим управлением!",
     "Advanced": "Передовой",
     "Description": "Описание",
-    "InitialNodes": "Начальные узлы"
+    "InitialNodes": "Начальные узлы",
+    "Appearance": "Появление",
+    "TrayIconColor": "Изменить цвет иконы лотка"
 }

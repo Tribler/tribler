@@ -395,4 +395,4 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we can join a circuit.
         """
-        self.assertTrue(self.overlay(0).should_join_circuit(create_payload=Mock(), previous_node_address=Mock()))
+        self.assertTrue(await self.overlay(0).should_join_circuit(create_payload=Mock(), previous_node_address=Mock()))

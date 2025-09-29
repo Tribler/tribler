@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "자동 관리 깃발을 업데이트하지 못했습니다!",
     "Advanced": "고급의",
     "Description": "설명",
-    "InitialNodes": "초기 노드"
+    "InitialNodes": "초기 노드",
+    "Appearance": "모습",
+    "TrayIconColor": "트레이 아이콘의 색상을 변경하십시오"
 }

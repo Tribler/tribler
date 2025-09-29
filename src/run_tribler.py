@@ -74,7 +74,7 @@ try:
     from pathlib import Path
 
     from aiohttp import ClientSession
-    from PIL import Image
+    from PIL import Image, ImageChops, ImageColor, ImageEnhance, ImageOps
 
     import tribler
     from tribler.core.session import Session
@@ -220,6 +220,32 @@ def open_webbrowser_tab(url: str) -> None:
         webbrowser.open_new_tab(url)
 
 
+def recolor_tray_icon(pil_icon: Image, rgb_code: str) -> Image:
+    """
+    Use the given RGB code to recolor the image.
+    """
+    try:
+        gray = ImageEnhance.Brightness(ImageOps.grayscale(pil_icon.convert("RGB"))).enhance(1.0625)
+        colored = Image.new("RGB", (pil_icon.width, pil_icon.height), ImageColor.getrgb(rgb_code))
+        recolored = ImageChops.multiply(gray.convert("RGB"), colored)
+
+        isolated_hl = gray.point(lambda i: i if (i > 250) else 0)
+        highlights = ImageEnhance.Brightness(isolated_hl).enhance(1.85).convert("RGB")
+        nudge_hl = ImageEnhance.Brightness(isolated_hl).enhance(1.5).convert("RGB")
+
+        rehighlighted = ImageEnhance.Brightness(
+            ImageChops.add(
+                ImageEnhance.Brightness(ImageChops.add(recolored, highlights)).enhance(2.0),
+                nudge_hl
+            )
+        ).enhance(1.25)
+        rehighlighted.putalpha(pil_icon.split()[-1])
+        return rehighlighted
+    except ValueError:
+        logger.exception("Failed to recolor tray icon!")
+        return pil_icon
+
+
 def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     """
     Create the tray icon.
@@ -234,6 +260,9 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
 
     image_path = tribler.get_webui_root() / "public" / "tribler.png"
     image = Image.open(image_path.resolve())
+    custom_image_col = config.get("tray_icon_color")
+    if custom_image_col:  # Not None or empty
+        image = recolor_tray_icon(image, custom_image_col)
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
     menu = (pystray.MenuItem('Open', lambda: open_webbrowser_tab(url)),

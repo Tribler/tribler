@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "ऑटो-प्रबंधित ध्वज को अपडेट करने में विफल!",
     "Advanced": "विकसित",
     "Description": "विवरण",
-    "InitialNodes": "प्रारंभिक नोड्स"
+    "InitialNodes": "प्रारंभिक नोड्स",
+    "Appearance": "उपस्थिति",
+    "TrayIconColor": "ट्रे आइकन का रंग बदलें"
 }

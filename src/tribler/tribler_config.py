@@ -276,6 +276,7 @@ class TriblerConfig(TypedDict):
 
     state_dir: str
     memory_db: bool
+    tray_icon_color: str
 
 
 DEFAULT_CONFIG = {
@@ -352,7 +353,8 @@ DEFAULT_CONFIG = {
     "watch_folder": WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
-    "memory_db": False
+    "memory_db": False,
+    "tray_icon_color": ""
 }
 
 # Changes to IPv8 default config
@@ -447,7 +449,10 @@ class TriblerConfigManager:
                     out = out.get(df_part)
                     if df_part == part:
                         # We found the missing section, inject the defaults here and continue traversing the dict.
-                        current[part] = out
+                        if isinstance(out, dict):
+                            current[part] = {}
+                        else:
+                            current[part] = out
                         break
         current[Path(option).parts[-1]] = value
 
