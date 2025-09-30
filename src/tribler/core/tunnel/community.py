@@ -235,6 +235,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.settings.notifier.notify(Notification.circuit_removed, circuit=removed_relay,
                                           additional_info=additional_info)
 
+    @task
     async def remove_exit_socket(self, circuit_id: int, additional_info:str = "", remove_now: bool = False,
                                  destroy: bool = False) -> TunnelExitSocket | None:
         """

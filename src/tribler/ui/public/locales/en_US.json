@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "Failed to update auto-managed flag!",
     "Advanced": "Advanced",
     "Description": "Description",
-    "InitialNodes": "Initial nodes"
+    "InitialNodes": "Initial nodes",
+    "Appearance": "Appearance",
+    "TrayIconColor": "Change the tray icon's color"
 }

@@ -243,5 +243,7 @@
     "ToastErrorDownloadAutoManaged": "Falha ao atualizar a bandeira gerenciada automaticamente!",
     "Advanced": "Avançado",
     "Description": "Descrição",
-    "InitialNodes": "Nós iniciais"
+    "InitialNodes": "Nós iniciais",
+    "Appearance": "Aparência",
+    "TrayIconColor": "Mude a cor do ícone da bandeja"
 }

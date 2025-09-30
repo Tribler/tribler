@@ -1,5 +1,3 @@
-from typing import cast
-
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
@@ -64,7 +62,7 @@ class SettingsEndpoint(RESTEndpoint):
         settings = await request.json()
         has_lt_settings = "libtorrent" in settings
         self._logger.info("Received settings: %s", settings)
-        self._recursive_merge_settings(cast("dict", self.config.configuration), settings)
+        self._recursive_merge_settings(settings)
         self.config.write()
 
         if has_lt_settings and self.download_manager:
@@ -72,22 +70,11 @@ class SettingsEndpoint(RESTEndpoint):
 
         return RESTResponse({"modified": True})
 
-    def _recursive_merge_settings(self, existing: dict, updates: dict, top: bool = True) -> None:
-        for key in existing:  # noqa: PLC0206
-            # Ignore top-level ui entry
-            if top and key == "ui":
-                continue
-            value = updates.get(key, existing[key])
-            if isinstance(value, dict):
-                self._recursive_merge_settings(existing[key], value, False)
-            existing[key] = value
-        # It can also be that the updated entry does not exist (yet) in an old config.
-        for key in updates:  # noqa: PLC0206
-            if key in existing:
-                continue
-            existing[key] = updates[key]
-
-        # Since the core doesn't need to be aware of the GUI settings, we just copy them.
-        if top and "ui" in updates:
-            existing["ui"] = existing.get("ui", {})
-            existing["ui"].update(updates["ui"])
+    def _recursive_merge_settings(self, updates: dict, pointer: str = "") -> None:
+        for key, value in updates.items():
+            abs_pointer = f"{pointer}/{key}" if pointer else key
+            # Since the core doesn't need to be aware of the GUI settings, we just copy them.
+            if isinstance(value, dict) and abs_pointer != "ui":
+                self._recursive_merge_settings(value, abs_pointer)
+            else:
+                self.config.set(abs_pointer, value)  # type: ignore[arg-type]

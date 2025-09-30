@@ -74,3 +74,4 @@ class TestSettingsEndpoint(TestBase):
         self.assertTrue(response_body_json["modified"])
         self.assertEqual(1337, config.get("libtorrent/port"))
         self.assertEqual(call(), endpoint.download_manager.set_session_limits.call_args)
+        self.assertIsNotNone(config.get("libtorrent/download_defaults"))

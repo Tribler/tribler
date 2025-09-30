@@ -107,6 +107,7 @@ export interface Settings {
     };
     state_dir: string;
     memory_db: boolean;
+    tray_icon_color: string;
     ui: GuiSettings;
 }
 
