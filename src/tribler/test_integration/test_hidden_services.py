@@ -12,6 +12,7 @@ from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
+from ipv8_rust_tunnels.endpoint import RustEndpoint
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -19,7 +20,6 @@ from tribler.core.libtorrent.download_manager.download_state import DownloadStat
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
-from tribler.core.socks5.server import Socks5Server
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
 from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
@@ -90,8 +90,6 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         seeder_config.set("libtorrent/lsd", False)
         self.download_manager_seeder = MockDownloadManager(seeder_config, Notifier())
 
-        self.socks_servers: list[Socks5Server] = [Socks5Server(hops % 3 + 1) for hops in range(6)]
-
         self.initialize(TriblerTunnelCommunity, 7, GlobalTestSettings())
 
     async def tearDown(self) -> None:
@@ -100,6 +98,10 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         """
         await self.download_manager_downloader.shutdown()
         await self.download_manager_seeder.shutdown()
+        for n in self.nodes:
+            n.overlay.circuits = {}
+            n.overlay.relay_from_to = {}
+            n.overlay.exit_sockets = {}
         await super().tearDown()
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
@@ -147,26 +149,15 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         """
         Start the socks servers.
         """
-        ports = []
-        for server in self.socks_servers:
-            await server.start()
-            ports.append(server.port)
-        downloader_ports = ports[:3]
-        seeder_ports = ports[3:]
+        self.download_manager_downloader.socks_listen_ports = [
+            self.node(DOWNLOADER).endpoint.create_socks5_server(0, index+1)
+            for index, port in enumerate(self.download_manager_downloader.config.get("libtorrent/socks_listen_ports"))
+        ]
 
-        self.download_manager_downloader.config.set("libtorrent/socks_listen_ports", downloader_ports)
-        self.download_manager_downloader.socks_listen_ports = downloader_ports
-        self.overlay(0).settings.socks_servers = self.socks_servers[:3]
-        self.overlay(0).dispatcher.set_socks_servers(self.socks_servers[:3])
-        for server in self.socks_servers[:3]:
-            server.output_stream = self.overlay(0).dispatcher
-
-        self.download_manager_seeder.config.set("libtorrent/socks_listen_ports", seeder_ports)
-        self.download_manager_seeder.socks_listen_ports = seeder_ports
-        self.overlay(1).settings.socks_servers = self.socks_servers[3:]
-        self.overlay(1).dispatcher.set_socks_servers(self.socks_servers[3:])
-        for server in self.socks_servers[3:]:
-            server.output_stream = self.overlay(1).dispatcher
+        self.download_manager_seeder.socks_listen_ports = [
+            self.node(SEEDER).endpoint.create_socks5_server(0, index+1)
+            for index, port in enumerate(self.download_manager_seeder.config.get("libtorrent/socks_listen_ports"))
+        ]
 
     async def add_mock_download_config(self, manager: DownloadManager, hops: int) -> DownloadConfig:
         """
@@ -215,10 +206,29 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
 
         return await self.download_manager_downloader.start_download(tdef=FakeTDef(info_hash=infohash), config=config)
 
+    def start_rust(self) -> None:
+        """
+        Add Rust endpoints to all IPv8 nodes. Should be called after the event loop has started.
+        """
+        RustEndpoint.wan_address = property(RustEndpoint.get_address)
+        for node in self.nodes:
+            node.overlay.endpoint = node.endpoint = RustEndpoint(ip='127.0.0.1')
+            node.endpoint.open()
+            node.endpoint.set_exit_address(('127.0.0.1', 0))
+            node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
+
+            node.overlay.crypto_endpoint = node.endpoint
+            node.endpoint.setup_tunnels(node.overlay, node.overlay.settings)
+
+            node.overlay.circuits = node.endpoint.circuits
+            node.overlay.relay_from_to = node.endpoint.relays
+            node.overlay.exit_sockets = node.endpoint.exit_sockets
+
     async def test_hidden_services(self) -> None:
         """
         Test an e2e anonymous download.
         """
+        self.start_rust()
         await self.start_socks_servers()
         await self.introduce_nodes()
         infohash = await self.start_seeding()
