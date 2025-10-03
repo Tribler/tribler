@@ -47,6 +47,8 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.fake_cache_file = BytesIO()
         self.fake_cache_file.read = self.fake_cache_file.getvalue
         self.initialize(TriblerTunnelCommunity, 1)
+        self.overlay(0).crypto_endpoint.get_socks5_statistics = Mock(return_value=[])
+        self.overlay(0).crypto_endpoint.get_peers_for_circuit = Mock(return_value=[])
 
     async def tearDown(self) -> None:
         """

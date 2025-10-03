@@ -4,7 +4,6 @@ import asyncio
 import logging
 import sys
 from asyncio import AbstractEventLoop, Event
-from contextlib import contextmanager
 from os.path import isfile
 from traceback import format_exception
 from typing import TYPE_CHECKING, Any, cast
@@ -12,6 +11,9 @@ from typing import TYPE_CHECKING, Any, cast
 import aiohttp
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.loader import IPv8CommunityLoader
+from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
+from ipv8.messaging.interfaces.udp.endpoint import UDPv6Endpoint
+from ipv8_rust_tunnels.endpoint import RustEndpoint
 from ipv8_service import IPv8
 
 from tribler.core.components import (
@@ -42,13 +44,10 @@ from tribler.core.restapi.settings_endpoint import SettingsEndpoint
 from tribler.core.restapi.shutdown_endpoint import ShutdownEndpoint
 from tribler.core.restapi.statistics_endpoint import StatisticsEndpoint
 from tribler.core.restapi.webui_endpoint import WebUIEndpoint
-from tribler.core.socks5.server import Socks5Server
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
     from types import TracebackType
 
-    from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
     from ipv8.REST.overlays_endpoint import OverlaysEndpoint
 
     from tribler.core.database.store import MetadataStore
@@ -56,41 +55,6 @@ if TYPE_CHECKING:
     from tribler.tribler_config import TriblerConfigManager
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def rust_enhancements(session: Session) -> Generator[None]:
-    """
-    Attempt to import the IPv8 Rust anonymization backend.
-    """
-    use_fallback = False
-    if_specs = [ifc for ifc in session.config.get("ipv8/interfaces") if ifc["interface"] == "UDPIPv4"]
-
-    if not use_fallback:
-        try:
-            from ipv8.messaging.interfaces.dispatcher.endpoint import INTERFACES  # noqa: PLC0415
-            from ipv8_rust_tunnels.endpoint import RustEndpoint  # noqa: PLC0415
-            INTERFACES["UDPIPv4"] = RustEndpoint
-            for ifc in if_specs:
-                ifc["worker_threads"] = ifc.get("worker_threads", session.config.get("tunnel_community/max_circuits"))
-            yield
-            if if_specs:
-                ipv4_endpoint = cast("DispatcherEndpoint", session.ipv8.endpoint).interfaces["UDPIPv4"]
-                session.ipv8.endpoint.get_statistics = ipv4_endpoint.get_statistics  # type: ignore[attr-defined]
-                for server in session.socks_servers:
-                    server.rust_endpoint = ipv4_endpoint if isinstance(ipv4_endpoint, RustEndpoint) else None
-        except ImportError:
-            logger.info("Rust endpoint not found (pip install ipv8-rust-tunnels).")
-            use_fallback = True
-
-    if use_fallback:
-        # Make sure there are no ``worker_threads`` settings fed into non-Rust endpoints.
-        previous_values = [("worker_threads" in ifc, ifc.pop("worker_threads")) for ifc in if_specs]
-        yield
-        # Restore ``worker_threads`` settings, if they were there.
-        for i, (has_previous_value, previous_value) in enumerate(previous_values):
-            if has_previous_value:
-                if_specs[i]["worker_threads"] = previous_value
 
 
 async def _is_url_available(url: str, timeout: int=1) -> tuple[bool, bytes | None]:
@@ -139,13 +103,20 @@ class Session:
 
         # Libtorrent
         self.download_manager = DownloadManager(self.config, self.notifier)
-        self.socks_servers = [Socks5Server(index+1, port)
-                              for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))]
 
         # IPv8
+        dpep = DispatcherEndpoint([])
+        if ipv4ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv4"]:
+            dpep.interfaces["UDPIPv4"] = self.rust_endpoint = RustEndpoint(ipv4ifs[0]["port"], ipv4ifs[0]["ip"],
+                                                                           ipv4ifs[0].get("worker_threads", 4))
+            dpep.interface_order.append("UDPIPv4")
+        if ipv6ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv6"]:
+            dpep.interfaces["UDPIPv6"] = UDPv6Endpoint(ipv6ifs[0]["port"], ipv6ifs[0]["ip"])
+            dpep.interface_order.append("UDPIPv6")
+
         rescue_keys(self.config)
-        with rust_enhancements(self):
-            self.ipv8 = IPv8(cast("dict[str, Any]", self.config.get("ipv8")))
+        self.ipv8 = IPv8(cast("dict[str, Any]", self.config.get("ipv8")), endpoint_override=dpep)
+        self.ipv8.endpoint.get_statistics = self.rust_endpoint.get_statistics  # type: ignore[attr-defined]
         self.loader = IPv8CommunityLoader()
 
         # REST
@@ -230,16 +201,20 @@ class Session:
         await self.rest_manager.start()
         self.attach_exception_handler()
 
-        # Libtorrent
-        for server in self.socks_servers:
-            await server.start()
-        self.download_manager.socks_listen_ports = [cast("int", s.port) for s in self.socks_servers]
-        await self.download_manager.initialize()
-        self.download_manager.start()
-
         # IPv8
         self.loader.load(self.ipv8, self)
         await self.ipv8.start()
+
+        # Libtorrent
+        self.download_manager.socks_listen_ports = [
+            self.rust_endpoint.create_socks5_server(port, index+1)   # type: ignore[attr-defined]
+            for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))
+        ]
+        await self.download_manager.initialize()
+        self.download_manager.start()
+
+        if self.torrent_checker:
+            self.torrent_checker.socks_listen_ports = self.download_manager.socks_listen_ports
 
         # REST (2/2)
         ipv8_root_endpoint = cast("IPv8RootEndpoint", self.rest_manager.get_endpoint("/api/ipv8"))
@@ -289,8 +264,6 @@ class Session:
         self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down download manager.")
         await self.download_manager.shutdown()
         self.notifier.notify(Notification.tribler_shutdown_state, state="Shutting down local SOCKS5 interface.")
-        for server in self.socks_servers:
-            await server.stop()
 
         # Stop database activities
         if self.mds:

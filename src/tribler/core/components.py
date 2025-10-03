@@ -248,9 +248,7 @@ class TorrentCheckerComponent(ComponentLauncher):
                                          download_manager=session.download_manager,
                                          notifier=session.notifier,
                                          tracker_manager=tracker_manager,
-                                         metadata_store=metadata_store,
-                                         socks_listen_ports=[s.port for s in session.socks_servers
-                                                             if s.port is not None])
+                                         metadata_store=metadata_store)
         session.torrent_checker = torrent_checker
 
     def finalize(self, ipv8: IPv8, session: Session, community: Component) -> None:
@@ -365,10 +363,9 @@ class TunnelComponent(BaseLauncher["TriblerTunnelCommunity"]):
         community = cast("DHTDiscoveryCommunity", session.ipv8.get_overlay(DHTDiscoveryCommunity))
 
         out = super().get_kwargs(session)
-        out["exitnode_cache"] =  Path(session.config.get_version_state_dir()) / "exitnode_cache.dat"
+        out["exitnode_cache"] = Path(session.config.get_version_state_dir()) / "exitnode_cache.dat"
         out["notifier"] = session.notifier
         out["download_manager"] = session.download_manager
-        out["socks_servers"] = session.socks_servers
         out["min_circuits"] = session.config.get("tunnel_community/min_circuits")
         out["max_circuits"] = session.config.get("tunnel_community/max_circuits")
         out["default_hops"] = session.config.get("libtorrent/download_defaults/number_hops")

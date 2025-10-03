@@ -24,7 +24,6 @@ from libtorrent import bdecode
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.tunnel.caches import HTTPRequestCache
-from tribler.core.tunnel.dispatcher import TunnelDispatcher
 from tribler.core.tunnel.payload import HTTPRequestPayload, HTTPResponsePayload
 
 if TYPE_CHECKING:
@@ -35,10 +34,10 @@ if TYPE_CHECKING:
     from ipv8.messaging.interfaces.endpoint import Endpoint
     from ipv8.messaging.interfaces.udp.endpoint import Address
     from ipv8.peer import Peer
+    from ipv8_rust_tunnels.endpoint import RustEndpoint
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
-    from tribler.core.socks5.server import Socks5Server
 
 DESTROY_REASON_BALANCE = 65535
 PEER_FLAG_EXIT_HTTP = 32768
@@ -67,7 +66,6 @@ class TriblerTunnelSettings(HiddenTunnelSettings):
     exitnode_cache: Path | None = None
     notifier: Notifier
     download_manager: DownloadManager
-    socks_servers: list[Socks5Server]
     exitnode_enabled: bool = False
     default_hops: int = 0
 
@@ -94,14 +92,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.logger.info("Using %s with flags %s", self.endpoint.__class__.__name__, self.settings.peer_flags)
 
         self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
-        self.dispatcher = TunnelDispatcher(self)
         self.download_states: dict[bytes, DownloadStatus] = {}
         self.last_forced_announce: dict[bytes, float] = {}
-
-        if settings.socks_servers:
-            self.dispatcher.set_socks_servers(settings.socks_servers)
-            for server in settings.socks_servers:
-                server.output_stream = self.dispatcher
 
         self.add_cell_handler(HTTPRequestPayload, self.on_http_request)
         self.add_cell_handler(HTTPResponsePayload, self.on_http_response)
@@ -207,7 +199,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             self.settings.notifier.notify(Notification.circuit_removed,
                                           circuit=circuit, additional_info=additional_info)
 
-        affected_peers = self.dispatcher.circuit_dead(circuit)
+        affected_peers = set(cast("RustEndpoint", self.crypto_endpoint).get_peers_for_circuit(circuit_id))
 
         # Make sure the circuit is marked as closing, otherwise we may end up reusing it
         circuit.close()
@@ -262,9 +254,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
 
     def on_raw_data(self, circuit: Circuit, origin: tuple[str, int], data: bytes) -> None:
         """
-        Let our dispatcher know that we have incoming data.
+        We have incoming data.
         """
-        self.dispatcher.on_incoming_from_tunnel(self, circuit, origin, data)
+        self.logger.warning("Unexpected data packet in on_raw_data")
 
     def monitor_downloads(self, dslist: list[DownloadState]) -> None:
         """
@@ -312,10 +304,11 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                            for hop_count, download_count in active_downloads_per_hop.items()}
 
         # Take into consideration how many UDP associates are currently active.
-        for index, server in enumerate(self.settings.socks_servers):
-            if (index + 1) in circuits_needed:
-                circuits_needed[index + 1] = max(circuits_needed[index + 1],
-                                                 2 * sum([1 for session in server.sessions if session.udp_connection]))
+        for stat in cast("RustEndpoint", self.crypto_endpoint).get_socks5_statistics():
+            stat_hops = stat["hops"]
+            if stat_hops in circuits_needed:
+                circuits_needed[stat_hops] = max(circuits_needed[stat_hops], 2 * stat["associates"])
+
         self.circuits_needed = circuits_needed
 
         self.monitor_hidden_swarms(new_states, hops)
@@ -376,29 +369,26 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Start creating an introduction point.
         """
         download = self.get_download(info_hash)
-        if download and self.settings.socks_servers:
+        if download:
             # We now have to associate the SOCKS5 UDP connection with the libtorrent listen port ourselves.
             # The reason for this is that libtorrent does not include the source IP/port in an SOCKS5 ASSOCIATE message.
             # Starting from libtorrent 1.2.4 on Windows, listen_port() returns 0 if used in combination with a
-            # SOCKS5 proxy. Therefore on Windows, we resort to using ports received through listen_succeeded_alert.
+            # SOCKS5 proxy. Therefore, on Windows, we resort to using ports received through listen_succeeded_alert.
             hops = download.config.get_hops()
             lt_listen_interfaces = [k for k in self.settings.download_manager.listen_ports.get(hops)
                                     if k != "127.0.0.1"]
             lt_listen_port = (self.settings.download_manager.listen_ports.get(hops)[lt_listen_interfaces[0]]
                               if lt_listen_interfaces else None)
             lt_listen_port = lt_listen_port or self.settings.download_manager.get_session(hops).listen_port()
-            for session in self.settings.socks_servers[hops - 1].sessions:
-                connection = session.udp_connection
-                if connection and lt_listen_port and connection.remote_udp_address is None:
-                    connection.remote_udp_address = ("127.0.0.1", lt_listen_port)
+            cast("RustEndpoint", self.crypto_endpoint).set_udp_associate_default_remote(("127.0.0.1",
+                                                                                         lt_listen_port), hops)
+
         await super().create_introduction_point(info_hash, required_ip=required_ip)
 
     async def unload(self) -> None:
         """
-        Shut down our dispatcher and cache the known exit nodes.
+        Cache known exit nodes.
         """
-        await self.dispatcher.shutdown_task_manager()
-
         if self.settings.exitnode_cache is not None:
             self.cache_exitnodes_to_disk()
 

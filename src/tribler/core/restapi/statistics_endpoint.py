@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 from aiohttp import web
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
+from ipv8_rust_tunnels import rust_endpoint
 from marshmallow.fields import Integer, String
 
 from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
@@ -14,7 +15,6 @@ if TYPE_CHECKING:
 
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.session import Session
-    from tribler.core.socks5.udp_connection import RustUDPConnection
 
 
 class Socks5StatsDict(TypedDict):
@@ -141,26 +141,11 @@ class StatisticsEndpoint(RESTEndpoint):
             lt_stats["total_sent_bytes"] = sum([s["sent_bytes"] for s in lt_stats["sessions"]])
             stats_dict["libtorrent"] = lt_stats
 
-        if self.session and self.session.socks_servers:
-            stats_dict["socks5_sessions"] = []
+        if self.session:
+            stats_dict["socks5_sessions"] = self.session.rust_endpoint.get_socks5_statistics()
 
-            for server in self.session.socks_servers:
-                stats_dict["socks5_sessions"].append(Socks5StatsDict(
-                    hops=server.hops,
-                    sessions=len(server.sessions),
-                    associates=[server.rust_endpoint.get_associated_circuits(cast("RustUDPConnection",
-                                                                                  session.udp_connection).port)
-                                for session in server.sessions
-                                if session.udp_connection] if server.rust_endpoint else None
-                ))
-
-        try:
-            from ipv8_rust_tunnels import rust_endpoint  # noqa: PLC0415
-        except ImportError:
-            stats_dict["endpoint_version"] = None
-        else:
-            version = getattr(rust_endpoint, "__version__", "unknown")
-            stats_dict["endpoint_version"] = "git" if version == "0.1.0" else version
+        version = getattr(rust_endpoint, "__version__", "unknown")
+        stats_dict["endpoint_version"] = "git" if version == "0.1.0" else version
 
         return RESTResponse({"tribler_statistics": stats_dict})
 

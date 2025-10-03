@@ -4,6 +4,7 @@ from asyncio import sleep
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
+from aiohttp import ClientSession, web
 from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
@@ -11,6 +12,7 @@ from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.ipv8 import MockIPv8
+from ipv8_rust_tunnels.endpoint import RustEndpoint
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -18,7 +20,7 @@ from tribler.core.libtorrent.download_manager.download_state import DownloadStat
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
-from tribler.core.socks5.server import Socks5Server
+from tribler.core.socks5.aiohttp_connector import Socks5Connector
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
 from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
@@ -51,6 +53,22 @@ class MockDownloadManager(DownloadManager):
         return True
 
 
+async def start_http_server(port: int, response: str) -> web.AppRunner:
+    """
+    Start an HTTP server using the given port and response.
+    """
+    async def hello_handler(request: str) -> web.Response:
+        return web.Response(text=response)
+
+    app = web.Application()
+    app.router.add_get('/', hello_handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host='127.0.0.1', port=port)
+    await site.start()
+    return runner
+
+
 class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
     """
     An integration test for anonymous downloads.
@@ -75,8 +93,6 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         seeder_config.set("libtorrent/lsd", False)
         self.download_manager_seeder = MockDownloadManager(seeder_config, Notifier())
 
-        self.socks_servers: list[Socks5Server] = [Socks5Server(hops+1) for hops in range(3)]
-
         self.initialize(TriblerTunnelCommunity, 3, GlobalTestSettings())
 
     async def tearDown(self) -> None:
@@ -85,6 +101,10 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         await self.download_manager_downloader.shutdown()
         await self.download_manager_seeder.shutdown()
+        for n in self.nodes:
+            n.overlay.circuits = {}
+            n.overlay.relay_from_to = {}
+            n.overlay.exit_sockets = {}
         await super().tearDown()
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
@@ -99,8 +119,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         global_settings.node_id += 1
         node_peer = Peer(default_eccrypto.generate_key("curve25519"))
 
-        tunnel_settings = TriblerTunnelSettings(remove_tunnel_delay=0, socks_servers=[], download_manager=None,
-                                                notifier=Notifier())
+        tunnel_settings = TriblerTunnelSettings(remove_tunnel_delay=0, download_manager=None, notifier=Notifier())
 
         if my_node_id == DOWNLOADER:
             self.download_manager_downloader.peer_mid = node_peer.mid
@@ -125,16 +144,10 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         Start the socks servers.
         """
-        ports = []
-        for server in self.socks_servers:
-            await server.start()
-            ports.append(server.port)
-        self.download_manager_downloader.config.set("libtorrent/socks_listen_ports", ports)
-        self.download_manager_downloader.socks_listen_ports = ports
-
-        self.overlay(0).dispatcher.set_socks_servers(self.socks_servers)
-        for server in self.socks_servers:
-            server.output_stream = self.overlay(0).dispatcher
+        self.download_manager_downloader.socks_listen_ports = [
+            self.node(DOWNLOADER).endpoint.create_socks5_server(port, index+1)
+            for index, port in enumerate(self.download_manager_downloader.config.get("libtorrent/socks_listen_ports"))
+        ]
 
     async def add_mock_download_config(self, manager: DownloadManager, hops: int) -> DownloadConfig:
         """
@@ -194,14 +207,75 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         return download
 
+    def start_rust(self) -> None:
+        """
+        Add Rust endpoints to all IPv8 nodes. Should be called after the event loop has started.
+        """
+        RustEndpoint.wan_address = property(RustEndpoint.get_address)
+        for node in self.nodes:
+            node.overlay.endpoint = node.endpoint = RustEndpoint(ip='127.0.0.1')
+            node.endpoint.open()
+            node.endpoint.set_exit_address(('127.0.0.1', 0))
+            node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
+
+            node.overlay.crypto_endpoint = node.endpoint
+            node.endpoint.setup_tunnels(node.overlay, node.overlay.settings)
+
+            node.overlay.circuits = node.endpoint.circuits
+            node.overlay.relay_from_to = node.endpoint.relays
+            node.overlay.exit_sockets = node.endpoint.exit_sockets
+
     async def test_anon_download(self) -> None:
         """
         Test a plain anonymous download with an exit node.
         """
+        self.start_rust()
         await self.start_socks_servers()
         await self.introduce_nodes()
         infohash = await self.start_seeding()
-
         download = await self.start_anon_download(infohash)
-
         await download.wait_for_status(DownloadStatus.SEEDING)
+
+    async def test_http_request(self) -> None:
+        """
+        Test an anonymous HTTP request.
+        """
+        self.start_rust()
+        await self.start_socks_servers()
+        await self.introduce_nodes()
+        await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
+
+        bencoded = 'd6:status2:oke'
+        runner = await start_http_server(0, bencoded)
+        http_port = runner.addresses[-1][1]
+        socks_port = self.download_manager_downloader.socks_listen_ports[0]
+        async with (
+            ClientSession(connector=Socks5Connector(('127.0.0.1', socks_port))) as session,
+            session.get(f"http://localhost:{http_port}") as response,
+        ):
+            body = await response.text()
+
+        self.assertEqual(bencoded, body)
+        await runner.cleanup()
+
+    async def test_http_request_split(self) -> None:
+        """
+        Test an anonymous HTTP request when the response is large enough to require sending multiple packets.
+        """
+        self.start_rust()
+        await self.start_socks_servers()
+        await self.introduce_nodes()
+        await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
+
+        bencoded = 'd4:data2000:' + ('0' * 2000) + 'e'
+        runner = await start_http_server(0, bencoded)
+        http_port = runner.addresses[-1][1]
+        socks_port = self.download_manager_downloader.socks_listen_ports[0]
+        async with (
+            ClientSession(connector=Socks5Connector(('127.0.0.1', socks_port))) as session,
+            session.get(f"http://localhost:{http_port}") as response,
+        ):
+            body = await response.text()
+
+        self.assertEqual(bencoded, body)
+        await runner.cleanup()
