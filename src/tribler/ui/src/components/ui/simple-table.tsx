@@ -276,7 +276,6 @@ interface ReactTableProps<T extends object> {
     onPaginationChange?: (pagination: PaginationState) => void;
     onRowDoubleClick?: (rowDoubleClicked: T) => void;
     onSelectedRowsChange?: (rowSelection: T[]) => void;
-    initialRowSelection?: Record<string, boolean>;
     allowSelect?: boolean;
     allowSelectCheckbox?: boolean;
     allowMultiSelect?: boolean;
@@ -300,7 +299,6 @@ function SimpleTable<T extends object>({
     onPaginationChange,
     onRowDoubleClick,
     onSelectedRowsChange,
-    initialRowSelection,
     allowSelect,
     allowSelectCheckbox,
     allowMultiSelect,
@@ -318,9 +316,9 @@ function SimpleTable<T extends object>({
         pageIndex: pageIndex ?? 0,
         pageSize: pageSize ?? 20,
     });
-    const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialRowSelection || {});
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialState?.rowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || []);
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>(initialState?.sorting || []);
     const [startId, setStartId] = useState<string | undefined>(undefined);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [stateInit, setStateInit] = useState<boolean>(false);
@@ -427,9 +425,10 @@ function SimpleTable<T extends object>({
             await triblerService.getSettings();
 
             // Init sorting and column visibility
-            const sortingState = getState("sorting", storeSortingState) || [];
-            setSorting(sortingState);
-
+            const sortingState = getState("sorting", storeSortingState);
+            if (sortingState !== undefined) {
+                setSorting(sortingState);
+            }
             const visibilityState = getState("columns", allowColumnToggle) || {};
             let col: any;
             for (col of columns) {
