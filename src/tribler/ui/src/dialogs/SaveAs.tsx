@@ -7,7 +7,6 @@ import {
     filesToTree,
     fixTreeProps,
     formatBytes,
-    getRowSelection,
     getSelectedFilesFromTree,
     unwrapMagnetSO,
 } from "@/lib/utils";
@@ -287,7 +286,6 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             data={files}
                             columns={fileColumns}
                             allowSelectCheckbox={true}
-                            initialRowSelection={getRowSelection(files, () => true)}
                             expandable={true}
                             style={{maxHeight: 200}}
                         />

@@ -14,9 +14,7 @@ import {Textarea} from "@/components/ui/textarea";
 import {useTranslation} from "react-i18next";
 import {triblerService} from "@/services/tribler.service";
 import {ErrorDict, isErrorDict} from "@/services/reporting";
-import SelectRemotePath from "./SelectRemotePath";
 import {PathInput} from "@/components/path-input";
-import {Settings} from "@/models/settings.model";
 import {Icons} from "@/components//icons";
 import {ArrowDown, ArrowUp, Plus, Trash2} from "lucide-react";
 
@@ -44,8 +42,6 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
     const [trackers, setTrackers] = useState<string>("");
     const [initialNodes, setInitialNodes] = useState<string>("");
 
-    const [openFileDialog, setOpenFileDialog] = useState<boolean>(false);
-    const [openDirDialog, setOpenDirDialog] = useState<boolean>(false);
     const [files, setFiles] = useState<Filename[]>([]);
     const [onlyFile, setOnlyFile] = useState<string | undefined>(undefined);
     const [selectedRows, setSelectedRows] = useState<Filename[]>([]);
@@ -353,7 +349,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                         <Label htmlFor="files" className="whitespace-nowrap pr-5 pt-2">
                             {t("Files")}
                         </Label>
-                        <SimpleTable data={files} columns={filenameColumns} />
+                        <SimpleTable data={files} columns={filenameColumns} initialState={{sorting: [{id: "suggestion", desc: false}]}} />
                         <div className="flex">
                             <Button variant="outline" type="button" className={files.length === 0 ? "animate-bounce mr-4" : "mr-4"} onClick={() => {
                                     addFile();

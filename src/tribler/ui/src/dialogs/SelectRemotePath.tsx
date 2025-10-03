@@ -164,7 +164,12 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                     </DialogDescription>
                 </DialogHeader>
 
-                <SimpleTable data={paths} columns={pathColumns} style={{maxHeight: 300}} />
+                <SimpleTable
+                    data={paths}
+                    columns={pathColumns}
+                    style={{maxHeight: 300}}
+                    initialState={{sorting: [{id: "name", desc: false}]}}
+                />
 
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
                     <DialogContent>
