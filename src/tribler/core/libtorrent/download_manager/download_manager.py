@@ -445,8 +445,10 @@ class DownloadManager(TaskManager):
                 self.downloads[infohash].update_lt_status(handle.status())
                 self.downloads[infohash].process_alert(cast("lt.state_changed_alert", alert), alert_type)
 
-        infohash = (best_info_hash(alert.params.info_hashes, alert.params.info_hash)
-                    if hasattr(alert, "params") else b"")
+        infohash = (best_info_hash(alert.params.info_hashes, alert.params.info_hash) if hasattr(alert, "params")
+                    else (
+            best_info_hash(alert.handle.info_hashes(), alert.handle.info_hash()) if hasattr(alert, "handle") else b""
+        ))
         download = self.downloads.get(infohash)
         if download and download.config.get_hops() == hops:
             download.process_alert(cast("lt.torrent_alert", alert), alert_type)

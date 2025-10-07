@@ -105,6 +105,7 @@ class Session:
         self.download_manager = DownloadManager(self.config, self.notifier)
 
         # IPv8
+        self.rust_endpoint: RustEndpoint | None = None
         dpep = DispatcherEndpoint([])
         if ipv4ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv4"]:
             dpep.interfaces["UDPIPv4"] = self.rust_endpoint = RustEndpoint(ipv4ifs[0]["port"], ipv4ifs[0]["ip"],
@@ -116,7 +117,8 @@ class Session:
 
         rescue_keys(self.config)
         self.ipv8 = IPv8(cast("dict[str, Any]", self.config.get("ipv8")), endpoint_override=dpep)
-        self.ipv8.endpoint.get_statistics = self.rust_endpoint.get_statistics  # type: ignore[attr-defined]
+        if self.rust_endpoint:
+            self.ipv8.endpoint.get_statistics = self.rust_endpoint.get_statistics  # type: ignore[attr-defined]
         self.loader = IPv8CommunityLoader()
 
         # REST
@@ -206,10 +208,11 @@ class Session:
         await self.ipv8.start()
 
         # Libtorrent
-        self.download_manager.socks_listen_ports = [
-            self.rust_endpoint.create_socks5_server(port, index+1)   # type: ignore[attr-defined]
-            for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))
-        ]
+        if self.rust_endpoint:
+            self.download_manager.socks_listen_ports = [
+                self.rust_endpoint.create_socks5_server(port, index+1)
+                for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))
+            ]
         await self.download_manager.initialize()
         self.download_manager.start()
 

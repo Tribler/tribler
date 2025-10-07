@@ -141,7 +141,7 @@ class StatisticsEndpoint(RESTEndpoint):
             lt_stats["total_sent_bytes"] = sum([s["sent_bytes"] for s in lt_stats["sessions"]])
             stats_dict["libtorrent"] = lt_stats
 
-        if self.session:
+        if self.session and self.session.rust_endpoint:
             stats_dict["socks5_sessions"] = self.session.rust_endpoint.get_socks5_statistics()
 
         version = getattr(rust_endpoint, "__version__", "unknown")

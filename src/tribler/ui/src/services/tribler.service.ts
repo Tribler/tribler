@@ -111,8 +111,10 @@ export class TriblerService {
             );
             new_list[new_list.length - 2] = 101; // b"e"
             new_list[new_list.length - 1] = 101; // b"e"
-        } else {
+        } else if (selected_files !== undefined) {
             var new_list = new Uint8Array([108, 101]); // b"le"
+        } else {
+            return raw_bytes;
         }
 
         // Merge everything into the output buffer
