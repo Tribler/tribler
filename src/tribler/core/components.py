@@ -345,6 +345,7 @@ class RSSComponent(ComponentLauncher):
 
 @set_in_session("tunnel_community")
 @precondition('session.config.get("tunnel_community/enabled")')
+@precondition("session.rust_endpoint is not None")
 @after("DHTDiscoveryComponent")
 @walk_strategy("tribler.core.tunnel.discovery", "GoldenRatioStrategy", -1)
 @overlay("tribler.core.tunnel.community", "TriblerTunnelCommunity")
