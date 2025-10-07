@@ -25,8 +25,8 @@ if platform.system() == "Darwin":
     The unit tests on Mac lock up on multiprocess getaddrinfo calls. We establish the lan addresses once here before
     spawning any children.
     """
-    from ipv8.messaging.interfaces.lan_addresses.interfaces import get_lan_addresses
-    get_lan_addresses()
+    from ipv8.messaging.interfaces.lan_addresses.interfaces import get_providers
+    get_providers().clear()
 
 
 def task_tribler_test(*test_names: str) -> tuple[bool, int, float, list[tuple[str, str, str]], str]:
