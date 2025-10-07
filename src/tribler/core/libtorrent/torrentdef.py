@@ -100,4 +100,5 @@ class TorrentDef:
         if self.torrent_info is None:
             return []
         storage = self.torrent_info.files()
-        return [i for i in range(storage.num_files()) if storage.file_flags(i) == 0]
+        return [i for i in range(storage.num_files())
+                if (storage.file_flags(i) & int(lt.file_flags_t.flag_pad_file)) == 0]
