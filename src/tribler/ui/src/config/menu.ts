@@ -111,6 +111,10 @@ export const sideMenu: NavItemWithChildren[] = [
                 to: "/debug/dht",
             },
             {
+                title: "Popularity",
+                to: "/debug/popularity",
+            },
+            {
                 title: "Libtorrent",
                 to: "/debug/libtorrent",
             },
