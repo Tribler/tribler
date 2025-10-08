@@ -188,14 +188,15 @@ class HttpTrackerSession(TrackerSession):
                     leechers = file_info.get(b"incomplete", 0)
 
                 unprocessed_infohashes.discard(infohash)
-                health_list.append(HealthInfo(infohash, seeders, leechers, last_check=now, self_checked=True))
+                health_list.append(HealthInfo(infohash, seeders, leechers, last_check=now,
+                                              self_checked=True, tracker=self.tracker_url))
 
         elif b"failure reason" in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b"failure reason"]))
             self.failed(msg=repr(response_dict[b"failure reason"]))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        health_list.extend(HealthInfo(infohash=infohash, last_check=now, self_checked=True)
+        health_list.extend(HealthInfo(infohash=infohash, last_check=now, self_checked=True, tracker=self.tracker_url)
                            for infohash in unprocessed_infohashes)
 
         self.is_finished = True
@@ -453,7 +454,7 @@ class UdpTrackerSession(TrackerSession):
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
             response_list.append(HealthInfo(infohash, seeders=complete, leechers=incomplete,
-                                            last_check=now, self_checked=True))
+                                            last_check=now, self_checked=True, tracker=self.tracker_url))
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -481,13 +482,12 @@ class FakeDHTSession(TrackerSession):
         Query the bittorrent DHT.
         """
         health_list = []
-        now = int(time.time())
         for infohash in self.infohash_list:
             lookup = await self.download_manager.get_metainfo(infohash, timeout=self.timeout)
-            if lookup is None:
-                continue
-            health = HealthInfo(infohash, seeders=lookup["seeders"], leechers=lookup["leechers"],
-                                last_check=now, self_checked=True)
+            seeders = lookup["seeders"] if lookup is not None else 0
+            leechers = lookup["leechers"] if lookup is not None else 0
+            health = HealthInfo(infohash, seeders=seeders, leechers=leechers,
+                                last_check=int(time.time()), self_checked=True)
             health_list.append(health)
 
         return TrackerResponse(url="DHT", torrent_health_list=health_list)
