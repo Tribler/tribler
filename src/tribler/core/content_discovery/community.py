@@ -105,7 +105,7 @@ class ContentDiscoveryCommunity(Community):
         for field in self.composition.binary_fields:
             value = parameters.get(field)
             if value is not None:
-                parameters[field] = unhexlify(value.encode()) if decode else hexlify(value.encode()).decode()
+                parameters[field] = unhexlify(value.encode()) if decode else hexlify(value).decode()
 
     def sanitize_query(self, query_dict: dict[str, Any], cap: int = 100) -> dict[str, Any]:
         """
@@ -181,8 +181,7 @@ class ContentDiscoveryCommunity(Community):
         for health_info in health_list:
             # Get a single result per infohash to avoid duplicates
             if health_info.infohash in to_resolve:
-                infohash = hexlify(health_info.infohash).decode()
-                self.send_remote_select(peer=peer, infohash=infohash, last=1)
+                self.send_remote_select(peer=peer, infohash=health_info.infohash, last=1)
 
     @db_session
     def process_torrents_health(self, health_list: list[HealthInfo]) -> set[bytes]:
