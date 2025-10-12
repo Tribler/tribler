@@ -50,7 +50,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                         hops: row.original.hops,
                         queue_position: row.original.queue_position + 1,
                     })}>
-                    <span>{`${row.original.hops}-${row.original.queue_position + 1}`}</span>
+                    <span className="text-nowrap">{`${row.original.hops}-${row.original.queue_position + 1}`}</span>
                 </EasyTooltip>
             );
         },
@@ -67,7 +67,7 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "size",
         header: getHeader("Size"),
         cell: ({row}) => {
-            return <span>{formatBytes(row.original.size)}</span>;
+            return <span className="text-nowrap">{formatBytes(row.original.size)}</span>;
         },
     },
     {
@@ -77,9 +77,8 @@ const downloadColumns: ColumnDef<Download>[] = [
             hide_by_default: true,
         },
         cell: ({row}) => {
-            if (row.original.all_time_upload == 0)
-                return <span>-</span>;
-            return <span>{formatBytes(row.original.all_time_upload)}</span>;
+            if (row.original.all_time_upload == 0) return <span>-</span>;
+            return <span className="text-nowrap">{formatBytes(row.original.all_time_upload)}</span>;
         },
     },
     {
@@ -103,7 +102,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                     <div className="col-start-1 row-start-1">
                         <Progress progress={progress} color={color} />
                     </div>
-                    <div className="col-start-1 row-start-1 text-black dark:font-mediumnormal text-center align-middle">
+                    <div className="text-nowrap px-1 col-start-1 row-start-1 text-black dark:font-mediumnormal text-center align-middle">
                         {status}
                     </div>
                 </div>
@@ -121,7 +120,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                         t("ConnectedSeeders", {seeders: row.original.num_connected_seeds}),
                         t("UnconnectedSeeders", {seeders: row.original.num_seeds}),
                     ]}>
-                    <span>
+                    <span className="text-nowrap">
                         {row.original.num_connected_seeds} ({row.original.num_seeds})
                     </span>
                 </EasyTooltip>
@@ -139,7 +138,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                         t("ConnectedLeechers", {leechers: row.original.num_connected_peers}),
                         t("UnconnectedLeechers", {leechers: row.original.num_peers}),
                     ]}>
-                    <span>
+                    <span className="text-nowrap">
                         {row.original.num_connected_peers} ({row.original.num_peers})
                     </span>
                 </EasyTooltip>
@@ -150,14 +149,14 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "speed_down",
         header: getHeader("SpeedDown"),
         cell: ({row}) => {
-            return <span>{formatBytes(row.original.speed_down)}/s</span>;
+            return <span className="text-nowrap">{formatBytes(row.original.speed_down)}/s</span>;
         },
     },
     {
         accessorKey: "speed_up",
         header: getHeader("SpeedUp"),
         cell: ({row}) => {
-            return <span>{formatBytes(row.original.speed_up)}/s</span>;
+            return <span className="text-nowrap">{formatBytes(row.original.speed_up)}/s</span>;
         },
     },
     {
@@ -183,8 +182,7 @@ const downloadColumns: ColumnDef<Download>[] = [
             hide_by_default: true,
         },
         cell: ({row}) => {
-            if (row.original.last_upload == 0)
-                return <span>-</span>;
+            if (row.original.last_upload == 0) return <span>-</span>;
             return <span>{formatDateTime(row.original.last_upload)}</span>;
         },
     },
@@ -229,7 +227,7 @@ function Progress({progress, color}: {progress: number; color: string}) {
         <canvas
             ref={ref}
             className={`rounded-sm ${color}`}
-            style={{height: "20px", width: "97%", background: "white", border: "1px solid #2f2f2f"}}
+            style={{height: "20px", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
         />
     );
 }
