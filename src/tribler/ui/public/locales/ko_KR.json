@@ -245,5 +245,6 @@
     "Description": "설명",
     "InitialNodes": "초기 노드",
     "Appearance": "모습",
-    "TrayIconColor": "트레이 아이콘의 색상을 변경하십시오"
+    "TrayIconColor": "트레이 아이콘의 색상을 변경하십시오",
+    "NotifyPreReleases": "사전 출시에 대해 알림"
 }

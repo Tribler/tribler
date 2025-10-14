@@ -245,5 +245,6 @@
     "Description": "描述",
     "InitialNodes": "初始节点",
     "Appearance": "外貌",
-    "TrayIconColor": "更改托盘图标的颜色"
+    "TrayIconColor": "更改托盘图标的颜色",
+    "NotifyPreReleases": "预发布通知"
 }

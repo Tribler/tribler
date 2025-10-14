@@ -245,5 +245,6 @@
     "Description": "विवरण",
     "InitialNodes": "प्रारंभिक नोड्स",
     "Appearance": "उपस्थिति",
-    "TrayIconColor": "ट्रे आइकन का रंग बदलें"
+    "TrayIconColor": "ट्रे आइकन का रंग बदलें",
+    "NotifyPreReleases": "प्री-रिलीज़ के लिए सूचित करें"
 }

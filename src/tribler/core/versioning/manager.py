@@ -63,9 +63,13 @@ class VersioningManager:
                            f"python={platform.python_version()}; executable={platform.architecture()[0]})")
         }
         urls = [
-            f"https://release.tribler.org/releases/latest?current={current_version}",
-            "https://api.github.com/repos/tribler/tribler/releases/latest"
+            f"https://release.tribler.org/releases/latest?current={current_version}"
         ]
+        if self.config.get("versioning/allow_pre"):
+            urls.insert(0, "https://api.github.com/repos/tribler/tribler/releases?per_page=1&page=1")
+        else:
+            urls.append("https://api.github.com/repos/tribler/tribler/releases/latest")
+
 
         for url in urls:
             try:

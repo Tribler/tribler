@@ -1,15 +1,32 @@
 import {Suspense, useEffect, useRef, useState} from "react";
 import toast from "react-hot-toast";
 import {Button} from "@/components/ui/button";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Label} from "@/components/ui/label";
+import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {useInterval} from "@/hooks/useInterval";
 import {useTranslation} from "react-i18next";
 import {RefreshCw} from "lucide-react";
+import SaveButton from "./SaveButton";
 
 export default function Versions() {
     const {t} = useTranslation();
+    const [settings, setSettings] = useState<Settings>();
+
+    useEffect(() => {
+        (async () => {
+            const response = await triblerService.getSettings();
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorGetSettings")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)) {
+                toast.error(`${t("ToastErrorGetSettings")} ${response.error.message}`);
+            } else {
+                setSettings(response);
+            }
+        })();
+    }, []);
 
     const initStateRef = useRef<number>(0);
     const [version, setVersion] = useState<string | undefined>();
@@ -129,6 +146,29 @@ export default function Versions() {
                 </Suspense>
                 <Label key="spacer1"></Label>
 
+                <Label className="whitespace-nowrap pr-5 font-bold">
+                    {t("NotifyPreReleases")}:
+                </Label>
+                <Checkbox
+                    id="notifyprereleasescheckbox"
+                    className="my-2"
+                    checked={!!settings?.versioning.allow_pre}
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                versioning: {
+                                    ...settings.versioning,
+                                    allow_pre: !!value,
+                                },
+                            });
+                        }
+                    }}
+                />
+                <Label key="spacer9"></Label>
+                <Label key="spacer10"></Label>
+
+
                 <Label style={{marginBottom: "1cm"}} key="spacer2"></Label>
                 <Label key="spacer3"></Label>
                 <Label key="spacer4"></Label>
@@ -194,6 +234,18 @@ export default function Versions() {
                         }
                     })}
             </div>
+            <SaveButton
+                onClick={async () => {
+                    if (settings) {
+                        const response = await triblerService.setSettings(settings);
+                        if (response === undefined) {
+                            toast.error(`${t("ToastErrorSetSettings")} ${t("ToastErrorGenNetworkErr")}`);
+                        } else if (isErrorDict(response)) {
+                            toast.error(`${t("ToastErrorSetSettings")} ${response.error.message}`);
+                        }
+                    }
+                }}
+            />
         </div>
     );
 }

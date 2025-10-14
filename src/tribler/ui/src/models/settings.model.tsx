@@ -100,6 +100,10 @@ export interface Settings {
         min_circuits: number;
         max_circuits: number;
     };
+    versioning: {
+        enabled: boolean;
+        allow_pre: boolean;
+    }
     watch_folder: {
         enabled: boolean;
         directory: string;
