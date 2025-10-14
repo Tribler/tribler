@@ -445,6 +445,11 @@ class DownloadManager(TaskManager):
                 self.downloads[infohash].update_lt_status(handle.status())
                 self.downloads[infohash].process_alert(cast("lt.state_changed_alert", alert), alert_type)
 
+        if alert_type in ["tracker_reply_alert", "tracker_warning_alert", "tracker_error_alert"]:
+            handle = cast("lt.tracker_alert", alert).handle
+            infohash = best_info_hash(handle.info_hashes(), handle.info_hash())
+            self.downloads[infohash].process_alert(cast("lt.tracker_alert", alert), alert_type)
+
         infohash = (best_info_hash(alert.params.info_hashes, alert.params.info_hash) if hasattr(alert, "params")
                     else (
             best_info_hash(alert.handle.info_hashes(), alert.handle.info_hash()) if hasattr(alert, "handle") else b""
