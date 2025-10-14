@@ -245,5 +245,6 @@
     "Description": "Descripción",
     "InitialNodes": "Nodos iniciales",
     "Appearance": "Apariencia",
-    "TrayIconColor": "Cambiar el color del ícono de la bandeja"
+    "TrayIconColor": "Cambiar el color del ícono de la bandeja",
+    "NotifyPreReleases": "Notificar para prelanzamientos"
 }

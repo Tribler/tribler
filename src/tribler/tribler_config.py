@@ -139,6 +139,7 @@ class VersioningConfig(TypedDict):
     """
 
     enabled: bool
+    allow_pre: bool
 
 
 class DownloadDefaultsConfig(TypedDict):
@@ -349,7 +350,7 @@ DEFAULT_CONFIG = {
     "rss": RSSConfig(enabled=True, urls=[]),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
     "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
-    "versioning": VersioningConfig(enabled=True),
+    "versioning": VersioningConfig(enabled=True, allow_pre=False),
     "watch_folder": WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),

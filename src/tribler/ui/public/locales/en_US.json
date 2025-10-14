@@ -245,5 +245,6 @@
     "Description": "Description",
     "InitialNodes": "Initial nodes",
     "Appearance": "Appearance",
-    "TrayIconColor": "Change the tray icon's color"
+    "TrayIconColor": "Change the tray icon's color",
+    "NotifyPreReleases": "Notify for pre-releases"
 }

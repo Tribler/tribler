@@ -245,5 +245,6 @@
     "Description": "Описание",
     "InitialNodes": "Начальные узлы",
     "Appearance": "Появление",
-    "TrayIconColor": "Изменить цвет иконы лотка"
+    "TrayIconColor": "Изменить цвет иконы лотка",
+    "NotifyPreReleases": "Уведомить о предварительных выпусках"
 }
