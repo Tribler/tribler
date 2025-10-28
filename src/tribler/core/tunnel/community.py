@@ -256,7 +256,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         We have incoming data.
         """
-        self.logger.warning("Unexpected data packet in on_raw_data")
+        self.logger.warning("Unexpected data packet in on_raw_data for circuit %s with uptime=%s",
+                            circuit.circuit_id, int(time.time()) - circuit.creation_time)
 
     def monitor_downloads(self, dslist: list[DownloadState]) -> None:
         """
