@@ -107,6 +107,36 @@ TORRENT_UBUNTU_FILE_CONTENT = (
     b'e'
 )
 
+TORRENT_UBUNTU_FILE_CONTENT_V2 = (
+    b'd'
+        b'8:announce39:http://torrent.ubuntu.com:6969/announce'
+        b'13:announce-listl'
+            b'l39:http://torrent.ubuntu.com:6969/announce'
+        b'e'
+        b'l'
+            b'44:http://ipv6.torrent.ubuntu.com:6969/announcee'
+        b'e'
+        b'7:comment29:Ubuntu CD releases.ubuntu.com'
+        b'13:creation datei1429786237e'
+        b'4:infod'
+            b'9:file treed'
+                b'30:ubuntu-15.04-desktop-amd64.isod'
+                    b'0:d'
+                        b'6:lengthi1150844928e'
+                        b'11:pieces root32:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    b'e'
+                b'e'
+            b'e'
+            b'12:meta versioni2e'
+            b'4:name30:ubuntu-15.04-desktop-amd64.iso'
+            b'12:piece lengthi524288e'
+        b'e'
+        b'12:piece layersd'
+            # Omitted, should be one key 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' with a ceil(1150844928/524288) * 32 string
+        b'e'
+    b'e'
+)
+
 TORRENT_UBUNTU_FILE = libtorrent.torrent_info(libtorrent.bdecode(TORRENT_UBUNTU_FILE_CONTENT))
 """
 Torrent structure:

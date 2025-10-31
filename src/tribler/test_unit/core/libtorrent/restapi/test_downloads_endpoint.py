@@ -21,7 +21,6 @@ from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
 from tribler.test_unit.core.libtorrent.mocks import (
-    TORRENT_WITH_DIRS,
     TORRENT_WITH_DIRS_CONTENT,
     TORRENT_WITH_VIDEO,
     FakeTDef,
@@ -742,7 +741,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         Test if a graceful error is returned when no torrent data is found.
         """
-        self.download_manager.get_download = Mock(return_value=Mock(get_torrent_data=Mock(return_value=None)))
+        self.download_manager.get_download = Mock(return_value=Mock(get_torrent_data=AsyncMock(return_value=None)))
         request = MockRequest(f"/api/downloads/{'01' * 20}/torrent", "GET", {}, {"infohash": "01" * 20})
 
         response = await self.endpoint.get_torrent(request)
@@ -756,7 +755,8 @@ class TestDownloadsEndpoint(TestBase):
         Test if torrent data is correctly sent over on request.
         """
         download = self.create_mock_download()
-        download.handle = Mock(is_valid=Mock(return_value=True), torrent_file=Mock(return_value=TORRENT_WITH_DIRS))
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        download.get_torrent_data = AsyncMock(return_value=libtorrent.bdecode(TORRENT_WITH_DIRS_CONTENT))
         self.download_manager.get_download = Mock(return_value=download)
         request = MockRequest(f"/api/downloads/{'01' * 20}/torrent", "GET", {}, {"infohash": "01" * 20})
 
