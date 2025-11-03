@@ -278,6 +278,7 @@ class TriblerConfig(TypedDict):
     state_dir: str
     memory_db: bool
     tray_icon_color: str
+    ui: dict
 
 
 DEFAULT_CONFIG = {
@@ -355,7 +356,8 @@ DEFAULT_CONFIG = {
 
     "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
     "memory_db": False,
-    "tray_icon_color": ""
+    "tray_icon_color": "",
+    "ui": {}
 }
 
 # Changes to IPv8 default config
@@ -442,6 +444,10 @@ class TriblerConfigManager:
         current = self.configuration
         for part in Path(option).parts[:-1]:
             if part in current:
+                current = current[part]
+            elif Path(option).parts[0] == "ui":
+                # The ui settings are sparse and anonymous, just create a new empty dict when a part is missing.
+                current[part] = {}
                 current = current[part]
             else:
                 # Fetch from defaults instead. Same as ``get()``, but now we inject defaults before overwriting.

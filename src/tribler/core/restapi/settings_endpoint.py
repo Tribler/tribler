@@ -73,8 +73,7 @@ class SettingsEndpoint(RESTEndpoint):
     def _recursive_merge_settings(self, updates: dict, pointer: str = "") -> None:
         for key, value in updates.items():
             abs_pointer = f"{pointer}/{key}" if pointer else key
-            # Since the core doesn't need to be aware of the GUI settings, we just copy them.
-            if isinstance(value, dict) and abs_pointer != "ui":
+            if isinstance(value, dict):
                 self._recursive_merge_settings(value, abs_pointer)
             else:
                 self.config.set(abs_pointer, value)  # type: ignore[arg-type]

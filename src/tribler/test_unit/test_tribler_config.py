@@ -52,3 +52,13 @@ class TestTriblerConfigManager(TestBase):
         config.set("rss/enabled", True)
 
         self.assertTrue(config.get("rss/enabled"))
+
+    def test_set_ui_missing(self) -> None:
+        """
+        Test if we can set a key in a missing ui entry.
+        """
+        config = TriblerConfigManager()
+
+        config.set("ui/a/b/c", 42)
+
+        self.assertEqual(42, config.configuration["ui"]["a"]["b"]["c"])  # Passed by copy, not ``get()``!
