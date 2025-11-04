@@ -411,7 +411,7 @@ export default function General() {
                     {"RSS:"}
                 </Label>
                 <Textarea
-                    defaultValue={settings?.rss?.urls.join("\n")}
+                    defaultValue={settings?.rss?.urls?.join?.("\n") ?? ""}
                     onChange={(elem) => {
                         var urls = elem.target.value.split("\n");
                         if (settings) {
