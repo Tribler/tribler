@@ -9,6 +9,7 @@ import asyncio
 import base64
 import itertools
 import logging
+import sys
 import time
 from asyncio import CancelledError, Future, sleep, wait_for
 from binascii import hexlify
@@ -1133,7 +1134,7 @@ class Download(TaskManager):
         Set the upload bandwidth limit for this torrent.
         """
         handle = await self.get_handle()
-        handle.set_upload_limit(value)
+        handle.set_upload_limit(min(sys.maxsize, value))
         self.config.set_upload_limit(value)
 
     def get_upload_limit(self) -> int:
@@ -1147,7 +1148,7 @@ class Download(TaskManager):
         Set the download bandwidth limit for this torrent.
         """
         handle = await self.get_handle()
-        handle.set_download_limit(value)
+        handle.set_download_limit(min(sys.maxsize, value))
         self.config.set_download_limit(value)
 
     def get_download_limit(self) -> int:

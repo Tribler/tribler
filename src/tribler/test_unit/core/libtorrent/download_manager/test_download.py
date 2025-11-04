@@ -1,3 +1,4 @@
+import sys
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
 from io import StringIO
@@ -873,3 +874,43 @@ class TestDownload(TestBase):
 
         self.assertEqual(None, download.handle.move_storage.call_args)
         self.assertEqual(Path("folder"), download.config.get_dest_dir())
+
+    async def test_max_upload_limit(self) -> None:
+        """
+        Setting the upload limit above sys.maxsize will crash with an OverflowError.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        download.handle.upload_limit = Mock(side_effect=AssertionError("Mock upload_limit not overwritten!"))
+        def fake_set_upload_limit(x: int) -> None:
+            if x > sys.maxsize:
+                raise OverflowError
+            download.handle.upload_limit = Mock(return_value=x)
+        download.handle.set_upload_limit = fake_set_upload_limit
+
+        await download.set_upload_limit(sys.maxsize + 42)
+
+        self.assertEqual(sys.maxsize, download.handle.upload_limit())
+        self.assertEqual(sys.maxsize + 42, download.config.get_upload_limit())
+
+    async def test_max_download_limit(self) -> None:
+        """
+        Setting the download limit above sys.maxsize will crash with an OverflowError.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        download.handle.download_limit = Mock(side_effect=AssertionError("Mock download_limit not overwritten!"))
+        def fake_set_download_limit(x: int) -> None:
+            if x > sys.maxsize:
+                raise OverflowError
+            download.handle.download_limit = Mock(return_value=x)
+        download.handle.set_download_limit = fake_set_download_limit
+
+        await download.set_download_limit(sys.maxsize + 42)
+
+        self.assertEqual(sys.maxsize, download.handle.download_limit())
+        self.assertEqual(sys.maxsize + 42, download.config.get_download_limit())
