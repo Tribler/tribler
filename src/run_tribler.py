@@ -102,8 +102,8 @@ def parse_args() -> Arguments:
     """
     parser = argparse.ArgumentParser(prog='Tribler', description='Run Tribler BitTorrent client')
     parser.add_argument('torrent', help='Torrent file to download', default='', nargs='?')
-    parser.add_argument('--log-level', default="INFO", action="store", nargs='?',
-                        help="Set the log level. The default is 'INFO'",
+    parser.add_argument('--log-level', default="INFO" if VERSION_SUBDIR == "git" else "CRITICAL",
+                        action="store", nargs='?', help="Set the log level. The default is 'CRITICAL'",
                         choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
                         dest="log_level")
     parser.add_argument('-s', '--server', action='store_true', help="Run headless as a server without graphical pystray interface")
