@@ -101,8 +101,8 @@ export function formatBytes(bytes: number, digits: number = 2) {
     if (bytes === 0) {
         return `0${digits > 0 ? "." + "0".repeat(digits) : ""} B`;
     }
-    const e = Math.floor(Math.log(bytes) / Math.log(1024));
-    return (bytes / Math.pow(1024, e)).toFixed(digits) + " " + " KMGTP".charAt(e) + "B";
+    const e = Math.floor(Math.log(bytes) / Math.log(1000));
+    return (bytes / Math.pow(1000, e)).toFixed(digits) + " " + " KMGTP".charAt(e) + "B";
 }
 
 export function formatFlags(flags: number[]) {
