@@ -87,6 +87,18 @@ def rescue_keys(config: TriblerConfigManager) -> None:
                         f.write(default_eccrypto.generate_key("curve25519").key_to_bin())
 
 
+class IPv8Endpoint(DispatcherEndpoint):
+    """
+    An DispatcherEndpoint that allows its preferred interface to be updated.
+    """
+
+    def update_preferred_interface(self) -> None:
+        """
+        Update the preferred interface.
+        """
+        self._preferred_interface = self.interfaces[self.interface_order[0]] if self.interface_order else None
+
+
 class Session:
     """
     A session manager that manages all components.
@@ -106,7 +118,7 @@ class Session:
 
         # IPv8
         self.rust_endpoint: RustEndpoint | None = None
-        dpep = DispatcherEndpoint([])
+        dpep = IPv8Endpoint([])
         if ipv4ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv4"]:
             dpep.interfaces["UDPIPv4"] = self.rust_endpoint = RustEndpoint(ipv4ifs[0]["port"], ipv4ifs[0]["ip"],
                                                                            ipv4ifs[0].get("worker_threads", 4))
@@ -114,6 +126,7 @@ class Session:
         if ipv6ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv6"]:
             dpep.interfaces["UDPIPv6"] = UDPv6Endpoint(ipv6ifs[0]["port"], ipv6ifs[0]["ip"])
             dpep.interface_order.append("UDPIPv6")
+        dpep.update_preferred_interface()
 
         rescue_keys(self.config)
         self.ipv8 = IPv8(cast("dict[str, Any]", self.config.get("ipv8")), endpoint_override=dpep)
