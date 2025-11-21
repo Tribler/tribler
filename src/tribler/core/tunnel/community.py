@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import time
-from asyncio import CancelledError, open_connection, timeout
 from binascii import hexlify, unhexlify
 from collections import Counter
 from typing import TYPE_CHECKING, cast
 
-from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
@@ -23,8 +20,6 @@ from libtorrent import bdecode
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.tunnel.caches import HTTPRequestCache
-from tribler.core.tunnel.payload import HTTPRequestPayload, HTTPResponsePayload
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -94,9 +89,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
         self.download_states: dict[bytes, DownloadStatus] = {}
         self.last_forced_announce: dict[bytes, float] = {}
-
-        self.add_cell_handler(HTTPRequestPayload, self.on_http_request)
-        self.add_cell_handler(HTTPResponsePayload, self.on_http_response)
 
         if settings.exitnode_cache is not None:
             self.register_task("Load cached exitnodes", self.restore_exitnodes_from_disk, delay=0.5)
@@ -400,101 +392,3 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Get the SHA-1 hash to lookup for a given torrent info hash.
         """
         return hashlib.sha1(b"tribler anonymous download" + hexlify(info_hash)).digest()
-
-    @unpack_cell(HTTPRequestPayload)
-    async def on_http_request(self, source_address: Address, payload: HTTPRequestPayload,  # noqa: C901
-                              circuit_id: int) -> None:
-        """
-        Callback for when an HTTP request is received.
-        """
-        if circuit_id not in self.exit_sockets:
-            self.logger.warning("Received unexpected http-request")
-            return
-        if len([cache for cache in self.request_cache._identifiers.values()  # noqa: SLF001
-                if isinstance(cache, HTTPRequestCache) and cache.circuit_id == circuit_id]) > 5:
-            self.logger.warning("Too many HTTP requests coming from circuit %s")
-            return
-
-        self.logger.debug("Got http-request from %s", source_address)
-
-        writer = None
-        try:
-            async with timeout(10):
-                self.logger.debug("Opening TCP connection to %s", payload.target)
-                reader, writer = await open_connection(*payload.target)
-                writer.write(payload.request)
-                response = b""
-                while True:
-                    line = await reader.readline()
-                    response += line
-                    if not line.strip():
-                        # Read HTTP response body (1MB max)
-                        response += await reader.read(1024 ** 2)
-                        break
-        except OSError:
-            self.logger.warning("Tunnel HTTP request failed")
-            return
-        except TimeoutError:
-            self.logger.warning("Tunnel HTTP request timed out")
-            return
-        finally:
-            if writer:
-                writer.close()
-
-        if not response.startswith(b"HTTP/1.1 307"):
-            _, _, bencoded_data = response.partition(b'\r\n\r\n')
-
-            if not is_bencoded(bencoded_data):
-                self.logger.warning("Tunnel HTTP request not allowed")
-                return
-
-        num_cells = math.ceil(len(response) / MAX_HTTP_PACKET_SIZE)
-        for i in range(num_cells):
-            self.send_cell(source_address,
-                           HTTPResponsePayload(circuit_id, payload.identifier, i, num_cells,
-                                               response[i * MAX_HTTP_PACKET_SIZE:(i + 1) * MAX_HTTP_PACKET_SIZE]))
-
-    @unpack_cell(HTTPResponsePayload)
-    def on_http_response(self, source_address: Address, payload: HTTPResponsePayload, circuit_id: int) -> None:
-        """
-        Callback for when an HTTP response is received.
-        """
-        cache = self.request_cache.get(HTTPRequestCache, payload.identifier)
-        if cache is None:
-            self.logger.warning("Received unexpected http-response")
-            return
-        if cache.circuit_id != payload.circuit_id:
-            self.logger.warning("Received http-response from wrong circuit %s != %s", cache.circuit_id, circuit_id)
-            return
-
-        self.logger.debug("Got http-response from %s", source_address)
-        if cache.add_response(payload):
-            self.request_cache.pop(HTTPRequestCache, payload.identifier)
-
-    async def perform_http_request(self, destination: Address, request: bytes, hops: int = 1) -> bytes:
-        """
-        Perform the actual HTTP request to service the given request.
-        """
-        # We need a circuit that supports HTTP requests, meaning that the circuit will have to end
-        # with a node that has the PEER_FLAG_EXIT_HTTP flag set.
-        circuit = None
-        circuits = self.find_circuits(exit_flags=[PEER_FLAG_EXIT_HTTP])
-        if circuits:
-            circuit = circuits[0]
-        else:
-            # Try to create a circuit. Attempt at most 3 times.
-            for _ in range(3):
-                circuit = self.create_circuit(hops, exit_flags=[PEER_FLAG_EXIT_HTTP])
-                if circuit and await circuit.ready:
-                    break
-
-        if not circuit or circuit.state != CIRCUIT_STATE_READY:
-            msg = "No HTTP circuit available"
-            raise RuntimeError(msg)
-
-        cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        if cache is not None:
-            self.send_cell(circuit.hop.address, HTTPRequestPayload(circuit.circuit_id, cache.number, destination,
-                                                                   request))
-            return await cache.response_future
-        raise CancelledError
