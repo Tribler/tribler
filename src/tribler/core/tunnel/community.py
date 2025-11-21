@@ -36,6 +36,7 @@ if TYPE_CHECKING:
 
 DESTROY_REASON_BALANCE = 65535
 PEER_FLAG_EXIT_HTTP = 32768
+PEER_FLAG_EXIT_BACKUP = 16384
 MAX_HTTP_PACKET_SIZE = 1400
 
 
@@ -134,6 +135,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))
         else:
             self.logger.warning("Could not retrieve backup exitnode cache, file does not exist!")
+
+    def get_candidates(self, *requested_flags: int) -> list[Peer]:
+        """
+        Get all the peers that we can create circuits with. When requesting exits, prefer peers that aren't backups.
+        """
+        candidates = super().get_candidates(*requested_flags)
+        if PEER_FLAG_EXIT_BT in requested_flags:
+            candidates = [c for c in candidates
+                          if PEER_FLAG_EXIT_BACKUP not in self.candidates.get(c, [])] or candidates
+        return candidates
 
     async def should_join_circuit(self, create_payload: CreatePayload, previous_node_address: Address) -> bool:
         """
