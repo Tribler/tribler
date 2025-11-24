@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from ipv8.messaging.anonymization.payload import CreatedPayload, CreatePayload, ExtendedPayload
     from ipv8.messaging.interfaces.endpoint import Endpoint
     from ipv8.messaging.interfaces.udp.endpoint import Address
+    from ipv8.messaging.payload import IntroductionResponsePayload, NewIntroductionResponsePayload
+    from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
     from ipv8.peer import Peer
     from ipv8_rust_tunnels.endpoint import RustEndpoint
 
@@ -374,6 +376,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().infohash):
                 return download
         return None
+
+    def introduction_response_callback(self, peer: Peer, dist: GlobalTimeDistributionPayload,
+                                       payload: IntroductionResponsePayload | NewIntroductionResponsePayload) -> None:
+        """
+        Try to discover peers that are behind a different port.
+        """
+        if (payload.wan_introduction_address != ("0.0.0.0", 0)
+                and payload.lan_introduction_address != ("0.0.0.0", 0)
+                and payload.wan_introduction_address[0] != self.my_estimated_wan[0]):
+            addr = (payload.wan_introduction_address[0], payload.lan_introduction_address[1])
+            self.network.discover_address(peer, addr, self.community_id, payload.intro_supports_new_style)
+
+        return super().introduction_response_callback(peer, dist, payload)
 
     @task
     async def create_introduction_point(self, info_hash: bytes, required_ip: Peer | None = None) -> None:
