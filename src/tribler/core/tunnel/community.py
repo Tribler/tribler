@@ -64,6 +64,7 @@ class TriblerTunnelSettings(HiddenTunnelSettings):
     download_manager: DownloadManager
     exitnode_enabled: bool = False
     default_hops: int = 0
+    max_intro_points: int = 10
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
@@ -322,7 +323,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         Update the known swarms based on the changed states.
         """
-        ip_counter = Counter([c.info_hash for c in list(self.circuits.values()) if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
+        intro_points = [c for c in self.circuits.values() if c.ctype == CIRCUIT_TYPE_IP_SEEDER]
+        intro_points_todo = self.settings.max_intro_points - len(intro_points)
+        if intro_points_todo <= 0:
+            return
+
+        ip_counter = Counter([c.info_hash for c in intro_points])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash)
             old_state = self.download_states.get(info_hash, None)
@@ -342,6 +348,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
             if new_state == DownloadStatus.SEEDING:
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
+                    if intro_points_todo <= 0:
+                        return
                     self.logger.info("Create introducing circuit for %s", hexlify(info_hash))
                     self.create_introduction_point(info_hash)
 
