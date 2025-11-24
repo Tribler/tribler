@@ -111,6 +111,7 @@ export function formatFlags(flags: number[]) {
         2: "EXIT_BT",
         4: "EXIT_IPV8",
         8: "SPEEDTEST",
+        16384: "EXIT_BACKUP",
         32768: "EXIT_HTTP",
     };
     let result = "";

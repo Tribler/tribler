@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from asyncio import TimeoutError as AsyncTimeoutError
-from asyncio import gather, sleep, wait_for
+from asyncio import gather, sleep
 from collections import defaultdict
 from io import BytesIO
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock, call, patch
+from unittest.mock import Mock, call
 
 from ipv8.keyvault.public.libnaclkey import LibNaCLPK
 from ipv8.messaging.anonymization.tunnel import (
@@ -25,10 +24,9 @@ from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
 
-import tribler
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.core.notifier import Notifier
-from tribler.core.tunnel.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity, TriblerTunnelSettings
+from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
 
 if TYPE_CHECKING:
     from ipv8.community import CommunitySettings
@@ -301,78 +299,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         await self.deliver_messages()
 
         self.assertEqual(self.overlay(0).tunnels_ready(1), 0.0)
-
-    async def test_perform_http_request(self) -> None:
-        """
-        Test if we can make a http request through a circuit.
-        """
-        remote_endpoint = AutoMockEndpoint()
-        writer = Mock()
-        reader = Mock(readline=AsyncMock(side_effect=[b"HTTP/1.1 200 OK\r\n", b"\r\n"]),
-                      read=AsyncMock(return_value=b"i11e\r\n"))
-        open_connection = AsyncMock(return_value=(reader, writer))
-
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
-        await self.introduce_nodes()
-        self.overlay(0).create_circuit(1, exit_flags=[PEER_FLAG_EXIT_HTTP])
-        await sleep(0)
-
-        with patch.dict(tribler.core.tunnel.community.__dict__, {"open_connection": open_connection}):
-            response = await self.overlay(0).perform_http_request(remote_endpoint.get_address(),
-                                                                  b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
-
-        self.assertEqual(response.split(b'\r\n')[0], b'HTTP/1.1 200 OK')
-
-    async def test_perform_http_request_not_allowed(self) -> None:
-        """
-        Test if we can't make HTTP requests that don't have a bencoded response.
-        """
-        remote_endpoint = AutoMockEndpoint()
-        writer = Mock()
-        reader = Mock(readline=AsyncMock(side_effect=[b"HTTP/1.1 200 OK\r\n", b"\r\n"]),
-                      read=AsyncMock(return_value=b"\r\n"))
-        open_connection = AsyncMock(return_value=(reader, writer))
-
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
-        await self.introduce_nodes()
-        self.overlay(0).create_circuit(1, exit_flags=[PEER_FLAG_EXIT_HTTP])
-        await sleep(0)
-        await gather(*self.overlay(1).get_anonymous_tasks("on_packet_from_circuit"))
-
-        with patch.dict(tribler.core.tunnel.community.__dict__, {"open_connection": open_connection}),\
-                self.assertRaises(AsyncTimeoutError):
-            await wait_for(self.overlay(0).perform_http_request(remote_endpoint.get_address(),
-                                                                b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
-                           timeout=.05)
-
-    async def test_perform_http_request_no_http_exits(self) -> None:
-        """
-        Test if we can't make HTTP requests when we have no exits.
-        """
-        remote_endpoint = AutoMockEndpoint()
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = set()
-        await self.introduce_nodes()
-
-        with self.assertRaises(RuntimeError), self.overlay(0).request_cache.passthrough():
-            await self.overlay(0).perform_http_request(remote_endpoint.get_address(),
-                                                       b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n')
-
-    async def test_perform_http_request_failed(self) -> None:
-        """
-        Test if a HTTP request raises a timeout error when the request times out.
-        """
-        remote_endpoint = AutoMockEndpoint()
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = {PEER_FLAG_EXIT_HTTP}
-        await self.introduce_nodes()
-
-        with self.assertRaises(AsyncTimeoutError):
-            await wait_for(self.overlay(0).perform_http_request(remote_endpoint.get_address(),
-                                                                b'GET /scrape?info_hash=0 HTTP/1.1\r\n\r\n'),
-                           timeout=0)
 
     def test_cache_exitnodes_to_disk(self) -> None:
         """

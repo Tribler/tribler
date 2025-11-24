@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import hashlib
-import math
 import time
-from asyncio import CancelledError, open_connection, timeout
 from binascii import hexlify, unhexlify
 from collections import Counter
 from typing import TYPE_CHECKING, cast
 
-from ipv8.messaging.anonymization.community import unpack_cell
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_READY,
@@ -23,8 +20,6 @@ from libtorrent import bdecode
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.tunnel.caches import HTTPRequestCache
-from tribler.core.tunnel.payload import HTTPRequestPayload, HTTPResponsePayload
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -33,6 +28,8 @@ if TYPE_CHECKING:
     from ipv8.messaging.anonymization.payload import CreatedPayload, CreatePayload, ExtendedPayload
     from ipv8.messaging.interfaces.endpoint import Endpoint
     from ipv8.messaging.interfaces.udp.endpoint import Address
+    from ipv8.messaging.payload import IntroductionResponsePayload, NewIntroductionResponsePayload
+    from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
     from ipv8.peer import Peer
     from ipv8_rust_tunnels.endpoint import RustEndpoint
 
@@ -41,6 +38,7 @@ if TYPE_CHECKING:
 
 DESTROY_REASON_BALANCE = 65535
 PEER_FLAG_EXIT_HTTP = 32768
+PEER_FLAG_EXIT_BACKUP = 16384
 MAX_HTTP_PACKET_SIZE = 1400
 
 
@@ -68,6 +66,7 @@ class TriblerTunnelSettings(HiddenTunnelSettings):
     download_manager: DownloadManager
     exitnode_enabled: bool = False
     default_hops: int = 0
+    max_intro_points: int = 10
 
 
 class TriblerTunnelCommunity(HiddenTunnelCommunity):
@@ -94,9 +93,6 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
         self.download_states: dict[bytes, DownloadStatus] = {}
         self.last_forced_announce: dict[bytes, float] = {}
-
-        self.add_cell_handler(HTTPRequestPayload, self.on_http_request)
-        self.add_cell_handler(HTTPResponsePayload, self.on_http_response)
 
         if settings.exitnode_cache is not None:
             self.register_task("Load cached exitnodes", self.restore_exitnodes_from_disk, delay=0.5)
@@ -142,6 +138,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))
         else:
             self.logger.warning("Could not retrieve backup exitnode cache, file does not exist!")
+
+    def get_candidates(self, *requested_flags: int) -> list[Peer]:
+        """
+        Get all the peers that we can create circuits with. When requesting exits, prefer peers that aren't backups.
+        """
+        candidates = super().get_candidates(*requested_flags)
+        if PEER_FLAG_EXIT_BT in requested_flags:
+            candidates = [c for c in candidates
+                          if PEER_FLAG_EXIT_BACKUP not in self.candidates.get(c, [])] or candidates
+        return candidates
 
     async def should_join_circuit(self, create_payload: CreatePayload, previous_node_address: Address) -> bool:
         """
@@ -256,7 +262,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         We have incoming data.
         """
-        self.logger.warning("Unexpected data packet in on_raw_data")
+        self.logger.warning("Unexpected data packet in on_raw_data for circuit %s with uptime=%s",
+                            circuit.circuit_id, int(time.time()) - circuit.creation_time)
 
     def monitor_downloads(self, dslist: list[DownloadState]) -> None:
         """
@@ -318,7 +325,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         """
         Update the known swarms based on the changed states.
         """
-        ip_counter = Counter([c.info_hash for c in list(self.circuits.values()) if c.ctype == CIRCUIT_TYPE_IP_SEEDER])
+        intro_points = [c for c in self.circuits.values() if c.ctype == CIRCUIT_TYPE_IP_SEEDER]
+        intro_points_todo = self.settings.max_intro_points - len(intro_points)
+        if intro_points_todo <= 0:
+            return
+
+        ip_counter = Counter([c.info_hash for c in intro_points])
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash)
             old_state = self.download_states.get(info_hash, None)
@@ -338,6 +350,8 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
             if new_state == DownloadStatus.SEEDING:
                 for _ in range(1 - ip_counter.get(info_hash, 0)):
+                    if intro_points_todo <= 0:
+                        return
                     self.logger.info("Create introducing circuit for %s", hexlify(info_hash))
                     self.create_introduction_point(info_hash)
 
@@ -362,6 +376,19 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().infohash):
                 return download
         return None
+
+    def introduction_response_callback(self, peer: Peer, dist: GlobalTimeDistributionPayload,
+                                       payload: IntroductionResponsePayload | NewIntroductionResponsePayload) -> None:
+        """
+        Try to discover peers that are behind a different port.
+        """
+        if (payload.wan_introduction_address != ("0.0.0.0", 0)
+                and payload.lan_introduction_address != ("0.0.0.0", 0)
+                and payload.wan_introduction_address[0] != self.my_estimated_wan[0]):
+            addr = (payload.wan_introduction_address[0], payload.lan_introduction_address[1])
+            self.network.discover_address(peer, addr, self.community_id, payload.intro_supports_new_style)
+
+        return super().introduction_response_callback(peer, dist, payload)
 
     @task
     async def create_introduction_point(self, info_hash: bytes, required_ip: Peer | None = None) -> None:
@@ -399,101 +426,3 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Get the SHA-1 hash to lookup for a given torrent info hash.
         """
         return hashlib.sha1(b"tribler anonymous download" + hexlify(info_hash)).digest()
-
-    @unpack_cell(HTTPRequestPayload)
-    async def on_http_request(self, source_address: Address, payload: HTTPRequestPayload,  # noqa: C901
-                              circuit_id: int) -> None:
-        """
-        Callback for when an HTTP request is received.
-        """
-        if circuit_id not in self.exit_sockets:
-            self.logger.warning("Received unexpected http-request")
-            return
-        if len([cache for cache in self.request_cache._identifiers.values()  # noqa: SLF001
-                if isinstance(cache, HTTPRequestCache) and cache.circuit_id == circuit_id]) > 5:
-            self.logger.warning("Too many HTTP requests coming from circuit %s")
-            return
-
-        self.logger.debug("Got http-request from %s", source_address)
-
-        writer = None
-        try:
-            async with timeout(10):
-                self.logger.debug("Opening TCP connection to %s", payload.target)
-                reader, writer = await open_connection(*payload.target)
-                writer.write(payload.request)
-                response = b""
-                while True:
-                    line = await reader.readline()
-                    response += line
-                    if not line.strip():
-                        # Read HTTP response body (1MB max)
-                        response += await reader.read(1024 ** 2)
-                        break
-        except OSError:
-            self.logger.warning("Tunnel HTTP request failed")
-            return
-        except TimeoutError:
-            self.logger.warning("Tunnel HTTP request timed out")
-            return
-        finally:
-            if writer:
-                writer.close()
-
-        if not response.startswith(b"HTTP/1.1 307"):
-            _, _, bencoded_data = response.partition(b'\r\n\r\n')
-
-            if not is_bencoded(bencoded_data):
-                self.logger.warning("Tunnel HTTP request not allowed")
-                return
-
-        num_cells = math.ceil(len(response) / MAX_HTTP_PACKET_SIZE)
-        for i in range(num_cells):
-            self.send_cell(source_address,
-                           HTTPResponsePayload(circuit_id, payload.identifier, i, num_cells,
-                                               response[i * MAX_HTTP_PACKET_SIZE:(i + 1) * MAX_HTTP_PACKET_SIZE]))
-
-    @unpack_cell(HTTPResponsePayload)
-    def on_http_response(self, source_address: Address, payload: HTTPResponsePayload, circuit_id: int) -> None:
-        """
-        Callback for when an HTTP response is received.
-        """
-        cache = self.request_cache.get(HTTPRequestCache, payload.identifier)
-        if cache is None:
-            self.logger.warning("Received unexpected http-response")
-            return
-        if cache.circuit_id != payload.circuit_id:
-            self.logger.warning("Received http-response from wrong circuit %s != %s", cache.circuit_id, circuit_id)
-            return
-
-        self.logger.debug("Got http-response from %s", source_address)
-        if cache.add_response(payload):
-            self.request_cache.pop(HTTPRequestCache, payload.identifier)
-
-    async def perform_http_request(self, destination: Address, request: bytes, hops: int = 1) -> bytes:
-        """
-        Perform the actual HTTP request to service the given request.
-        """
-        # We need a circuit that supports HTTP requests, meaning that the circuit will have to end
-        # with a node that has the PEER_FLAG_EXIT_HTTP flag set.
-        circuit = None
-        circuits = self.find_circuits(exit_flags=[PEER_FLAG_EXIT_HTTP])
-        if circuits:
-            circuit = circuits[0]
-        else:
-            # Try to create a circuit. Attempt at most 3 times.
-            for _ in range(3):
-                circuit = self.create_circuit(hops, exit_flags=[PEER_FLAG_EXIT_HTTP])
-                if circuit and await circuit.ready:
-                    break
-
-        if not circuit or circuit.state != CIRCUIT_STATE_READY:
-            msg = "No HTTP circuit available"
-            raise RuntimeError(msg)
-
-        cache = self.request_cache.add(HTTPRequestCache(self, circuit.circuit_id))
-        if cache is not None:
-            self.send_cell(circuit.hop.address, HTTPRequestPayload(circuit.circuit_id, cache.number, destination,
-                                                                   request))
-            return await cache.response_future
-        raise CancelledError

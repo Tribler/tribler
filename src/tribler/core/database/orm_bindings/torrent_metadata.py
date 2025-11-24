@@ -292,7 +292,11 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
             ih_blob = metadata["infohash"]
             pk_blob = b""
-            if cls.exists(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
+            if results := cls.select(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
+                result = next((r for r in results if r.public_key == pk_blob), None)
+                # If the metainfo dict includes tracker_info, and the metadata in our db doesn't, update it.
+                if result and metadata.get("tracker_info") and not result.tracker_info:
+                    result.tracker_info = metadata.get("tracker_info")
                 return None
             if isinstance(metadata.get("tracker_info", ""), bytes):
                 metadata["tracker_info"] = metadata["tracker_info"].decode()
