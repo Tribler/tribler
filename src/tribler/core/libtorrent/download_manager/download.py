@@ -330,7 +330,8 @@ class Download(TaskManager):
         Note 2: available in params: version, ti, name, save_path, userdata, tracker_id, flags, info_hash
         """
         self.tdef.atp.version = alert.params.version
-        self.tdef.atp.ti = alert.params.ti
+        if alert.params.ti is not None and alert.params.ti.is_valid():
+            self.tdef.atp.ti = alert.params.ti
         self.tdef.atp.trackerid = alert.params.trackerid
         self.tdef.atp.flags = alert.params.flags
         self.tdef.atp.info_hash = alert.params.info_hash
@@ -519,7 +520,8 @@ class Download(TaskManager):
                 "tracker_info": (self.tdef.atp.trackers or [t.url for t in torrent_info.trackers()] or [""])[0]
             })
 
-        self.tdef.atp.ti = torrent_info
+        if torrent_info.is_valid():
+            self.tdef.atp.ti = torrent_info
         tracker_set = set(self.tdef.atp.trackers)
         tracker_set |= {tracker["url"] for tracker in handle.trackers()}
         tracker_set |= {tracker.url for tracker in torrent_info.trackers()}
