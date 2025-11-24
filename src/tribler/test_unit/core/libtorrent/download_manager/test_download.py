@@ -914,3 +914,51 @@ class TestDownload(TestBase):
 
         self.assertEqual(sys.maxsize, download.handle.download_limit())
         self.assertEqual(sys.maxsize + 42, download.config.get_download_limit())
+
+    def test_on_add_torrent_alert_overwrite_ti(self) -> None:
+        """
+        Test if on_add_torrent_alert does not overwrite already-valid torrent info with ``None``.
+        """
+        config = MockTriblerConfigManager()
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), Mock(config=config),
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True), flags=Mock(return_value=0))
+
+        download.on_add_torrent_alert(Mock(
+            error=Mock(value=Mock(return_value=False)),
+            handle=download.handle,
+            params=Mock(
+                version=1,
+                ti=None,  # This should not overwrite the valid torrent info.
+                trackerid="",
+                flags=0,
+                info_hash=libtorrent.sha1_hash(b"\x01" * 20),
+                info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+            )
+        ))
+
+        self.assertIsNotNone(download.tdef.torrent_info)
+
+    def test_on_add_torrent_alert_invalid_ti(self) -> None:
+        """
+        Test if on_add_torrent_alert does not overwrite already-valid torrent info with invalid torrent info.
+        """
+        config = MockTriblerConfigManager()
+        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
+        download = Download(tdef, Mock(config=config), self.create_mock_download_config(), checkpoint_disabled=True)
+        download.handle = Mock(is_valid=Mock(return_value=True), flags=Mock(return_value=0))
+
+        download.on_add_torrent_alert(Mock(
+            error=Mock(value=Mock(return_value=False)),
+            handle=download.handle,
+            params=Mock(
+                version=1,
+                ti=Mock(is_valid=Mock(return_value=False)),  # This should not overwrite the valid torrent info.
+                trackerid="",
+                flags=0,
+                info_hash=libtorrent.sha1_hash(b"\x01" * 20),
+                info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
+            )
+        ))
+
+        self.assertTrue(download.tdef.torrent_info.is_valid())
