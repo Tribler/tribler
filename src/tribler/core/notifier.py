@@ -32,8 +32,9 @@ class Notification(Enum):
     remote_query_results = Desc("remote_query_results", ["query", "results", "uuid", "peer"], [str, list, str, str])
     local_query_results = Desc("local_query_results", ["query", "results"], [str, list])
     circuit_removed = Desc("circuit_removed", ["circuit", "additional_info"], [str, Circuit])
-    tunnel_removed = Desc("tunnel_removed", ["circuit_id", "bytes_up", "bytes_down", "uptime", "additional_info"],
-                          [int, int, int, float, str])
+    tunnel_removed = Desc("tunnel_removed",
+                          ["circuit_id", "circuit_class", "bytes_up", "bytes_down", "uptime", "additional_info"],
+                          [int, str, int, int, float, str])
     torrent_health_updated = Desc("torrent_health_updated",
                                   ["infohash", "num_seeders", "num_leechers", "last_tracker_check", "health"],
                                   [str, int, int, int, str])
