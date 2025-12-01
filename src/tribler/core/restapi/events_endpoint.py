@@ -96,6 +96,7 @@ class EventsEndpoint(RESTEndpoint):
         """
         self.notifier.notify(Notification.tunnel_removed,
                              circuit_id=circuit.circuit_id,
+                             circuit_class=circuit.__class__.__name__,
                              bytes_up=circuit.bytes_up,
                              bytes_down=circuit.bytes_down,
                              uptime=time.time() - circuit.creation_time,
