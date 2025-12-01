@@ -7,7 +7,7 @@ from unittest.mock import Mock
 from aiohttp import ClientSession, web
 from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
+from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT, PEER_FLAG_RELAY
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
@@ -130,7 +130,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
             tunnel_settings.download_manager.checkpoint_directory = Mock()
         elif my_node_id == EXIT:
             tunnel_settings.exitnode_enabled = True
-            tunnel_settings.peer_flags = {PEER_FLAG_EXIT_BT}
+            tunnel_settings.peer_flags = {PEER_FLAG_RELAY, PEER_FLAG_EXIT_BT}
             tunnel_settings.download_manager = MockDownloadManager(MockTriblerConfigManager(), tunnel_settings.notifier)
             tunnel_settings.download_manager.checkpoint_directory = Mock()
 
