@@ -758,6 +758,8 @@ class DownloadManager(TaskManager):
             self._logger.warning("DHT readiness task was cancelled")
         if not atp.save_path:
             atp.save_path = atp.name or (atp.ti.name() if atp.ti else "Unknown name")
+        # Ensure the update_subscribe flag is set. This may not be the case when updating the hop count.
+        atp.flags |= lt.torrent_flags.update_subscribe
         ltsession.async_add_torrent(atp)
 
     def get_libtorrent_version(self) -> str:
