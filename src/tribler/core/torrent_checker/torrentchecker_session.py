@@ -22,7 +22,6 @@ from tribler.core.torrent_checker.healthdataclasses import HealthInfo, TrackerRe
 if TYPE_CHECKING:
     from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 
-    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -462,50 +461,6 @@ class UdpTrackerSession(TrackerSession):
         self.is_finished = True
 
         return TrackerResponse(url=self.tracker_url, torrent_health_list=response_list)
-
-
-class FakeDHTSession(TrackerSession):
-    """
-    Fake TrackerSession that manages DHT requests.
-    """
-
-    def __init__(self, download_manager: DownloadManager, timeout: float) -> None:
-        """
-        Create a new fake DHT tracker session.
-        """
-        super().__init__("DHT", "DHT", ("DHT", 0), "DHT", timeout)
-
-        self.download_manager = download_manager
-
-    async def connect_to_tracker(self) -> TrackerResponse:
-        """
-        Query the bittorrent DHT.
-        """
-        health_list = []
-        for infohash in self.infohash_list:
-            lookup = await self.download_manager.get_metainfo(infohash, timeout=self.timeout)
-            seeders = lookup["seeders"] if lookup is not None else 0
-            leechers = lookup["leechers"] if lookup is not None else 0
-            health = HealthInfo(infohash, seeders=seeders, leechers=leechers,
-                                last_check=int(time.time()), self_checked=True)
-            health_list.append(health)
-
-        return TrackerResponse(url="DHT", torrent_health_list=health_list)
-
-
-class FakeBep33DHTSession(FakeDHTSession):
-    """
-    Fake session for a BEP33 lookup.
-    """
-
-    async def connect_to_tracker(self) -> TrackerResponse:
-        """
-        Query the bittorrent DHT using BEP33 to avoid joining the swarm.
-        """
-        dht_health_manager = self.download_manager.dht_health_manager
-        health_infos = [await dht_health_manager.get_health(infohash, timeout=self.timeout)
-                        for infohash in self.infohash_list] if dht_health_manager is not None else []
-        return TrackerResponse(url="DHT", torrent_health_list=health_infos)
 
 
 def create_tracker_session(tracker_url: str, timeout: float, proxy: tuple | None,
