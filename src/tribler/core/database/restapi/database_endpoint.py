@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import binascii
 import json
 import typing
 from binascii import unhexlify
@@ -92,6 +93,7 @@ class DatabaseEndpoint(RESTEndpoint):
                 web.delete("/torrents/{infohash}/tags", self.remove_tag),
                 web.patch("/torrents/{infohash}/tags", self.update_tags),
                 web.get("/torrents/popular", self.get_popular_torrents),
+                web.get("/torrents/health", self.get_torrent_health_history),
                 web.get("/search/local", self.local_search),
                 web.get("/search/completions", self.completions),
             ]
@@ -178,6 +180,38 @@ class DatabaseEndpoint(RESTEndpoint):
         health_check_coro = self.torrent_checker.check_torrent_health(infohash, timeout=timeout, scrape_now=True)
         _ = self.register_anonymous_task("health_check", asyncio.ensure_future(health_check_coro))
         return RESTResponse({"checking": True})
+
+    @docs(
+        tags=["Metadata"],
+        summary="Fetch the health of recently checked swarms.",
+        responses={
+            200: {
+                "schema": schema(
+                    HealthHistoryResponse={
+                        "health_history": [schema(Health={
+                            "infohash": String,
+                            "seeders": Integer,
+                            "leechers": Integer,
+                            "last_check": Integer,
+                        })]
+                    }
+                )
+            }
+        },
+    )
+    async def get_torrent_health_history(self, request: RequestType) -> RESTResponse:
+        """
+        Fetch the swarm health of a specific torrent.
+        """
+        if self.torrent_checker is None:
+            return RESTResponse({"health_history": []})
+
+        return RESTResponse({"health_history": [{"infohash": binascii.hexlify(health.infohash).decode(),
+                                                 "seeders": health.seeders,
+                                                 "leechers": health.leechers,
+                                                 "last_check": health.last_check,
+                                                 "tracker": health.tracker}
+                                                for health in self.torrent_checker.torrents_checked.values()]})
 
     def add_download_progress_to_metadata_list(self, contents_list: list[dict]) -> None:
         """

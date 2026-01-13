@@ -7,6 +7,7 @@ import {Torrent} from "@/models/torrent.model";
 import axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {ErrorDict, formatAxiosError, handleHTTPError} from "./reporting";
 import {TriblerStatistics} from "@/models/statistics.model";
+import {Health} from "@/models/health.model";
 
 export type QueueOperation = "queue_up" | "queue_top" | "queue_down" | "queue_bottom";
 
@@ -590,6 +591,14 @@ export class TriblerService {
                     initial_nodes: initialNodes
                 })
             ).data.torrent;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async getHealthCheckHistory() : Promise<undefined | ErrorDict | Health[]> {
+        try {
+            return (await this.http.get("/metadata/torrents/health")).data.health_history;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

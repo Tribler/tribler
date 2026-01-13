@@ -21,6 +21,7 @@ import Tunnels from "./pages/Debug/Tunnels";
 import DHT from "./pages/Debug/DHT";
 import Libtorrent from "./pages/Debug/Libtorrent";
 import Asyncio from "./pages/Debug/Asyncio";
+import Popularity from "./pages/Debug/Popularity";
 
 var raiseUnhandledError: (reason?: any) => void;
 const errorPromise = new Promise(function (resolve, reject) {
@@ -126,6 +127,10 @@ export const router = createHashRouter([
             {
                 path: "debug/dht",
                 element: <DHT />,
+            },
+            {
+                path: "debug/popularity",
+                element: <Popularity />,
             },
             {
                 path: "debug/libtorrent",

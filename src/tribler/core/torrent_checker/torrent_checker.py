@@ -17,7 +17,6 @@ from tribler.core.libtorrent.trackers import MalformedTrackerURLException, is_va
 from tribler.core.notifier import Notification, Notifier
 from tribler.core.torrent_checker.healthdataclasses import HEALTH_FRESHNESS_SECONDS, HealthInfo, TrackerResponse
 from tribler.core.torrent_checker.torrentchecker_session import (
-    FakeDHTSession,
     TrackerSession,
     UdpSocketManager,
     create_tracker_session,
@@ -34,10 +33,10 @@ TRACKER_SELECTION_INTERVAL = 1  # The interval for querying a random tracker
 TORRENT_SELECTION_INTERVAL = 10  # The interval for checking the health of a random torrent
 MIN_TORRENT_CHECK_INTERVAL = 900  # How much time we should wait before checking a torrent again
 TORRENT_CHECK_RETRY_INTERVAL = 30  # Interval when the torrent was successfully checked for the last time
-MAX_TORRENTS_CHECKED_PER_SESSION = 5  # (5 random + 5 per tracker = 10 torrents) per 10 seconds
+MAX_TORRENTS_CHECKED_PER_SESSION = 5  # Maximum simultaneous health checks.
+SWARM_HEALTH_CHECK_TIMEOUT = 240  # Number of seconds to spend in a swarm when doing a health check.
 
-TORRENT_SELECTION_POOL_SIZE = 2  # How many torrents to check (popular or random) during periodic check
-USER_CHANNEL_TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check from user's channel during periodic check
+TORRENT_SELECTION_POOL_SIZE = 5  # How many torrents to check (popular or random) during periodic check
 TORRENTS_CHECKED_RETURN_SIZE = 240  # Estimated torrents checked on default 4 hours idle run
 
 
@@ -45,7 +44,7 @@ def aggregate_responses_for_infohash(infohash: bytes, responses: list[TrackerRes
     """
     Finds the "best" health info (with the max number of seeders) for a specified infohash.
     """
-    result = HealthInfo(infohash, last_check=0)
+    result = HealthInfo(infohash, last_check=int(time.time()), self_checked=True)
     for response in responses:
         for health in response.torrent_health_list:
             if health.infohash == infohash and health > result:
@@ -91,7 +90,6 @@ class TorrentChecker(TaskManager):
         """
         Start all the looping tasks for the checker and creata socket.
         """
-        self.register_task("check random tracker", self.check_random_tracker, interval=TRACKER_SELECTION_INTERVAL)
         self.register_task("check local torrents", self.check_local_torrents, interval=TORRENT_SELECTION_INTERVAL)
         await self.create_socket_or_schedule()
 
@@ -207,10 +205,6 @@ class TorrentChecker(TaskManager):
         self._logger.info("Got response from %s in %f seconds: %s", session.__class__.__name__, round(t2 - t1, 3),
                           str(result))
 
-        with db_session:
-            for health in result.torrent_health_list:
-                self.update_torrent_health(health)
-
         return result
 
     @property
@@ -278,7 +272,7 @@ class TorrentChecker(TaskManager):
         """
         selected_torrents = self.torrents_to_check()
         self._logger.info("Check %d local torrents", len(selected_torrents))
-        results = [await self.check_torrent_health(t.infohash) for t in selected_torrents]
+        results = await asyncio.gather(*[self.check_torrent_health(t.infohash) for t in selected_torrents])
         self._logger.info("Results for local torrents check: %s", str(results))
         return selected_torrents, results
 
@@ -346,21 +340,19 @@ class TorrentChecker(TaskManager):
             if session := self.create_session_for_request(tracker_url, timeout=timeout):
                 session.add_infohash(infohash)
                 coroutines.append(self.get_tracker_response(session))
-
-        session = FakeDHTSession(self.download_manager, timeout)
-        session.add_infohash(infohash)
-        self._logger.info("DHT session has been created for %s: %s", infohash_hex, str(session))
-        self.sessions["DHT"].append(session)
-        coroutines.append(self.get_tracker_response(session))
-
         responses = await asyncio.gather(*coroutines, return_exceptions=True)
-        self._logger.info("%d responses for %s have been received: %s", len(responses), infohash_hex, str(responses))
+        self._logger.info("Received %s tracker responses for %s: %s", len(responses), infohash_hex, str(responses))
         successful_responses = [response for response in responses if not isinstance(response, Exception)]
         health = aggregate_responses_for_infohash(infohash, cast("list[TrackerResponse]", successful_responses))
-        if health.last_check == 0:
-            self.notify(health)  # We don't need to store this in the db, but we still need to notify the GUI
-        else:
-            self.update_torrent_health(health)
+
+        if health.seeders == 0 and health.leechers == 0:
+            self._logger.info("Contacting trackers yielded no results, joining swarm %s", infohash_hex)
+            if metainfo := await self.download_manager.get_metainfo(infohash,timeout=SWARM_HEALTH_CHECK_TIMEOUT,
+                                                                    health_check=True):
+                health = HealthInfo(infohash, seeders=metainfo.get("seeders", 0), leechers=metainfo.get("leechers", 0),
+                                    last_check=int(time.time()), self_checked=True)
+
+        self.update_torrent_health(health)
         return health
 
     def create_session_for_request(self, tracker_url: str, timeout: float = 20) -> TrackerSession | None:
@@ -427,11 +419,7 @@ class TorrentChecker(TaskManager):
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
                               self_checked=True)
 
-        if health.seeders > 0 or health.leechers > 0:
-            self.torrents_checked[health.infohash] = health
-        else:
-            self.torrents_checked.pop(health.infohash, None)
-
+        self.torrents_checked[health.infohash] = health
         self.notify(health)
         return True
 

@@ -22,7 +22,6 @@ from tribler.core.torrent_checker.healthdataclasses import HealthInfo, TrackerRe
 if TYPE_CHECKING:
     from ipv8.messaging.interfaces.udp.endpoint import DomainAddress
 
-    from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 
 # Although these are the actions for UDP trackers, they can still be used as
 # identifiers.
@@ -188,14 +187,15 @@ class HttpTrackerSession(TrackerSession):
                     leechers = file_info.get(b"incomplete", 0)
 
                 unprocessed_infohashes.discard(infohash)
-                health_list.append(HealthInfo(infohash, seeders, leechers, last_check=now, self_checked=True))
+                health_list.append(HealthInfo(infohash, seeders, leechers, last_check=now,
+                                              self_checked=True, tracker=self.tracker_url))
 
         elif b"failure reason" in response_dict:
             self._logger.info("%s Failure as reported by tracker [%s]", self, repr(response_dict[b"failure reason"]))
             self.failed(msg=repr(response_dict[b"failure reason"]))
 
         # handle the infohashes with no result (seeders/leechers = 0/0)
-        health_list.extend(HealthInfo(infohash=infohash, last_check=now, self_checked=True)
+        health_list.extend(HealthInfo(infohash=infohash, last_check=now, self_checked=True, tracker=self.tracker_url)
                            for infohash in unprocessed_infohashes)
 
         self.is_finished = True
@@ -453,7 +453,7 @@ class UdpTrackerSession(TrackerSession):
             # Sow complete as seeders. "complete: number of peers with the entire file, i.e. seeders (integer)"
             #  - https://wiki.theory.org/BitTorrentSpecification#Tracker_.27scrape.27_Convention
             response_list.append(HealthInfo(infohash, seeders=complete, leechers=incomplete,
-                                            last_check=now, self_checked=True))
+                                            last_check=now, self_checked=True, tracker=self.tracker_url))
 
         # close this socket and remove its transaction ID from the list
         self.remove_transaction_id()
@@ -461,51 +461,6 @@ class UdpTrackerSession(TrackerSession):
         self.is_finished = True
 
         return TrackerResponse(url=self.tracker_url, torrent_health_list=response_list)
-
-
-class FakeDHTSession(TrackerSession):
-    """
-    Fake TrackerSession that manages DHT requests.
-    """
-
-    def __init__(self, download_manager: DownloadManager, timeout: float) -> None:
-        """
-        Create a new fake DHT tracker session.
-        """
-        super().__init__("DHT", "DHT", ("DHT", 0), "DHT", timeout)
-
-        self.download_manager = download_manager
-
-    async def connect_to_tracker(self) -> TrackerResponse:
-        """
-        Query the bittorrent DHT.
-        """
-        health_list = []
-        now = int(time.time())
-        for infohash in self.infohash_list:
-            lookup = await self.download_manager.get_metainfo(infohash, timeout=self.timeout)
-            if lookup is None:
-                continue
-            health = HealthInfo(infohash, seeders=lookup["seeders"], leechers=lookup["leechers"],
-                                last_check=now, self_checked=True)
-            health_list.append(health)
-
-        return TrackerResponse(url="DHT", torrent_health_list=health_list)
-
-
-class FakeBep33DHTSession(FakeDHTSession):
-    """
-    Fake session for a BEP33 lookup.
-    """
-
-    async def connect_to_tracker(self) -> TrackerResponse:
-        """
-        Query the bittorrent DHT using BEP33 to avoid joining the swarm.
-        """
-        dht_health_manager = self.download_manager.dht_health_manager
-        health_infos = [await dht_health_manager.get_health(infohash, timeout=self.timeout)
-                        for infohash in self.infohash_list] if dht_health_manager is not None else []
-        return TrackerResponse(url="DHT", torrent_health_list=health_infos)
 
 
 def create_tracker_session(tracker_url: str, timeout: float, proxy: tuple | None,

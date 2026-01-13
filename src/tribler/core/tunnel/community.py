@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import time
 from binascii import hexlify, unhexlify
-from collections import Counter
 from typing import TYPE_CHECKING, cast
 
 from ipv8.messaging.anonymization.hidden_services import HiddenTunnelCommunity, HiddenTunnelSettings
@@ -330,7 +329,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if intro_points_todo <= 0:
             return
 
-        ip_counter = Counter([c.info_hash for c in intro_points])
+        ip_hashes = {c.info_hash for c in intro_points}
         for info_hash in set(list(new_states) + list(self.download_states)):
             new_state = new_states.get(info_hash)
             old_state = self.download_states.get(info_hash, None)
@@ -348,12 +347,12 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
                 self.leave_swarm(info_hash)
 
             # Ensure we have enough introduction points for this infohash. Currently, we only create 1.
-            if new_state == DownloadStatus.SEEDING:
-                for _ in range(1 - ip_counter.get(info_hash, 0)):
-                    if intro_points_todo <= 0:
-                        return
-                    self.logger.info("Create introducing circuit for %s", hexlify(info_hash))
-                    self.create_introduction_point(info_hash)
+            if new_state == DownloadStatus.SEEDING and info_hash not in ip_hashes:
+                self.logger.info("Create introducing circuit for %s", hexlify(info_hash))
+                self.create_introduction_point(info_hash)
+                intro_points_todo -= 1
+                if intro_points_todo <= 0:
+                    return
 
     def on_e2e_finished(self, address: Address, info_hash: bytes) -> None:
         """

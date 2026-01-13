@@ -502,8 +502,8 @@ class DownloadManager(TaskManager):
                                                               bytearray(decoded[b"r"][b"BFsd"]),
                                                               bytearray(decoded[b"r"][b"BFpe"]))
 
-    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = -1,  # noqa: C901,PLR0912
-                           url: str | None = None) -> MetainfoLookupResult | None:
+    async def get_metainfo(self, infohash: bytes, timeout: float = 7, hops: int | None = -1,  # noqa: C901,PLR0912,PLR0915
+                           health_check: bool = False, url: str | None = None) -> MetainfoLookupResult | None:
         """
         Lookup metainfo for a given infohash. The mechanism works by joining the swarm for the infohash connecting
         to a few peers, and downloading the metadata for the torrent.
@@ -511,11 +511,12 @@ class DownloadManager(TaskManager):
         :param infohash: The (binary) infohash to lookup metainfo for.
         :param timeout: A timeout in seconds.
         :param hops: the number of tunnel hops to use for this lookup. If None, use config default.
+        :param health_check: Whether we're doing a health check.
         :param url: Optional URL. Can contain trackers info, etc.
         :return: The metainfo
         """
         infohash_hex = hexlify(infohash)
-        if infohash in self.metainfo_cache:
+        if infohash in self.metainfo_cache and not health_check:
             logger.info("Returning metainfo from cache for %s", infohash_hex)
             return self.metainfo_cache[infohash]
 
@@ -549,6 +550,7 @@ class DownloadManager(TaskManager):
                 return None
             self.metainfo_requests[infohash] = MetainfoLookup(download, 1)
 
+        t_start = time.time()
         try:
             await wait_for(shield(download.future_metainfo), timeout)
         except (CancelledError, TimeoutError) as e:
@@ -557,6 +559,11 @@ class DownloadManager(TaskManager):
             return None
         else:
             logger.info("Successfully retrieved metainfo for %s", infohash_hex)
+            # Spend the remaining time we have left determining the swarm size.
+            if health_check:
+                download.set_max_download_rate(10)
+                download.set_max_upload_rate(10)
+                await asyncio.sleep(timeout - (time.time() - t_start))
             seeders, leechers = download.get_state().get_num_seeds_peers()
             self.metainfo_cache[infohash] = MetainfoLookupResult(time=time.time(),
                                                                  tdef=tdef,

@@ -7,10 +7,7 @@ from ipv8.test.base import TestBase
 from ipv8.util import succeed
 from libtorrent import bencode
 
-from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 from tribler.core.torrent_checker.torrentchecker_session import (
-    FakeBep33DHTSession,
-    FakeDHTSession,
     HttpTrackerSession,
     UdpSocketManager,
     UdpTrackerSession,
@@ -48,7 +45,6 @@ class TestTrackerSession(TestBase):
         Create a fake udp socket manager.
         """
         self.fake_udp_socket_manager = MockUdpSocketManager()
-        self.fake_dht_session = FakeDHTSession(Mock(), 10)
         self.session = None
 
     async def tearDown(self) -> None:
@@ -57,7 +53,6 @@ class TestTrackerSession(TestBase):
         """
         if self.session is not None:
             await self.session.cleanup()
-        await self.fake_dht_session.shutdown_task_manager()
         await super().tearDown()
 
     async def test_httpsession_scrape_no_body(self) -> None:
@@ -364,43 +359,3 @@ class TestTrackerSession(TestBase):
 
         with self.assertRaises(ValueError):
             self.session.failed('\xd0')
-
-    async def test_connect_to_tracker(self) -> None:
-        """
-        Test if metainfo can be looked up for a DHT session.
-        """
-        metainfo = {"seeders": 42, "leechers": 42}
-        self.fake_dht_session.download_manager.get_metainfo = Mock(return_value=succeed(metainfo))
-        self.fake_dht_session.add_infohash(b'a' * 20)
-        response = await self.fake_dht_session.connect_to_tracker()
-
-        self.assertEqual("DHT", response.url)
-        self.assertEqual(1, len(response.torrent_health_list))
-        self.assertEqual(42, response.torrent_health_list[0].leechers)
-        self.assertEqual(42, response.torrent_health_list[0].seeders)
-
-    async def test_connect_to_tracker_fail(self) -> None:
-        """
-        Test if the DHT session raises a TimeoutError when the metainfo lookup fails.
-        """
-        self.fake_dht_session.download_manager.get_metainfo = Mock(side_effect=TimeoutError)
-        self.fake_dht_session.add_infohash(b'a' * 20)
-
-        with self.assertRaises(TimeoutError):
-            await self.fake_dht_session.connect_to_tracker()
-
-    async def test_connect_to_tracker_bep33(self) -> None:
-        """
-        Test the metainfo lookup of the BEP33 DHT session.
-        """
-        infohash_health = HealthInfo(b"a" * 20, seeders=1, leechers=2)
-        mock_dlmgr = Mock(dht_health_manager=Mock(get_health=Mock(return_value=succeed(infohash_health))))
-        self.session = FakeBep33DHTSession(mock_dlmgr, 10)
-        self.session.add_infohash(b"a" * 20)
-
-        response = await self.session.connect_to_tracker()
-
-        self.assertEqual("DHT", response.url)
-        self.assertEqual(1, len(response.torrent_health_list))
-        self.assertEqual(2, response.torrent_health_list[0].leechers)
-        self.assertEqual(1, response.torrent_health_list[0].seeders)

@@ -67,7 +67,7 @@ class TestTorrentChecker(TestBase):
 
         self.tracker_manager = TrackerManager(state_dir=Path("."), metadata_store=self.metadata_store)
         self.torrent_checker = TorrentChecker(config=TriblerConfigManager(), tracker_manager=self.tracker_manager,
-                                              download_manager=MagicMock(get_metainfo=AsyncMock()),
+                                              download_manager=MagicMock(get_metainfo=AsyncMock(return_value={})),
                                               notifier=MagicMock(), metadata_store=self.metadata_store)
 
     async def tearDown(self) -> None:
