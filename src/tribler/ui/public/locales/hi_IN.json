@@ -246,5 +246,8 @@
     "InitialNodes": "प्रारंभिक नोड्स",
     "Appearance": "उपस्थिति",
     "TrayIconColor": "ट्रे आइकन का रंग बदलें",
-    "NotifyPreReleases": "प्री-रिलीज़ के लिए सूचित करें"
+    "NotifyPreReleases": "प्री-रिलीज़ के लिए सूचित करें",
+    "DisableAnonimity": "गुमनामी अक्षम करना",
+    "DisableAnonimityConfirm": "आप सभी चयनित टोरेंटों के लिए गुमनामी अक्षम करने के बारे में हैं। क्या आपको यकीन है?",
+    "Continue": "जारी रखना"
 }

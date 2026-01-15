@@ -39,6 +39,7 @@ import ConfirmRemove from "@/dialogs/ConfirmRemove";
 import {VideoDialog} from "@/dialogs/Videoplayer";
 import {filterActive, filterInactive} from ".";
 import {EasyTooltip} from "@/components/ui/tooltip";
+import DisableAnonymity from "@/dialogs/DisableAnonymity";
 
 const defaultLimits = [5 * 1024, 15 * 1024, 50 * 1024, 100 * 1024, 150 * 1024, -1];
 
@@ -274,6 +275,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
 
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const [storageDialogOpen, setStorageDialogOpen] = useState(false);
+    const [anonymityDialogOpen, setAnonymityDialogOpen] = useState(false);
     const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
     const [videoDownload, setVideoDownload] = useState<Download | null>(null);
 
@@ -475,7 +477,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                         {t("ChangeAnonymity")}
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
-                        <ContextMenuItem onClick={() => setHops(selectedDownloads, 0, t)}>
+                        <ContextMenuItem onClick={() => selectedDownloads.length > 0 && setAnonymityDialogOpen(true)}>
                             <span>{t("ZeroHops")}</span>
                         </ContextMenuItem>
                         <ContextMenuItem onClick={() => setHops(selectedDownloads, 1, t)}>
@@ -518,6 +520,12 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                 </ContextMenuSub>
             </ContextMenuContent>
 
+            <DisableAnonymity
+                open={anonymityDialogOpen}
+                onOpenChange={setAnonymityDialogOpen}
+                selectedDownloads={selectedDownloads}
+                setHops={setHops}
+            />
             <MoveStorage
                 open={storageDialogOpen}
                 onOpenChange={setStorageDialogOpen}
