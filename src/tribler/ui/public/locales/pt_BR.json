@@ -246,5 +246,8 @@
     "InitialNodes": "Nós iniciais",
     "Appearance": "Aparência",
     "TrayIconColor": "Mude a cor do ícone da bandeja",
-    "NotifyPreReleases": "Notificar para pré-lançamentos"
+    "NotifyPreReleases": "Notificar para pré-lançamentos",
+    "DisableAnonimity": "Desativando o anonimato",
+    "DisableAnonimityConfirm": "Você está prestes a desativar o anonimato para todos os torrents selecionados. Tem certeza?",
+    "Continue": "Continuar"
 }

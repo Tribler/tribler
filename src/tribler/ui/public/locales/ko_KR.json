@@ -246,5 +246,8 @@
     "InitialNodes": "초기 노드",
     "Appearance": "모습",
     "TrayIconColor": "트레이 아이콘의 색상을 변경하십시오",
-    "NotifyPreReleases": "사전 출시에 대해 알림"
+    "NotifyPreReleases": "사전 출시에 대해 알림",
+    "DisableAnonimity": "익명성 비활성화",
+    "DisableAnonimityConfirm": "선택한 모든 토렌트에 대해 익명성을 비활성화하는 것에 관한 것입니다. 확실합니까?",
+    "Continue": "계속하다"
 }
