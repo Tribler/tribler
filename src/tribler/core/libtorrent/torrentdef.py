@@ -54,6 +54,13 @@ class TorrentDef:
         return self.atp.name or (self.torrent_info.name() if self.torrent_info else "Unknown name")
 
     @property
+    def description(self) -> str:
+        """
+        Get the description of this torrent.
+        """
+        return self.torrent_info.comment() if self.torrent_info else ""
+
+    @property
     def torrent_info(self) -> lt.torrent_info | None:
         """
         Get the libtorrent torrent info instance or load it from our metainfo.

@@ -304,6 +304,7 @@ export class TriblerService {
         | {
               files: {index: number; name: string; size: number}[];
               name: string;
+              description: string;
               download_exists: boolean;
               valid_certificate: boolean;
           }
@@ -322,6 +323,7 @@ export class TriblerService {
               infohash: string;
               files: {index: number; name: string; size: number}[];
               name: string;
+              description: string;
               download_exists: boolean;
           }
     > {
