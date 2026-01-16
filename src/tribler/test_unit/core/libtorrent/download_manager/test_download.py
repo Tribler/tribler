@@ -16,7 +16,12 @@ from tribler.core.libtorrent.download_manager.download import Download, SaveResu
 from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.notifier import Notification, Notifier
-from tribler.test_unit.core.libtorrent.mocks import TORRENT_UBUNTU_FILE_CONTENT, TORRENT_WITH_DIRS_CONTENT, FakeTDef
+from tribler.test_unit.core.libtorrent.mocks import (
+    TORRENT_UBUNTU_FILE_CONTENT,
+    TORRENT_UBUNTU_FILE_CONTENT_V2,
+    TORRENT_WITH_DIRS_CONTENT,
+    FakeTDef,
+)
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
@@ -962,3 +967,60 @@ class TestDownload(TestBase):
         ))
 
         self.assertTrue(download.tdef.torrent_info.is_valid())
+
+    async def test_get_torrent_data_v1(self) -> None:
+        """
+        Test if we can export a v1 torrent.
+        """
+        config = MockTriblerConfigManager()
+        tdef = TorrentDef.load_from_memory(TORRENT_UBUNTU_FILE_CONTENT)
+        download = Download(tdef, Mock(config=config), self.create_mock_download_config(), checkpoint_disabled=True)
+        download.handle = Mock(is_valid=Mock(return_value=True))
+
+        torrent_data = await download.get_torrent_data()
+
+        self.assertEqual(b"http://torrent.ubuntu.com:6969/announce", torrent_data[b"announce"])
+        self.assertIn(b"http://torrent.ubuntu.com:6969/announce", torrent_data[b"announce-list"])
+        self.assertIn(b"http://ipv6.torrent.ubuntu.com:6969/announce", torrent_data[b"announce-list"])
+        self.assertEqual(b"Ubuntu CD releases.ubuntu.com", torrent_data[b"comment"])
+        self.assertEqual(1429786237, torrent_data[b"creation date"])
+        self.assertIn(b"info", torrent_data)
+        self.assertNotIn(b"piece layers", torrent_data)  # ONLY in v2 torrents
+        self.assertEqual(1150844928, torrent_data[b"info"][b"length"])
+        self.assertEqual(b"ubuntu-15.04-desktop-amd64.iso", torrent_data[b"info"][b"name"])
+        self.assertEqual(524288, torrent_data[b"info"][b"piece length"])
+        self.assertEqual(b"\x01" * 43920, torrent_data[b"info"][b"pieces"])
+
+    async def test_get_torrent_data_v2(self) -> None:
+        """
+        Test if we can export a v2 torrent.
+        """
+        config = MockTriblerConfigManager()
+        tdef = TorrentDef.load_from_memory(TORRENT_UBUNTU_FILE_CONTENT_V2)
+        download = Download(tdef, Mock(config=config), self.create_mock_download_config(), checkpoint_disabled=True)
+
+        def read_piece(p: int) -> None:
+            download.register_task(f"read_piece({p})", download.on_read_piece_alert,
+                                   Mock(piece=p, buffer=b"\x01"*524288, ec=Mock(value=Mock(return_value=0))))
+
+        download.handle = Mock(is_valid=Mock(return_value=True), read_piece=read_piece)
+        download.lt_status = Mock(pieces=[True] * 2196)
+
+        torrent_data = await download.get_torrent_data()
+
+        self.assertEqual(b"http://torrent.ubuntu.com:6969/announce", torrent_data[b"announce"])
+        self.assertIn(b"http://torrent.ubuntu.com:6969/announce", torrent_data[b"announce-list"])
+        self.assertIn(b"http://ipv6.torrent.ubuntu.com:6969/announce", torrent_data[b"announce-list"])
+        self.assertEqual(b"Ubuntu CD releases.ubuntu.com", torrent_data[b"comment"])
+        self.assertEqual(1429786237, torrent_data[b"creation date"])
+        self.assertIn(b"info", torrent_data)
+        self.assertIn(b"piece layers", torrent_data)
+        self.assertEqual(2, torrent_data[b"info"][b"meta version"])
+        self.assertEqual(b"ubuntu-15.04-desktop-amd64.iso", torrent_data[b"info"][b"name"])
+        self.assertEqual(524288, torrent_data[b"info"][b"piece length"])
+        self.assertEqual(1150844928,
+                         torrent_data[b"info"][b"file tree"][b"ubuntu-15.04-desktop-amd64.iso"][b""][b"length"])
+        self.assertEqual(b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                         torrent_data[b"info"][b"file tree"][b"ubuntu-15.04-desktop-amd64.iso"][b""][b"pieces root"])
+        self.assertEqual(1, len(torrent_data[b"piece layers"].keys()))
+        self.assertEqual(2196 * 32, len(torrent_data[b"piece layers"][b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]))

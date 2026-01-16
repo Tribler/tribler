@@ -1,8 +1,9 @@
+from unittest.mock import Mock
 
 import libtorrent
 from ipv8.test.base import TestBase
 
-from tribler.core.libtorrent.torrentdef import TorrentDef
+from tribler.core.libtorrent.torrentdef import BLOCK_SIZE, TorrentDef
 from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 
 
@@ -95,3 +96,41 @@ class TestTorrentDef(TestBase):
 
         self.assertEqual(4, len(tdef.get_file_indices()))
         self.assertListEqual([0, 1, 2, 3], tdef.get_file_indices())
+
+    def test_get_v2_piece_indices_per_layer(self) -> None:
+        """
+        Test if the pieces are correctly returned for files.
+        """
+        tdef = TorrentDef(Mock())
+        storage = libtorrent.file_storage()
+        storage.set_piece_length(100)
+        storage.set_num_pieces(3)
+        storage.set_name("torrent name")
+        # Case 1: file size > piece length, needs a root hash.
+        storage.add_file("case 1", 123)  # Alignment 0: [ 100 bytes ],  1: [ 23 bytes | <padding> ]
+        # Case 2: file size <= piece length, does not appear with a root hash.
+        storage.add_file("case 2", 10)   # Alignment 2: [ 10 bytes | <padding> ]
+        tdef.atp.ti = Mock(files=Mock(return_value=storage))
+
+        self.assertDictEqual({b"\x00" * 32: [0, 1]}, tdef.get_v2_piece_indices_per_layer())
+
+    def test_get_v2_piece_hash(self) -> None:
+        """
+        Test if the pieces are correctly returned for files.
+        """
+        tdef = TorrentDef(Mock())
+        storage = libtorrent.file_storage()
+        storage.set_piece_length(BLOCK_SIZE + 1)
+        storage.set_num_pieces(2)
+        storage.set_name("torrent name")
+        # Piece alignment 0: [ BLOCK_SIZE+1 bytes ], 1: [ 22 bytes | <padding> ]
+        # Block alignment 0: [ BLOCK_SIZE bytes ], 1: [ 1 byte ], 2: [ 22 bytes ], (<3>: [ BLOCK_SIZE bytes ])
+        storage.add_file("file", BLOCK_SIZE + 23)
+        tdef.atp.ti = Mock(files=Mock(return_value=storage))
+
+        h0 = b"\x11\x1c\xe3\xc2\xa3\x8d\x83\xa2\xe4pk\xdeJ\xbd\xddP\x9d\x7f\x82H\x11lh2\xb0gE\xbd\xc3I\xe0\x9f"
+        h1 = b"T6\x952\x0e^\xd1W\xaf\xaf\xdd\x9e?\x958<\x1a'\xc7\xd4hS\x7f\xa0#\x89\xcd\xaf'\xb7xX"
+
+        self.assertEqual(h0, tdef.get_v2_piece_hash(0, b"\x01" * (BLOCK_SIZE + 1)))
+        self.assertEqual(h1, tdef.get_v2_piece_hash(1, b"\x01" * 22 + b"\x00" * (BLOCK_SIZE + 1 - 22)))
+        self.assertEqual(h1, tdef.get_v2_piece_hash(1, b"\x01" * (BLOCK_SIZE + 1)))

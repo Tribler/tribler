@@ -107,6 +107,7 @@ class AlertHandlerDict(TypedDict):
     torrent_error_alert: list[Callable[[lt.torrent_error_alert], None]]
     add_torrent_alert: list[Callable[[lt.add_torrent_alert], None]]
     torrent_removed_alert: list[Callable[[lt.torrent_removed_alert], None]]
+    read_piece_alert: list[Callable[[lt.read_piece_alert], None]]
 
 
 class Download(TaskManager):
@@ -141,6 +142,7 @@ class Download(TaskManager):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status: dict[str, tuple[int, str]] = {}  # {url: (num_peers, status_str)}
+        self.piece_hashes_v2: list[bytes | None] = []  # Only populated for pure v2 torrents
 
         self.futures: dict[str, list[tuple[Future, Callable, Getter | None]]] = defaultdict(list)
         self.alert_handlers: dict[str, list[Callable[[lt.torrent_alert], None]]] = defaultdict(list)
@@ -156,7 +158,8 @@ class Download(TaskManager):
             state_changed_alert=[self.on_state_changed_alert],
             torrent_error_alert=[self.on_torrent_error_alert],
             add_torrent_alert=[self.on_add_torrent_alert],
-            torrent_removed_alert=[self.on_torrent_removed_alert]
+            torrent_removed_alert=[self.on_torrent_removed_alert],
+            read_piece_alert=[self.on_read_piece_alert]
         )))
 
         self.future_added = self.wait_for_alert("add_torrent_alert", lambda a: a.handle)
@@ -235,27 +238,62 @@ class Download(TaskManager):
         assert self.stream is None
         self.stream = Stream(self)
 
-    def get_torrent_data(self) -> dict[bytes, Any] | None:
+    def on_read_piece_alert(self, alert: lt.read_piece_alert) -> None:
+        """
+        Callback with piece contents in response to a handle.read_piece call.
+
+        Currently, this is only used to construct v2 piece hashes when exporting v2-only torrents.
+        """
+        if not alert.ec.value():
+            self.piece_hashes_v2[alert.piece] = self.tdef.get_v2_piece_hash(alert.piece, bytes(alert.buffer))
+        elif self.handle:
+            # The piece read failed, but we do have a handle. Try again.
+            self.handle.read_piece(alert.piece)
+
+    async def get_torrent_data(self) -> dict[bytes, Any] | None:
         """
         Return torrent data, if the handle is valid and metadata is available.
         """
-        if not self.handle or not self.handle.is_valid() or not self.handle.has_metadata():
+        if not self.tdef.torrent_info:
             return None
 
-        torrent_info = get_info_from_handle(self.handle)
-        if torrent_info is None:
+        is_pure_v2 = not self.tdef.torrent_info.info_hashes().has_v1()
+        if is_pure_v2 and (not self.handle or not self.handle.is_valid() or not self.handle.has_metadata() or
+                           not self.lt_status or not self.lt_status.pieces or not all(self.lt_status.pieces)):
+            # We need the content of all pieces to construct the Merkle tree.
             return None
-        t = lt.create_torrent(torrent_info)
-        return t.generate()
 
-    def write_backup_torrent_file(self) -> None:
+        torrent_file = {k: v for k, v in lt.write_resume_data(self.tdef.atp).items()
+                        if k in [b"comment", b"created by", b"creation date", b"name"]}
+        torrent_file[b"info"] = lt.bdecode(self.tdef.torrent_info.info_section())
+        if tracker_list := [t.encode() for t in self.tdef.atp.trackers]:
+            torrent_file[b"announce-list"] = tracker_list
+            torrent_file[b"announce"] = tracker_list[0]
+        if is_pure_v2:
+            if not self.piece_hashes_v2 or any(h is None for h in self.piece_hashes_v2):
+                # We don't have the piece hashes yet, request them and hash them.
+                num_pieces = self.tdef.torrent_info.num_pieces()
+                self.piece_hashes_v2 = [
+                    cast("lt.torrent_handle", self.handle).read_piece(p)  # type: ignore[func-returns-value]
+                    for p in range(num_pieces)
+                ]
+                # Wait for the pieces to be read.
+                while self.handle and any(h is None for h in self.piece_hashes_v2):
+                    with suppress(asyncio.TimeoutError):
+                        async with asyncio.timeout(2.0):   # It sometimes happens that we miss the alert.
+                            await self.wait_for_alert("read_piece_alert")
+            torrent_file[b"piece layers"] = {k: b"".join([cast("list[bytes]", self.piece_hashes_v2)[p] for p in v])
+                                             for k, v in self.tdef.get_v2_piece_indices_per_layer().items()}
+        return torrent_file
+
+    async def write_backup_torrent_file(self) -> None:
         """
         Write a torrent file to the backup ".torrent"-file folder.
 
         In contrast to the individual torrent export, which sends torrent data to the client, this method saves a
         torrent to the server's "torrent_folder".
         """
-        meta_dict = self.get_torrent_data()
+        meta_dict = await self.get_torrent_data()
         if meta_dict is None:
             self._logger.warning("Aborting torrent file write without torrent data for %s!", str(self))
             return
@@ -263,7 +301,7 @@ class Download(TaskManager):
         file_name = f"{self.tdef.name} [{hexlify(self.tdef.infohash).decode()}].torrent"
         folder = Path(self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"))
         folder.mkdir(parents=True, exist_ok=True)
-        with open(str(folder / file_name), "wb") as f:
+        with open(str(folder / file_name), "wb") as f:  # noqa: ASYNC230
             f.write(lt.bencode(meta_dict))
 
     def register_alert_handler(self, alert_type: str, handler: Callable[[lt.torrent_alert], None]) -> None:
