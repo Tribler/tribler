@@ -3,13 +3,7 @@ import {useEffect, useMemo, useState} from "react";
 import toast from "react-hot-toast";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {
-    filesToTree,
-    fixTreeProps,
-    formatBytes,
-    getSelectedFilesFromTree,
-    unwrapMagnetSO,
-} from "@/lib/utils";
+import {filesToTree, fixTreeProps, formatBytes, getSelectedFilesFromTree, unwrapMagnetSO} from "@/lib/utils";
 import {
     Dialog,
     DialogClose,
@@ -118,6 +112,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [error, setError] = useState<string | undefined>();
     const [warning, setWarning] = useState<string | undefined>();
     const [exists, setExists] = useState<boolean>(false);
+    const [description, setDescription] = useState<string>("");
     const [files, setFiles] = useState<FileTreeItem[]>([]);
 
     function OnSelectedFilesChange(row: Row<FileTreeItem>) {
@@ -202,6 +197,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                 setFiles(files);
                 setParams((prev) => ({...prev, selected_files: getSelectedFilesFromTree(files[0])}));
                 setExists(!!response.download_exists);
+                setDescription(response.description);
                 setWarning(
                     !("valid_certificate" in response) || response.valid_certificate == true
                         ? undefined
@@ -250,8 +246,16 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                     <DialogDescription className="break-all text-xs">{uri ?? torrent?.name ?? ""}</DialogDescription>
                 </DialogHeader>
 
-                <div className="flex items-center">
-                    <Label htmlFor="dest_dir" className="w-64 whitespace-nowrap">
+                <div className="grid grid-cols-[theme(spacing.64)_1fr] grid-rows-2 mt-2">
+                    {description && (
+                        <>
+                            <Label htmlFor="dest_dir" className="whitespace-nowrap">
+                                {t("Description")}
+                            </Label>
+                            <div className="text-sm">{description}</div>
+                        </>
+                    )}
+                    <Label htmlFor="dest_dir" className="whitespace-nowrap">
                         {t("Destination")}
                     </Label>
                     <PathInput
@@ -341,11 +345,18 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             min={0}
                             max={3}
                             step={1}
-                            onValueChange={(value) => {setParams({...params, anon_hops: value[0]})}}
+                            onValueChange={(value) => {
+                                setParams({...params, anon_hops: value[0]});
+                            }}
                         />
                         <label className="absolute left-0 text-xs">
-                            {params.anon_hops == 0 ? "" : (params.anon_hops == 1 ? t("OneHop")
-                                : (params.anon_hops == 2 ? t("TwoHops") : t("ThreeHops")))}
+                            {params.anon_hops == 0
+                                ? ""
+                                : params.anon_hops == 1
+                                  ? t("OneHop")
+                                  : params.anon_hops == 2
+                                    ? t("TwoHops")
+                                    : t("ThreeHops")}
                         </label>
                     </div>
                 </div>

@@ -304,6 +304,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
 
         return RESTResponse({"files": self.get_files(torrent_def),
                              "name": cast("lt.torrent_info", torrent_def.atp.ti).name(),
+                             "description": cast("lt.torrent_info", torrent_def.atp.ti).comment(),
                              "download_exists": download and not download_is_metainfo_request,
                              "valid_certificate": valid_cert})
 
@@ -333,4 +334,5 @@ class TorrentInfoEndpoint(RESTEndpoint):
         return RESTResponse({"infohash": hexlify(infohash).decode(),
                              "files": self.get_files(tdef),
                              "name": tdef.name,
+                             "description": tdef.description,
                              "download_exists": download and not requesting_metainfo})
