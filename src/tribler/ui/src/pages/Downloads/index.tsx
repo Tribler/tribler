@@ -85,9 +85,9 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "progress",
         header: getHeader("Status"),
         cell: ({row}) => {
-            let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${(
+            let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${Math.floor(
                 row.original.progress * 100
-            ).toFixed(0)}%`;
+            )}%`;
             let progress = row.original.progress * 100;
             let color = "text-tribler";
 
