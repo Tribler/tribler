@@ -322,7 +322,13 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         Return metainfo from a torrent found at a provided .torrent file.
         """
-        tdef = TorrentDef.load_from_memory(await request.read())
+        try:
+            tdef = TorrentDef.load_from_memory(await request.read())
+        except ValueError:
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": "metainfo error"
+            }}, status=HTTP_INTERNAL_SERVER_ERROR)
         infohash = tdef.infohash
 
         # Check if the torrent is already in the downloads
