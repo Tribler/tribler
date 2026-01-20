@@ -44,7 +44,7 @@ class TorrentDef:
         """
         We are essentially the ATP dictionary itself.
         """
-        return f"TorrentDef(name=\"{self.name}\", infohash={hexlify(self.infohash).decode()}, url=\"{self.atp.url}\")"
+        return f'TorrentDef(name="{self.name}", infohash={hexlify(self.infohash).decode()}, url="{self.atp.url}")'
 
     @property
     def name(self) -> str:

@@ -48,8 +48,8 @@ DOWNLOAD_STATUS_MAP = [
     DownloadStatus.HASHCHECKING,
 ]
 
-UPLOAD = 'up'
-DOWNLOAD = 'down'
+UPLOAD = "up"
+DOWNLOAD = "down"
 
 
 class DownloadState:
@@ -344,8 +344,8 @@ class DownloadState:
 
         peers = self.get_peer_list()
         for peer in peers:
-            completed = peer.get('completed', 0)
-            have = cast("list[bool]", peer.get('have', []))
+            completed = peer.get("completed", 0)
+            have = cast("list[bool]", peer.get("have", []))
 
             if completed == 1 or (have and all(have)):
                 nr_seeders_complete += 1

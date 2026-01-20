@@ -320,7 +320,7 @@ class DownloadManager(TaskManager):
         libtorrent_port = self.config.get("libtorrent/port")
         logger.info("Libtorrent ip+port set to %s:%d", libtorrent_if, libtorrent_port)
         if hops == 0:
-            settings["user_agent"] = 'Tribler/' + VERSION_SUBDIR
+            settings["user_agent"] = "Tribler/" + VERSION_SUBDIR
             enable_utp = self.config.get("libtorrent/utp")
             settings["enable_outgoing_utp"] = enable_utp
             settings["enable_incoming_utp"] = enable_utp

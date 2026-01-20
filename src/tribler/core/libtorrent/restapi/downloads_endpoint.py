@@ -126,8 +126,8 @@ class DownloadsEndpoint(RESTEndpoint):
         """
         download_config = DownloadConfig.from_defaults(self.download_manager.config)
 
-        anon_hops = parameters.get('anon_hops')
-        safe_seeding = bool(parameters.get('safe_seeding', download_config.get_safe_seeding()))
+        anon_hops = parameters.get("anon_hops")
+        safe_seeding = bool(parameters.get("safe_seeding", download_config.get_safe_seeding()))
 
         if anon_hops is not None:
             if anon_hops > 0 and not safe_seeding:
@@ -137,17 +137,17 @@ class DownloadsEndpoint(RESTEndpoint):
 
         download_config.set_safe_seeding(safe_seeding)
 
-        if 'destination' in parameters:
-            download_config.set_dest_dir(parameters['destination'])
+        if "destination" in parameters:
+            download_config.set_dest_dir(parameters["destination"])
 
-        if 'completed_dir' in parameters:
-            download_config.set_completed_dir(parameters['completed_dir'])
+        if "completed_dir" in parameters:
+            download_config.set_completed_dir(parameters["completed_dir"])
 
-        if 'selected_files' in parameters:
-            download_config.set_selected_files(parameters['selected_files'])
+        if "selected_files" in parameters:
+            download_config.set_selected_files(parameters["selected_files"])
 
-        if 'auto_managed' in parameters:
-            download_config.set_auto_managed(parameters['auto_managed'])
+        if "auto_managed" in parameters:
+            download_config.set_auto_managed(parameters["auto_managed"])
 
         return download_config, None
 
@@ -272,10 +272,10 @@ class DownloadsEndpoint(RESTEndpoint):
         Return all downloads, both active and inactive.
         """
         params = request.query
-        get_peers = params.get('get_peers', '0') == '1'
-        get_pieces = params.get('get_pieces', '0') == '1'
-        get_availability = params.get('get_availability', '0') == '1'
-        unfiltered = not params.get('infohash')
+        get_peers = params.get("get_peers", "0") == "1"
+        get_pieces = params.get("get_pieces", "0") == "1"
+        get_availability = params.get("get_availability", "0") == "1"
+        unfiltered = not params.get("infohash")
 
         checkpoints = {
             TOTAL: self.download_manager.checkpoints_count,
@@ -506,7 +506,7 @@ class DownloadsEndpoint(RESTEndpoint):
         },
     )
     @json_schema(schema(RemoveDownloadRequest={
-        'remove_data': (Boolean, 'Whether or not to remove the associated data'),
+        "remove_data": (Boolean, "Whether or not to remove the associated data"),
     }))
     async def delete_download(self, request: Request) -> RESTResponse:
         """
@@ -575,8 +575,8 @@ class DownloadsEndpoint(RESTEndpoint):
                                     "handled": True,
                                     "message": "anon_hops must be the only parameter in this request"
                                 }}, status=HTTP_BAD_REQUEST)
-        if 'anon_hops' in parameters:
-            anon_hops = int(parameters['anon_hops'])
+        if "anon_hops" in parameters:
+            anon_hops = int(parameters["anon_hops"])
             try:
                 await self.download_manager.update_hops(download, anon_hops)
             except Exception as e:
@@ -664,7 +664,7 @@ class DownloadsEndpoint(RESTEndpoint):
             "required": True
         }],
         responses={
-            200: {'description': 'The torrent'}
+            200: {"description": "The torrent"}
         }
     )
     async def get_torrent(self, request: Request) -> RESTResponse:

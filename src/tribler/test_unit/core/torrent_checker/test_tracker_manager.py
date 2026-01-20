@@ -84,7 +84,7 @@ class TestTrackerManager(TestBase):
 
         tracker_info = self.tracker_manager.get_tracker_info("http://test1.com/announce")
         self.assertIsNotNone(tracker_info)
-        self.assertEqual(1, tracker_info['failures'])
+        self.assertEqual(1, tracker_info["failures"])
 
     def test_update_tracker_info_success(self) -> None:
         """
@@ -94,7 +94,7 @@ class TestTrackerManager(TestBase):
         self.tracker_manager.update_tracker_info("http://test1.com/announce", True)
 
         tracker_info = self.tracker_manager.get_tracker_info("http://test1.com/announce")
-        self.assertTrue(tracker_info['is_alive'])
+        self.assertTrue(tracker_info["is_alive"])
 
     def test_get_tracker_for_check_unknown(self) -> None:
         """

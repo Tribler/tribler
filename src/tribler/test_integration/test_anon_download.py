@@ -61,10 +61,10 @@ async def start_http_server(port: int, response: str) -> web.AppRunner:
         return web.Response(text=response)
 
     app = web.Application()
-    app.router.add_get('/', hello_handler)
+    app.router.add_get("/", hello_handler)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, host='127.0.0.1', port=port)
+    site = web.TCPSite(runner, host="127.0.0.1", port=port)
     await site.start()
     return runner
 
@@ -213,9 +213,9 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         RustEndpoint.wan_address = property(RustEndpoint.get_address)
         for node in self.nodes:
-            node.overlay.endpoint = node.endpoint = RustEndpoint(ip='127.0.0.1')
+            node.overlay.endpoint = node.endpoint = RustEndpoint(ip="127.0.0.1")
             node.endpoint.open()
-            node.endpoint.set_exit_address(('127.0.0.1', 0))
+            node.endpoint.set_exit_address(("127.0.0.1", 0))
             node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
 
             node.overlay.crypto_endpoint = node.endpoint
@@ -245,12 +245,12 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         await self.introduce_nodes()
         await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
 
-        bencoded = 'd6:status2:oke'
+        bencoded = "d6:status2:oke"
         runner = await start_http_server(0, bencoded)
         http_port = runner.addresses[-1][1]
         socks_port = self.download_manager_downloader.socks_listen_ports[0]
         async with (
-            ClientSession(connector=Socks5Connector(('127.0.0.1', socks_port))) as session,
+            ClientSession(connector=Socks5Connector(("127.0.0.1", socks_port))) as session,
             session.get(f"http://localhost:{http_port}") as response,
         ):
             body = await response.text()
@@ -267,12 +267,12 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         await self.introduce_nodes()
         await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
 
-        bencoded = 'd4:data2000:' + ('0' * 2000) + 'e'
+        bencoded = "d4:data2000:" + ("0" * 2000) + "e"
         runner = await start_http_server(0, bencoded)
         http_port = runner.addresses[-1][1]
         socks_port = self.download_manager_downloader.socks_listen_ports[0]
         async with (
-            ClientSession(connector=Socks5Connector(('127.0.0.1', socks_port))) as session,
+            ClientSession(connector=Socks5Connector(("127.0.0.1", socks_port))) as session,
             session.get(f"http://localhost:{http_port}") as response,
         ):
             body = await response.text()

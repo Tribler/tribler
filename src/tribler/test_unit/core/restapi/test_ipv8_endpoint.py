@@ -14,7 +14,7 @@ class TestIPv8RootEndpoint(TestBase):
         """
         Test if all the IPv8 endpoint paths exist.
         """
-        with patch('asyncio.get_running_loop', lambda: None):
+        with patch("asyncio.get_running_loop", lambda: None):
             endpoint = IPv8RootEndpoint()
             endpoint.setup_routes()
 

@@ -256,7 +256,7 @@ class TestDownloadManager(TestBase):
         Test if torrents which aren't known are succesfully removed.
         """
         mock_handle = Mock(is_valid=lambda: False)
-        alert = type('torrent_removed_alert', (object,), {"handle": mock_handle,
+        alert = type("torrent_removed_alert", (object,), {"handle": mock_handle,
                                                           "info_hash": Mock(to_bytes=Mock(return_value=b"00" * 20))})
         self.manager.process_alert(alert())
 

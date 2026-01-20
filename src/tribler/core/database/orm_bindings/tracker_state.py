@@ -68,14 +68,14 @@ def define_binding(db: Database) -> type[TrackerState]:
         url = orm.Required(str, unique=True)
         last_check = orm.Optional(int, size=64, default=0)
         alive = orm.Optional(bool, default=True)
-        torrents = orm.Set('TorrentState', reverse='trackers')
+        torrents = orm.Set("TorrentState", reverse="trackers")
         failures = orm.Optional(int, size=32, default=0)
 
         def __init__(self, *args: Any, **kwargs) -> None:  # noqa: ANN401
             # Sanitize and canonicalize the tracker URL
-            sanitized = get_uniformed_tracker_url(kwargs['url'])
+            sanitized = get_uniformed_tracker_url(kwargs["url"])
             if sanitized:
-                kwargs['url'] = sanitized
+                kwargs["url"] = sanitized
             else:
                 msg = f"Could not canonicalize tracker URL ({kwargs['url']})"
                 raise MalformedTrackerURLException(msg)

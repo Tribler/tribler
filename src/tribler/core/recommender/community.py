@@ -68,7 +68,8 @@ def create_crawl_query_info(query_id: int) -> dict:
     }
 
 
-def create_crawl_query_info_response(query_id: int, timestamp: int, results: int, chosen_index: int, query: str) -> dict:
+def create_crawl_query_info_response(query_id: int, timestamp: int, results: int, chosen_index: int,
+                                     query: str) -> dict:
     """
     A response with the number of available results for the query with the id ``query_id``.
     """
@@ -131,7 +132,7 @@ class RecommenderCommunity(Community):
         """
         Convert crawl request/response dictionary to a bytes string.
         """
-        return json.dumps(info, separators=(',', ':')).encode()
+        return json.dumps(info, separators=(",", ":")).encode()
 
     def valid_crawler(self, peer: Peer, mid: bytes) -> bool:
         """

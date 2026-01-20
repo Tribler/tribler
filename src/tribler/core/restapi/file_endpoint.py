@@ -8,7 +8,7 @@ from aiohttp import web
 
 from tribler.core.restapi.rest_endpoint import HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND, RESTEndpoint, RESTResponse
 
-if platform.system() == 'Windows':
+if platform.system() == "Windows":
     import win32api
 
 
@@ -17,7 +17,7 @@ class FileEndpoint(RESTEndpoint):
     This endpoint allows clients to view the server's file structure remotely.
     """
 
-    path = '/api/files'
+    path = "/api/files"
 
     def __init__(self) -> None:
         """
@@ -25,19 +25,19 @@ class FileEndpoint(RESTEndpoint):
         """
         super().__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.app.add_routes([web.get('/browse', self.browse),
-                             web.get('/list', self.list),
-                             web.get('/create', self.create)])
+        self.app.add_routes([web.get("/browse", self.browse),
+                             web.get("/list", self.list),
+                             web.get("/create", self.create)])
 
     async def browse(self, request: web.Request) -> RESTResponse:
         """
         Return all files/directories found in the specified path.
         """
-        path = request.query.get('path', "")
-        show_files = request.query.get('files') == "1"
+        path = request.query.get("path", "")
+        show_files = request.query.get("files") == "1"
 
         # Deal with getting the drives on Windows
-        if path == "/" and platform.system() == 'Windows':
+        if path == "/" and platform.system() == "Windows":
             paths = []
             for drive in win32api.GetLogicalDriveStrings().split("\000"):
                 if not drive:
@@ -90,8 +90,8 @@ class FileEndpoint(RESTEndpoint):
         """
         Return all files found in the specified path.
         """
-        path = Path(request.query.get('path', ""))
-        recursively = request.query.get('recursively') != "0"
+        path = Path(request.query.get("path", ""))
+        recursively = request.query.get("recursively") != "0"
 
         if not path.exists():
             return RESTResponse({"error": {

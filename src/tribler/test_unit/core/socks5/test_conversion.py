@@ -26,7 +26,7 @@ class TestConversion(TestBase):
 
         self.assertEqual(0, decoded.rsv)
         self.assertEqual(0, decoded.frag)
-        self.assertEqual(DomainAddress('tracker1.good-tracker.com', 8084), decoded.destination)
+        self.assertEqual(DomainAddress("tracker1.good-tracker.com", 8084), decoded.destination)
 
     def test_decode_unicode_packet(self) -> None:
         """
@@ -37,13 +37,13 @@ class TestConversion(TestBase):
 
         self.assertEqual(0, decoded.rsv)
         self.assertEqual(0, decoded.frag)
-        self.assertEqual(DomainAddress('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084), decoded.destination)
+        self.assertEqual(DomainAddress("tracker1.unicode-tracker\xc4\xe95\x11$\x00", 8084), decoded.destination)
 
     def test_decode_udp_packet_fail(self) -> None:
         """
         Test if decoding a badly encoded udp packet raises an exception.
         """
-        encoded = b'\x00\x00\x00\x03 tracker1.invalid-tracker\xc4\xe95\x11$\x00\x1f\x940x000'
+        encoded = b"\x00\x00\x00\x03 tracker1.invalid-tracker\xc4\xe95\x11$\x00\x1f\x940x000"
 
         with self.assertRaises(PackError):
             socks5_serializer.unpack_serializable(UdpPacket, encoded)
@@ -57,7 +57,7 @@ class TestConversion(TestBase):
 
         self.assertEqual(5, decoded.version)
         self.assertEqual(0, decoded.rsv)
-        self.assertEqual(DomainAddress('tracker1.good-tracker.com', 8084), decoded.destination)
+        self.assertEqual(DomainAddress("tracker1.good-tracker.com", 8084), decoded.destination)
 
     def test_decode_unicode_command_request(self) -> None:
         """
@@ -68,13 +68,13 @@ class TestConversion(TestBase):
 
         self.assertEqual(5, decoded.version)
         self.assertEqual(0, decoded.rsv)
-        self.assertEqual(DomainAddress('tracker1.unicode-tracker\xc4\xe95\x11$\x00', 8084), decoded.bind)
+        self.assertEqual(DomainAddress("tracker1.unicode-tracker\xc4\xe95\x11$\x00", 8084), decoded.bind)
 
     def test_decode_command_request_fail_encoding(self) -> None:
         """
         Test if decoding a badly encoded command request raises an exception.
         """
-        encoded = b'\x05\x00\x00\x03 tracker1.invalid-tracker\xc4\xe95\x11$\x00\x1f\x94'
+        encoded = b"\x05\x00\x00\x03 tracker1.invalid-tracker\xc4\xe95\x11$\x00\x1f\x94"
         with self.assertRaises(PackError):
             socks5_serializer.unpack_serializable(CommandRequest, encoded)
 

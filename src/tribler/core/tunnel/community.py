@@ -46,7 +46,7 @@ def is_bencoded(x: bytes) -> bool:
     Returns True is x appears to be valid bencoded byte string.
     """
     if not isinstance(x, bytes):
-        msg = f'Expected bytes, got {type(x).__name__}'
+        msg = f"Expected bytes, got {type(x).__name__}"
         raise TypeError(msg)
     try:
         decoded = bdecode(x)
@@ -96,7 +96,7 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         if settings.exitnode_cache is not None:
             self.register_task("Load cached exitnodes", self.restore_exitnodes_from_disk, delay=0.5)
 
-        self.register_task('Poll download manager for new or changed downloads', self._poll_download_manager,
+        self.register_task("Poll download manager for new or changed downloads", self._poll_download_manager,
                            interval=1.0)
 
     async def _poll_download_manager(self) -> None:
@@ -129,9 +129,9 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         Send introduction requests to peers stored in the file self.settings.exitnode_cache.
         """
         if self.settings.exitnode_cache.is_file():
-            self.logger.debug('Loading exit nodes from cache: %s', self.settings.exitnode_cache)
+            self.logger.debug("Loading exit nodes from cache: %s", self.settings.exitnode_cache)
             exit_nodes = Network()
-            with self.settings.exitnode_cache.open('rb') as cache:
+            with self.settings.exitnode_cache.open("rb") as cache:
                 exit_nodes.load_snapshot(cache.read())
             for exit_node in exit_nodes.get_walkable_addresses():
                 self.endpoint.send(exit_node, self.create_introduction_request(exit_node))

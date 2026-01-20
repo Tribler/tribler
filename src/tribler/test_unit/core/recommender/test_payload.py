@@ -27,7 +27,7 @@ class TestContentDiscoveryPayloads(TestBase):
         """
         Test if CrawlInfo unpacks correctly.
         """
-        packed = b'\x01' * 20 + b'unknown'
+        packed = b"\x01" * 20 + b"unknown"
         ci, _ = default_serializer.unpack_serializable(CrawlInfo, packed)
 
         self.assertEqual(0, ci.msg_id)
@@ -49,7 +49,7 @@ class TestContentDiscoveryPayloads(TestBase):
         """
         Test if a Crawl message unpacks correctly.
         """
-        packed = b'\x01' * 20 + b'\x00\x0F{"key":"value"}unknown'
+        packed = b"\x01" * 20 + b'\x00\x0F{"key":"value"}unknown'
         c, _ = default_serializer.unpack_serializable(Crawl, packed)
 
         self.assertEqual(1, c.msg_id)
@@ -72,7 +72,7 @@ class TestContentDiscoveryPayloads(TestBase):
         """
         Test if a CrawlResponse unpacks correctly.
         """
-        packed = b'\x01' * 20 + b'\x00\x0F{"key":"value"}unknown'
+        packed = b"\x01" * 20 + b'\x00\x0F{"key":"value"}unknown'
         cr, _ = default_serializer.unpack_serializable(CrawlResponse, packed)
 
         self.assertEqual(2, cr.msg_id)

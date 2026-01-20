@@ -63,7 +63,8 @@ async def _is_url_available(url: str, timeout: int=1) -> tuple[bool, bytes | Non
         try:
             async with session.get(url, timeout=aiohttp.ClientTimeout(total=timeout)) as response:
                 return True, await response.read()
-        except (TimeoutError, aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientResponseError):
+        except (TimeoutError, aiohttp.client_exceptions.ClientConnectorError,
+                aiohttp.client_exceptions.ClientResponseError):
             return False, None
 
 

@@ -130,7 +130,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         Test the readd bittorrent peers method.
         """
         mock_torrent = Mock(add_peer=Mock(return_value=succeed(None)),
-                            tdef=Mock(infohash=b'a' * 20))
+                            tdef=Mock(infohash=b"a" * 20))
         self.overlay(0).bittorrent_peers = {mock_torrent: [None]}
 
         self.overlay(0).readd_bittorrent_peers()
@@ -188,14 +188,14 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         self.overlay(0).settings.download_manager = Mock(get_last_download_states=Mock(return_value=[]),
                                                          get_downloads=Mock(return_value=[]))
-        circuit = Circuit(0, 1, CIRCUIT_TYPE_IP_SEEDER, info_hash=b'a')
+        circuit = Circuit(0, 1, CIRCUIT_TYPE_IP_SEEDER, info_hash=b"a")
         remote_endpoint = AutoMockEndpoint()
         circuit.add_hop(Mock(address=remote_endpoint.get_address()))
         circuit.last_activity = 0
 
         self.overlay(0).circuits[0] = circuit
-        self.overlay(0).join_swarm(b'a', 1)
-        self.overlay(0).download_states[b'a'] = 3
+        self.overlay(0).join_swarm(b"a", 1)
+        self.overlay(0).download_states[b"a"] = 3
 
         self.overlay(0).monitor_downloads([])
         await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
@@ -207,28 +207,28 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         Test if an old introduction point is recreated.
         """
         mock_state = Mock(get_status=Mock(return_value=DownloadStatus.SEEDING))
-        mock_tdef = Mock(infohash=b'a')
+        mock_tdef = Mock(infohash=b"a")
         mock_download = Mock(get_def=Mock(return_value=mock_tdef), add_peer=Mock(return_value=succeed(None)),
                              get_state=Mock(return_value=mock_state), config=Mock(get_hops=Mock(return_value=1)))
         mock_state.get_download = Mock(return_value=mock_download)
         self.overlay(0).create_introduction_point = Mock()
-        self.overlay(0).download_states[b'a'] = DownloadStatus.DOWNLOADING
+        self.overlay(0).download_states[b"a"] = DownloadStatus.DOWNLOADING
 
         self.overlay(0).monitor_downloads([mock_state])
 
-        self.assertEqual(call(self.overlay(0).get_lookup_info_hash(b'a')),
+        self.assertEqual(call(self.overlay(0).get_lookup_info_hash(b"a")),
                          self.overlay(0).create_introduction_point.call_args)
 
     def test_monitor_downloads_leave_swarm(self) -> None:
         """
         Test if we leave the swarm when a download is stopped.
         """
-        self.overlay(0).swarms[b'a'] = None
-        self.overlay(0).download_states[b'a'] = 3
+        self.overlay(0).swarms[b"a"] = None
+        self.overlay(0).download_states[b"a"] = 3
 
         self.overlay(0).monitor_downloads([])
 
-        self.assertNotIn(b'a', self.overlay(0).swarms)
+        self.assertNotIn(b"a", self.overlay(0).swarms)
 
     async def test_monitor_downloads_intro(self) -> None:
         """
@@ -242,9 +242,9 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         circuit.last_activity = 0
 
         self.overlay(0).circuits[0] = circuit
-        self.overlay(0).join_swarm(b'a', 1)
-        self.overlay(0).swarms[b'a'].add_connection(circuit, None)
-        self.overlay(0).download_states[b'a'] = 3
+        self.overlay(0).join_swarm(b"a", 1)
+        self.overlay(0).swarms[b"a"].add_connection(circuit, None)
+        self.overlay(0).download_states[b"a"] = 3
 
         self.overlay(0).monitor_downloads([])
         await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
@@ -276,14 +276,14 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         self.overlay(0).find_circuits = Mock(return_value=True)
         self.overlay(0).readd_bittorrent_peers = Mock(return_value=None)
-        download = Mock(handle=Mock(get_peer_info=Mock(return_value={Mock(ip=('2.2.2.2', 2)), Mock(ip=('3.3.3.3', 3))}),
+        download = Mock(handle=Mock(get_peer_info=Mock(return_value={Mock(ip=("2.2.2.2", 2)), Mock(ip=("3.3.3.3", 3))}),
                                     is_valid=Mock(return_value=True)))
-        peers = {('1.1.1.1', 1), ('2.2.2.2', 2)}
+        peers = {("1.1.1.1", 1), ("2.2.2.2", 2)}
         self.overlay(0).update_torrent(peers, download)
         self.assertIn(download, self.nodes[0].overlay.bittorrent_peers)
 
         # Test adding peers
-        self.overlay(0).bittorrent_peers[download] = {('4.4.4.4', 4)}
+        self.overlay(0).bittorrent_peers[download] = {("4.4.4.4", 4)}
         self.overlay(0).update_torrent(peers, download)
 
     async def test_circuit_reject_too_many(self) -> None:
@@ -304,7 +304,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we can cache exit nodes to disk.
         """
-        self.overlay(0).candidates = {Peer(LibNaCLPK(b'\x00' * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).candidates = {Peer(LibNaCLPK(b"\x00" * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
         self.overlay(0).cache_exitnodes_to_disk()
 
         self.assertEqual(bytes([ADDRESS_TYPE_IPV4]) + bytes(range(6)), self.fake_cache_file.read())
@@ -313,7 +313,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we can handle an OSError when caching exit nodes to disk and raise no errors.
         """
-        self.overlay(0).candidates = {Peer(LibNaCLPK(b'\x00' * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).candidates = {Peer(LibNaCLPK(b"\x00" * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
         self.overlay(0).settings.exitnode_cache = Mock(write_bytes=Mock(side_effect=FileNotFoundError))
         self.overlay(0).cache_exitnodes_to_disk()
 

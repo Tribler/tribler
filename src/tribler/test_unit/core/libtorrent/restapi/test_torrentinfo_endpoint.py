@@ -579,13 +579,13 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if recursive unicode raises an exception on invalid bytes.
         """
         with self.assertRaises(UnicodeDecodeError):
-            recursive_unicode(b'\x80')
+            recursive_unicode(b"\x80")
 
     def test_recursive_unicode_unicode_decode_error_ignore_errors(self) -> None:
         """
         Test if recursive unicode ignores errors on invalid bytes and returns the converted bytes by using chr().
         """
-        self.assertEqual("\x80", recursive_unicode(b'\x80', ignore_errors=True))
+        self.assertEqual("\x80", recursive_unicode(b"\x80", ignore_errors=True))
 
     def test_recursive_unicode_complex_object(self) -> None:
         """

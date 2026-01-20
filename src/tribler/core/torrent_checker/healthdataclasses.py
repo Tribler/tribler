@@ -34,7 +34,7 @@ class HealthInfo:
     last_check: int = field(default_factory=lambda: int(time.time()))
     self_checked: bool = False
     source: Source = Source.UNKNOWN
-    tracker: str = ''
+    tracker: str = ""
 
     def is_valid(self) -> bool:
         """

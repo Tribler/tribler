@@ -155,11 +155,13 @@ class TestRecommenderCommunity(TestBase[RecommenderCommunity]):
         """
         Test if a single query can be crawled.
         """
-        self.overlay(0).manager.add_query('{"query": "test query", "timestamp": 1234567890, "chosen_index": 2, "results": ['
-                                          f'{{"infohash": "{"01" * 20}", "seeders": 1, "leechers": 2}}, '
-                                          f'{{"infohash": "{"02" * 20}", "seeders": 3, "leechers": 4}}, '
-                                          f'{{"infohash": "{"03" * 20}", "seeders": 5, "leechers": 6}}'
-                                          ']}')
+        self.overlay(0).manager.add_query(
+            '{"query": "test query", "timestamp": 1234567890, "chosen_index": 2, "results": ['
+                f'{{"infohash": "{"01" * 20}", "seeders": 1, "leechers": 2}}, '
+                f'{{"infohash": "{"02" * 20}", "seeders": 3, "leechers": 4}}, '
+                f'{{"infohash": "{"03" * 20}", "seeders": 5, "leechers": 6}}'
+            ']}'
+        )
 
         with self.assertReceivedBy(1, [CrawlResponse, CrawlResponse, CrawlResponse]) as messages:
             self.crawler_overlay().crawl_next(self.peer(0))

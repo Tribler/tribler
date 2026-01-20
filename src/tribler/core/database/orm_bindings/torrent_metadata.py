@@ -118,7 +118,7 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
         torrent_date = EPOCH
 
     tracker_url = tdef.atp.trackers[0] if tdef.atp.trackers else ""
-    tracker_info = get_uniformed_tracker_url(tracker_url) or ''
+    tracker_info = get_uniformed_tracker_url(tracker_url) or ""
     return {
         "infohash": tdef.infohash,
         "title": tdef.name[:300],
@@ -156,7 +156,7 @@ def entries_to_chunk(metadata_list: list[TorrentMetadata], chunk_size: int, star
 
     compressor = LZ4FrameCompressor(auto_flush=True)
     metadata_buffer = compressor.begin()
-    health_buffer = b''
+    health_buffer = b""
 
     index = 0
     size = len(metadata_buffer) + LZ4_END_MARK_SIZE
@@ -166,7 +166,7 @@ def entries_to_chunk(metadata_list: list[TorrentMetadata], chunk_size: int, star
     for count in range(start_index, len(metadata_list)):
         metadata = metadata_list[count]
         metadata_bytes = compressor.compress(metadata.serialized())
-        health_bytes = metadata.serialized_health() if include_health else b''
+        health_bytes = metadata.serialized_health() if include_health else b""
         size += len(metadata_bytes) + len(health_bytes)
 
         if size > chunk_size and count > 0:
@@ -207,9 +207,9 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
         infohash = orm.Required(bytes, index=True)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
-        tracker_info = orm.Optional(str, default='')
-        title = orm.Optional(str, default='')
-        tags = orm.Optional(str, default='')
+        tracker_info = orm.Optional(str, default="")
+        title = orm.Optional(str, default="")
+        tags = orm.Optional(str, default="")
         metadata_type = orm.Discriminator(int, size=16)
         reserved_flags = orm.Optional(int, size=16, default=0)
         origin_id = orm.Optional(int, size=64, default=0, index=True)
@@ -228,7 +228,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
         added_on = orm.Optional(datetime, default=datetime.utcnow)
         status = orm.Optional(int, default=COMMITTED)
         xxx = orm.Optional(float, default=0)
-        health = orm.Optional('TorrentState', reverse='metadata')
+        health = orm.Optional("TorrentState", reverse="metadata")
         tag_processor_version = orm.Required(int, default=0)
 
         # Special class-level properties
@@ -259,7 +259,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
 
             super().__init__(*args, **kwargs)
 
-            if 'tracker_info' in kwargs:
+            if "tracker_info" in kwargs:
                 self.add_tracker(kwargs["tracker_info"])
 
             if notifier:
@@ -301,7 +301,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             if isinstance(metadata.get("tracker_info", ""), bytes):
                 metadata["tracker_info"] = metadata["tracker_info"].decode()
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
-            return cls.from_dict(dict(metadata, public_key=b'', status=COMMITTED, id_=id_))
+            return cls.from_dict(dict(metadata, public_key=b"", status=COMMITTED, id_=id_))
 
         @db_session
         def to_simple_dict(self) -> dict[str, str | float | list[str]]:

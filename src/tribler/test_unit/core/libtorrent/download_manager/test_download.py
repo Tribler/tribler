@@ -202,8 +202,8 @@ class TestDownload(TestBase):
         """
         Test if the last selected file in a list of files gets correctly selected.
         """
-        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr, checkpoint_disabled=True,
-                            config=self.create_mock_download_config())
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
         download.handle = Mock(file_priorities=Mock(return_value=[0, 4]))
 
         download.set_selected_files([1])
@@ -584,12 +584,12 @@ class TestDownload(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True),
                                get_peer_info=Mock(
                                    return_value=[Mock(source=1, dht=1, pex=0)] * 42 + [Mock(source=1, pex=1, dht=0)] * 7
-                               ), trackers=Mock(side_effect=UnicodeDecodeError('', b'', 0, 0, '')))
+                               ), trackers=Mock(side_effect=UnicodeDecodeError("", b"", 0, 0, "")))
 
         result = download.get_tracker_status()
 
-        self.assertIn({'leeches': -1, 'peers': 42, 'seeds': -1, 'status': 'Disabled', 'url': '[DHT]'}, result)
-        self.assertIn({'leeches': -1, 'peers': 7, 'seeds': -1, 'status': 'Working', 'url': '[PeX]'}, result)
+        self.assertIn({"leeches": -1, "peers": 42, "seeds": -1, "status": "Disabled", "url": "[DHT]"}, result)
+        self.assertIn({"leeches": -1, "peers": 7, "seeds": -1, "status": "Working", "url": "[PeX]"}, result)
 
     def test_get_tracker_status_get_peer_info_error(self) -> None:
         """
@@ -603,8 +603,8 @@ class TestDownload(TestBase):
 
         result = download.get_tracker_status()
 
-        self.assertIn({'leeches': -1, 'peers': 0, 'seeds': -1, 'status': 'Working', 'url': '[DHT]'}, result)
-        self.assertIn({'leeches': -1, 'peers': 0, 'seeds': -1, 'status': 'Working', 'url': '[PeX]'}, result)
+        self.assertIn({"leeches": -1, "peers": 0, "seeds": -1, "status": "Working", "url": "[DHT]"}, result)
+        self.assertIn({"leeches": -1, "peers": 0, "seeds": -1, "status": "Working", "url": "[PeX]"}, result)
 
     async def test_shutdown(self) -> None:
         """

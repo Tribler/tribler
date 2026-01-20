@@ -141,7 +141,7 @@ async def ui_middleware(request: Request, handler: Callable[[Request], Awaitable
     This enables the GUI to request e.g. /index.html instead of using /ui/index.html.
     """
     if not any(request.path.startswith(path) for path in ["/docs", "/static", "/ui", "/api"]):
-        raise web.HTTPFound('/ui' + request.rel_url.path)
+        raise web.HTTPFound("/ui" + request.rel_url.path)
     return await handler(request)
 
 

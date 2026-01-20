@@ -98,7 +98,7 @@ class TestTrackerSession(TestBase):
         self.session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
 
         with self.assertRaises(ValueError):
-            self. session.process_scrape_response(bencode({'failure reason': 'test'}))
+            self. session.process_scrape_response(bencode({"failure reason": "test"}))
 
         self.assertTrue(self.session.is_failed)
 
@@ -139,16 +139,16 @@ class TestTrackerSession(TestBase):
         """
         mgr = UdpSocketManager()
         mgr.connection_made(Mock())
-        mgr.proxy_transports['proxy_url'] = Mock()
-        _ = ensure_future(mgr.send_request(b'', Mock(proxy='proxy_url', transaction_id=123)))
+        mgr.proxy_transports["proxy_url"] = Mock()
+        _ = ensure_future(mgr.send_request(b"", Mock(proxy="proxy_url", transaction_id=123)))
         await sleep(0)
-        mgr.proxy_transports['proxy_url'].sendto.assert_called_once()
+        mgr.proxy_transports["proxy_url"].sendto.assert_called_once()
         mgr.transport.assert_not_called()
         mgr.tracker_sessions[123].cancel()
 
-        _ = ensure_future(mgr.send_request(b'', Mock(proxy=None, transaction_id=123)))
+        _ = ensure_future(mgr.send_request(b"", Mock(proxy=None, transaction_id=123)))
         await sleep(0)
-        mgr.proxy_transports['proxy_url'].sendto.assert_called_once()
+        mgr.proxy_transports["proxy_url"].sendto.assert_called_once()
         mgr.transport.sendto.assert_called_once()
         mgr.tracker_sessions[123].cancel()
         del _
@@ -180,7 +180,8 @@ class TestTrackerSession(TestBase):
         """
         Test if, after receiving a correct packet, a session should still be in a failed state.
         """
-        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, self.fake_udp_socket_manager)
+        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None,
+                                         self.fake_udp_socket_manager)
         self.fake_udp_socket_manager.response = b"too short"
 
         with self.assertRaises(ValueError):
@@ -222,7 +223,8 @@ class TestTrackerSession(TestBase):
         """
         Test if a normal UDP packet leads to a non-failed UDP session.
         """
-        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, self.fake_udp_socket_manager)
+        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None,
+                                         self.fake_udp_socket_manager)
         self.session.action, self.session.transaction_id = 123, 124
         self.fake_udp_socket_manager.response = struct.pack("!iiq", 123, 124, 126)
 
@@ -247,8 +249,9 @@ class TestTrackerSession(TestBase):
         """
         Test if a UDP session mismatch leads to a ValueError when scraping.
         """
-        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, self.fake_udp_socket_manager)
-        self.session.action, self.session.transaction_id, self.session.infohash_list = 123, 124, [b'\x00' * 20]
+        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None,
+                                         self.fake_udp_socket_manager)
+        self.session.action, self.session.transaction_id, self.session.infohash_list = 123, 124, [b"\x00" * 20]
         self.fake_udp_socket_manager.response = struct.pack("!ii", 123, 124)
 
         with self.assertRaises(ValueError):
@@ -273,7 +276,8 @@ class TestTrackerSession(TestBase):
         """
         Test if a response with a wrong transaction id leads to a ValueError when scraping.
         """
-        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None, self.fake_udp_socket_manager)
+        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 0, None,
+                                         self.fake_udp_socket_manager)
         self.fake_udp_socket_manager.response = struct.pack("!ii", 0, 1337)
 
         with self.assertRaises(ValueError):
@@ -299,9 +303,10 @@ class TestTrackerSession(TestBase):
         """
         Test if correct connect and scrape responses do not lead to a failed session.
         """
-        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, None, self.fake_udp_socket_manager)
+        self.session = UdpTrackerSession("localhost", ("localhost", 4782), "/announce", 5, None,
+                                         self.fake_udp_socket_manager)
         self.session.ip_address = "127.0.0.1"
-        self.session.infohash_list.append(b'test')
+        self.session.infohash_list.append(b"test")
 
         self.fake_udp_socket_manager.response = struct.pack("!iiq", 0, self.session.transaction_id, 2)
         await self.session.connect()
@@ -348,7 +353,7 @@ class TestTrackerSession(TestBase):
         self.session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", 5, None)
 
         with self.assertRaises(ValueError):
-            self.session.process_scrape_response(bencode({'failure reason': '\xe9'}))
+            self.session.process_scrape_response(bencode({"failure reason": "\xe9"}))
 
     def test_failed_unicode_udp(self) -> None:
         """
@@ -358,4 +363,4 @@ class TestTrackerSession(TestBase):
                                     self.fake_udp_socket_manager)
 
         with self.assertRaises(ValueError):
-            self.session.failed('\xd0')
+            self.session.failed("\xd0")
