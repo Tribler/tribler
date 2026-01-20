@@ -235,7 +235,8 @@ class TorrentChecker(TaskManager):
 
         for torrent in checked_torrents:
             result[torrent.infohash] = HealthInfo(torrent.infohash, torrent.seeders, torrent.leechers,
-                                                  last_check=torrent.last_check, self_checked=True)
+                                                  tracker=torrent.tracker, last_check=torrent.last_check,
+                                                  self_checked=True)
         return result
 
     @db_session
@@ -416,8 +417,11 @@ class TorrentChecker(TaskManager):
                 self.notify(prev_health)  # to update UI state from "Checking..."
                 return False
 
+            # Store the tracker where we got the health information from in the database.
+            # The tracker_id defaults to 0, indicating we obtained the health information using get_metainfo.
+            tracker_id = next((tr.rowid for tr in torrent_state.trackers if tr.url == health.tracker), 0)
             torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
-                              self_checked=True)
+                              tracker_id=tracker_id, self_checked=True)
 
         self.torrents_checked[health.infohash] = health
         self.notify(health)

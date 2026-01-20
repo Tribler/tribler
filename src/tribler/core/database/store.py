@@ -178,6 +178,14 @@ class MetadataStore:
             sqlite_rank = keep_exception(torrent_rank)
             connection.create_function("search_rank", 5, sqlite_rank)
 
+            # Make sure we have the tracker_id field in the TorrentState table
+            cursor.execute("PRAGMA table_info(TorrentState)")
+            torrent_state_columns = [column[1] for column in cursor.fetchall()]
+
+            if torrent_state_columns and "tracker_id" not in torrent_state_columns:
+                cursor.execute("ALTER TABLE TorrentState ADD COLUMN tracker_id INTEGER")
+                self._logger.info("Added tracker_id column to TorrentState")
+
         self.MiscData = misc.define_binding(self.db)
 
         self.TrackerState = tracker_state.define_binding(self.db)
