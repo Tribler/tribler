@@ -29,7 +29,7 @@ class LoggingEndpoint(RESTEndpoint):
     This endpoint allows retrieval of the logs.
     """
 
-    path = '/api/logging'
+    path = "/api/logging"
 
     def __init__(self) -> None:
         """

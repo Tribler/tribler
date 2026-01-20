@@ -235,14 +235,14 @@ class TorrentInfoEndpoint(RESTEndpoint):
                                         "message": "Error while reading response from http uri"
                                     }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
-            if response.startswith(b'magnet'):
+            if response.startswith(b"magnet"):
                 try:
                     infohash = TorrentDef(lt.parse_magnet_uri(uri)).infohash
                 except RuntimeError as e:
                     return RESTResponse(
                         {"error": {
                             "handled": True,
-                            "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
+                            "message": f"Error while getting an infohash from magnet: {e.__class__.__name__}: {e}"
                         }}, status=HTTP_INTERNAL_SERVER_ERROR
                     )
 
@@ -271,7 +271,7 @@ class TorrentInfoEndpoint(RESTEndpoint):
                 return RESTResponse(
                     {"error": {
                         "handled": True,
-                        "message": f'Error while getting an infohash from magnet: {e.__class__.__name__}: {e}'
+                        "message": f"Error while getting an infohash from magnet: {e.__class__.__name__}: {e}"
                     }}, status=HTTP_BAD_REQUEST
                 )
             if not skip_check_metainfo:

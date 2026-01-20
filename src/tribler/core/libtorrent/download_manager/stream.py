@@ -304,7 +304,7 @@ class StreamReader:
 
         await self.seek(self.seek_offset)
         piece = self.stream.byte_to_piece(self.seek_offset)
-        self._logger.debug('Chunk %s: Get piece %s', self.start_offset, piece)
+        self._logger.debug("Chunk %s: Get piece %s", self.start_offset, piece)
 
         # Note the even though we're reading piece_length at a time, that doesn't mean that we only need 1 piece.
         pieces_needed = self.stream.bytes_to_pieces(self.seek_offset, self.seek_offset + self.stream.piece_length)
@@ -312,7 +312,7 @@ class StreamReader:
 
         # Using libtorrent's `read_piece` is too slow for our purposes, so we read the data from disk.
         result = self.file.read(self.stream.piece_length)
-        self._logger.debug('Chunk %s: Got bytes %s-%s, piecelen: %s',
+        self._logger.debug("Chunk %s: Got bytes %s-%s, piecelen: %s",
                            self.start_offset, self.seek_offset, self.seek_offset + len(result),
                            self.stream.piece_length)
         self.seek_offset = self.file.tell()

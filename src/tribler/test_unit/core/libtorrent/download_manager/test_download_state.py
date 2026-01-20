@@ -134,9 +134,9 @@ class TestDownloadState(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[3] * 6))
         download_state = DownloadState(download, Mock(), None)
 
-        self.assertEqual([(Path('abc/file2.txt'), 0.5), (Path('abc/file3.txt'), 0.5),
-                          (Path('abc/file4.txt'), 0.5), (Path('def/file6.avi'), 0.5),
-                          (Path('def/file5.txt'), 0.5), (Path('file1.txt'), 0.5)],
+        self.assertEqual([(Path("abc/file2.txt"), 0.5), (Path("abc/file3.txt"), 0.5),
+                          (Path("abc/file4.txt"), 0.5), (Path("def/file6.avi"), 0.5),
+                          (Path("def/file5.txt"), 0.5), (Path("file1.txt"), 0.5)],
                          download_state.get_files_completion())
 
     def test_get_files_completion_no_progress(self) -> None:

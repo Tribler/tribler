@@ -503,7 +503,7 @@ class Download(TaskManager):
         """
         self._logger.info("On tracker reply alert: %s", str(alert))
 
-        self.tracker_status[alert.url] = (alert.num_peers, 'Working')
+        self.tracker_status[alert.url] = (alert.num_peers, "Working")
 
     def on_tracker_error_alert(self, alert: lt.tracker_error_alert) -> None:
         """

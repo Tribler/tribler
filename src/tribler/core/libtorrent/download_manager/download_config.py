@@ -67,7 +67,7 @@ else:
     DownloadConfigDict = ConfigObj
 
 
-SPEC_FILENAME = 'download_config.spec'
+SPEC_FILENAME = "download_config.spec"
 SPEC_CONTENT = """[download_defaults]
 hops = integer(default=0)
 files = int_list(default=None)

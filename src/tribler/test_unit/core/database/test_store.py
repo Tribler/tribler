@@ -45,7 +45,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         Test if mdblobs can be squashed and processed again.
         """
         md_list = [
-            self.metadata_store.TorrentMetadata(title=f'test torrent {i}', infohash=bytes([i]) * 20,
+            self.metadata_store.TorrentMetadata(title=f"test torrent {i}", infohash=bytes([i]) * 20,
                                                 torrent_date=int2time(i))
             for i in range(10)
         ]
@@ -64,7 +64,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         Test if multiple mdblobs can be squashed and processed again.
         """
         md_list = [
-            self.metadata_store.TorrentMetadata(title=f'test torrent {i}', infohash=bytes([i]) * 20, id_=i,
+            self.metadata_store.TorrentMetadata(title=f"test torrent {i}", infohash=bytes([i]) * 20, id_=i,
                                                 torrent_date=int2time(i), timestamp=i)
             for i in range(10)
         ]
@@ -127,7 +127,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         # Check if node metadata object is properly created on payload processing
         result, = self.metadata_store.process_payload(payload)
         self.assertEqual(ObjState.NEW_OBJECT, result.obj_state)
-        self.assertEqual(payload.metadata_type, result.md_obj.to_dict()['metadata_type'])
+        self.assertEqual(payload.metadata_type, result.md_obj.to_dict()["metadata_type"])
 
         # Check that we flag this as duplicate in case we already know about the local node
         result, = self.metadata_store.process_payload(payload)
@@ -185,7 +185,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         ffa_torrent.delete()
 
         # Assert that FFA is never added to DB if there is already a signed entry with the same infohash
-        signed_md = self.metadata_store.TorrentMetadata(infohash=infohash, title='')
+        signed_md = self.metadata_store.TorrentMetadata(infohash=infohash, title="")
         self.metadata_store.TorrentMetadata.payload_class.from_signed_blob(signed_md.serialized())
         self.assertEqual([], self.metadata_store.process_payload(ffa_payload))
         self.assertIsNone(self.metadata_store.TorrentMetadata.get(title=ffa_title))

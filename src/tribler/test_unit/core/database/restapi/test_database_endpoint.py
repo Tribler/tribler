@@ -100,7 +100,7 @@ class TestDatabaseEndpoint(TestBase):
 
         self.assertEqual(200, response.status)
         self.assertTrue(response_body_json["checking"])
-        self.assertEqual(call(b'\xaa', timeout=20, scrape_now=True), check_torrent_health.call_args)
+        self.assertEqual(call(b"\xaa", timeout=20, scrape_now=True), check_torrent_health.call_args)
 
     def test_add_download_progress_to_metadata_list(self) -> None:
         """

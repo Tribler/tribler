@@ -34,27 +34,27 @@ def show_error(exc: Exception, shutdown: bool = True) -> NoReturn:
     text = "\n\n".join([str(a) for a in exc.args])
     sep = "*" * 80
 
-    print('\n'.join([sep, title, sep, traceback.format_exc(), sep]), file=sys.stderr)  # noqa: T201, FLY002
+    print("\n".join([sep, title, sep, traceback.format_exc(), sep]), file=sys.stderr)  # noqa: T201, FLY002
     try:
-        if sys.platform == 'win32':
+        if sys.platform == "win32":
             import win32api
 
             win32api.MessageBox(0, text, title)
-        elif sys.platform == 'linux':
+        elif sys.platform == "linux":
             import subprocess
 
-            subprocess.Popen(['xmessage', '-center', text])  # noqa: S603, S607
-        elif sys.platform == 'darwin':
+            subprocess.Popen(["xmessage", "-center", text])  # noqa: S603, S607
+        elif sys.platform == "darwin":
             import subprocess
 
-            subprocess.Popen(['/usr/bin/osascript', '-e', text])  # noqa: S603
+            subprocess.Popen(["/usr/bin/osascript", "-e", text])  # noqa: S603
         else:
-            print(f'cannot create native pop-up for system {sys.platform}')  # noqa: T201
+            print(f"cannot create native pop-up for system {sys.platform}")  # noqa: T201
     except Exception as exception:
         # Use base Exception, because code above can raise many
         # non-obvious types of exceptions:
         # (SubprocessError, ImportError, win32api.error, FileNotFoundError)
-        print(f'Error while showing a message box: {exception}')  # noqa: T201
+        print(f"Error while showing a message box: {exception}")  # noqa: T201
 
     if shutdown:
         sys.exit(1)
@@ -100,13 +100,14 @@ def parse_args() -> Arguments:
     """
     Parse the command-line arguments.
     """
-    parser = argparse.ArgumentParser(prog='Tribler', description='Run Tribler BitTorrent client')
-    parser.add_argument('torrent', help='Torrent file to download', default='', nargs='?')
-    parser.add_argument('--log-level', default="INFO" if VERSION_SUBDIR == "git" else "CRITICAL",
-                        action="store", nargs='?', help="Set the log level. The default is 'CRITICAL'",
-                        choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'],
+    parser = argparse.ArgumentParser(prog="Tribler", description="Run Tribler BitTorrent client")
+    parser.add_argument("torrent", help="Torrent file to download", default="", nargs="?")
+    parser.add_argument("--log-level", default="INFO" if VERSION_SUBDIR == "git" else "CRITICAL",
+                        action="store", nargs="?", help="Set the log level. The default is 'CRITICAL'",
+                        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"],
                         dest="log_level")
-    parser.add_argument('-s', '--server', action='store_true', help="Run headless as a server without graphical pystray interface")
+    parser.add_argument("-s", "--server", action="store_true",
+                        help="Run headless as a server without graphical pystray interface")
     return vars(parser.parse_args())
 
 
@@ -158,7 +159,7 @@ def init_config(parsed_args: Arguments) -> TriblerConfigManager:
     logging.basicConfig(level=parsed_args["log_level"], stream=sys.stdout)
     logger.info("Run Tribler: %s", parsed_args)
 
-    root_state_dir = get_root_state_directory(os.environ.get('TSTATEDIR', 'state_directory'))
+    root_state_dir = get_root_state_directory(os.environ.get("TSTATEDIR", "state_directory"))
     (root_state_dir / VERSION_SUBDIR).mkdir(exist_ok=True, parents=True)
     logger.info("Root state dir: %s", root_state_dir)
     config = TriblerConfigManager(root_state_dir / VERSION_SUBDIR / "configuration.json")
@@ -182,7 +183,7 @@ def load_torrent_uri(parsed_args: Arguments) -> str | None:
     """
     Loads the torrent URI.
     """
-    torrent_uri = parsed_args.get('torrent')
+    torrent_uri = parsed_args.get("torrent")
     if torrent_uri and os.path.exists(torrent_uri):
         if torrent_uri.endswith(".torrent"):
             torrent_uri = Path(torrent_uri).as_uri()
@@ -265,8 +266,8 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
         image = recolor_tray_icon(image, custom_image_col)
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
-    menu = (pystray.MenuItem('Open', lambda: open_webbrowser_tab(url)),
-            pystray.MenuItem('Quit', lambda: session.shutdown_event.set()))
+    menu = (pystray.MenuItem("Open", lambda: open_webbrowser_tab(url)),
+            pystray.MenuItem("Quit", lambda: session.shutdown_event.set()))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
     open_webbrowser_tab(url)
     if sys.platform == "darwin":

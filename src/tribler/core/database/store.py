@@ -176,7 +176,7 @@ class MetadataStore:
                 cursor.execute("PRAGMA synchronous = 0")
 
             sqlite_rank = keep_exception(torrent_rank)
-            connection.create_function('search_rank', 5, sqlite_rank)
+            connection.create_function("search_rank", 5, sqlite_rank)
 
         self.MiscData = misc.define_binding(self.db)
 
@@ -578,7 +578,8 @@ class MetadataStore:
                               WHERE TorrentState.has_data == 1
                                 AND TorrentState.last_check >= $t
                                 AND (TorrentState.seeders > 0 OR TorrentState.leechers > 0)
-                              ORDER BY TorrentState.seeders DESC, TorrentState.leechers DESC, TorrentState.last_check DESC
+                              ORDER BY TorrentState.seeders DESC, TorrentState.leechers DESC,
+                                       TorrentState.last_check DESC
                               LIMIT $POPULAR_TORRENTS_COUNT) results
                            LEFT JOIN
                              ChannelNode WHERE ChannelNode.health == results.rowid
@@ -738,7 +739,7 @@ class MetadataStore:
         """
         return (select(max(obj.rowid) for obj in cast("TorrentMetadata", self.TorrentMetadata)).get() or 0)
 
-    fts_keyword_search_re = re.compile(r'\w+', re.UNICODE)
+    fts_keyword_search_re = re.compile(r"\w+", re.UNICODE)
 
     def get_auto_complete_terms(self, text: str, max_terms: int) -> list[str]:
         """
@@ -752,7 +753,7 @@ class MetadataStore:
             return []
 
         fts_query = '"{}"*'.format(" ".join(f"{word}" for word in words))
-        suggestion_pattern = r'\W+'.join(word for word in words) + r'(\W*)((?:[.-]?\w)*)'
+        suggestion_pattern = r"\W+".join(word for word in words) + r"(\W*)((?:[.-]?\w)*)"
         suggestion_re = re.compile(suggestion_pattern, re.UNICODE)
 
         with db_session:
@@ -772,7 +773,7 @@ class MetadataStore:
             if match:
                 # group(2) is the ending of the last word (if the word is not finished) or the next word
                 continuation = match.group(2)
-                if re.match(r'^.*\w$', text) and match.group(1):  # group(1) is non-word symbols (spaces, commas, etc.)
+                if re.match(r"^.*\w$", text) and match.group(1):  # group(1) is non-word symbols (spaces, commas, etc.)
                     continuation = match.group(1) + continuation
                 suggestion = text + continuation
                 if suggestion not in result:

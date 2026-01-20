@@ -212,9 +212,9 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
         """
         RustEndpoint.wan_address = property(RustEndpoint.get_address)
         for node in self.nodes:
-            node.overlay.endpoint = node.endpoint = RustEndpoint(ip='127.0.0.1')
+            node.overlay.endpoint = node.endpoint = RustEndpoint(ip="127.0.0.1")
             node.endpoint.open()
-            node.endpoint.set_exit_address(('127.0.0.1', 0))
+            node.endpoint.set_exit_address(("127.0.0.1", 0))
             node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
 
             node.overlay.crypto_endpoint = node.endpoint

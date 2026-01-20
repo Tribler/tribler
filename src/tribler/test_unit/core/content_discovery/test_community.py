@@ -228,7 +228,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         self.overlay(0).composition.tribler_db = Mock(instance=Mock(return_value={"01" * 20}))
         self.overlay(0).composition.metadata_store.get_entries_threaded = async_mock
 
-        await self.overlay(0).process_rpc_query({'first': 0, 'infohash_set': None, 'last': 100})
+        await self.overlay(0).process_rpc_query({"first": 0, "infohash_set": None, "last": 100})
 
         self.assertEqual(0, async_mock.call_args.kwargs["first"])
         self.assertEqual(100, async_mock.call_args.kwargs["last"])
@@ -279,7 +279,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         Test if binary fields are properly sanitized.
         """
         for field in ("infohash", "channel_pk"):
-            field_in_b = b'0' * 20
+            field_in_b = b"0" * 20
             field_in_hex = hexlify(field_in_b).decode()
             self.assertEqual(field_in_b, self.overlay(0).sanitize_query({field: field_in_hex})[field])
 
@@ -348,4 +348,4 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         self.assertEqual(0, message.random_torrents_length)
         self.assertEqual(1, message.torrents_checked_length)
         self.assertEqual([], message.random_torrents)
-        self.assertEqual((b'\x01'*20, 7, 42, message.torrents_checked[0][3]), message.torrents_checked[0])
+        self.assertEqual((b"\x01"*20, 7, 42, message.torrents_checked[0][3]), message.torrents_checked[0])

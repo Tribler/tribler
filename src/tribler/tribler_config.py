@@ -367,9 +367,9 @@ DEFAULT_CONFIG["ipv8"]["interfaces"].append({
     "port": 8091
 })
 DEFAULT_CONFIG["ipv8"]["keys"].append({
-    'alias': "secondary",
-    'generation': "curve25519",
-    'file': "secondary_key.pem"
+    "alias": "secondary",
+    "generation": "curve25519",
+    "file": "secondary_key.pem"
 })
 DEFAULT_CONFIG["ipv8"]["overlays"] = [overlay for overlay in DEFAULT_CONFIG["ipv8"]["overlays"]
                                       if overlay["class"] == "DiscoveryCommunity"]
@@ -529,7 +529,7 @@ if __name__ == "__main__":
     mypy_file = conv.visit(ast_tcm)
     cdef, = mypy_file.defs
     stubgen = ASTStubGenerator([key for key in TriblerConfigManager.__dict__
-                                if key not in ['__module__', '__doc__', 'get', 'set', '__dict__', '__weakref__']])
+                                if key not in ["__module__", "__doc__", "get", "set", "__dict__", "__weakref__"]])
     stubgen.indent()
     for fdef in cdef.defs.body:
         if isinstance(fdef, FuncDef) and fdef.name not in ["get", "set"]:

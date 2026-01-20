@@ -135,7 +135,7 @@ class Socks5Client(Protocol):
         """
         Send an associate request to the connection.
         """
-        local_addr = local_addr or ('127.0.0.1', 0)
+        local_addr = local_addr or ("127.0.0.1", 0)
         connection = Socks5ClientUDPConnection(self.callback)
         transport, _ = await get_event_loop().create_datagram_endpoint(lambda: connection, local_addr=local_addr)
         sock = transport.get_extra_info("socket")

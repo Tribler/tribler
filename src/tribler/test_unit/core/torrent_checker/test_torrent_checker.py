@@ -98,12 +98,12 @@ class TestTorrentChecker(TestBase):
         Test if only cached results of a torrent are returned with only blacklisted trackers.
         """
         tracker, = self.torrent_checker.mds.TrackerState.instances = [MockTrackerState(url="http://localhost/tracker")]
-        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b'a' * 20, seeders=5, leechers=10,
+        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b"a" * 20, seeders=5, leechers=10,
                                                                             trackers={tracker},
                                                                             last_check=int(time.time()))]
         self.torrent_checker.tracker_manager.blacklist.append("http://localhost/tracker")
 
-        result = await self.torrent_checker.check_torrent_health(b'a' * 20)
+        result = await self.torrent_checker.check_torrent_health(b"a" * 20)
 
         self.assertEqual(5, result.seeders)
         self.assertEqual(10, result.leechers)
@@ -113,11 +113,11 @@ class TestTorrentChecker(TestBase):
         Test whether cached results of a torrent are returned when fetching the health of a torrent.
         """
         tracker, = self.torrent_checker.mds.TrackerState.instances = [MockTrackerState(url="http://localhost/tracker")]
-        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b'a' * 20, seeders=5, leechers=10,
+        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b"a" * 20, seeders=5, leechers=10,
                                                                             trackers={tracker},
                                                                             last_check=int(time.time()))]
 
-        result = await self.torrent_checker.check_torrent_health(b'a' * 20)
+        result = await self.torrent_checker.check_torrent_health(b"a" * 20)
 
         self.assertEqual(5, result.seeders)
         self.assertEqual(10, result.leechers)
@@ -195,7 +195,7 @@ class TestTorrentChecker(TestBase):
         Test if a random tracker can be selected.
         """
         tracker, = self.torrent_checker.mds.TrackerState.instances = [MockTrackerState(url="http://localhost/tracker")]
-        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b'a' * 20, seeders=5, leechers=10,
+        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=b"a" * 20, seeders=5, leechers=10,
                                                                             trackers={tracker})]
 
         controlled_session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", 5, None)
@@ -218,7 +218,7 @@ class TestTorrentChecker(TestBase):
         """
         tracker, = self.tracker_manager.TrackerState.instances = [MockTrackerState(url="http://localhost/tracker")]
         self.torrent_checker.mds.TorrentState.instances = [
-            MockTorrentState(infohash=b'a' * 20, seeders=5, leechers=10, trackers={tracker},
+            MockTorrentState(infohash=b"a" * 20, seeders=5, leechers=10, trackers={tracker},
                              last_check=int(time.time()))
         ]
 
@@ -233,7 +233,7 @@ class TestTorrentChecker(TestBase):
         """
         Test if the check of a tracker without associated torrents leads to no result.
         """
-        self.torrent_checker.tracker_manager.add_tracker('http://trackertest.com:80/announce')
+        self.torrent_checker.tracker_manager.add_tracker("http://trackertest.com:80/announce")
 
         with patch.dict(tribler.core.torrent_checker.torrent_checker.__dict__,
                         {"select": (lambda x: self.torrent_checker.mds.TorrentState.instances)}):
@@ -282,7 +282,7 @@ class TestTorrentChecker(TestBase):
             MockTorrentState(bytes([i]) * 20, i, last_check=int(time.time()) if i < 20 else 0) for i in range(40)
         ]
         self.torrent_checker.mds.TorrentMetadata.instances = [
-            MockMiniTorrentMetadata(bytes([i]) * 20, f'torrent{i}', self.torrent_checker.mds.TorrentState.instances[i])
+            MockMiniTorrentMetadata(bytes([i]) * 20, f"torrent{i}", self.torrent_checker.mds.TorrentState.instances[i])
             for i in range(40)
         ]
         stale_infohashes = [bytes([i]) * 20 for i in range(20, 40)]
@@ -301,7 +301,7 @@ class TestTorrentChecker(TestBase):
         """
         Tests if invalid health is ignored in TorrentChecker.update_torrent_health().
         """
-        health = HealthInfo(unhexlify('abcd0123'), last_check=int(time.time()) + TOLERABLE_TIME_DRIFT + 2)
+        health = HealthInfo(unhexlify("abcd0123"), last_check=int(time.time()) + TOLERABLE_TIME_DRIFT + 2)
 
         self.assertFalse(self.torrent_checker.update_torrent_health(health))
 
@@ -309,7 +309,7 @@ class TestTorrentChecker(TestBase):
         """
         Tests if non-self-checked health is ignored in TorrentChecker.update_torrent_health().
         """
-        health = HealthInfo(unhexlify('abcd0123'))
+        health = HealthInfo(unhexlify("abcd0123"))
 
         self.assertFalse(self.torrent_checker.update_torrent_health(health))
 
@@ -317,7 +317,7 @@ class TestTorrentChecker(TestBase):
         """
         Tests if unknown torrent's health is ignored in TorrentChecker.update_torrent_health().
         """
-        health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True)
+        health = HealthInfo(unhexlify("abcd0123"), 1, 2, self_checked=True)
 
         self.assertFalse(self.torrent_checker.update_torrent_health(health))
 
@@ -329,12 +329,12 @@ class TestTorrentChecker(TestBase):
         mocked_handler = Mock()
         self.torrent_checker.notifier = Notifier()
         self.torrent_checker.notifier.add(Notification.torrent_health_updated, mocked_handler)
-        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=unhexlify('abcd0123'), seeders=2,
+        self.torrent_checker.mds.TorrentState.instances = [MockTorrentState(infohash=unhexlify("abcd0123"), seeders=2,
                                                                             leechers=1, last_check=now,
                                                                             self_checked=True)]
         prev_health = self.torrent_checker.mds.TorrentState.instances[0].to_health()
 
-        health = HealthInfo(unhexlify('abcd0123'), 1, 2, self_checked=True, last_check=now)
+        health = HealthInfo(unhexlify("abcd0123"), 1, 2, self_checked=True, last_check=now)
 
         self.assertFalse(self.torrent_checker.update_torrent_health(health))
 

@@ -42,7 +42,7 @@ def torrent_rank(query: str, title: str, seeders: int = 0, leechers: int = 0, fr
                       using the `time()` function call and simplifies testing.
     :return: the torrent rank value in range [0, 1]
     """
-    tr = title_rank(query or '', title or '')
+    tr = title_rank(query or "", title or "")
     sr = (seeders_rank(seeders or 0, leechers or 0) + 9) / 10  # range [0.9, 1]
     fr = (freshness_rank(freshness) + 9) / 10  # range [0.9, 1]
     return tr * sr * fr
@@ -77,7 +77,7 @@ def freshness_rank(freshness: float | None) -> float:
     return 1 / (1 + days / 30)
 
 
-word_re = re.compile(r'\w+', re.UNICODE)
+word_re = re.compile(r"\w+", re.UNICODE)
 
 
 def title_rank(query: str, title: str) -> float:

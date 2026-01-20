@@ -18,7 +18,7 @@ class MalformedTrackerURLException(Exception):
     """
 
 
-delimiters_regex = re.compile(r'[\r\n\x00\s\t;]+(%20)*')
+delimiters_regex = re.compile(r"[\r\n\x00\s\t;]+(%20)*")
 
 url_regex = re.compile(
     r"^(?:http|udp|wss)s?://"  # http:// or https://

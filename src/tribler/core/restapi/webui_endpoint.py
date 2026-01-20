@@ -14,7 +14,7 @@ class WebUIEndpoint(RESTEndpoint):
     This endpoint serves files used by the web UI.
     """
 
-    path = '/ui'
+    path = "/ui"
 
     def __init__(self) -> None:
         """

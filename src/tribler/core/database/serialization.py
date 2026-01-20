@@ -16,8 +16,8 @@ default_serializer.add_packer("varlenIutf8", VarLenUtf8(">I"))
 EPOCH = datetime(1970, 1, 1)  # noqa: DTZ001
 
 SIGNATURE_SIZE = 64
-NULL_SIG = b'\x00' * 64
-NULL_KEY = b'\x00' * 64
+NULL_SIG = b"\x00" * 64
+NULL_KEY = b"\x00" * 64
 
 # Metadata types. Should have been an enum, but in Python its unwieldy.
 TYPELESS = 100
@@ -73,7 +73,7 @@ def read_payload_with_offset(data: bytes, offset: int = 0) -> tuple[SignedPayloa
     Read the next payload from the data buffer (at the given offset).
     """
     # First we have to determine the actual payload type
-    metadata_type = struct.unpack_from('>H', data, offset=offset)[0]
+    metadata_type = struct.unpack_from(">H", data, offset=offset)[0]
     payload_class = METADATA_TYPE_TO_PAYLOAD_CLASS.get(metadata_type)
     if payload_class is not None:
         payload, offset = default_serializer.unpack_serializable(payload_class, data, offset=offset)
@@ -302,7 +302,7 @@ class HealthItemsPayload(VariablePayload):
         Unpack this payload from the given data buffer.
         """
         data = default_serializer.unpack_serializable(cls, data)[0].data
-        items = data.split(b';')[:-1]
+        items = data.split(b";")[:-1]
         return [cls.parse_health_data_item(item) for item in items]
 
     @classmethod
@@ -316,7 +316,7 @@ class HealthItemsPayload(VariablePayload):
         # The format is forward-compatible: currently only three first elements of data are used,
         # and later it is possible to add more fields without breaking old clients
         try:
-            seeders, leechers, last_check = map(int, item.split(b',')[:3])
+            seeders, leechers, last_check = map(int, item.split(b",")[:3])
         except Exception:
             return 0, 0, 0
 

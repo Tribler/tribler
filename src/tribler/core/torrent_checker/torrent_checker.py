@@ -98,7 +98,7 @@ class TorrentChecker(TaskManager):
         Start listening on a UDP port.
         """
         loop = asyncio.get_event_loop()
-        transport, _ = await loop.create_datagram_endpoint(lambda: self.socket_mgr, local_addr=('0.0.0.0', 0))
+        transport, _ = await loop.create_datagram_endpoint(lambda: self.socket_mgr, local_addr=("0.0.0.0", 0))
         return transport
 
     async def create_socket_or_schedule(self) -> None:
@@ -166,7 +166,7 @@ class TorrentChecker(TaskManager):
             self._logger.warning(e)
 
         if session is None:
-            self._logger.warning('A session cannot be created. The torrent check procedure has been cancelled.')
+            self._logger.warning("A session cannot be created. The torrent check procedure has been cancelled.")
             return
         # We shuffle the list so that different infohashes are checked on subsequent scrape requests if the total
         # number of infohashes exceeds the maximum number of infohashes we check.
@@ -194,7 +194,7 @@ class TorrentChecker(TaskManager):
             self._logger.info("Tracker session is being cancelled: %s", session.tracker_url)
             raise
         except Exception as e:
-            exception_str = str(e).replace('\n]', ']')
+            exception_str = str(e).replace("\n]", "]")
             self._logger.warning("Got session error for the tracker: %s\n%s", session.tracker_url, exception_str)
             self.tracker_manager.update_tracker_info(session.tracker_url, False)
             raise e  # noqa: TRY201
@@ -214,7 +214,7 @@ class TorrentChecker(TaskManager):
         """
         if self._torrents_checked is None:
             self._torrents_checked = self.load_torrents_checked_from_db()
-            lines = '\n'.join(f'    {health}' for health in sorted(self._torrents_checked.values(),
+            lines = "\n".join(f"    {health}" for health in sorted(self._torrents_checked.values(),
                                                                    key=lambda health: -health.last_check))
             self._logger.info("Initially loaded self-checked torrents:\n%s", lines)
         return self._torrents_checked
@@ -368,7 +368,7 @@ class TorrentChecker(TaskManager):
                                  "Required hops: %d. Actual hops: %d", required_hops, actual_hops)
             return None
         listen_ports = cast("list[int]", self.socks_listen_ports)  # Guaranteed by check above
-        proxy = ('127.0.0.1', listen_ports[required_hops - 1]) if required_hops > 0 else None
+        proxy = ("127.0.0.1", listen_ports[required_hops - 1]) if required_hops > 0 else None
         session = create_tracker_session(tracker_url, timeout, proxy, self.socket_mgr)
         self._logger.info("Tracker session has been created: %s", str(session))
         self.sessions[tracker_url].append(session)
@@ -387,7 +387,7 @@ class TorrentChecker(TaskManager):
             del self.sessions[url]
 
         await session.cleanup()
-        self._logger.debug('Session has been cleaned up')
+        self._logger.debug("Session has been cleaned up")
 
     def update_torrent_health(self, health: HealthInfo) -> bool:
         """
@@ -432,4 +432,4 @@ class TorrentChecker(TaskManager):
                              num_seeders=health.seeders,
                              num_leechers=health.leechers,
                              last_tracker_check=health.last_check,
-                             health='updated')
+                             health="updated")

@@ -33,7 +33,7 @@ class StreamRequest(MockRequest):
     A MockRequest that mimics StreamRequests.
     """
 
-    __slots__ = ['http_range']
+    __slots__ = ["http_range"]
 
     def __init__(self, query: dict, infohash: str, fileindex: int, **kwargs) -> None:
         """
