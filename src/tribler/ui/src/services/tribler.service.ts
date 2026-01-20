@@ -22,6 +22,7 @@ export class TriblerService {
     private events: EventSource;
     // Store a cached version of the GuiSettings to prevent from having to call the server every time we need them.
     public guiSettings: GuiSettings = {};
+    public version: string | undefined;
 
     constructor() {
         this.http = axios.create({
@@ -30,6 +31,7 @@ export class TriblerService {
         });
         this.events = new EventSource(this.baseURL + "/events", {withCredentials: true});
         this.addEventListener("tribler_exception", OnError);
+        this.addEventListener("events_start", (event) => this.version = JSON.parse(event.data).version);
         // Gets the GuiSettings
         this.getSettings();
     }
