@@ -39,7 +39,7 @@ class Notification(Enum):
                                   ["infohash", "num_seeders", "num_leechers", "last_tracker_check", "health"],
                                   [str, int, int, int, str])
     low_space = Desc("low_space", ["disk_usage_data"], [dict])
-    events_start = Desc("events_start", ["public_key", "version"], [str, str])
+    events_start = Desc("events_start", ["public_key", "version", "sessions"], [str, str, str])
     tribler_exception = Desc("tribler_exception", ["error"], [dict])
     content_discovery_community_unknown_torrent_added = Desc("content_discovery_community_unknown_torrent_added",
                                                              [], [])
