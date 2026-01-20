@@ -1,6 +1,7 @@
 import {Dispatch, SetStateAction, useEffect, useRef, useState} from "react";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
 import {
+    OnChangeFn,
     getCoreRowModel,
     useReactTable,
     flexRender,
@@ -318,9 +319,9 @@ function SimpleTable<T extends object>({
     });
     const [rowSelection, setRowSelection] = useState<RowSelectionState>(initialState?.rowSelection || {});
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(filters || []);
-    const [sorting, setSorting] = useState<SortingState>(initialState?.sorting || []);
+    const [sorting, setSorting] = useState<SortingState | undefined>(initialState?.sorting);
     const [startId, setStartId] = useState<string | undefined>(undefined);
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState | undefined>(undefined);
     const [stateInit, setStateInit] = useState<boolean>(false);
 
     useHotkeys(isMac() ? "meta+a" : "ctrl+a", (event) => {
@@ -376,12 +377,12 @@ function SimpleTable<T extends object>({
         },
         getFilteredRowModel: getFilteredRowModel(),
         onColumnFiltersChange: setColumnFilters,
-        onColumnVisibilityChange: setColumnVisibility,
+        onColumnVisibilityChange: setColumnVisibility as OnChangeFn<VisibilityState>,
         onPaginationChange: setPagination,
         onRowSelectionChange: (arg: SetStateAction<RowSelectionState>) => {
             if (allowSelect || allowSelectCheckbox || allowMultiSelect) setRowSelection(arg);
         },
-        onSortingChange: setSorting,
+        onSortingChange: setSorting as OnChangeFn<SortingState>,
         getSubRows: (row: any) => row?.subRows,
         getRowId: rowId,
         autoResetPageIndex: false,
@@ -429,27 +430,29 @@ function SimpleTable<T extends object>({
             if (sortingState !== undefined) {
                 setSorting(sortingState);
             }
-            const visibilityState = getState("columns", allowColumnToggle) || {};
-            let col: any;
-            for (col of columns) {
-                if (col.accessorKey && col.accessorKey in visibilityState === false) {
-                    visibilityState[col.accessorKey] = col.meta?.hide_by_default !== true;
+            const visibilityState = getState("columns", allowColumnToggle);
+            if (visibilityState !== undefined) {
+                let col: any;
+                for (col of columns) {
+                    if (col.accessorKey && col.accessorKey in visibilityState === false) {
+                        visibilityState[col.accessorKey] = col.meta?.hide_by_default !== true;
+                    }
                 }
+                setColumnVisibility(visibilityState);
             }
-            setColumnVisibility(visibilityState);
 
             setStateInit(true);
         })();
     }, []);
 
     useEffect(() => {
-        if (stateInit && storeSortingState) {
+        if (stateInit && storeSortingState && sorting !== undefined) {
             setState("sorting", storeSortingState, sorting);
         }
     }, [sorting, stateInit]);
 
     useEffect(() => {
-        if (stateInit && allowColumnToggle) {
+        if (stateInit && allowColumnToggle && columnVisibility !== undefined) {
             setState("columns", allowColumnToggle, columnVisibility);
         }
     }, [columnVisibility, stateInit]);
