@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import heapq
 import json
 import random
 import sys
@@ -17,10 +18,10 @@ from pony.orm import OperationalError, db_session
 
 from tribler.core.content_discovery.cache import SelectRequest
 from tribler.core.content_discovery.payload import (
-    PopularTorrentsRequest,
+    HealthPayload,
+    HealthRequestPayload,
     RemoteSelectPayload,
     SelectResponsePayload,
-    TorrentsHealthPayload,
     VersionRequest,
     VersionResponse,
 )
@@ -36,6 +37,10 @@ if TYPE_CHECKING:
 
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
+
+
+HEALTH_REQUEST_POPULAR = 1
+HEALTH_REQUEST_RANDOM = 2
 
 
 class ContentDiscoverySettings(CommunitySettings):
@@ -72,14 +77,19 @@ class ContentDiscoveryCommunity(Community):
         super().__init__(settings)
         self.composition = settings
 
-        self.add_message_handler(TorrentsHealthPayload, self.on_torrents_health)
-        self.add_message_handler(PopularTorrentsRequest, self.on_popular_torrents_request)
+        self.add_message_handler(HealthRequestPayload, self.on_health_request)
+        self.add_message_handler(HealthPayload, self.on_health)
         self.add_message_handler(VersionRequest, self.on_version_request)
         self.add_message_handler(VersionResponse, self.on_version_response)
         self.add_message_handler(RemoteSelectPayload, self.on_remote_select)
         self.add_message_handler(SelectResponsePayload, self.on_remote_select_response)
 
+        self.add_message_handler(1, self.on_deprecated_message)
+        self.add_message_handler(2, self.on_deprecated_message)
         self.add_message_handler(209, self.on_deprecated_message)
+
+        self.deprecated_message_names[1] = "TorrentsHealthPayload"
+        self.deprecated_message_names[2] = "PopularTorrentsRequest"
         self.deprecated_message_names[209] = "RemoteSelectPayloadEva"
 
         self.request_cache = RequestCache()
@@ -159,29 +169,11 @@ class ContentDiscoveryCommunity(Community):
         if not peers or not self.composition.torrent_checker:
             return
 
-        self.ez_send(random.choice(peers), TorrentsHealthPayload.create(self.get_random_torrents(), []))
+        payload = HealthPayload.create(HEALTH_REQUEST_RANDOM, self.get_random_torrents())
+        self.ez_send(random.choice(peers), payload)
 
         for p in random.sample(peers, min(len(peers), 5)):
-            self.ez_send(p, PopularTorrentsRequest())
-
-    @lazy_wrapper(TorrentsHealthPayload)
-    async def on_torrents_health(self, peer: Peer, payload: TorrentsHealthPayload) -> None:
-        """
-        Callback for when we receive torrent health.
-        """
-        self.logger.debug("Received torrent health information for %d popular torrents"
-                          " and %d random torrents", len(payload.torrents_checked), len(payload.random_torrents))
-
-        health_tuples = payload.random_torrents + payload.torrents_checked
-        health_list = [HealthInfo(infohash, last_check=last_check, seeders=seeders, leechers=leechers)
-                       for infohash, seeders, leechers, last_check in health_tuples]
-
-        to_resolve = self.process_torrents_health(health_list)
-
-        for health_info in health_list:
-            # Get a single result per infohash to avoid duplicates
-            if health_info.infohash in to_resolve:
-                self.send_remote_select(peer=peer, infohash=health_info.infohash, last=1)
+            self.ez_send(p, HealthRequestPayload(HEALTH_REQUEST_RANDOM))
 
     @db_session
     def process_torrents_health(self, health_list: list[HealthInfo]) -> set[bytes]:
@@ -195,14 +187,34 @@ class ContentDiscoveryCommunity(Community):
                 infohashes_to_resolve.add(health.infohash)
         return infohashes_to_resolve
 
-    @lazy_wrapper(PopularTorrentsRequest)
-    async def on_popular_torrents_request(self, peer: Peer, payload: PopularTorrentsRequest) -> None:
+    @lazy_wrapper(HealthRequestPayload)
+    async def on_health_request(self, peer: Peer, payload: HealthRequestPayload) -> None:
         """
-        Callback for when we receive a request for popular torrents.
+        Callback for when we receive a request for torrent health.
         """
-        self.logger.debug("Received popular torrents health request")
-        popular_torrents = self.get_random_torrents()
-        self.ez_send(peer, TorrentsHealthPayload.create([], popular_torrents))
+        self.logger.debug("Received torrent health request (%s)", payload.request_type)
+
+        handlers = {HEALTH_REQUEST_RANDOM: self.get_random_torrents,
+                    HEALTH_REQUEST_POPULAR: self.get_popular_torrents}
+
+        if handler := handlers.get(payload.request_type):
+            self.ez_send(peer, HealthPayload.create(payload.request_type, handler()))
+
+    @lazy_wrapper(HealthPayload)
+    async def on_health(self, peer: Peer, payload: HealthPayload) -> None:
+        """
+        Callback for when we receive torrent health.
+        """
+        self.logger.debug("Received torrent health information for %d torrents (%s)",
+                          len(payload.torrents), payload.response_type)
+
+        health_list = payload.get_health_info()
+        to_resolve = self.process_torrents_health(health_list)
+
+        for health_info in health_list:
+            # Get a single result per infohash to avoid duplicates
+            if health_info.infohash in to_resolve:
+                self.send_remote_select(peer=peer, infohash=health_info.infohash, last=1)
 
     def get_random_torrents(self) -> list[HealthInfo]:
         """
@@ -214,6 +226,17 @@ class ContentDiscoveryCommunity(Community):
 
         num_torrents_to_send = min(self.composition.random_torrent_count, len(checked_and_alive))
         return random.sample(checked_and_alive, num_torrents_to_send)
+
+    def get_popular_torrents(self) -> list[HealthInfo]:
+        """
+        Get torrent health info for the most popular torrent, last we know of.
+        """
+        checked_and_alive = self.get_alive_checked_torrents()
+        if not checked_and_alive:
+            return []
+
+        num_torrents_to_send = min(self.composition.random_torrent_count, len(checked_and_alive))
+        return heapq.nlargest(num_torrents_to_send, checked_and_alive, key=lambda t: t.seeders + t.leechers)
 
     def get_random_peers(self, sample_size: int | None = None) -> list[Peer]:
         """

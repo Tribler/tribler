@@ -1,109 +1,71 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Self, cast
+from typing import Self
 
 from ipv8.messaging.lazy_payload import VariablePayload, vp_compile
-from ipv8.messaging.serialization import default_serializer
 
-if TYPE_CHECKING:
-    from tribler.core.torrent_checker.healthdataclasses import HealthInfo
+from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 
 @vp_compile
-class TorrentInfoFormat(VariablePayload):
+class HealthRequestPayload(VariablePayload):
     """
-    For a given infohash at a given time: the known seeders and leechers.
+    A request to be sent the health information of torrents.
     """
 
-    format_list = ["20s", "I", "I", "Q"]
-    names = ["infohash", "seeders", "leechers", "timestamp"]
-    length = 36
+    msg_id = 3
+    format_list = ["B"]
+    names = ["request_type"]
+
+    request_type: int
+
+
+@vp_compile
+class HealthFormat(VariablePayload):
+    """
+    A payload for torrent health information.
+    """
+
+    format_list = ["20s", "I", "I", "Q", "varlenHutf8"]
+    names = ["infohash", "seeders", "leechers", "timestamp", "tracker"]
 
     infohash: bytes
     seeders: int
     leechers: int
     timestamp: int
-
-    def to_tuple(self) -> tuple[bytes, int, int, int]:
-        """
-        Convert this payload to a tuple.
-        """
-        return self.infohash, self.seeders, self.leechers, self.timestamp
-
-    @classmethod
-    def from_list_bytes(cls: type[Self], serialized: bytes) -> list[Self]:
-        """
-        Convert the given bytes to a list of this payload.
-        """
-        return cast("list[Self]", default_serializer.unpack_serializable_list([cls] * (len(serialized) // cls.length),
-                                                                              serialized, consume_all=False)[:-1])
+    tracker: str
 
 
 @vp_compile
-class TorrentsHealthPayload(VariablePayload):
+class HealthPayload(VariablePayload):
     """
-    A payload for lists of health information.
-
-    For backward compatibility, this payload includes two lists. Originally, one list was for random torrents and
-    one list was for torrents that we personally checked. Now, only one is used.
+    A payload for a list of torrent health information.
     """
 
-    msg_id = 1
-    format_list = ["I", "I", "varlenI", "raw"]  # Number of random torrents, number of torrents checked by you
-    names = ["random_torrents_length", "torrents_checked_length", "random_torrents", "torrents_checked"]
+    msg_id = 4
+    format_list = ["B", [HealthFormat], "raw"]
+    names = ["response_type", "torrents", "extra_bytes"]
 
-    random_torrents_length: int
-    torrents_checked_length: int
-    random_torrents: list[tuple[bytes, int, int, int]]
-    torrents_checked: list[tuple[bytes, int, int, int]]
-
-    def fix_pack_random_torrents(self, value: list[tuple[bytes, int, int, int]]) -> bytes:
-        """
-        Convert the list of random torrent info tuples to bytes.
-        """
-        return b"".join(default_serializer.pack_serializable(TorrentInfoFormat(*sublist)) for sublist in value)
-
-    def fix_pack_torrents_checked(self, value: list[tuple[bytes, int, int, int]]) -> bytes:
-        """
-        Convert the list of checked torrent info tuples to bytes.
-        """
-        return b"".join(default_serializer.pack_serializable(TorrentInfoFormat(*sublist)) for sublist in value)
+    response_type: int
+    torrents: list[HealthFormat]
 
     @classmethod
-    def fix_unpack_random_torrents(cls: type[Self], value: bytes) -> list[tuple[bytes, int, int, int]]:
+    def create(cls: type[Self], request_type: int, health_infos: list[HealthInfo],) -> Self:
         """
-        Convert the raw data back to a list of random torrent info tuples.
+        Create a payload from the given list.
         """
-        return [payload.to_tuple() for payload in TorrentInfoFormat.from_list_bytes(value)]
+        # Since the tracker field can be a large string, limit the number of items that we add to the payload.
+        # This should lower the risk of UDP packet fragmentation.
+        size = 0
+        return cls(request_type, [HealthFormat(h.infohash, h.seeders, h.leechers, h.last_check, h.tracker)
+                                  for h in health_infos if (size := size + len(h.tracker) + 38) <= 1200], b"")
 
-    @classmethod
-    def fix_unpack_torrents_checked(cls: type[Self], value: bytes) -> list[tuple[bytes, int, int, int]]:
+    def get_health_info(self) -> list[HealthInfo]:
         """
-        Convert the raw data back to a list of checked torrent info tuples.
+        Gets the list of HealthInfo objects.
         """
-        return [payload.to_tuple() for payload in TorrentInfoFormat.from_list_bytes(value)]
-
-    @classmethod
-    def create(cls: type[Self], random_torrents_checked: list[HealthInfo],
-               popular_torrents_checked: list[HealthInfo]) -> Self:
-        """
-        Create a payload from the given lists.
-        """
-        random_torrent_tuples = [(health.infohash, health.seeders, health.leechers, health.last_check)
-                                 for health in random_torrents_checked]
-        popular_torrent_tuples = [(health.infohash, health.seeders, health.leechers, health.last_check)
-                                  for health in popular_torrents_checked]
-        return cls(len(random_torrents_checked), len(popular_torrents_checked), random_torrent_tuples,
-                   popular_torrent_tuples)
-
-
-@vp_compile
-class PopularTorrentsRequest(VariablePayload):
-    """
-    A request to be sent the health information of popular torrents.
-    """
-
-    msg_id = 2
+        return [HealthInfo(infohash=t.infohash, last_check=t.timestamp, tracker=t.tracker,
+                           seeders=t.seeders, leechers=t.leechers) for t in self.torrents]
 
 
 @vp_compile

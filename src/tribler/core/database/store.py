@@ -365,19 +365,23 @@ class MetadataStore:
             return False
 
         torrent_state = self.TorrentState.get_for_update(infohash=health.infohash)
-
-        if torrent_state is not None and health.should_replace(torrent_state.to_health()):
-            self._logger.debug("Update health info %s", str(health))
-            torrent_state.set(seeders=health.seeders, leechers=health.leechers, last_check=health.last_check,
-                              self_checked=False)
-            return False
-
-        if not torrent_state:
+        add = torrent_state is None
+        if add:
             self._logger.debug("Add health info %s", str(health))
-            self.TorrentState.from_health(health)
-            return True
+            torrent_state = self.TorrentState.from_health(health)
 
-        return False
+        if health.should_replace(torrent_state.to_health()):
+            self._logger.debug("Update health info %s", str(health))
+            if health.tracker:
+                # Get the tracker from the db, and add it if it isn't in there already.
+                tracker = self.TrackerState.get_for_update(url=health.tracker) or self.TrackerState(url=health.tracker)
+                torrent_state.trackers.add(tracker)
+                torrent_state.set(seeders=health.seeders, leechers=health.leechers,
+                                  last_check=health.last_check, tracker_id=tracker.rowid, self_checked=False)
+            else:
+                torrent_state.set(seeders=health.seeders, leechers=health.leechers,
+                                  last_check=health.last_check, tracker_id=0, self_checked=False)
+        return add
 
     def process_squashed_mdblob(self, chunk_data: bytes, external_thread: bool = False,  # noqa: C901
                                 health_info: list[tuple[int, int, int]] | None = None,
