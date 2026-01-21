@@ -204,7 +204,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         """
         self.metadata_store.TorrentMetadata.add_ffa_from_dict({"infohash": b"1" * 20,
                                                                "title": "abcabc",
-                                                               "tracker_info": b"http://tracker/announce"})
+                                                               "tracker_info_list": [b"http://tracker/announce"]})
 
     @db_session
     def test_get_entries_query_sort_by_size(self) -> None:

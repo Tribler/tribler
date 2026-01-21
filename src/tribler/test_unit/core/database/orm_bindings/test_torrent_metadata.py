@@ -60,7 +60,7 @@ class TestTorrentMetadata(TestBase):
         self.assertEqual("test", value["title"])
         self.assertEqual("Unknown", value["tags"])
         self.assertEqual(0, value["size"])
-        self.assertEqual("", value["tracker_info"])
+        self.assertEqual(0, len(value["tracker_info_list"]))
 
     def test_entries_to_chunk_last_index_no_fit(self) -> None:
         """

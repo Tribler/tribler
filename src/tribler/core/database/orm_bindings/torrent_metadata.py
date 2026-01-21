@@ -58,7 +58,7 @@ if TYPE_CHECKING:
         infohash: bytes
         size: int | None
         torrent_date: datetime | None
-        tracker_info: str | None
+        tracker_info: str | None  # deprecated
         title: str | None
         tags: str | None
         metadata_type: int
@@ -117,15 +117,13 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
     except (ValueError, TypeError):
         torrent_date = EPOCH
 
-    tracker_url = tdef.atp.trackers[0] if tdef.atp.trackers else ""
-    tracker_info = get_uniformed_tracker_url(tracker_url) or ""
     return {
         "infohash": tdef.infohash,
         "title": tdef.name[:300],
         "tags": tags[:200],
         "size": tdef.torrent_info.total_size() if tdef.torrent_info else 0,
         "torrent_date": max(torrent_date, EPOCH),
-        "tracker_info": tracker_info,
+        "tracker_info_list": [get_uniformed_tracker_url(tracker_url) for tracker_url in (tdef.atp.trackers or [])],
     }
 
 
@@ -207,7 +205,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
         infohash = orm.Required(bytes, index=True)
         size = orm.Optional(int, size=64, default=0)
         torrent_date = orm.Optional(datetime, default=datetime.utcnow, index=True)
-        tracker_info = orm.Optional(str, default="")
+        tracker_info = orm.Optional(str, default="")  # deprecated
         title = orm.Optional(str, default="")
         tags = orm.Optional(str, default="")
         metadata_type = orm.Discriminator(int, size=16)
@@ -257,10 +255,12 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 # imposes uniqueness constraints on the id_+public_key combination.
                 kwargs["signature"] = None
 
+            tracker_info_list = kwargs.pop("tracker_info_list", [])
+
             super().__init__(*args, **kwargs)
 
-            if "tracker_info" in kwargs:
-                self.add_tracker(kwargs["tracker_info"])
+            for tracker_info in tracker_info_list:
+                self.add_tracker(tracker_info)
 
             if notifier:
                 notifier.notify(Notification.new_torrent_metadata_created,
@@ -273,12 +273,13 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 tracker = db.TrackerState.get_for_update(url=sanitized_url) or db.TrackerState(url=sanitized_url)
                 self.health.trackers.add(tracker)
 
-        def before_update(self) -> None:
-            self.add_tracker(self.tracker_info)
+        @property
+        def tracker_info_list(self) -> list[str]:
+            return [tracker_state.url for tracker_state in (self.health.trackers if self.health else [])]
 
-        def get_magnet(self) ->  str:
+        def get_magnet(self) -> str:
             return f"magnet:?xt=urn:btih:{hexlify(self.infohash).decode()}&dn={self.title}" + (
-                f"&tr={self.tracker_info}" if self.tracker_info else ""
+                "".join([f"&tr={tracker_info}" for tracker_info in self.tracker_info_list])
             )
 
         @classmethod
@@ -287,19 +288,22 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             # To produce a relatively unique id_ we take some bytes of the infohash and convert these to a number.
             # abs is necessary as the conversion can produce a negative value, and we do not support that.
             id_ = infohash_to_id(metadata["infohash"])
+            # Convert any tracker byte-strings.
+            tracker_info_list = metadata.get("tracker_info_list", [])
+            for index, tracker_info in enumerate(tracker_info_list):
+                if isinstance(tracker_info, bytes):
+                    tracker_info_list[index] = tracker_info.decode()
             # Check that this torrent is yet unknown to GigaChannel, and if there is no duplicate FFA entry.
             # Test for a duplicate id_+public_key is necessary to account for a (highly improbable) situation when
             # two entries have different infohashes but the same id_. We do not want people to exploit this.
             ih_blob = metadata["infohash"]
             pk_blob = b""
             if results := cls.select(lambda g: (g.infohash == ih_blob) or (g.id_ == id_ and g.public_key == pk_blob)):
-                result = next((r for r in results if r.public_key == pk_blob), None)
-                # If the metainfo dict includes tracker_info, and the metadata in our db doesn't, update it.
-                if result and metadata.get("tracker_info") and not result.tracker_info:
-                    result.tracker_info = metadata.get("tracker_info")
+                # Make sure we know about all the trackers.
+                if result := next((r for r in results if r.public_key == pk_blob), None):
+                    for tracker_info in tracker_info_list:
+                        result.add_tracker(tracker_info)
                 return None
-            if isinstance(metadata.get("tracker_info", ""), bytes):
-                metadata["tracker_info"] = metadata["tracker_info"].decode()
             # Add the torrent as a free-for-all entry if it is unknown to GigaChannel
             return cls.from_dict(dict(metadata, public_key=b"", status=COMMITTED, id_=id_))
 
@@ -324,7 +328,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
                 "origin_id": self.origin_id,
                 "public_key": hexlify(self.public_key).decode(),
                 "status": self.status,
-                "trackers": [self.tracker_info] if self.tracker_info else [],
+                "trackers": self.tracker_info_list,
             }
 
         def get_type(self) -> int:
