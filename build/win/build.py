@@ -24,6 +24,7 @@ Building wheel and building executable had to be separated because cx_Freeze doe
 support building wheels. Therefore, the build options are separated into two functions
 and the appropriate function is called based on the command line arguments.
 """
+import os
 import sys
 import platform
 
@@ -50,7 +51,7 @@ def get_freeze_build_options():
         "ssl",
     ]
 
-    if platform.system() != 'Windows':
+    if platform.system() == 'Linux':
         included_packages.append("gi")
 
     # These files will be included in the build
@@ -86,6 +87,9 @@ def get_freeze_build_options():
             "include_files": included_files,
             "include_msvcr": True,
             'build_exe': 'dist/tribler'
+        },
+        "bdist_mac": {
+            "bundle_name": os.getenv("APPNAME")
         }
     }
     if platform.system() == 'Linux':

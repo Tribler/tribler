@@ -2,8 +2,9 @@
 set -x # print all commands
 set -e # exit when any command fails
 
-export APPNAME=Tribler
-export DMGNAME="Tribler-$GITHUB_TAG"
+arch=$(uname -p)
+export APPNAME="tribler-$GITHUB_TAG-$arch"
+export DMGNAME="tribler-$GITHUB_TAG-$arch"
 
 export LOG_LEVEL=${LOG_LEVEL:-"DEBUG"}
 export BUILD_ENV=${BUILD_ENV:-"venv"}

@@ -8,10 +8,10 @@ set -e # exit when any command fails
 source ./build/mac/env.sh
 
 # ----- Build
-pyinstaller tribler.spec --log-level="${LOG_LEVEL}"
+python3 ./build/setup.py bdist_mac
 
 mkdir -p $INSTALL_DIR
-mv $DIST_DIR/$APPNAME.app $INSTALL_DIR
+mv build/$APPNAME.app $INSTALL_DIR
 
 # From original Makefile
 # Background
@@ -38,7 +38,7 @@ hdiutil create -fs HFS+ -srcfolder $INSTALL_DIR -format UDRW -scrub -volname ${A
 hdiutil attach -readwrite -noverify -noautoopen $DIST_DIR/$APPNAME.dmg -mountpoint $TEMP_DIR/mnt
 
 # make sure root folder is opened when image is
-bless --folder $TEMP_DIR/mnt --openfolder $TEMP_DIR/mnt
+bless --folder $TEMP_DIR/mnt #--openfolder $TEMP_DIR/mnt
 # hack: wait for completion
 sleep 1
 
