@@ -140,6 +140,8 @@ class ContentDiscoveryComponent(BaseLauncher["ContentDiscoveryCommunity"]):
              session.rest_manager.get_endpoint("/api/search")).content_discovery_community = community
         cast("StatisticsEndpoint",
              session.rest_manager.get_endpoint("/api/statistics")).content_discovery_community = community
+        cast("DatabaseEndpoint",
+             session.rest_manager.get_endpoint("/api/metadata")).content_discovery_community = community
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """

@@ -7,6 +7,7 @@ import sys
 import time
 import uuid
 from binascii import hexlify, unhexlify
+from collections import deque
 from importlib.metadata import PackageNotFoundError, version
 from itertools import count
 from typing import TYPE_CHECKING, Any, cast
@@ -28,7 +29,6 @@ from tribler.core.content_discovery.payload import (
 from tribler.core.database.orm_bindings.torrent_metadata import LZ4_EMPTY_ARCHIVE, entries_to_chunk
 from tribler.core.database.store import MetadataStore, ObjState, ProcessingResult
 from tribler.core.notifier import Notification, Notifier
-from tribler.core.torrent_checker.healthdataclasses import HealthInfo
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     from ipv8.peer import Peer
 
     from tribler.core.database.orm_bindings.torrent_metadata import TorrentMetadata
+    from tribler.core.torrent_checker.healthdataclasses import HealthInfo
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
 
 
@@ -96,6 +97,8 @@ class ContentDiscoveryCommunity(Community):
 
         self.remote_queries_in_progress = 0
         self.next_remote_query_num = count().__next__  # generator of sequential numbers, for logging & debug purposes
+
+        self.health_history: deque[HealthInfo] = deque(maxlen=1000)
 
         self.logger.info("Content Discovery Community initialized (peer mid %s)", hexlify(self.my_peer.mid))
         self.register_task("gossip_random_torrents", self.gossip_random_torrents_health,
@@ -212,6 +215,7 @@ class ContentDiscoveryCommunity(Community):
         to_resolve = self.process_torrents_health(health_list)
 
         for health_info in health_list:
+            self.health_history.append(health_info)
             # Get a single result per infohash to avoid duplicates
             if health_info.infohash in to_resolve:
                 self.send_remote_select(peer=peer, infohash=health_info.infohash, last=1)

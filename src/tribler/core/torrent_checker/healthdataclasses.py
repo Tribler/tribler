@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import binascii
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -92,6 +93,19 @@ class HealthInfo:
 
         # self is a remote health info that isn't older than previous health info, but isn't much fresher as well
         return (self.seeders, self.leechers) > (prev.seeders, prev.leechers)
+
+    def to_api_response(self) -> dict:
+        """
+        Serialize the dataclass to a JSON-compatible dictionary for REST API responses.
+        """
+        return {
+            "infohash": binascii.hexlify(self.infohash).decode(),
+            "seeders": self.seeders,
+            "leechers": self.leechers,
+            "last_check": self.last_check,
+            "tracker": self.tracker
+        }
+
 
 
 @dataclass
