@@ -2,7 +2,7 @@ import {NavLink, useSearchParams} from "react-router-dom";
 import {Icons} from "@/components/icons";
 import {appConfig} from "@/config/app";
 import {Button} from "@/components/ui/button";
-import {ExitIcon} from "@radix-ui/react-icons";
+import {ExitIcon, ReloadIcon} from "@radix-ui/react-icons";
 import {ModeToggle} from "../mode-toggle";
 import {Search} from "./Search";
 import LanguageSelect from "../language-select";
@@ -143,12 +143,30 @@ export function Header() {
                         <nav className="flex items-center space-x-2">
                             <LanguageSelect />
                             <ModeToggle />
+                            <EasyTooltip content={t("Restart")}>
+                                <Button
+                                    variant="ghost"
+                                    className="w-9 px-0"
+                                    onClick={() => {
+                                        triblerService.shutdown(true).then((response) => {
+                                            if (response === undefined) {
+                                                toast.error(
+                                                    `${t("ToastErrorShutdown")} ${t("ToastErrorGenNetworkErr")}`
+                                                );
+                                            } else if (isErrorDict(response)) {
+                                                toast.error(`${t("ToastErrorShutdown")} ${response.error.message}`);
+                                            }
+                                        });
+                                    }}>
+                                    <ReloadIcon />
+                                </Button>
+                            </EasyTooltip>
                             <EasyTooltip content={t("Shutdown")}>
                                 <Button
                                     variant="ghost"
                                     className="w-9 px-0"
                                     onClick={() => {
-                                        triblerService.shutdown().then((response) => {
+                                        triblerService.shutdown(false).then((response) => {
                                             if (response === undefined) {
                                                 toast.error(
                                                     `${t("ToastErrorShutdown")} ${t("ToastErrorGenNetworkErr")}`

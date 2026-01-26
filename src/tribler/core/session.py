@@ -113,6 +113,7 @@ class Session:
         self.config = config
 
         self.shutdown_event = Event()
+        self.restart_requested = False
         self.notifier = Notifier()
 
         # Libtorrent
@@ -168,7 +169,7 @@ class Session:
         self.rest_manager.add_endpoint(IPv8RootEndpoint())
         self.rest_manager.add_endpoint(LibTorrentEndpoint(self.download_manager))
         self.rest_manager.add_endpoint(SettingsEndpoint(self.config, self.download_manager))
-        self.rest_manager.add_endpoint(ShutdownEndpoint(self.shutdown_event.set))
+        self.rest_manager.add_endpoint(ShutdownEndpoint(self))
         self.rest_manager.add_endpoint(StatisticsEndpoint())
         self.rest_manager.add_endpoint(TorrentInfoEndpoint(self.download_manager))
 
