@@ -100,6 +100,7 @@
     "Filesize": "Filesize",
     "Health": "Health",
     "Destination": "Destination",
+    "DestinationFull": "Your chosen directory cannot fit this torrent!",
     "Availability": "Availability",
     "Files": "Files",
     "Trackers": "Trackers",

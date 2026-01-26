@@ -100,6 +100,7 @@
     "Filesize": "Tamanho",
     "Health": "Saúde",
     "Destination": "Destino",
+    "DestinationFull": "O diretório escolhido não cabe neste torrent!",
     "Availability": "Disponibilidade",
     "Files": "Arquivos",
     "Trackers": "Trackers",

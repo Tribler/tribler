@@ -2,6 +2,12 @@ import {cn} from "@/lib/utils";
 
 type IconProps = React.HTMLAttributes<SVGElement>;
 
+interface DiskIconProps extends IconProps {
+    disktotal: number;
+    diskused: number;
+    torrentsize: number;
+}
+
 export const Icons = {
     logo: (props: IconProps) => (
         <svg viewBox="0 0 83 97" {...props}>
@@ -55,6 +61,70 @@ export const Icons = {
                 <circle cx="12" cy="12" r="12" fill="#c96155"/>
                 <path d="M 6 6 l 12 12 M 6 18 l 12 -12" fill="transparent" stroke="white" strokeWidth="2" />
             </svg>
+        )
+    },
+    diskusage: (props: DiskIconProps) => {
+        var {disktotal, diskused, torrentsize, ...otherProps} = props;
+        let startX = 10*Math.cos((2*diskused*Math.PI)/disktotal-Math.PI/2)+10;
+        let startY = 10*Math.sin((2*diskused*Math.PI)/disktotal-Math.PI/2)+10;
+        let wideAngleStart = (2*diskused*Math.PI)/disktotal > Math.PI ? 1 : 0;
+        let fillsTo = Math.min(disktotal, diskused+torrentsize);
+        let endX = 10*Math.cos((2*fillsTo*Math.PI)/disktotal-Math.PI/2)+10;
+        let endY = 10*Math.sin((2*fillsTo*Math.PI)/disktotal-Math.PI/2)+10;
+        let wideAngleEnd = (2*fillsTo*Math.PI)/disktotal > Math.PI ? 1 : 0;
+        let wideAnglePulser = (2*torrentsize*Math.PI)/disktotal > Math.PI ? 1 : 0;
+        return (
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={20}
+                height={20}
+                viewBox="-1 -1 22 22"
+                fill="none"
+                xmlnsXlink="http://www.w3.org/1999/xlink"
+                {...props}
+              >
+                <filter id="blur">
+                  <feGaussianBlur stdDeviation={0.3} />
+                </filter>
+                <filter id="light">
+                  <feDiffuseLighting
+                    in="SourceGraphic"
+                    result="light"
+                    lightingColor="white"
+                  >
+                    <fePointLight x={5} y={5} z={20} />
+                  </feDiffuseLighting>
+                  <feComposite
+                    in="SourceGraphic"
+                    in2="light"
+                    operator="arithmetic"
+                    k1={1}
+                    k2={0}
+                    k3={0}
+                    k4={0}
+                  />
+                </filter>
+                <path
+                  d={`M 10 0 A 10 10 0 ${wideAngleEnd} 1 ${endX} ${endY} L 10 10`}
+                  fill="#ef6b10"
+                  filter="url(#light)"
+                />
+                <path d={`M 10 0 A 10 10 0 ${wideAngleStart} 1 ${startX} ${startY} L 10 10`} fill="#ee2411" />
+                <circle cx={10} cy={10} r={10} fill="none" stroke="currentColor" strokeWidth={1} />
+                <path
+                  d={`M ${startX},${startY} A 10,10 0,${wideAnglePulser},1 ${endX},${endY}  L 10,10`}
+                  fill="#f3914d"
+                  fillOpacity={0.7}
+                  filter="url(#blur)"
+                >
+                  <animate
+                    attributeName="fill-opacity"
+                    values="0;1;0"
+                    dur="2s"
+                    repeatCount="indefinite"
+                  />
+                </path>
+              </svg>
         )
     },
 };

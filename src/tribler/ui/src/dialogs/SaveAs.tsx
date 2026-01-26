@@ -22,6 +22,7 @@ import {Slider} from "@/components/ui/slider";
 import {ColumnDef, Row} from "@tanstack/react-table";
 import {useNavigate} from "react-router-dom";
 import {Settings} from "@/models/settings.model";
+import {DirspaceStatistics} from "@/models/statistics.model";
 import {useTranslation} from "react-i18next";
 import {TFunction} from "i18next";
 import {PathInput} from "@/components/path-input";
@@ -29,6 +30,7 @@ import {ChevronDown, ChevronRight, AlertTriangle} from "lucide-react";
 import {FileTreeItem} from "@/models/file.model";
 import {DownloadConfig} from "@/models/downloadconfig.model";
 import {Icons} from "@/components/icons";
+import {EasyTooltip} from "@/components/ui/tooltip";
 
 function startDownloadCallback(response: any, t: TFunction) {
     // We have to receive a translation function. Otherwise, we violate React's hook scoping.
@@ -114,6 +116,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [exists, setExists] = useState<boolean>(false);
     const [description, setDescription] = useState<string>("");
     const [files, setFiles] = useState<FileTreeItem[]>([]);
+    const [torrentSize, setTorrentSize] = useState<number>(0);
+    const [dirspaceStatistics, setDirspaceStatistics] = useState<DirspaceStatistics | undefined>(undefined);
 
     function OnSelectedFilesChange(row: Row<FileTreeItem>) {
         toggleTree(row.original, !row.original.included);
@@ -136,6 +140,31 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         safe_seeding: false,
         auto_managed: undefined,
     });
+
+    useEffect(() => {
+        if (params.selected_files !== undefined) {
+            let total = 0;
+            let remaining = [files[0]];
+            while (remaining.length > 0) {
+                let f = remaining.shift();
+                if (f === undefined)
+                    continue;
+                if (params.selected_files.indexOf(f.index) > -1)
+                    total += f.size;
+                if (f.subRows !== undefined)
+                    remaining = remaining.concat(f.subRows);
+            }
+            setTorrentSize(total);
+        }
+        if (params.destination !== undefined)
+            triblerService.getDirspaceStatistics(params.destination).then((response) => {
+                if (response !== undefined && !isErrorDict(response)) {
+                    setDirspaceStatistics(response);
+                } else {
+                    setDirspaceStatistics(undefined);
+                }
+            });
+    }, [params]);
 
     const navigate = useNavigate();
 
@@ -246,18 +275,31 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                     <DialogDescription className="break-all text-xs">{uri ?? torrent?.name ?? ""}</DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-[theme(spacing.64)_1fr] grid-rows-2 mt-2">
+                <div className="flex flex-cols-[theme(spacing.64)_1fr] flex-rows-2 mt-2">
                     {description && (
                         <>
-                            <Label htmlFor="dest_dir" className="whitespace-nowrap">
+                            <Label htmlFor="dest_dir" className="whitespace-nowrap mr-5">
                                 {t("Description")}
                             </Label>
                             <div className="text-sm">{description}</div>
                         </>
                     )}
-                    <Label htmlFor="dest_dir" className="whitespace-nowrap">
-                        {t("Destination")}
-                    </Label>
+                </div>
+                <div className="flex flex-cols-[theme(spacing.64)_1fr] flex-rows-2 mt-2">
+                    <div className="flex flex-cols-2 items-center flex-rows-1 whitespace-nowrap mr-5">
+                        <Label className="align-middle" htmlFor="dest_dir">
+                            {t("Destination")}
+                        </Label>
+                        <div className="ml-2" hidden={files.length == 0 || dirspaceStatistics === undefined}>
+                            {dirspaceStatistics === undefined ? <Label /> :
+                                (torrentSize > dirspaceStatistics.free ? <EasyTooltip content={t("DestinationFull")}><Icons.redcross /></EasyTooltip> :
+                                <EasyTooltip content={`(${formatBytes(torrentSize)}+${formatBytes(dirspaceStatistics.used)})/${formatBytes(dirspaceStatistics.total)}`}>
+                                    <Icons.diskusage disktotal={dirspaceStatistics.total} diskused={dirspaceStatistics.used} torrentsize={torrentSize} />
+                                </EasyTooltip>
+                                )
+                            }
+                        </div>
+                    </div>
                     <PathInput
                         path={params.destination || settings?.libtorrent?.download_defaults?.saveas || ""}
                         onPathChange={(path) => setParams({...params, destination: path})}
