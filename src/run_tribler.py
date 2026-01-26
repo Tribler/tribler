@@ -278,9 +278,11 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     return icon
 
 
-async def main() -> None:
+async def main() -> bool:
     """
     The main script entry point.
+
+    :returns: Whether we wish to restart the process.
     """
     try:
         parsed_args = parse_args()
@@ -304,7 +306,7 @@ async def main() -> None:
                 logger.info("Starting torrent using existing core")
                 await start_download(config, server_url, torrent_uri)
             logger.info("Shutting down")
-            return
+            return False
 
         await session.start()
     except Exception as exc:
@@ -321,10 +323,17 @@ async def main() -> None:
     await session.shutdown()
     if icon:
         icon.stop()
-    logger.info("Tribler shutdown completed")
+    logger.info("Tribler shutdown completed, restarting? %r", session.restart_requested)
+
+    return session.restart_requested
 
 
 if __name__ == "__main__":
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main())
+    __restart = True
+    while __restart:
+        __restart = asyncio.run(main())
+        if __restart:
+            import gc
+            gc.collect()

@@ -608,9 +608,9 @@ export class TriblerService {
         }
     }
 
-    async shutdown(): Promise<undefined | ErrorDict | boolean> {
+    async shutdown(restart: boolean): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.put(`/shutdown`)).data.shutdown;
+            return (await this.http.put(`/shutdown?restart=${restart ? 1 : 0}`)).data.shutdown;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
