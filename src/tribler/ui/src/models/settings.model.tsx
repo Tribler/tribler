@@ -103,7 +103,7 @@ export interface Settings {
     versioning: {
         enabled: boolean;
         allow_pre: boolean;
-    }
+    };
     watch_folder: {
         enabled: boolean;
         directory: string;

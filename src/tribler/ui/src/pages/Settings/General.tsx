@@ -428,35 +428,44 @@ export default function General() {
                 />
             </div>
 
-            <div className="pb-2 font-semibold">{t("Appearance") // Note: put this in its own tab if it grows too big
-                }</div>
+            <div className="pb-2 font-semibold">
+                {
+                    t("Appearance") // Note: put this in its own tab if it grows too big
+                }
+            </div>
             <div className="py-2 flex items-center">
                 <Label htmlFor="tray_color" className="whitespace-nowrap pr-5">
                     {t("TrayIconColor")}:
                 </Label>
-                <Checkbox id="tray_color_enabled" checked={!!settings?.tray_icon_color}
+                <Checkbox
+                    id="tray_color_enabled"
+                    checked={!!settings?.tray_icon_color}
                     className="mr-10"
                     onCheckedChange={(value) => {
                         if (settings) {
                             setSettings({
                                 ...settings,
-                                tray_icon_color: !!value ? "#E82901" : ""
+                                tray_icon_color: !!value ? "#E82901" : "",
                             });
                         }
-                    }
-                }/>
-                <input type="color" id="tray_color" name="tray_color" value={settings?.tray_icon_color}
+                    }}
+                />
+                <input
+                    type="color"
+                    id="tray_color"
+                    name="tray_color"
+                    value={settings?.tray_icon_color}
                     hidden={settings?.tray_icon_color === undefined || settings?.tray_icon_color == ""}
                     disabled={settings?.tray_icon_color === undefined || settings?.tray_icon_color == ""}
                     onChange={(evt) => {
                         if (settings) {
                             setSettings({
                                 ...settings,
-                                tray_icon_color: evt.target.value
+                                tray_icon_color: evt.target.value,
                             });
                         }
-                    }
-                }/>
+                    }}
+                />
             </div>
 
             <SaveButton
