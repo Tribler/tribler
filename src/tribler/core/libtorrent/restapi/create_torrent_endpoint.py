@@ -16,7 +16,7 @@ from marshmallow.fields import Boolean, String
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
 from tribler.core.libtorrent.torrentdef import TorrentDef
-from tribler.core.libtorrent.torrents import create_torrent_file
+from tribler.core.libtorrent.torrents import TorrentVersion, create_torrent_file
 from tribler.core.restapi.rest_endpoint import (
     HTTP_BAD_REQUEST,
     MAX_REQUEST_SIZE,
@@ -74,7 +74,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 "description": String,
                 "trackers": [String],
                 "export_dir": String,
-                "initial_nodes": [String]
+                "initial_nodes": [String],
+                "torrent_version": String
             }
         )
     )
@@ -127,7 +128,8 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 None,
                 initial_nodes,
                 0,
-                None
+                None,
+                getattr(TorrentVersion, parameters.get("torrent_version", "v1"))
             )
         except (OSError, UnicodeDecodeError, RuntimeError) as e:
             self._logger.exception(e)

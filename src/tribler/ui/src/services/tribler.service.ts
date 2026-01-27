@@ -31,7 +31,7 @@ export class TriblerService {
         });
         this.events = new EventSource(this.baseURL + "/events", {withCredentials: true});
         this.addEventListener("tribler_exception", OnError);
-        this.addEventListener("events_start", (event) => this.version = JSON.parse(event.data).version);
+        this.addEventListener("events_start", (event) => (this.version = JSON.parse(event.data).version));
         // Gets the GuiSettings
         this.getSettings();
     }
@@ -566,10 +566,7 @@ export class TriblerService {
         }
     }
 
-    async dryCreateTorrent(
-        name: string,
-        exportDir: string
-    ): Promise<undefined | ErrorDict | {torrent: string}> {
+    async dryCreateTorrent(name: string, exportDir: string): Promise<undefined | ErrorDict | {torrent: string}> {
         try {
             return (
                 await this.http.post("/createtorrent/dryrun", {
@@ -589,7 +586,8 @@ export class TriblerService {
         files: string[],
         exportDir: string,
         trackers: string[],
-        initialNodes: string[]
+        initialNodes: string[],
+        torrentVersion: "v1" | "v2" | "hybrid"
     ): Promise<undefined | ErrorDict | {torrent: string}> {
         try {
             return (
@@ -600,7 +598,8 @@ export class TriblerService {
                     files: files,
                     export_dir: exportDir,
                     trackers: trackers,
-                    initial_nodes: initialNodes
+                    initial_nodes: initialNodes,
+                    torrent_version: torrentVersion,
                 })
             ).data.torrent;
         } catch (error) {
@@ -608,7 +607,7 @@ export class TriblerService {
         }
     }
 
-    async getHealthCheckHistory() : Promise<undefined | ErrorDict | Health[]> {
+    async getHealthCheckHistory(): Promise<undefined | ErrorDict | Health[]> {
         try {
             return (await this.http.get("/metadata/torrents/health")).data.health_history;
         } catch (error) {
