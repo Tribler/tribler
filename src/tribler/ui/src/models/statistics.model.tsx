@@ -15,3 +15,9 @@ export interface TriblerStatistics {
     };
     endpoint_version?: string;
 }
+
+export interface DirspaceStatistics {
+    total: number;
+    used: number;
+    free: number;
+}

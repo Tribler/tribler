@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import shutil
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
 from aiohttp import web
-from aiohttp_apispec import docs
+from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
 from ipv8_rust_tunnels import rust_endpoint
 from marshmallow.fields import Integer, String
 
-from tribler.core.restapi.rest_endpoint import MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
+from tribler.core.restapi.rest_endpoint import HTTP_NOT_FOUND, MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
     from ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint as IPv8StatsEndpoint
@@ -82,7 +83,8 @@ class StatisticsEndpoint(RESTEndpoint):
         self.content_discovery_community: ContentDiscoveryCommunity | None = None
 
         self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
-                             web.get("/ipv8", self.get_ipv8_stats)])
+                             web.get("/ipv8", self.get_ipv8_stats),
+                             web.put("/dirspace", self.get_dirspace_stats)])
 
     @docs(
         tags=["General"],
@@ -90,7 +92,7 @@ class StatisticsEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(TriblerStatisticsResponse={
-                    "statistics": schema(TriblerStatistics={
+                    "tribler_statistics": schema(TriblerStatistics={
                         "database_size": Integer,
                         "torrent_queue_stats": [
                             schema(TorrentQueueStats={
@@ -155,7 +157,7 @@ class StatisticsEndpoint(RESTEndpoint):
         responses={
             200: {
                 "schema": schema(IPv8StatisticsResponse={
-                    "statistics": schema(IPv8Statistics={
+                    "ipv8_statistics": schema(IPv8Statistics={
                         "total_up": Integer,
                         "total_down": Integer
                     })
@@ -175,3 +177,32 @@ class StatisticsEndpoint(RESTEndpoint):
                 "total_down": stats_ep.bytes_down
             }
         return RESTResponse({"ipv8_statistics": stats_dict})
+
+    @docs(
+        tags=["General"],
+        summary="Return disk space statistics for a given directory.",
+        responses={
+            200: {
+                "schema": schema(IPv8StatisticsResponse={
+                    "statistics": schema(IPv8Statistics={
+                        "total": Integer,
+                        "used": Integer,
+                        "free": Integer
+                    })
+                })
+            }
+        }
+    )
+    @json_schema(schema(DirspaceStatsRequest={"directory": String}))
+    async def get_dirspace_stats(self, request: web.Request) -> RESTResponse:
+        """
+        Return disk space statistics for a given directory.
+        """
+        if not self.session:
+            return RESTResponse({"error": {"handled": True, "message": "Session was not initialized!"}},
+                                status=HTTP_NOT_FOUND)
+        directory = (await request.json()).get("directory")
+        if not directory:
+            directory = self.session.config.get("libtorrent/download_defaults/saveas")
+        usage = shutil.disk_usage(directory)
+        return RESTResponse({"statistics": {"total": usage.total, "used": usage.used, "free": usage.free}})

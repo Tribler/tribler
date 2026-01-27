@@ -6,7 +6,7 @@ import {GuiSettings, Settings} from "@/models/settings.model";
 import {Torrent} from "@/models/torrent.model";
 import axios, {AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig} from "axios";
 import {ErrorDict, formatAxiosError, handleHTTPError} from "./reporting";
-import {TriblerStatistics} from "@/models/statistics.model";
+import {DirspaceStatistics, TriblerStatistics} from "@/models/statistics.model";
 import {Health} from "@/models/health.model";
 
 export type QueueOperation = "queue_up" | "queue_top" | "queue_down" | "queue_bottom";
@@ -281,6 +281,14 @@ export class TriblerService {
     async getTriblerStatistics(): Promise<undefined | ErrorDict | TriblerStatistics> {
         try {
             return (await this.http.get("/statistics/tribler")).data.tribler_statistics;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async getDirspaceStatistics(someFolder: string): Promise<undefined | ErrorDict | DirspaceStatistics> {
+        try {
+            return (await this.http.put("/statistics/dirspace", {directory: someFolder})).data.statistics;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

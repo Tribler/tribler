@@ -100,6 +100,7 @@
     "Filesize": "파일 크기",
     "Health": "상태",
     "Destination": "대상",
+    "DestinationFull": "선택한 디렉토리가 이 토렌트에 맞지 않습니다!",
     "Availability": "가용성",
     "Files": "파일",
     "Trackers": "트래커",

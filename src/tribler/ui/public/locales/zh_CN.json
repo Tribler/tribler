@@ -100,6 +100,7 @@
     "Filesize": "文件大小",
     "Health": "健康度",
     "Destination": "下载位置",
+    "DestinationFull": "您选择的目录不适合该种子！",
     "Availability": "可用性",
     "Files": "文件",
     "Trackers": "追踪器",
