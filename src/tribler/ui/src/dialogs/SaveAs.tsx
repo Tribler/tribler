@@ -147,12 +147,9 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             let remaining = [files[0]];
             while (remaining.length > 0) {
                 let f = remaining.shift();
-                if (f === undefined)
-                    continue;
-                if (params.selected_files.indexOf(f.index) > -1)
-                    total += f.size;
-                if (f.subRows !== undefined)
-                    remaining = remaining.concat(f.subRows);
+                if (f === undefined) continue;
+                if (params.selected_files.indexOf(f.index) > -1) total += f.size;
+                if (f.subRows !== undefined) remaining = remaining.concat(f.subRows);
             }
             setTorrentSize(total);
         }
@@ -291,13 +288,22 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             {t("Destination")}
                         </Label>
                         <div className="ml-2" hidden={files.length == 0 || dirspaceStatistics === undefined}>
-                            {dirspaceStatistics === undefined ? <Label /> :
-                                (torrentSize > dirspaceStatistics.free ? <EasyTooltip content={t("DestinationFull")}><Icons.redcross /></EasyTooltip> :
-                                <EasyTooltip content={`(${formatBytes(torrentSize)}+${formatBytes(dirspaceStatistics.used)})/${formatBytes(dirspaceStatistics.total)}`}>
-                                    <Icons.diskusage disktotal={dirspaceStatistics.total} diskused={dirspaceStatistics.used} torrentsize={torrentSize} />
+                            {dirspaceStatistics === undefined ? (
+                                <Label />
+                            ) : torrentSize > dirspaceStatistics.free ? (
+                                <EasyTooltip content={t("DestinationFull")}>
+                                    <Icons.redcross />
                                 </EasyTooltip>
-                                )
-                            }
+                            ) : (
+                                <EasyTooltip
+                                    content={`(${formatBytes(torrentSize)}+${formatBytes(dirspaceStatistics.used)})/${formatBytes(dirspaceStatistics.total)}`}>
+                                    <Icons.diskusage
+                                        disktotal={dirspaceStatistics.total}
+                                        diskused={dirspaceStatistics.used}
+                                        torrentsize={torrentSize}
+                                    />
+                                </EasyTooltip>
+                            )}
                         </div>
                     </div>
                     <PathInput

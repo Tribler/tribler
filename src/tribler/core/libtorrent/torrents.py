@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import enum
 import logging
 import os
 import shutil
@@ -19,6 +20,22 @@ if TYPE_CHECKING:
     from tribler.core.libtorrent.download_manager.download import Download
 
 logger = logging.getLogger(__name__)
+
+class TorrentVersion(enum.Enum):
+    """
+    Torrent creation flag to define the torrent protocol version.
+
+    Warning:
+        - Setting only v1 is ok.
+        - Setting only v2 is ok.
+        - Setting neither flag is ok (creates a hybrid torrent).
+        - Setting both will cause a crash!
+
+    """
+
+    v1 = int(lt.create_torrent.v1_only)
+    v2 = int(lt.create_torrent.v2_only)
+    hybrid = 0
 
 
 def check_handle[**WrappedParams, WrappedReturn](
@@ -164,7 +181,8 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
                         http_seeds: list[str] | None = None,
                         nodes: list[tuple[str, int]] | None = None,
                         piece_size: int = 0,
-                        url_list: list[str] | None = None) -> TorrentFileResult:
+                        url_list: list[str] | None = None,
+                        torrent_version: TorrentVersion = TorrentVersion.v1) -> TorrentFileResult:
     """
     Create a torrent file from the given paths and parameters.
 
@@ -191,8 +209,7 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
         if not ignore:
             fs.add_file(str(in_torrent_file.relative_to(export_dir)), getsize(str(src)))
 
-    flag_v1_only = 2**6  # Backward compatibility for libtorrent < 2.x
-    flags = lt.create_torrent_flags_t.optimize | flag_v1_only
+    flags = torrent_version.value
 
     torrent = lt.create_torrent(fs, piece_size=piece_size, flags=flags)
     if comment is not None:

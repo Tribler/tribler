@@ -146,9 +146,7 @@ export default function Versions() {
                 </Suspense>
                 <Label key="spacer1"></Label>
 
-                <Label className="whitespace-nowrap pr-5 font-bold">
-                    {t("NotifyPreReleases")}:
-                </Label>
+                <Label className="whitespace-nowrap pr-5 font-bold">{t("NotifyPreReleases")}:</Label>
                 <Checkbox
                     id="notifyprereleasescheckbox"
                     className="my-2"
@@ -167,7 +165,6 @@ export default function Versions() {
                 />
                 <Label key="spacer9"></Label>
                 <Label key="spacer10"></Label>
-
 
                 <Label style={{marginBottom: "1cm"}} key="spacer2"></Label>
                 <Label key="spacer3"></Label>

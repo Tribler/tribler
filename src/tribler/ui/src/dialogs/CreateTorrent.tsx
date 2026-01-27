@@ -1,8 +1,17 @@
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {useEffect, useState} from "react";
 import toast from "react-hot-toast";
-import {Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
+import {RadioGroup, RadioGroupItem} from "@/components/ui/radiogroup";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {DialogProps} from "@radix-ui/react-dialog";
 import {JSX} from "react/jsx-runtime";
@@ -26,11 +35,10 @@ interface Filename {
 }
 
 enum NameValid {
-  Pending = 1,
-  Valid,
-  Invalid,
+    Pending = 1,
+    Valid,
+    Invalid,
 }
-
 
 export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogProps) {
     const [name, setName] = useState<string>("");
@@ -41,6 +49,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
     const [destination, setDestination] = useState<string>("");
     const [trackers, setTrackers] = useState<string>("");
     const [initialNodes, setInitialNodes] = useState<string>("");
+    const [torrentVersion, setTorrentVersion] = useState<string>("v1");
 
     const [files, setFiles] = useState<Filename[]>([]);
     const [onlyFile, setOnlyFile] = useState<string | undefined>(undefined);
@@ -74,9 +83,8 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                 }
             }
             return c;
-        })
-        if (changed)
-            setFiles(newFiles);
+        });
+        if (changed) setFiles(newFiles);
     }
 
     const filenameColumns: ColumnDef<Filename>[] = [
@@ -90,23 +98,22 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                     row.original.path = value;
                     let changed = false;
                     const newFiles = files.map((c, i) => {
-                        if (("" + i) == row.id) {
+                        if ("" + i == row.id) {
                             if (c.path != value) {
                                 changed = true;
                                 return {...c, path: value};
                             }
                         }
                         return c;
-                    })
-                    if (changed)
-                        setFiles(newFiles);
+                    });
+                    if (changed) setFiles(newFiles);
                 }, [value]);
                 useEffect(() => {
                     if (selected === undefined) {
                         // Update to switch off, check if we already knew about this update.
                         let changed = false;
                         const newlySelected = selectedRows.filter((e, i, a) => {
-                            if (e.selected == row.id){
+                            if (e.selected == row.id) {
                                 changed = true;
                                 return false;
                             } else {
@@ -120,41 +127,49 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                         }
                     } else {
                         // Update to switch on, check if we already knew about this update.
-                        if (selectedRows.find((element) => element.selected == row.id) === undefined){
+                        if (selectedRows.find((element) => element.selected == row.id) === undefined) {
                             row.original.selected = selected;
                             let changed = false;
                             const newlySelected = selectedRows.map((c, i) => {
-                                if (("" + i) == row.id) {
+                                if ("" + i == row.id) {
                                     changed = true;
                                     return {...c, selected: row.id};
                                 }
                                 return c;
-                            })
-                            if (!changed)
-                                newlySelected.push({...row.original, selected: row.id});
+                            });
+                            if (!changed) newlySelected.push({...row.original, selected: row.id});
                             setSelectedRows(newlySelected);
                             setHasNoSelection(false);
                         }
                     }
                 }, [selected]);
                 return (
-                        <form className="flex flex-row items-center">
-                            <Checkbox className="mr-2" checked={selected !== undefined} onCheckedChange={(e) => {setSelected(e ? row.id : undefined);}} />
-                            <Input list="placeholders" disabled={row.original.src === ""}
-                                placeholder={row.original.suggestion}
-                                value={value}
-                                onChange={e => setValue(e.target.value)} />
-                            <datalist id="placeholders">
-                                <option value={row.original.suggestion} />
-                            </datalist>
-                        </form>
-                        );
+                    <form className="flex flex-row items-center">
+                        <Checkbox
+                            className="mr-2"
+                            checked={selected !== undefined}
+                            onCheckedChange={(e) => {
+                                setSelected(e ? row.id : undefined);
+                            }}
+                        />
+                        <Input
+                            list="placeholders"
+                            disabled={row.original.src === ""}
+                            placeholder={row.original.suggestion}
+                            value={value}
+                            onChange={(e) => setValue(e.target.value)}
+                        />
+                        <datalist id="placeholders">
+                            <option value={row.original.suggestion} />
+                        </datalist>
+                    </form>
+                );
             },
         },
         {
             accessorKey: "src",
             header: getHeader("Files"),
-            cell: ({ getValue, row: { index }, column: { id }, table }) => {
+            cell: ({getValue, row: {index}, column: {id}, table}) => {
                 const initialValue = getValue<string>();
                 const [value, setValue] = useState<string>(initialValue);
                 useEffect(() => {
@@ -163,8 +178,15 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                 useEffect(() => {
                     setValue(initialValue);
                 }, [initialValue]);
-                return (<PathInput directory={false} path={value}
-                            onPathChange={(userValue) => {setValue(userValue);}} />);
+                return (
+                    <PathInput
+                        directory={false}
+                        path={value}
+                        onPathChange={(userValue) => {
+                            setValue(userValue);
+                        }}
+                    />
+                );
             },
         },
     ];
@@ -184,17 +206,17 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         setFiles([...files, {path: "", src: "", suggestion: "", selected: undefined}]);
     }
 
-    function setInvalidName(target: HTMLInputElement){
+    function setInvalidName(target: HTMLInputElement) {
         setIsNameValid(NameValid.Invalid);
         target.style.borderColor = "#c96155";
     }
 
-    function setValidName(target: HTMLInputElement){
+    function setValidName(target: HTMLInputElement) {
         setIsNameValid(NameValid.Valid);
         target.style.borderColor = "#62c955";
     }
 
-    function setPending(target: HTMLInputElement){
+    function setPending(target: HTMLInputElement) {
         setIsNameValid(NameValid.Pending);
         target.style.borderColor = "";
     }
@@ -203,7 +225,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         let name = target.value;
         if (name == "") {
             setInvalidName(target);
-            return
+            return;
         } else {
             setPending(target);
         }
@@ -223,15 +245,18 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
     }
 
     function removeSelected() {
-        const selectedRowIds = selectedRows.map((c, i) => {return c.selected;});
-        const newFiles = files.filter((e, i, a) => {
-            return !selectedRowIds.includes(e.selected);
-        }).map((c, i) => {
-            if (c.selected !== undefined)
-                c.selected = "" + i;
-            return c;
+        const selectedRowIds = selectedRows.map((c, i) => {
+            return c.selected;
         });
-        setSelectedRows([]);  // All selected elements are now removed, easy.
+        const newFiles = files
+            .filter((e, i, a) => {
+                return !selectedRowIds.includes(e.selected);
+            })
+            .map((c, i) => {
+                if (c.selected !== undefined) c.selected = "" + i;
+                return c;
+            });
+        setSelectedRows([]); // All selected elements are now removed, easy.
         setFiles(newFiles);
     }
 
@@ -239,27 +264,25 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         const t = farr[i];
         farr[i] = farr[j];
         farr[j] = t;
-        if (farr[i].selected !== undefined)
-            farr[i].selected = "" + i;
-        if (farr[j].selected !== undefined)
-            farr[j].selected = "" + j;
+        if (farr[i].selected !== undefined) farr[i].selected = "" + i;
+        if (farr[j].selected !== undefined) farr[j].selected = "" + j;
     }
 
     function moveUpSelected() {
         const selectedRowIds = selectedRows.map((c, i) => c.selected);
         let couldSwapPreceding = !selectedRowIds.includes("0");
         const newFiles = [...files];
-        for(let i = 1; i < files.length; i++){
-            if (selectedRowIds.includes("" + i)){
-                if (!selectedRowIds.includes("" + (i-1)) || couldSwapPreceding) {
-                    swapFileIndices(newFiles, i-1, i);
+        for (let i = 1; i < files.length; i++) {
+            if (selectedRowIds.includes("" + i)) {
+                if (!selectedRowIds.includes("" + (i - 1)) || couldSwapPreceding) {
+                    swapFileIndices(newFiles, i - 1, i);
                     couldSwapPreceding = true;
                 } else {
                     couldSwapPreceding = false;
                 }
             }
         }
-        setSelectedRows([]);  // Invalidate and recalculate, expensive!
+        setSelectedRows([]); // Invalidate and recalculate, expensive!
         setFiles(newFiles);
     }
 
@@ -267,34 +290,35 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
         const selectedRowIds = selectedRows.map((c, i) => c.selected);
         let couldSwapPreceding = !selectedRowIds.includes("" + (files.length - 1));
         const newFiles = [...files];
-        for(let i = files.length - 2; i >= 0; i--){
-            if (selectedRowIds.includes("" + i)){
-                if (!selectedRowIds.includes("" + (i+1)) || couldSwapPreceding) {
-                    swapFileIndices(newFiles, i+1, i);
+        for (let i = files.length - 2; i >= 0; i--) {
+            if (selectedRowIds.includes("" + i)) {
+                if (!selectedRowIds.includes("" + (i + 1)) || couldSwapPreceding) {
+                    swapFileIndices(newFiles, i + 1, i);
                     couldSwapPreceding = true;
                 } else {
                     couldSwapPreceding = false;
                 }
             }
         }
-        setSelectedRows([]);  // Invalidate and recalculate, expensive!
+        setSelectedRows([]); // Invalidate and recalculate, expensive!
         setFiles(newFiles);
     }
 
     useEffect(() => {
         const delayedNameValidityUpdate = setTimeout(() => {
-            if (debounceNameInput[0] !== undefined)
-                requestNameValidity(debounceNameInput[0]);
-        }, 500)
+            if (debounceNameInput[0] !== undefined) requestNameValidity(debounceNameInput[0]);
+        }, 500);
 
-        return () => clearTimeout(delayedNameValidityUpdate)
+        return () => clearTimeout(delayedNameValidityUpdate);
     }, [debounceNameInput]);
 
     useEffect(() => {
-        const actualFiles = files.filter((e, i, a) => {return e.suggestion != ""});
+        const actualFiles = files.filter((e, i, a) => {
+            return e.suggestion != "";
+        });
         if (actualFiles.length == 1) {
             // Single-file torrent!
-            if (actualFiles[0].path != ""){
+            if (actualFiles[0].path != "") {
                 // Use the user override, if available.
                 setOnlyFile(actualFiles[0].path.replace(/^.*[\\/]/, ""));
             } else {
@@ -337,8 +361,12 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                                 }}
                             />
                             <div className="absolute left-2" hidden={onlyFile !== undefined}>
-                                {isNameValid == NameValid.Valid ? <Icons.checkmark /> : (
-                                    isNameValid == NameValid.Invalid ? <Icons.redcross /> : <Icons.spinner />
+                                {isNameValid == NameValid.Valid ? (
+                                    <Icons.checkmark />
+                                ) : isNameValid == NameValid.Invalid ? (
+                                    <Icons.redcross />
+                                ) : (
+                                    <Icons.spinner />
                                 )}
                             </div>
                             <div className="absolute left-2" hidden={onlyFile === undefined}>
@@ -349,9 +377,17 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                         <Label htmlFor="files" className="whitespace-nowrap pr-5 pt-2">
                             {t("Files")}
                         </Label>
-                        <SimpleTable data={files} columns={filenameColumns} initialState={{sorting: [{id: "suggestion", desc: false}]}} />
+                        <SimpleTable
+                            data={files}
+                            columns={filenameColumns}
+                            initialState={{sorting: [{id: "suggestion", desc: false}]}}
+                        />
                         <div className="flex">
-                            <Button variant="outline" type="button" className={files.length === 0 ? "animate-bounce mr-4" : "mr-4"} onClick={() => {
+                            <Button
+                                variant="outline"
+                                type="button"
+                                className={files.length === 0 ? "animate-bounce mr-4" : "mr-4"}
+                                onClick={() => {
                                     addFile();
                                 }}>
                                 <Plus />
@@ -360,13 +396,44 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                             <Button variant="outline" type="button" disabled={hasNoSelection} onClick={moveUpSelected}>
                                 <ArrowUp />
                             </Button>
-                            <Button variant="outline" type="button" disabled={hasNoSelection} className="mr-4" onClick={moveDownSelected}>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                disabled={hasNoSelection}
+                                className="mr-4"
+                                onClick={moveDownSelected}>
                                 <ArrowDown />
                             </Button>
-                            <Button variant="outline" type="button" disabled={hasNoSelection} className="bg-destructive-foreground" onClick={removeSelected}>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                disabled={hasNoSelection}
+                                className="bg-destructive-foreground"
+                                onClick={removeSelected}>
                                 <Trash2 className="stroke-destructive" />
                             </Button>
                         </div>
+
+                        <RadioGroup
+                            defaultValue="v1"
+                            className="flex flex-cols-3 size-full items-center"
+                            orientation="horizontal"
+                            onValueChange={(value) => {
+                                setTorrentVersion(value);
+                            }}>
+                            <div className="mr-2 flex items-center">
+                                <RadioGroupItem value="v1" id="torrent_type_v1" className="mr-2" />
+                                <Label htmlFor="torrent_type_v1">v1</Label>
+                            </div>
+                            <div className="mr-2 flex items-center">
+                                <RadioGroupItem value="v2" id="torrent_type_v2" className="mr-2" />
+                                <Label htmlFor="torrent_type_v2">v2</Label>
+                            </div>
+                            <div className="mr-2 flex items-center">
+                                <RadioGroupItem value="hybrid" id="torrent_type_hybrid" className="mr-2" />
+                                <Label htmlFor="torrent_type_hybrid">hybrid</Label>
+                            </div>
+                        </RadioGroup>
 
                         <details className="col-span-2">
                             <summary>{t("Advanced")}</summary>
@@ -398,7 +465,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                             <Textarea
                                 id="initialNodes"
                                 className="col-span-2"
-                                placeholder='your.router.node 4804&#10;2001:db8:100:0:d5c8:db3f:995e:c0f7 1941&#10; ...'
+                                placeholder="your.router.node 4804&#10;2001:db8:100:0:d5c8:db3f:995e:c0f7 1941&#10; ..."
                                 value={initialNodes}
                                 onChange={(event) => setInitialNodes(event.target.value)}
                             />
@@ -415,11 +482,20 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                                 .createTorrent(
                                     onlyFile === undefined ? name : onlyFile,
                                     description,
-                                    files.filter((e, i, a) => {return e.src != ""}).map((f) => f.path),
-                                    files.filter((e, i, a) => {return e.src != ""}).map((f) => f.src),
+                                    files
+                                        .filter((e, i, a) => {
+                                            return e.src != "";
+                                        })
+                                        .map((f) => f.path),
+                                    files
+                                        .filter((e, i, a) => {
+                                            return e.src != "";
+                                        })
+                                        .map((f) => f.src),
                                     destination,
                                     trackers.split(/\r?\n/),
-                                    initialNodes.split(/\r?\n/)
+                                    initialNodes.split(/\r?\n/),
+                                    torrentVersion as "v1" | "v2" | "hybrid"
                                 )
                                 .then((response) => {
                                     if (response === undefined) {
@@ -435,7 +511,13 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                                 });
                             if (props.onOpenChange) props.onOpenChange(false);
                         }}
-                        disabled={(files.filter((e, i, a) => {return e.suggestion != ""}).length === 0 || isNameValid != NameValid.Valid) && onlyFile === undefined}>
+                        disabled={
+                            (files.filter((e, i, a) => {
+                                return e.suggestion != "";
+                            }).length === 0 ||
+                                isNameValid != NameValid.Valid) &&
+                            onlyFile === undefined
+                        }>
                         {t("CreateTorrentButton")}
                     </Button>
                     <DialogClose asChild>
