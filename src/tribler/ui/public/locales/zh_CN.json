@@ -251,5 +251,9 @@
     "NotifyPreReleases": "预发布通知",
     "DisableAnonimity": "禁用匿名",
     "DisableAnonimityConfirm": "您即将禁用所有选定种子的匿名性。你确定吗？",
-    "Continue": "继续"
+    "Continue": "继续",
+    "AnonStatusDisabled": "未启用匿名功能",
+    "AnonStatusNoPeers": "无法建立匿名，根本没有同行！",
+    "AnonStatusOnlyRelays": "可用的匿名性有限：使用 2 跳下载",
+    "AnonStatusHasExits": "可用匿名化"
 }

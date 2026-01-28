@@ -251,5 +251,9 @@
     "NotifyPreReleases": "प्री-रिलीज़ के लिए सूचित करें",
     "DisableAnonimity": "गुमनामी अक्षम करना",
     "DisableAnonimityConfirm": "आप सभी चयनित टोरेंटों के लिए गुमनामी अक्षम करने के बारे में हैं। क्या आपको यकीन है?",
-    "Continue": "जारी रखना"
+    "Continue": "जारी रखना",
+    "AnonStatusDisabled": "गुमनामी सुविधा सक्षम नहीं है",
+    "AnonStatusNoPeers": "गुमनामी स्थापित नहीं की जा सकती, कोई सहकर्मी ही नहीं!",
+    "AnonStatusOnlyRelays": "सीमित गुमनामी उपलब्ध: 2-हॉप डाउनलोड का उपयोग करें",
+    "AnonStatusHasExits": "गुमनामीकरण उपलब्ध है"
 }

@@ -251,5 +251,9 @@
     "NotifyPreReleases": "Notificar para prelanzamientos",
     "DisableAnonimity": "Desactivar el anonimato",
     "DisableAnonimityConfirm": "Se trata de desactivar el anonimato de todos los torrents seleccionados. ¿Está seguro?",
-    "Continue": "Continuar"
+    "Continue": "Continuar",
+    "AnonStatusDisabled": "La función de anonimato no está habilitada",
+    "AnonStatusNoPeers": "¡No se puede establecer el anonimato, no hay compañeros en absoluto!",
+    "AnonStatusOnlyRelays": "Anonimización limitada disponible: use descargas de 2 saltos",
+    "AnonStatusHasExits": "Anonimización disponible"
 }
