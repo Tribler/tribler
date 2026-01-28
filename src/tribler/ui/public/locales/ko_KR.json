@@ -251,5 +251,9 @@
     "NotifyPreReleases": "사전 출시에 대해 알림",
     "DisableAnonimity": "익명성 비활성화",
     "DisableAnonimityConfirm": "선택한 모든 토렌트에 대해 익명성을 비활성화하는 것에 관한 것입니다. 확실합니까?",
-    "Continue": "계속하다"
+    "Continue": "계속하다",
+    "AnonStatusDisabled": "익명성 기능이 활성화되어 있지 않습니다.",
+    "AnonStatusNoPeers": "익명화를 설정할 수 없으며 동료가 전혀 없습니다!",
+    "AnonStatusOnlyRelays": "제한된 익명화 가능: 2-hop 다운로드 사용",
+    "AnonStatusHasExits": "익명화 가능"
 }

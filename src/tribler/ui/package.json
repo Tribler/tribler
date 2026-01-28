@@ -39,7 +39,7 @@
     "i18next": "^25.1.2",
     "js-cookie": "^3.0.5",
     "jszip": "^3.10.1",
-    "lucide-react": "^0.509.0",
+    "lucide-react": "^0.528.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.3",
