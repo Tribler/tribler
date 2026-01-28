@@ -459,7 +459,7 @@ class Download(TaskManager):
         if alert.state == lt.torrent_status.downloading and self.tdef.torrent_info is None:
             self.post_alert("metadata_received_alert")
 
-    def on_save_resume_data_alert(self, alert: lt.save_resume_data_alert) -> None:
+    def on_save_resume_data_alert(self, alert: lt.save_resume_data_alert) -> None:  # noqa: PLR0915
         """
         Callback for the alert that contains the resume data of a specific download.
         This resume data will be written to a file on disk.
@@ -468,16 +468,47 @@ class Download(TaskManager):
         if self.checkpoint_disabled:
             return
 
+        if self.lt_status is not None:  # The ``resume_data.params`` does not autopopulate! So, we do that here.
+            self.tdef.atp.active_time = int(self.lt_status.active_duration.total_seconds())
+            self.tdef.atp.finished_time = int(self.lt_status.finished_duration.total_seconds())
+            self.tdef.atp.seeding_time = int(self.lt_status.seeding_duration.total_seconds())
+            if self.lt_status.last_download:
+                self.tdef.atp.last_download = int(self.lt_status.last_download.timestamp())
+            if self.lt_status.last_upload:
+                self.tdef.atp.last_upload = int(self.lt_status.last_upload.timestamp())
+            self.tdef.atp.added_time = self.lt_status.added_time
+            self.tdef.atp.completed_time = self.lt_status.completed_time
+            self.tdef.atp.have_pieces = self.lt_status.pieces
+            self.tdef.atp.flags = self.lt_status.flags
+            self.tdef.atp.last_seen_complete = self.lt_status.last_seen_complete
+            self.tdef.atp.max_connections = self.lt_status.uploads_limit
+            self.tdef.atp.max_uploads = self.lt_status.connections_limit
+            self.tdef.atp.num_complete = self.lt_status.num_complete
+            self.tdef.atp.num_incomplete = self.lt_status.num_incomplete
+            self.tdef.atp.storage_mode = self.lt_status.storage_mode
+            self.tdef.atp.total_downloaded = self.lt_status.all_time_download
+            self.tdef.atp.total_uploaded = self.lt_status.all_time_upload
+            self.tdef.atp.verified_pieces = self.lt_status.verified_pieces
+
+        if self.handle is not None:  # Ditto, but we prefer ``lt_status`` info because the handle has function calls.
+            self.tdef.atp.download_limit = self.handle.download_limit()
+            self.tdef.atp.file_priorities = self.handle.get_file_priorities()
+            self.tdef.atp.http_seeds = self.handle.http_seeds()
+            self.tdef.atp.piece_priorities = self.handle.get_piece_priorities()
+            self.tdef.atp.upload_limit = self.handle.upload_limit()
+            self.tdef.atp.url_seeds = self.handle.url_seeds()
+            trackers = []
+            tracker_tiers = []
+            for announce_entry in self.handle.trackers():
+                trackers.append(announce_entry["url"])
+                tracker_tiers.append(announce_entry["tier"])
+            self.tdef.atp.trackers = trackers
+            self.tdef.atp.tracker_tiers = tracker_tiers
+
         resume_data = alert.params
-        # Skip: info_hash, info_hashes, merkle_tree, save_path, ti
-        for attr in ["active_time", "added_time", "banned_peers", "completed_time", "dht_nodes", "download_limit",
-                     "file_priorities", "finished_time", "flags", "have_pieces", "http_seeds", "last_download",
-                     "last_seen_complete", "last_upload", "max_connections", "max_uploads", "name", "num_complete",
-                     "num_downloaded", "num_incomplete", "peers", "piece_priorities", "renamed_files", "resume_data",
-                     "seeding_time", "storage_mode", "total_downloaded", "total_uploaded", "tracker_tiers",
-                     "trackerid", "trackers", "unfinished_pieces", "upload_limit", "url", "url_seeds",
-                     "verified_pieces", "version"]:
-            setattr(self.tdef.atp, attr, getattr(resume_data, attr))
+        # Skip: banned_peers, dht_nodes, info_hash, info_hashes, merkle_tree, num_downloaded, peers, renamed_files, ti,
+        #       trackerid, unfinished_pieces, url, version
+        self.tdef.atp.name = resume_data.name
         # Make save_path relative if the torrent is saved in the Tribler state directory
         if self.state_dir:
             save_path = Path(resume_data.save_path).absolute()
