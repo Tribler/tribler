@@ -3,28 +3,21 @@ Keep this text for the test_stream test.
 """
 from __future__ import annotations
 
-from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call, mock_open, patch
 
 import libtorrent
 from aiohttp.web_urldispatcher import UrlMappingMatchInfo
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
 from ipv8.test.REST.rest_base import BodyCapture, MockRequest, response_to_bytes, response_to_json
-from validate import Validator
 
 from tribler.core.libtorrent.download_manager.download import Download
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_FOUND
-from tribler.test_unit.core.libtorrent.mocks import (
-    TORRENT_WITH_DIRS_CONTENT,
-    TORRENT_WITH_VIDEO,
-    FakeTDef,
-)
+from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, TORRENT_WITH_VIDEO, FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 
@@ -86,11 +79,7 @@ class TestDownloadsEndpoint(TestBase):
         """
         Create a mocked Download.
         """
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
-        conf = ConfigObj()
-        conf.configspec = defaults
-        conf.validate(Validator())
-        config = DownloadConfig(conf)
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_dest_dir(Path(""))
         return Download(FakeTDef(), self.download_manager, config, hidden=False, checkpoint_disabled=True)
 

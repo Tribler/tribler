@@ -1,13 +1,11 @@
-from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock
 
 import libtorrent
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
 
 from tribler.core.libtorrent.download_manager.download import Download
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.torrents import (
     check_handle,
     common_prefix,
@@ -44,7 +42,7 @@ class TestTorrents(TestBase):
         Test if the default value is returned for missing handles.
         """
         download = HanDl(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                         config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                         config=DownloadConfig(DownloadConfig.get_parser()))
 
         self.assertEqual("default", (check_handle("default")(HanDl.foo)(download)))
 
@@ -53,7 +51,7 @@ class TestTorrents(TestBase):
         Test if the default value is returned for invalid handles.
         """
         download = HanDl(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                         config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                         config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
         self.assertEqual("default", (check_handle("default")(HanDl.foo)(download)))
@@ -63,7 +61,7 @@ class TestTorrents(TestBase):
         Test if the given method is called for valid handles.
         """
         download = HanDl(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                         config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                         config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
         self.assertEqual(42, (check_handle("default")(HanDl.foo)(download)))
@@ -73,7 +71,7 @@ class TestTorrents(TestBase):
         Test if None is returned for invalid handles.
         """
         download = HanDl(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                         config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                         config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=False))
 
         result = await require_handle(HanDl.foo)(download)
@@ -85,7 +83,7 @@ class TestTorrents(TestBase):
         Test if the result of the given method is given for valid handles.
         """
         download = HanDl(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                         config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                         config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
         result = await require_handle(HanDl.foo)(download)
@@ -103,7 +101,7 @@ class TestTorrents(TestBase):
             raise RuntimeError
 
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
         future = require_handle(callback)(download)
@@ -122,7 +120,7 @@ class TestTorrents(TestBase):
             raise ValueError
 
         download = Download(FakeTDef(name=b"name"), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
 
         future = require_handle(callback)(download)

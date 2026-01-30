@@ -13,11 +13,11 @@ import logging
 import os
 import shutil
 import sqlite3
+from configparser import ConfigParser
 from itertools import islice
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from configobj import ConfigObj
 from pony.orm import Database, OperationalError, db_session
 
 if TYPE_CHECKING:
@@ -48,24 +48,27 @@ def _copy_if_not_exist(src: str, dst: str) -> None:
         shutil.copy(src, dst)
 
 
-def _copy_if_exists(src: ConfigObj, src_path: str, dst: TriblerConfigManager, dst_path: str, conversion: type) -> None:
+def _copy_if_exists(src: ConfigParser, src_path: str, dst: TriblerConfigManager, dst_path: str,
+                    conversion: type) -> None:
     """
     Check if the src path is set and copy it into the dst if it is.
     """
-    out = src
-    for part in Path(src_path).parts:
-        if part in out:
-            out = out.get(part)
-        else:
-            return
-    dst.set(dst_path, conversion(out))  # type: ignore[call-overload]
+    parts = Path(src_path).parts
+    if len(parts) != 2:
+        return
+    section, option = parts
+    if not src.has_section(section) or not src.has_option(section, option):
+        return
+    dst.set(dst_path, conversion(src[section][option]))  # type: ignore[call-overload]
 
 
 def _import_7_14_settings(src: str, dst: TriblerConfigManager) -> None:
     """
     Read the file at the source path and import its settings.
     """
-    old = ConfigObj(src, encoding="utf-8")
+    old = ConfigParser()
+    with open(src) as f:
+        old.read_file(f)
     _copy_if_exists(old, "api/key", dst, "api/key", str)
     _copy_if_exists(old, "api/http_enabled", dst, "api/http_enabled", bool)
     _copy_if_exists(old, "api/https_enabled", dst, "api/https_enabled", bool)

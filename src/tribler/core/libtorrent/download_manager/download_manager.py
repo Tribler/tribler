@@ -20,9 +20,7 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import libtorrent as lt
-from configobj import ConfigObj
 from ipv8.taskmanager import TaskManager
-from validate import Validator
 from yarl import URL
 
 from tribler.core.libtorrent.download_manager.download import Download
@@ -95,16 +93,15 @@ def encode_atp(atp: dict) -> dict:
     return atp
 
 
-def upgrade_checkpoint(conf_obj: ConfigObj) -> None:
+def upgrade_checkpoint(config: DownloadConfig) -> None:
     """
     Upgrade checkpoint and write it to disk.
     """
-    dl_defaults = conf_obj["download_defaults"]
+    dl_defaults = config.config["download_defaults"]
     if "selected_file_indexes" in dl_defaults:
-        indexes = dl_defaults.pop("selected_file_indexes", [])
-        if dl_defaults.get("files") is None and indexes:
-            dl_defaults["files"] = list(map(int, indexes))
-        conf_obj.write()
+        indexes = dl_defaults.remove_option("selected_file_indexes")
+        if config.get_selected_files() is None and indexes:
+            config.set_selected_files(list(map(int, indexes)))
 
 
 class DownloadManager(TaskManager):
@@ -1058,11 +1055,10 @@ class DownloadManager(TaskManager):
         Load a checkpoint from a given file name.
         """
         try:
-            conf_obj = ConfigObj(str(filename), configspec=DownloadConfig.get_spec_file_name(self.config),
-                                 encoding="utf-8")
-            conf_obj.validate(Validator())
-            upgrade_checkpoint(conf_obj)
-            config = DownloadConfig(conf_obj)
+            config = DownloadConfig.from_defaults(self.config)
+            config.read(str(filename), config)
+            upgrade_checkpoint(config)
+            config.write(str(filename))
         except Exception:
             self._logger.exception("Could not open checkpoint file %s", filename)
             return False

@@ -1,12 +1,9 @@
-from io import StringIO
 from pathlib import Path
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, mock_open, patch
 
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
-from validate import Validator
 
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 
 
 class TestDownloadConfig(TestBase):
@@ -18,12 +15,7 @@ class TestDownloadConfig(TestBase):
         """
         Create a new config with a memory spec.
         """
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
-        conf = ConfigObj()
-        conf.configspec = defaults
-        conf.validate(Validator())
-
-        self.download_config = DownloadConfig(conf)
+        self.download_config = DownloadConfig(DownloadConfig.get_parser())
         self.download_config.set_dest_dir(Path(""))
 
     def test_set_dest_dir(self) -> None:
@@ -88,7 +80,10 @@ class TestDownloadConfig(TestBase):
         Test if configs can be written.
         """
         fake_write = Mock()
-        with patch.object(self.download_config.config, "write", fake_write):
-            self.download_config.write(Path("fake_output"))
 
-        self.assertEqual(call(), fake_write.call_args)
+        with patch("builtins.open", mock_open(mock=fake_write)):
+            self.download_config.write("fake_output")
+
+        name, mode = fake_write.call_args.args
+        self.assertEqual("fake_output", name)
+        self.assertEqual("w", mode)
