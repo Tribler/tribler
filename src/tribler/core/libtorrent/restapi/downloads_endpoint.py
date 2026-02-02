@@ -4,9 +4,7 @@ import logging
 import mimetypes
 from asyncio import get_event_loop, shield
 from binascii import hexlify, unhexlify
-from functools import lru_cache
 from pathlib import Path
-from time import time
 from typing import TYPE_CHECKING, TypedDict, cast
 
 import libtorrent as lt
@@ -18,7 +16,7 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, PostHandleOp
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
@@ -59,21 +57,6 @@ class JSONFilesInfo(TypedDict):
     size: int
     included: bool
     progress: float
-
-
-@lru_cache(maxsize=1)
-def cached_read(tracker_file: str, _: int) -> list[str]:
-    """
-    Keep one cache for one tracker file at a time (by default: for a max of 120 seconds, see caller).
-
-    When adding X torrents at once, this avoids reading the same file X times.
-    """
-    try:
-        with open(tracker_file) as f:
-            return [line.rstrip() for line in f if line.rstrip()]  # uTorrent format contains blank lines between URLs
-    except OSError:
-        logger.exception("Failed to read tracker file!")
-        return []
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -331,6 +314,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 "safe_seeding": download.config.get_safe_seeding(),
                 "upload_limit": download.get_upload_limit(),
                 "download_limit": download.get_download_limit(),
+                "seeding_ratio": download.get_seeding_ratio(),
                 "destination": str(download.config.get_dest_dir()),
                 "completed_dir": str(download.config.get_completed_dir() or ""),
                 "total_pieces": tdef.torrent_info.num_pieces() if tdef.torrent_info else 0,
@@ -362,16 +346,21 @@ class DownloadsEndpoint(RESTEndpoint):
             result.append(info)
         return RESTResponse({"downloads": result, "checkpoints": checkpoints})
 
-    def _get_default_trackers(self) -> list[str]:
+    def _post_handle_events(self, download: Download) -> None:
         """
-        Get the default trackers from the configured tracker file.
-
-        Tracker file format is "(<TRACKER><NEWLINE><NEWLINE>)*". We assume "<TRACKER>" does not include newlines.
+        Schedule all the configured events that need to happen after this download receives a handle.
         """
-        tracker_file = self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
-        if not tracker_file:
-            return []
-        return cached_read(tracker_file, int(time())//120)
+        schedule_post_handle = False
+        if self.download_manager.config.get("libtorrent/download_defaults/trackers_file") and (
+            not download.tdef.torrent_info or not download.tdef.torrent_info.priv()
+        ):
+            download.config.add_post_handle_op(PostHandleOp.ADD_DEFAULT_TRACKERS)
+            schedule_post_handle = True
+        if self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"):
+            download.config.add_post_handle_op(PostHandleOp.WRITE_BACKUP_TORRENT)
+            schedule_post_handle = True
+        if schedule_post_handle:
+            download.schedule_post_handle_ops()
 
     @docs(
         tags=["Libtorrent"],
@@ -471,13 +460,7 @@ class DownloadsEndpoint(RESTEndpoint):
                 download = await self.download_manager.start_download(tdef=tdef, config=download_config)
             else:  # guaranteed to have uri
                 download = await self.download_manager.start_download_from_uri(cast("str", uri), config=download_config)
-            if (self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
-                    and (not download.tdef.torrent_info or not download.tdef.torrent_info.priv())):
-                await download.get_handle()  # We can only add trackers to a valid handle, wait for it.
-                download.add_trackers(self._get_default_trackers())
-            if self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"):
-                await download.get_handle()  # We can only generate a torrent file for a valid handle, wait for it.
-                await download.write_backup_torrent_file()
+            self._post_handle_events(download)
             if params.get("only_metadata", "false") != "false":
                 download.stop_after_metainfo()
         except Exception as e:
@@ -556,6 +539,8 @@ class DownloadsEndpoint(RESTEndpoint):
                                "parameter, however, this must be the only parameter in this request."),
         "upload_limit": (Integer, "Upload limit in bytes/s."),
         "download_limit": (Integer, "Download limit in bytes/s."),
+        "seeding_ratio": (Float, "Individual seeding ratio."),
+        "seeding_ratio_default": (Boolean, "Reset seeding ratio to default."),
         "queue_position": (String, "Change the position of the download in the queue. "
                                    "Possible values are queue_up/queue_top/queue_down/queue_bottom."),
         "auto_managed": (Boolean, "Set the auto managed flag.")
@@ -599,6 +584,12 @@ class DownloadsEndpoint(RESTEndpoint):
 
         if download_limit := parameters.get("download_limit"):
             await download.set_download_limit(download_limit)
+
+        if (seeding_ratio := parameters.get("seeding_ratio")) is not None:
+            download.config.set_seeding_ratio(seeding_ratio)
+
+        if parameters.get("seeding_ratio_default"):
+            download.config.set_seeding_ratio(None)
 
         if queue_position := parameters.get("queue_position"):
             if queue_position == "queue_up":

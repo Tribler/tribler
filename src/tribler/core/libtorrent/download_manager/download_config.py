@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from configparser import ConfigParser
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
@@ -36,6 +37,7 @@ class DownloadConfigDefaultsSection(TypedDict):
     download_limit: NotRequired[int]
     auto_managed: NotRequired[bool]
     name: NotRequired[str]
+    seeding_ratio: NotRequired[float]
 
 
 class StateConfigSection(TypedDict):
@@ -45,6 +47,7 @@ class StateConfigSection(TypedDict):
 
     metainfo: NotRequired[str]
     engineresumedata: NotRequired[str]
+    post_handle_ops: NotRequired[int]
 
 
 class DownloadConfigSection(TypedDict):
@@ -56,13 +59,23 @@ class DownloadConfigSection(TypedDict):
     state: StateConfigSection
 
 
+@dataclass
+class PostHandleOp:
+    """
+    Human-readable post-download operations.
+    """
+
+    ADD_DEFAULT_TRACKERS = 1  # 2**0
+    WRITE_BACKUP_TORRENT = 2  # 2**1
+
+
 DEFAULTS = DownloadConfigSection(
     download_defaults=DownloadConfigDefaultsSection(
         hops=0, safe_seeding=False, user_stopped=False, share_mode=False, upload_mode=False, time_added=0,
         bootstrap_download=False, channel_download=False, add_download_to_channel=False, stop_after_metainfo=False,
         upload_limit=-1, download_limit=-1, auto_managed=False
     ),
-    state=StateConfigSection(engineresumedata="ZGU=")
+    state=StateConfigSection(engineresumedata="ZGU=", post_handle_ops=0)
 )
 """
 The default values of the StateConfigSection dict. Missing keys have a default of ``None``.
@@ -310,8 +323,10 @@ class DownloadConfig:
         """
         Get whether the download should stop after receiving the metainfo.
         """
-        return (self.config["download_defaults"].getboolean("stop_after_metainfo")
-                or DEFAULTS["download_defaults"]["stop_after_metainfo"])
+        return self.config["download_defaults"].getboolean(
+            "stop_after_metainfo",
+            fallback=DEFAULTS["download_defaults"]["stop_after_metainfo"]
+        )
 
     def set_upload_limit(self, value: int) -> None:
         """
@@ -336,8 +351,8 @@ class DownloadConfig:
         """
         Get the download bandwidth limit for this torrent.
         """
-        return (self.config["download_defaults"].getint("download_limit")
-                or DEFAULTS["download_defaults"]["download_limit"])
+        return self.config["download_defaults"].getint("download_limit",
+                                                       fallback=DEFAULTS["download_defaults"]["download_limit"])
 
     def set_auto_managed(self, value: bool) -> None:
         """
@@ -349,5 +364,41 @@ class DownloadConfig:
         """
         Get auto managed flag.
         """
-        return (self.config["download_defaults"].getboolean("auto_managed")
-                or DEFAULTS["download_defaults"]["auto_managed"])
+        return self.config["download_defaults"].getboolean("auto_managed",
+                                                           fallback=DEFAULTS["download_defaults"]["auto_managed"])
+
+    def set_seeding_ratio(self, value: float | None) -> None:
+        """
+        Set auto managed flag.
+        """
+        if value is None:
+            self.config.remove_option("download_defaults", "seeding_ratio")
+        else:
+            self.config["download_defaults"]["seeding_ratio"] = str(value)
+
+    def get_seeding_ratio(self) -> float | None:
+        """
+        Get auto managed flag.
+        """
+        return self.config["download_defaults"].getfloat("seeding_ratio")
+
+    def set_post_handle_ops(self, value: int | list[int]) -> None:
+        """
+        Set the post-handle operations flag for this torrent.
+        """
+        if isinstance(value, int):
+            self.config["state"]["post_handle_ops"] = str(value)
+        else:
+            self.config["state"]["post_handle_ops"] = str(sum(value))  # Same as bitwise or: all flags are 2**i
+
+    def add_post_handle_op(self, value: int) -> None:
+        """
+        Add a single post-handle operation to the existing ones.
+        """
+        self.config["state"]["post_handle_ops"] = str(self.get_post_handle_ops() | value)
+
+    def get_post_handle_ops(self) -> int:
+        """
+        Get the post-handle operations flag for this torrent.
+        """
+        return self.config["state"].getint("post_handle_ops", fallback=DEFAULTS["state"]["post_handle_ops"])

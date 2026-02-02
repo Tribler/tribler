@@ -43,6 +43,7 @@ export interface Download {
     safe_seeding: boolean;
     upload_limit: number;
     download_limit: number;
+    seeding_ratio: number | undefined;
     destination: string;
     completed_dir: string;
     total_pieces: number;

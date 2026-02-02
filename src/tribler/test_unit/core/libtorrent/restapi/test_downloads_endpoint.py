@@ -398,6 +398,7 @@ class TestDownloadsEndpoint(TestBase):
         with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
                    lambda _: download.config), patch("builtins.open", mock_open(read_data=b"http://1\n\nudp://2/\n\n")):
             response = await self.endpoint.add_download(request)
+            await download.get_task("Post-handle operations")
         response_body_json = await response_to_json(response)
 
         self.assertEqual(200, response.status)

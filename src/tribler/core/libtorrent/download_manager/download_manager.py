@@ -1081,7 +1081,9 @@ class DownloadManager(TaskManager):
             if self.download_exists(tdef.infohash):
                 self._logger.info("Not resuming checkpoint because download has already been added")
             else:
-                await self.start_download(tdef=tdef, config=config)
+                download = await self.start_download(tdef=tdef, config=config)
+                if config.get_post_handle_ops() != 0:
+                    download.schedule_post_handle_ops()
                 return True
         except Exception:
             self._logger.exception("Not resuming checkpoint due to exception while adding download")

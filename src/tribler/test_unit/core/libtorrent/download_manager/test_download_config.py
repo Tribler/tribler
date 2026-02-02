@@ -87,3 +87,20 @@ class TestDownloadConfig(TestBase):
         name, mode = fake_write.call_args.args
         self.assertEqual("fake_output", name)
         self.assertEqual("w", mode)
+
+    def test_set_seeding_ratio(self) -> None:
+        """
+        Test if the individual seeding ratio is set correctly.
+        """
+        self.download_config.set_seeding_ratio(12.34)
+
+        self.assertEqual(12.34, self.download_config.get_seeding_ratio())
+
+    def test_clear_seeding_ratio(self) -> None:
+        """
+        Test if the individual seeding ratio can be set to follow the default again.
+        """
+        self.download_config.set_seeding_ratio(12.34)
+        self.download_config.set_seeding_ratio(None)
+
+        self.assertIsNone(self.download_config.get_seeding_ratio())
