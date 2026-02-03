@@ -1,13 +1,11 @@
-from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock
 
 import libtorrent
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
 
 from tribler.core.libtorrent.download_manager.download import Download
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadState, DownloadStatus
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT, FakeTDef
@@ -30,7 +28,7 @@ class TestDownloadState(TestBase):
         Test if DownloadState gets properly initialized from a download without a status.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download_state = DownloadState(download, None, None)
 
         self.assertEqual(download, download_state.get_download())
@@ -51,7 +49,7 @@ class TestDownloadState(TestBase):
         Test if DownloadState gets properly initialized from a download with a status.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download_state = DownloadState(download, libtorrent.torrent_status(), None)
 
         self.assertEqual(DownloadStatus.HASHCHECKING, download_state.get_status())
@@ -70,8 +68,8 @@ class TestDownloadState(TestBase):
         Test if DownloadState gets properly initialized from a download with a mocked status.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
-        download.config.set_selected_files(["test"])
+                            config=DownloadConfig(DownloadConfig.get_parser()))
+        download.config.set_selected_files([0])
         download_state = DownloadState(download, Mock(num_pieces=6, pieces=[1, 1, 1, 0, 0, 0], progress=0.75,
                                                       total_upload=100, total_download=200, total_payload_upload=30,
                                                       total_payload_download=100, all_time_upload=200,
@@ -79,7 +77,7 @@ class TestDownloadState(TestBase):
 
         self.assertEqual([1, 1, 1, 0, 0, 0], download_state.get_pieces_complete())
         self.assertEqual((6, 3), download_state.get_pieces_total_complete())
-        self.assertEqual(["test"], download_state.get_selected_files())
+        self.assertEqual([0], download_state.get_selected_files())
         self.assertEqual(0.75, download_state.get_progress())
         self.assertEqual(100, download_state.total_upload)
         self.assertEqual(200, download_state.total_download)
@@ -130,7 +128,7 @@ class TestDownloadState(TestBase):
         Each file is 6 bytes, so a file progress of 3 bytes is 0.5 completion.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[3] * 6))
         download_state = DownloadState(download, Mock(), None)
 
@@ -144,7 +142,7 @@ class TestDownloadState(TestBase):
         Testing if file progress is not given if no file progress is available.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]))
         download_state = DownloadState(download, Mock(), None)
 
@@ -156,7 +154,7 @@ class TestDownloadState(TestBase):
         """
         modified_t = TORRENT_WITH_DIRS_CONTENT.replace(b"lengthi6e", b"lengthi0e", 1)  # Other five files have length 6
         download = Download(TorrentDef.load_from_memory(modified_t), self.dlmngr,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[0, 6, 6, 6, 6, 6]))
         download_state = DownloadState(download, Mock(), None)
 
@@ -169,7 +167,7 @@ class TestDownloadState(TestBase):
         Testing if the right availability of a file is returned if another peer has no pieces.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
                                                                      pieces=[False] * 6, completed=0)]))
@@ -182,7 +180,7 @@ class TestDownloadState(TestBase):
         Testing if the right availability of a file is returned if another peer has all pieces.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
                                                                      pieces=[True] * 6, completed=1)]))
@@ -195,7 +193,7 @@ class TestDownloadState(TestBase):
         Testing if the right availability of a file is returned if one peer is complete and the other is not.
         """
         download = Download(FakeTDef(), self.dlmngr, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True), file_progress=Mock(return_value=[]),
                                get_peer_info=Mock(return_value=[Mock(**TestDownloadState.base_peer_info,
                                                                      pieces=[True] * 6, completed=1),
@@ -212,7 +210,7 @@ class TestDownloadState(TestBase):
         This case mirrors https://github.com/Tribler/tribler/issues/6454
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True),
                                file_progress=Mock(side_effect=RuntimeError("invalid torrent handle used")))
         download_state = DownloadState(download, Mock(), None)

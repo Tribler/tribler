@@ -1,15 +1,13 @@
 import base64
-from io import StringIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import libtorrent
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
 from ipv8.test.REST.rest_base import MockRequest, response_to_json
 
 import tribler.core.libtorrent.restapi.create_torrent_endpoint as ep_module
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
@@ -22,7 +20,7 @@ class TestCreateTorrentEndpoint(TestBase):
     """
 
     PATCH_DEFAULT_SPEC = ("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
-                          lambda _: DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                          lambda _: DownloadConfig(DownloadConfig.get_parser()))
 
     def setUp(self) -> None:
         """

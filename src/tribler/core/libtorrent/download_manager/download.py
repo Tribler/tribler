@@ -16,6 +16,7 @@ from binascii import hexlify
 from collections import defaultdict
 from collections.abc import Callable
 from contextlib import suppress
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
@@ -23,7 +24,7 @@ import libtorrent as lt
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import succeed
 
-from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, PostHandleOp
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
@@ -37,6 +38,7 @@ if TYPE_CHECKING:
     from tribler.core.libtorrent.torrentdef import TorrentDef
 
 Getter = Callable[[Any], Any]
+logger = logging.getLogger(__name__)
 
 
 class SaveResumeDataError(Exception):
@@ -108,6 +110,21 @@ class AlertHandlerDict(TypedDict):
     add_torrent_alert: list[Callable[[lt.add_torrent_alert], None]]
     torrent_removed_alert: list[Callable[[lt.torrent_removed_alert], None]]
     read_piece_alert: list[Callable[[lt.read_piece_alert], None]]
+
+
+@lru_cache(maxsize=1)
+def cached_read(tracker_file: str, _: int) -> list[str]:
+    """
+    Keep one cache for one tracker file at a time (by default: for a max of 120 seconds, see caller).
+
+    When adding X torrents at once, this avoids reading the same file X times.
+    """
+    try:
+        with open(tracker_file) as f:
+            return [line.rstrip() for line in f if line.rstrip()]  # uTorrent format contains blank lines between URLs
+    except OSError:
+        logger.exception("Failed to read tracker file!")
+        return []
 
 
 class Download(TaskManager):
@@ -286,6 +303,17 @@ class Download(TaskManager):
                                              for k, v in self.tdef.get_v2_piece_indices_per_layer().items()}
         return torrent_file
 
+    def _get_default_trackers(self) -> list[str]:
+        """
+        Get the default trackers from the configured tracker file.
+
+        Tracker file format is "(<TRACKER><NEWLINE><NEWLINE>)*". We assume "<TRACKER>" does not include newlines.
+        """
+        tracker_file = self.download_manager.config.get("libtorrent/download_defaults/trackers_file")
+        if not tracker_file:
+            return []
+        return cached_read(tracker_file, int(time.time())//120)
+
     async def write_backup_torrent_file(self) -> None:
         """
         Write a torrent file to the backup ".torrent"-file folder.
@@ -303,6 +331,30 @@ class Download(TaskManager):
         folder.mkdir(parents=True, exist_ok=True)
         with open(str(folder / file_name), "wb") as f:  # noqa: ASYNC230
             f.write(lt.bencode(meta_dict))
+
+    async def perform_post_handle_ops(self) -> None:
+        """
+        Look at the outstanding requested operations and run them.
+        """
+        remaining = self.config.get_post_handle_ops()
+        if remaining == 0:
+            return
+        await self.get_handle()
+        if remaining & PostHandleOp.ADD_DEFAULT_TRACKERS:
+            self.add_trackers(self._get_default_trackers())
+            remaining -= PostHandleOp.ADD_DEFAULT_TRACKERS
+            self.config.set_post_handle_ops(remaining)
+        if remaining & PostHandleOp.WRITE_BACKUP_TORRENT:
+            await self.write_backup_torrent_file()
+            remaining -= PostHandleOp.WRITE_BACKUP_TORRENT
+            self.config.set_post_handle_ops(remaining)
+
+    def schedule_post_handle_ops(self) -> None:
+        """
+        There should be at most one task to perform the configured post-handle operations.
+        """
+        if self.get_task("Post-handle operations") is None:
+            self.register_task("Post-handle operations", self.perform_post_handle_ops)
 
     def register_alert_handler(self, alert_type: str, handler: Callable[[lt.torrent_alert], None]) -> None:
         """
@@ -522,7 +574,7 @@ class Download(TaskManager):
         filename = self.download_manager.get_checkpoint_dir() / basename
         self.config.config["download_defaults"]["name"] = self.tdef.atp.name  # store name (for debugging)
         try:
-            self.config.write(filename)
+            self.config.write(str(filename))
         except OSError as e:
             self._logger.warning("%s: %s", e.__class__.__name__, str(e))
         else:
@@ -665,6 +717,15 @@ class Download(TaskManager):
         if completed_dir and completed_dir != self.config.get_dest_dir():
             self.move_storage(Path(completed_dir))
 
+    def get_seeding_ratio(self) -> float:
+        """
+        Get the actual seeding ratio of this download (the user config may be ``None``).
+        """
+        user_ratio = self.config.get_seeding_ratio()
+        if user_ratio is None:
+            return self.download_manager.config.get("libtorrent/download_defaults/seeding_ratio")
+        return user_ratio
+
     def update_lt_status(self, lt_status: lt.torrent_status) -> None:
         """
         Update libtorrent stats and check if the download should be stopped.
@@ -682,7 +743,7 @@ class Download(TaskManager):
 
         if state.get_status() == DownloadStatus.SEEDING:
             mode = self.download_manager.config.get("libtorrent/download_defaults/seeding_mode")
-            seeding_ratio = self.download_manager.config.get("libtorrent/download_defaults/seeding_ratio")
+            seeding_ratio = self.get_seeding_ratio()
             seeding_time = self.download_manager.config.get("libtorrent/download_defaults/seeding_time")
             if self.tdef.atp.completed_time == 0:
                 self.tdef.atp.completed_time = int(time.time())

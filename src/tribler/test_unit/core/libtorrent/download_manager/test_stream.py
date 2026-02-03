@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from io import BytesIO, StringIO
+from io import BytesIO
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call
 
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
-from validate import Validator
 
 from tribler.core.libtorrent.download_manager.download import Download
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.stream import NoAvailableStreamError, Stream, StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.test_unit.core.libtorrent.mocks import TORRENT_WITH_DIRS_CONTENT
@@ -145,11 +143,7 @@ class TestStream(TestBase):
         """
         Create a mocked DownloadConfig.
         """
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
-        conf = ConfigObj()
-        conf.configspec = defaults
-        conf.validate(Validator())
-        config = DownloadConfig(conf)
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_dest_dir(Path(""))
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr, config,
                             checkpoint_disabled=True)

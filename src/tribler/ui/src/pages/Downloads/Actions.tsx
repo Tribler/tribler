@@ -12,6 +12,7 @@ import {
     CheckCheckIcon,
     Clapperboard,
     ExternalLinkIcon,
+    HeartHandshake,
     Pause,
     Play,
     Rows4,
@@ -167,6 +168,38 @@ function getBandwidthLimit(
     return allEqual ? limits[0] : undefined;
 }
 
+function setSeedingRatio(
+    selectedDownloads: Download[],
+    value: number | undefined,
+    t: TFunction
+) {
+    if (value === undefined) return;
+    selectedDownloads.forEach((download) => {
+        download.seeding_ratio = value;
+        triblerService.setSeedingRatio(download.infohash, value).then((response) =>
+            handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr"))
+        );
+    });
+}
+
+function resetSeedingRatio(
+    selectedDownloads: Download[],
+    t: TFunction
+) {
+    selectedDownloads.forEach((download) => {
+        download.seeding_ratio = undefined;
+        triblerService.resetSeedingRatio(download.infohash).then((response) =>
+            handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr"))
+        );
+    });
+}
+
+function getSeedingRatio(selectedDownloads: Download[]): number | undefined {
+    const limits = selectedDownloads.map((download) => download.seeding_ratio);
+    const allEqual = limits.every((val, i, arr) => val === arr[0]);
+    return allEqual ? limits[0] : undefined;
+}
+
 export function ActionButtons({selectedDownloads, onClick}: {selectedDownloads: Download[]; onClick?: () => void}) {
     const {t} = useTranslation();
 
@@ -272,6 +305,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
 
     const uploadLimitRef = useRef<HTMLInputElement | null>(null);
     const downloadLimitRef = useRef<HTMLInputElement | null>(null);
+    const seedingRatioRef = useRef<HTMLInputElement | null>(null);
 
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const [storageDialogOpen, setStorageDialogOpen] = useState(false);
@@ -441,6 +475,56 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                     Set
                                 </Button>
                             </ContextMenuRadioItem>
+                        </ContextMenuRadioGroup>
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuSub>
+                    <ContextMenuSubTrigger
+                        inset
+                        disabled={selectedDownloads.length < 1}
+                        className={`${selectedDownloads.length < 1 ? "opacity-50" : ""}`}>
+                        <HeartHandshake className="w-4 mx-2" />
+                        {t("Ratio")}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950">
+                        <ContextMenuRadioGroup>
+                            <ContextMenuRadioItem
+                                className="space-x-2"
+                                value={String(getSeedingRatio(selectedDownloads))}>
+                                <input
+                                    ref={seedingRatioRef}
+                                    type="number"
+                                    defaultValue={getSeedingRatio(selectedDownloads)}
+                                    className="bg-white text-black w-[75px] mr-1"
+                                    onClick={(e) => e.preventDefault()}
+                                    min={0}></input>
+                                <Button
+                                    className="outline px-1 py-1 h-6 ml-1"
+                                    onClick={() => {
+                                        if (seedingRatioRef.current?.value) {
+                                            setSeedingRatio(
+                                                selectedDownloads,
+                                                +seedingRatioRef.current?.value,
+                                                t
+                                            );
+                                        }
+                                    }}>
+                                    Set
+                                </Button>
+                            </ContextMenuRadioItem>
+                                <Button
+                                    className="outline px-1 py-1 h-6 ml-1"
+                                    onClick={() => {
+                                        resetSeedingRatio(
+                                            selectedDownloads,
+                                            t
+                                        );
+                                        if (seedingRatioRef.current !== undefined && seedingRatioRef.current !== null) {
+                                            seedingRatioRef.current.value = "";
+                                        }
+                                    }}>
+                                    Default
+                                </Button>
                         </ContextMenuRadioGroup>
                     </ContextMenuSubContent>
                 </ContextMenuSub>

@@ -1,20 +1,18 @@
 import asyncio
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
-from io import StringIO
+from contextlib import AbstractContextManager, ExitStack
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
 
 import libtorrent
 from aiohttp import ClientResponseError
-from configobj import ConfigObj
-from configobj.validate import Validator, VdtParamError
 from ipv8.test.base import TestBase
 from ipv8.util import succeed
 
 import tribler
 from tribler.core.libtorrent.download_manager.download import Download
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager, MetainfoLookup
 from tribler.core.libtorrent.download_manager.download_state import DownloadState
 from tribler.core.libtorrent.torrentdef import TorrentDef
@@ -27,6 +25,9 @@ class TestDownloadManager(TestBase):
     """
     Tests for the DownloadManager class.
     """
+
+    MOCK_CONF_PATH = "01" * 20 + ".conf"
+    BASE_DLCONFIG = tribler.core.libtorrent.download_manager.download_manager.DownloadConfig
 
     def setUp(self) -> None:
         """
@@ -51,13 +52,16 @@ class TestDownloadManager(TestBase):
         """
         Create a mocked DownloadConfig.
         """
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
-        conf = ConfigObj()
-        conf.configspec = defaults
-        conf.validate(Validator())
-        config = DownloadConfig(conf)
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_dest_dir(Path(""))
+        config.write = Mock(return_value=None)
         return config
+
+    def _patch_dlconfig(self, download_config: DownloadConfig, err: Exception | None = None) -> AbstractContextManager:
+        main = ExitStack()
+        main.enter_context(patch.object(self.BASE_DLCONFIG, "from_defaults", Mock(return_value=download_config)))
+        main.enter_context(patch.object(self.BASE_DLCONFIG, "read", Mock(return_value=None, side_effect=err)))
+        return main
 
     def atp_from_dict(self, tinfo_dict: "libtorrent._Entry") -> libtorrent.add_torrent_params:
         """
@@ -82,7 +86,7 @@ class TestDownloadManager(TestBase):
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)), \
                  patch.object(self.manager, "remove_download", AsyncMock()), \
-                 patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
+                 self._patch_dlconfig(config):
             metainfo = await self.manager.get_metainfo(download.tdef.infohash)
             self.assertEqual(7, metainfo.get("leechers"))
             self.assertEqual(42, metainfo.get("seeders"))
@@ -92,10 +96,10 @@ class TestDownloadManager(TestBase):
         """
         Test if invalid metainfo leads to a return value of None.
         """
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = DownloadConfig(DownloadConfig.get_parser())
 
         with patch.object(self.manager, "start_download", AsyncMock(side_effect=TypeError)), \
-                patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
+                self._patch_dlconfig(config):
             self.assertIsNone(await self.manager.get_metainfo(b"\x00" * 20))
 
     async def test_get_metainfo_duplicate_request(self) -> None:
@@ -103,14 +107,14 @@ class TestDownloadManager(TestBase):
         Test if the same request is returned when invoking get_metainfo twice with the same infohash.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.future_metainfo = succeed(None)
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = DownloadConfig(DownloadConfig.get_parser())
 
         with patch.object(self.manager, "start_download", AsyncMock(return_value=download)), \
                 patch.object(self.manager, "remove_download", AsyncMock()), \
-                patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
+                self._patch_dlconfig(config):
             results = await asyncio.gather(self.manager.get_metainfo(download.tdef.infohash),
                                            self.manager.get_metainfo(download.tdef.infohash))
 
@@ -136,7 +140,7 @@ class TestDownloadManager(TestBase):
         Test if metainfo can be fetched for a torrent which is already in session.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
-                            checkpoint_disabled=True, config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            checkpoint_disabled=True, config=DownloadConfig(DownloadConfig.get_parser()))
         download.handle = Mock(is_valid=Mock(return_value=True))
         download.future_metainfo = succeed(None)
         self.manager.downloads[download.tdef.infohash] = download
@@ -246,9 +250,9 @@ class TestDownloadManager(TestBase):
         """
         Test if a ValueError is raised if we try to add a torrent without infohash or url.
         """
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = DownloadConfig(DownloadConfig.get_parser())
 
-        with self.assertRaises(ValueError), patch.object(DownloadConfig, "from_defaults", Mock(return_value=config)):
+        with self.assertRaises(ValueError), self._patch_dlconfig(config):
             await self.manager.start_download()
 
     def test_remove_unregistered_torrent(self) -> None:
@@ -276,9 +280,8 @@ class TestDownloadManager(TestBase):
         """
         Test if no checkpoint can be loaded from a file with no metainfo.
         """
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=self.create_mock_download_config().config)}):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(self.create_mock_download_config().config):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertFalse(value)
 
@@ -288,13 +291,11 @@ class TestDownloadManager(TestBase):
         """
         download_config = self.create_mock_download_config()
         download_config.set_engineresumedata(libtorrent.add_torrent_params())
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}), \
-                patch("os.remove") as remove_mock:
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config), patch("os.remove") as remove_mock:
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertFalse(value)
-        self.assertEqual(call("foo.conf"), remove_mock.call_args)
+        self.assertEqual(call(self.MOCK_CONF_PATH), remove_mock.call_args)
 
     async def test_load_checkpoint_bad_url(self) -> None:
         """
@@ -309,9 +310,8 @@ class TestDownloadManager(TestBase):
         }})
         atp.url = b"\x80"
         download_config.set_engineresumedata(atp)
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertFalse(value)
 
@@ -327,10 +327,8 @@ class TestDownloadManager(TestBase):
             b"pieces": b"\x00" * 20
         }}))
         download_config.set_dest_dir(Path(__file__).absolute().parent)
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}), \
-                patch.object(self.manager, "start_download", AsyncMock()):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertTrue(value)
         self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v1())
@@ -361,10 +359,8 @@ class TestDownloadManager(TestBase):
             b"piece layers": [b"\x01" * 32]
         }))
         download_config.set_dest_dir(Path(__file__).absolute().parent)
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}), \
-                patch.object(self.manager, "start_download", AsyncMock()):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertTrue(value)
         self.assertTrue(download_config.get_engineresumedata().info_hashes.has_v1())
@@ -392,10 +388,8 @@ class TestDownloadManager(TestBase):
             b"piece layers": [b"\x01" * 32]
         }))
         download_config.set_dest_dir(Path(__file__).absolute().parent)
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}), \
-                patch.object(self.manager, "start_download", AsyncMock()):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertTrue(value)
         self.assertFalse(download_config.get_engineresumedata().info_hashes.has_v1())
@@ -412,9 +406,8 @@ class TestDownloadManager(TestBase):
         download_config.set_engineresumedata(atp)
         download_config.set_dest_dir(Path(__file__).absolute().parent)
         self.manager.start_download = AsyncMock()
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(return_value=download_config.config)}):
-            value = await self.manager.load_checkpoint("foo.conf")
+        with self._patch_dlconfig(download_config):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertTrue(value)
         self.assertEqual(b"\x01" * 20, self.manager.start_download.call_args.kwargs["tdef"].infohash)
@@ -423,19 +416,9 @@ class TestDownloadManager(TestBase):
         """
         Test if no checkpoint can be loaded if a specified file is not found.
         """
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(side_effect=OSError('Config file not found: "foo.conf".'))}):
-            value = await self.manager.load_checkpoint("foo.conf")
-
-        self.assertFalse(value)
-
-    async def test_load_checkpoint_file_corrupt(self) -> None:
-        """
-        Test if no checkpoint can be loaded if the specified file is corrupt.
-        """
-        with patch.dict(tribler.core.libtorrent.download_manager.download_manager.__dict__,
-                        {"ConfigObj": Mock(side_effect=VdtParamError("key", "value"))}):
-            value = await self.manager.load_checkpoint("foo.conf")
+        err = OSError(f'Config file not found: "{self.MOCK_CONF_PATH}".')
+        with self._patch_dlconfig(self.create_mock_download_config().config, err):
+            value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
         self.assertFalse(value)
 
@@ -483,7 +466,7 @@ class TestDownloadManager(TestBase):
         Test if downloads can be retrieved by name.
         """
         download = Download(FakeTDef(), self.manager, checkpoint_disabled=True,
-                            config=DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT))))
+                            config=DownloadConfig(DownloadConfig.get_parser()))
         self.manager.downloads = {b"\x01" * 20: download}
 
         self.assertEqual([download], self.manager.get_downloads_by_name("test"))
@@ -547,7 +530,7 @@ class TestDownloadManager(TestBase):
                   "&ws=http%3A%2F%2Flocalhost%2Ffile&ws=http%3A%2F%2Flocalhost%2Fcdn"  # 4. initial URL seeds
                   "&so=0,2,4,6-8"  # 5. selected files
                   "&x.pe=1.2.3.4:5&x.pe=6.7.8.9:0")  # 6. initial peers (see NOTE)
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_selected_files([])
         handle = Mock(is_valid=Mock(return_value=True))
         download = Download(Mock(infohash=b"a" * 20), self.manager, config, checkpoint_disabled=True)
@@ -570,7 +553,7 @@ class TestDownloadManager(TestBase):
         Test if a magnet link's selected files do not overwrite the user's selected files.
         """
         magnet = f'magnet:?xt=urn:btih:{"A" * 40}&so=0-8'
-        config = DownloadConfig(ConfigObj(StringIO(SPEC_CONTENT)))
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_selected_files([0, 1, 2])
         handle = Mock(is_valid=Mock(return_value=True))
         download = Download(Mock(infohash=b"a" * 20), self.manager, config,

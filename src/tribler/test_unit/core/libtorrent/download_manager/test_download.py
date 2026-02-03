@@ -1,19 +1,16 @@
 import sys
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
-from io import StringIO
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
 import libtorrent
-from configobj import ConfigObj
 from ipv8.test.base import TestBase
 from ipv8.util import succeed
-from validate import Validator
 
 import tribler
 from tribler.core.libtorrent.download_manager.download import Download, SaveResumeDataError
-from tribler.core.libtorrent.download_manager.download_config import SPEC_CONTENT, DownloadConfig
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.notifier import Notification, Notifier
 from tribler.test_unit.core.libtorrent.mocks import (
@@ -34,7 +31,7 @@ class PermissionErrorDownloadConfig(DownloadConfig):
         """
         Perform a crash.
         """
-        self.config["TEST_CRASH"] = True
+        self.config["download_defaults"]["TEST_CRASH"] = "True"
         raise PermissionError
 
 
@@ -49,11 +46,7 @@ class TestDownload(TestBase):
         """
         Create a mocked DownloadConfig.
         """
-        defaults = ConfigObj(StringIO(SPEC_CONTENT))
-        conf = ConfigObj()
-        conf.configspec = defaults
-        conf.validate(Validator())
-        config = DownloadConfig(conf)
+        config = DownloadConfig(DownloadConfig.get_parser())
         config.set_dest_dir(Path(""))
         return config
 
@@ -567,7 +560,7 @@ class TestDownload(TestBase):
 
         download.on_save_resume_data_alert(Mock(params=atp))
 
-        self.assertTrue(download.config.config["TEST_CRASH"])
+        self.assertTrue(download.config.config["download_defaults"]["TEST_CRASH"])
         self.assertEqual("test", download.config.config["download_defaults"]["name"])
 
     async def test_get_tracker_status_unicode_decode_error(self) -> None:
@@ -856,7 +849,7 @@ class TestDownload(TestBase):
                                status=Mock(return_value=libtorrent.torrent_status()))
         download.config.set_dest_dir("folder")
         # Using the setter is not allowed, but this can still happen in the config file itself:
-        del download.config.config["download_defaults"]["completed_dir"]
+        download.config.config.remove_option("download_defaults", "completed_dir")
 
         download.on_torrent_finished_alert(Mock())
 

@@ -268,6 +268,22 @@ export class TriblerService {
         }
     }
 
+    async setSeedingRatio(infohash: string, ratio: number): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, {seeding_ratio: ratio})).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async resetSeedingRatio(infohash: string): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, {seeding_ratio_default: true})).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     // Statistics
 
     async getIPv8Statistics(): Promise<undefined | ErrorDict | {total_up: number; total_down: number}> {
