@@ -25,6 +25,8 @@ export const filterDownloading = [3];
 export const filterCompleted = [4];
 export const filterActive = [0, 1, 2, 3, 4, 7, 8, 9, 10];
 export const filterInactive = [5, 6, 11];
+export const filterCompletedOrInactive = [4, 5, 6];
+export const filterInactiveUnqueued = [5, 6];
 
 const downloadColumns: ColumnDef<Download>[] = [
     {

@@ -1,7 +1,8 @@
 import {createHashRouter, Await, useRouteError} from "react-router-dom";
 import {Suspense} from "react";
 import {SideLayout} from "./components/layouts/SideLayout";
-import {filterActive, filterAll, filterCompleted, filterDownloading, filterInactive} from "./pages/Downloads";
+import {filterActive, filterAll, filterCompleted, filterDownloading, filterInactive, filterInactiveUnqueued,
+        filterCompletedOrInactive} from "./pages/Downloads";
 import {handleHTTPError} from "./services/reporting";
 import NoMatch from "./pages/NoMatch";
 import Dashboard from "./pages/Dashboard";
@@ -69,6 +70,10 @@ export const router = createHashRouter([
                 element: <Downloads statusFilter={filterDownloading} />,
             },
             {
+                path: "downloads/completedorinactive",
+                element: <Downloads statusFilter={filterCompletedOrInactive} />,
+            },
+            {
                 path: "downloads/completed",
                 element: <Downloads statusFilter={filterCompleted} />,
             },
@@ -79,6 +84,10 @@ export const router = createHashRouter([
             {
                 path: "downloads/inactive",
                 element: <Downloads statusFilter={filterInactive} />,
+            },
+            {
+                path: "downloads/inactiveunqueued",
+                element: <Downloads statusFilter={filterInactiveUnqueued} />,
             },
             {
                 path: "settings/general",

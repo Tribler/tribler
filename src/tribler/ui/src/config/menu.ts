@@ -33,6 +33,10 @@ export const sideMenu: NavItemWithChildren[] = [
                 to: "/downloads/downloading",
             },
             {
+                title: "CompletedOrInactive",
+                to: "/downloads/completedorinactive",
+            },
+            {
                 title: "Completed",
                 to: "/downloads/completed",
             },
@@ -43,6 +47,10 @@ export const sideMenu: NavItemWithChildren[] = [
             {
                 title: "Inactive",
                 to: "/downloads/inactive",
+            },
+            {
+                title: "InactiveUnqueued",
+                to: "/downloads/inactiveunqueued",
             },
         ],
     },
