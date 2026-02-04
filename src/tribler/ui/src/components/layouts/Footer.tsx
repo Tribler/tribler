@@ -42,7 +42,6 @@ export function Footer() {
 
         let anonResponse = await ipv8Service.getTunnelPeers();
         if (anonResponse && !isErrorDict(anonResponse)) {
-            console.log(anonResponse);
             if (anonResponse.length == 0) {
                 setAnonymityStatus(AnonStatus.NoPeers);
             } else if (anonResponse.find((p) => (p.flags.includes(2) || p.flags.includes(16384))) !== undefined) {
