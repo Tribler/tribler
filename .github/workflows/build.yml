@@ -4,7 +4,11 @@ jobs:
   build:
     strategy:
       matrix:
-        include:  # macos-12 is no longer on GitHub Actions, we use the Mac mini for this
+        include:
+          - os: macos-15-intel
+            architecture: x64
+          - os: macos-15
+            architecture: arm64
           - os: ubuntu-22.04
             architecture: x64
           - os: ubuntu-latest
@@ -169,10 +173,9 @@ jobs:
             
             mv tribler_${GITHUB_TAG}_all.deb tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
 
-      - name: Build Executables (MacOS-12)
-        if: matrix.os == 'macos-12'
+      - name: Build Executables (MacOS)
+        if: startsWith(matrix.os, 'macos-15')
         run: |
-          mv ./build/tribler.spec ./tribler.spec
           ./build/mac/makedist_macos.sh
 
       - name: Fetch libsodium.dll (Windows)

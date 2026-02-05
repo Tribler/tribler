@@ -1,7 +1,6 @@
 -r ../requirements.txt
 
-cx_Freeze; sys_platform != 'darwin'
-PyInstaller; sys_platform == 'darwin'
+cx_Freeze
 
 setuptools
 requests
