@@ -125,7 +125,7 @@ class MockTorrentState(MockEntity):
 
     def __init__(self, infohash: bytes = b"", seeders: int = 0, leechers: int = 0, last_check: int = 0,  # noqa: PLR0913
                  self_checked: bool = False, has_data: bool = True, metadata: set | None = None,
-                 trackers: set | None = None) -> None:
+                 trackers: set | None = None, tracker: str = "") -> None:
         """
         Create a new MockTrackerState and add it to our known instances.
         """
@@ -140,6 +140,7 @@ class MockTorrentState(MockEntity):
         self.has_data = has_data
         self.metadata = metadata or set()
         self.trackers = trackers or set()
+        self.tracker = tracker
 
     @classmethod
     def from_health(cls: type[Self], health: HealthInfo) -> Self:

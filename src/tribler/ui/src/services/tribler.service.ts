@@ -623,7 +623,7 @@ export class TriblerService {
         }
     }
 
-    async getHealthCheckHistory(): Promise<undefined | ErrorDict | Health[]> {
+    async getHealthCheckHistory(): Promise<undefined | ErrorDict | {local: Health[], remote: Health[]}> {
         try {
             return (await this.http.get("/metadata/torrents/health")).data.health_history;
         } catch (error) {

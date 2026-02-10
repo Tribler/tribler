@@ -12,11 +12,15 @@ from ipv8.test.base import TestBase
 from ipv8.test.mocking.endpoint import MockEndpointListener
 
 import tribler
-from tribler.core.content_discovery.community import ContentDiscoveryCommunity, ContentDiscoverySettings
+from tribler.core.content_discovery.community import (
+    HEALTH_REQUEST_RANDOM,
+    ContentDiscoveryCommunity,
+    ContentDiscoverySettings,
+)
 from tribler.core.content_discovery.payload import (
-    PopularTorrentsRequest,
+    HealthPayload,
+    HealthRequestPayload,
     SelectResponsePayload,
-    TorrentsHealthPayload,
     VersionRequest,
     VersionResponse,
 )
@@ -87,7 +91,7 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         """
         Test whether torrent health information is periodically gossiped around.
         """
-        with self.assertReceivedBy(1, [TorrentsHealthPayload], message_filter=[TorrentsHealthPayload]):
+        with self.assertReceivedBy(1, [HealthPayload], message_filter=[HealthPayload]):
             self.overlay(0).gossip_random_torrents_health()
             await self.deliver_messages()
 
@@ -105,14 +109,13 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
         """
         Test whether torrent health information is spread when no live torrents are known.
         """
-        with self.assertReceivedBy(1, [TorrentsHealthPayload],
-                                   message_filter=[TorrentsHealthPayload]) as received:
+        with self.assertReceivedBy(1, [HealthPayload], message_filter=[HealthPayload]) as received:
             self.overlay(0).gossip_random_torrents_health()
             await self.deliver_messages()
         message, = received
 
-        self.assertEqual(1, message.random_torrents_length)
-        self.assertEqual(0, message.torrents_checked_length)
+        self.assertEqual(HEALTH_REQUEST_RANDOM, message.response_type)
+        self.assertEqual(1, len(message.torrents))
 
     def test_get_alive_torrents(self) -> None:
         """
@@ -323,29 +326,32 @@ class TestContentDiscoveryCommunity(TestBase[ContentDiscoveryCommunity]):
 
     async def test_deprecated_popular_torrents_request_no_live(self) -> None:
         """
-        The new protocol no longer uses PopularTorrentsRequest but still supports it.
+        The new protocol no longer uses HealthPayload but still supports it.
         """
-        with self.assertReceivedBy(0, [TorrentsHealthPayload],
-                                   message_filter=[TorrentsHealthPayload]) as received:
-            self.overlay(0).ez_send(self.peer(1), PopularTorrentsRequest())
+        with self.assertReceivedBy(0, [HealthPayload],
+                                   message_filter=[HealthPayload]) as received:
+            self.overlay(0).ez_send(self.peer(1), HealthRequestPayload(HEALTH_REQUEST_RANDOM))
             await self.deliver_messages()
         message, = received
 
-        self.assertEqual(0, message.random_torrents_length)
-        self.assertEqual(1, message.torrents_checked_length)
-        self.assertEqual([], message.random_torrents)
-        self.assertEqual((b"\x01" * 20, 7, 42, 1337), message.torrents_checked[0])
+        self.assertEqual(HEALTH_REQUEST_RANDOM, message.response_type)
+        self.assertEqual(1, len(message.torrents))
+
+        t = message.torrents[0]
+        self.assertEqual((b"\x01" * 20, 7, 42, ""), (t.infohash, t.seeders, t.leechers, t.tracker))
 
     async def test_deprecated_popular_torrents_request_live(self) -> None:
         """
-        The new protocol no longer uses PopularTorrentsRequest but still supports it.
+        The new protocol no longer uses HealthPayload but still supports it.
         """
-        with self.assertReceivedBy(0, [TorrentsHealthPayload], message_filter=[TorrentsHealthPayload]) as received:
-            self.overlay(0).ez_send(self.peer(1), PopularTorrentsRequest())
+        with self.assertReceivedBy(0, [HealthPayload], message_filter=[HealthPayload]) as received:
+            self.overlay(0).ez_send(self.peer(1), HealthRequestPayload(HEALTH_REQUEST_RANDOM))
             await self.deliver_messages()
         message, = received
 
-        self.assertEqual(0, message.random_torrents_length)
-        self.assertEqual(1, message.torrents_checked_length)
-        self.assertEqual([], message.random_torrents)
-        self.assertEqual((b"\x01"*20, 7, 42, message.torrents_checked[0][3]), message.torrents_checked[0])
+        self.assertEqual(HEALTH_REQUEST_RANDOM, message.response_type)
+        self.assertEqual(1, len(message.torrents))
+
+        t = message.torrents[0]
+        self.assertEqual((b"\x01" * 20, 7, 42, ""), (t.infohash, t.seeders, t.leechers, t.tracker))
+

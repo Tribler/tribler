@@ -6,6 +6,7 @@ import {useState} from "react";
 import {useInterval} from "@/hooks/useInterval";
 import {Health} from "@/models/health.model";
 import {formatTimeRelative} from "@/lib/utils";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 
 export const popularityColumns: ColumnDef<Health>[] = [
     {
@@ -31,7 +32,7 @@ export const popularityColumns: ColumnDef<Health>[] = [
     },
     {
         accessorKey: "tracker",
-        header: getHeader("Tracker", false),
+        header: getHeader("Tracker", false, true, true),
     },
     {
         accessorKey: "last_check",
@@ -47,7 +48,7 @@ export const popularityColumns: ColumnDef<Health>[] = [
 ];
 
 export default function Popularity() {
-    const [healthChecks, setHealthChecks] = useState<Health[]>([]);
+    const [healthChecks, setHealthChecks] = useState<{local: Health[], remote: Health[]}>({local: [], remote: []});
 
     useInterval(
         async () => {
@@ -61,11 +62,28 @@ export default function Popularity() {
     );
 
     return (
-        <SimpleTable
-            className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-82px)]"
-            data={healthChecks}
-            columns={popularityColumns}
-            initialState={{sorting: [{id: "last_check", desc: true}]}}
-        />
+        <Tabs defaultValue="local" className="w-full flex flex-col flex-wrap">
+            <TabsList className="flex-rows-4 border-b">
+                <TabsTrigger value="local">Local</TabsTrigger>
+                <TabsTrigger value="remote">Remote</TabsTrigger>
+            </TabsList>
+            <TabsContent value="local" className="contents">
+                <SimpleTable
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-122px)]"
+                    data={healthChecks?.local || []}
+                    columns={popularityColumns}
+                    initialState={{sorting: [{id: "last_check", desc: true}]}}
+                />
+            </TabsContent>
+            <TabsContent value="remote" className="contents">
+                <SimpleTable
+                    className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-122px)]"
+                    data={healthChecks?.remote || []}
+                    columns={popularityColumns}
+                    initialState={{sorting: [{id: "last_check", desc: true}]}}
+                />
+            </TabsContent>
+        </Tabs>
+
     );
 }

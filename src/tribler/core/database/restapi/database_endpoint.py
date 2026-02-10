@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import binascii
 import json
 import typing
 from binascii import unhexlify
@@ -28,6 +27,7 @@ from tribler.core.restapi.rest_endpoint import (
 if typing.TYPE_CHECKING:
     from multidict import MultiDictProxy, MultiMapping
 
+    from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.database.store import MetadataStore
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
     from tribler.core.restapi.rest_manager import TriblerRequest
@@ -85,6 +85,7 @@ class DatabaseEndpoint(RESTEndpoint):
 
         self.download_manager: DownloadManager | None = None
         self.torrent_checker: TorrentChecker | None = None
+        self.content_discovery_community: ContentDiscoveryCommunity | None = None
 
         self.app.add_routes(
             [
@@ -203,15 +204,13 @@ class DatabaseEndpoint(RESTEndpoint):
         """
         Fetch the swarm health of a specific torrent.
         """
-        if self.torrent_checker is None:
+        if self.torrent_checker is None or self.content_discovery_community is None:
             return RESTResponse({"health_history": []})
 
-        return RESTResponse({"health_history": [{"infohash": binascii.hexlify(health.infohash).decode(),
-                                                 "seeders": health.seeders,
-                                                 "leechers": health.leechers,
-                                                 "last_check": health.last_check,
-                                                 "tracker": health.tracker}
-                                                for health in self.torrent_checker.torrents_checked.values()]})
+        return RESTResponse({
+            "health_history": {"local": [h.to_api_response() for h in self.torrent_checker.torrents_checked.values()],
+                               "remote": [h.to_api_response() for h in self.content_discovery_community.health_history]}
+        })
 
     def add_download_progress_to_metadata_list(self, contents_list: list[dict]) -> None:
         """

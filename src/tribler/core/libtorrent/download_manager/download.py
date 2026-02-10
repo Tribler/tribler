@@ -328,7 +328,7 @@ class Download(TaskManager):
 
         file_name = f"{self.tdef.name} [{hexlify(self.tdef.infohash).decode()}].torrent"
         folder = Path(self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"))
-        folder.mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
         with open(str(folder / file_name), "wb") as f:  # noqa: ASYNC230
             f.write(lt.bencode(meta_dict))
 
@@ -638,7 +638,7 @@ class Download(TaskManager):
                 "size": torrent_info.total_size(),
                 "title": torrent_info.name(),
                 "metadata_type": 300,
-                "tracker_info": (self.tdef.atp.trackers or [t.url for t in torrent_info.trackers()] or [""])[0]
+                "tracker_info_list": (self.tdef.atp.trackers or [t.url for t in torrent_info.trackers()])[:5]
             })
 
         if torrent_info.is_valid():

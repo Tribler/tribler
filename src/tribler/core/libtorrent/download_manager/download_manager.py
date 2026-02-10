@@ -742,7 +742,7 @@ class DownloadManager(TaskManager):
                 "size": cast("lt.torrent_info", download.tdef.atp.ti).total_size(),
                 "title": download.tdef.name,
                 "metadata_type": 300,
-                "tracker_info": (list(download.tdef.atp.trackers) or [""])[0]
+                "tracker_info_list": list(download.tdef.atp.trackers)[:5] or []
             })
 
     async def _async_add_torrent(self, ltsession: lt.session, hops: int,
