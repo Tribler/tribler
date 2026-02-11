@@ -355,7 +355,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
                 <div className="flex items-center space-x-2 mt-5">
                     <Checkbox
-                        checked={params.auto_managed}
+                        checked={params.auto_managed || false}
                         id="auto_managed"
                         onCheckedChange={(value) => setParams({...params, auto_managed: !!value})}
                     />
