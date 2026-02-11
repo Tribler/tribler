@@ -239,6 +239,7 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             if "health" not in kwargs and "infohash" in kwargs:
                 infohash = kwargs["infohash"]
                 health = db.TorrentState.get_for_update(infohash=infohash) or db.TorrentState(infohash=infohash)
+                health.trackers.load()
                 kwargs["health"] = health
 
             if "timestamp" not in kwargs:
