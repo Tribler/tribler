@@ -263,6 +263,10 @@ def define_binding(db: Database, notifier: Notifier | None,  # noqa: C901
             for tracker_info in tracker_info_list:
                 self.add_tracker(tracker_info)
 
+            # We can get a single tracker from TorrentMetadataPayload.
+            if "tracker_info" in kwargs:
+                self.add_tracker(kwargs["tracker_info"])
+
             if notifier:
                 notifier.notify(Notification.new_torrent_metadata_created,
                                 infohash=kwargs.get("infohash"), title=self.title)
