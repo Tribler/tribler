@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import {Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "./ui/dialog";
+import {Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "./ui/dialog";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {Input} from "./ui/input";
@@ -110,6 +110,7 @@ export function AddTorrent() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>{t("MagnetDialogHeader")}</DialogTitle>
+                        <DialogDescription></DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-1 py-4 text-sm">
                         {t("MagnetDialogInputLabel")}

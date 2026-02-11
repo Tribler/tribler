@@ -454,7 +454,7 @@ export default function General() {
                     type="color"
                     id="tray_color"
                     name="tray_color"
-                    value={settings?.tray_icon_color}
+                    value={settings?.tray_icon_color || "#E82901"}
                     hidden={settings?.tray_icon_color === undefined || settings?.tray_icon_color == ""}
                     disabled={settings?.tray_icon_color === undefined || settings?.tray_icon_color == ""}
                     onChange={(evt) => {

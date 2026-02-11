@@ -107,14 +107,16 @@ export function Header() {
                             </DialogDescription>
                         ) : (
                             <ScrollArea className="max-h-[380px]">
-                                <DialogDescription className="text-xs font-mono">
-                                    {shutdownLogs.map((log) => (
-                                        <p>
-                                            {log}
-                                            <br />
-                                        </p>
-                                    ))}
-                                    <div ref={logsEndRef} />
+                                <DialogDescription asChild={true} className="text-xs font-mono">
+                                    <div>
+                                        {shutdownLogs.map((log, idx) => (
+                                            <div key={`shutdown-log-line-${idx}`}>
+                                                {log}
+                                                <br />
+                                            </div>
+                                        ))}
+                                        <div ref={logsEndRef} />
+                                    </div>
                                 </DialogDescription>
                             </ScrollArea>
                         )}
