@@ -224,6 +224,7 @@
     "DownloadLimit": "下载速度限制",
     "ToastErrorSetBandwidthLimit": "无法设置带宽限制！",
     "AutoManageEnable": "启用自动管理",
+    "ClearOrphanedParts": "在关机时查找并删除旧的部分下载的文件",
     "AutoManageMax": "每啤酒花计数的最大自动管理洪流数量...",
     "AutoManaged": "自动管理",
     "ActiveDownloads": "下载",

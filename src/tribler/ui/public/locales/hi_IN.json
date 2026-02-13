@@ -224,6 +224,7 @@
     "DownloadLimit": "डाउनलोड गति सीमा",
     "ToastErrorSetBandwidthLimit": "बैंडविड्थ सीमा निर्धारित करने में विफल!",
     "AutoManageEnable": "ऑटो-मैनेजमेंट सक्षम करें",
+    "ClearOrphanedParts": "शटडाउन पर आंशिक रूप से डाउनलोड की गई पुरानी फ़ाइलों को ढूंढें और हटाएं",
     "AutoManageMax": "अधिकतम संख्या में ऑटो-प्रबंधित टॉरेंट प्रति हॉप काउंट ...",
     "AutoManaged": "स्वत: प्रबंधित",
     "ActiveDownloads": "डाउनलोड",
