@@ -1,4 +1,5 @@
 import asyncio
+import os
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
 from contextlib import AbstractContextManager, ExitStack
@@ -40,6 +41,8 @@ class TestDownloadManager(TestBase):
             fut.set_result(Mock(status=Mock(dht_nodes=0), get_torrents=Mock(return_value=[])))
             self.manager.ltsessions[i] = fut
         self.manager.set_download_states_callback(self.manager.sesscb_states_callback)
+        # Just in case some patch fails, point this to a non-existent directory
+        self.manager.config.set("libtorrent/download_defaults/saveas", "__TEST__")
 
     async def tearDown(self) -> None:
         """
@@ -326,7 +329,7 @@ class TestDownloadManager(TestBase):
             b"piece length": 128,
             b"pieces": b"\x00" * 20
         }}))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -358,7 +361,7 @@ class TestDownloadManager(TestBase):
             },
             b"piece layers": [b"\x01" * 32]
         }))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -387,7 +390,7 @@ class TestDownloadManager(TestBase):
             },
             b"piece layers": [b"\x01" * 32]
         }))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -404,7 +407,7 @@ class TestDownloadManager(TestBase):
         atp.name = "torrent name"
         atp.info_hashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
         download_config.set_engineresumedata(atp)
-        download_config.set_dest_dir(Path(__file__).absolute().parent)
+        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
         self.manager.start_download = AsyncMock()
         with self._patch_dlconfig(download_config):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
@@ -691,3 +694,85 @@ class TestDownloadManager(TestBase):
         self.assertIsNotNone(atp.ti)
         self.assertEqual(b"\x1fs\x9d\x93Vv\x11\x1c\xff\xf4\xb4i>8\x16\xe6dypP", atp.ti.info_hashes().v1.to_bytes())
         self.assertEqual("gpl-3.0.txt", atp.ti.name())
+
+    def test_clear_orphaned_parts_empty(self) -> None:
+        """
+        Check if nothing is getting removed if there are no files.
+        """
+        with patch("os.listdir", Mock(return_value=[])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)
+
+    def test_clear_orphaned_parts_no_parts(self) -> None:
+        """
+        Check if nothing is getting removed if there are no parts files.
+        """
+        with patch("os.listdir", Mock(return_value=["hello.txt"])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)
+
+    def test_clear_orphaned_parts_bad_len_parts(self) -> None:
+        """
+        Check if nothing is getting removed if there are only odd-length parts files.
+        """
+        filename = ".1234.parts"
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)
+
+    def test_clear_orphaned_parts_bad_hex_parts(self) -> None:
+        """
+        Check if nothing is getting removed if there are only non-hex parts files.
+        """
+        filename = ".123456789G1234567890.parts"
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)
+
+    def test_clear_orphaned_parts_sha1_parts_orphaned(self) -> None:
+        """
+        Check if SHA-1 parts are getting removed.
+        """
+        filename = "." + "01" * 20 + ".parts"
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertEqual(call(os.path.join(self.manager.config.get("libtorrent/download_defaults/saveas"), filename)),
+                         remove_mock.call_args)
+
+    def test_clear_orphaned_parts_sha256_parts_orphaned(self) -> None:
+        """
+        Check if SHA-1 parts are getting removed.
+        """
+        filename = "." + "01" * 32 + ".parts"
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertEqual(call(os.path.join(self.manager.config.get("libtorrent/download_defaults/saveas"), filename)),
+                         remove_mock.call_args)
+
+    def test_clear_orphaned_parts_sha1_parts_nonorphaned(self) -> None:
+        """
+        Check if SHA-1 parts that are used for downloads are not getting removed.
+        """
+        filename = "." + "01" * 20 + ".parts"
+        self.manager.downloads[b"\01" * 20] = Mock()
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)
+
+    def test_clear_orphaned_parts_sha256_parts_nonorphaned(self) -> None:
+        """
+        Check if SHA-1 parts that are used for downloads are not getting removed.
+        """
+        filename = "." + "01" * 32 + ".parts"
+        self.manager.downloads[b"\01" * 32] = Mock()
+        with patch("os.listdir", Mock(return_value=[filename])), patch("os.remove", Mock()) as remove_mock:
+            self.manager.clear_orphaned_parts()
+
+        self.assertIsNone(remove_mock.call_args)

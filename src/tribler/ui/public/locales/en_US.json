@@ -224,6 +224,7 @@
     "DownloadLimit": "Download speed limit",
     "ToastErrorSetBandwidthLimit": "Failed to set bandwidth limit!",
     "AutoManageEnable": "Enable auto-management",
+    "ClearOrphanedParts": "Find and remove old partially-downloaded files on shutdown",
     "AutoManageMax": "Maximum number of auto-managed torrents per hop count...",
     "AutoManaged": "Auto-managed",
     "ActiveDownloads": "downloading",

@@ -320,6 +320,29 @@ export default function General() {
                 </label>
             </div>
 
+            <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                    checked={!!settings?.libtorrent?.clear_orphaned_parts}
+                    id="clear_orphaned_parts"
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings.libtorrent,
+                                    clear_orphaned_parts: !!value
+                                },
+                            });
+                        }
+                    }}
+                />
+                <label
+                    htmlFor="clear_orphaned_parts"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap">
+                    {t("ClearOrphanedParts")}
+                </label>
+            </div>
+
             <div className="space-x-2 py-2">
                 <Label htmlFor="active_downloads" className="whitespace-nowrap">
                     {t("AutoManageMax")}

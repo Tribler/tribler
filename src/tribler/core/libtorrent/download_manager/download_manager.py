@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import dataclasses
 import logging
 import os
@@ -217,6 +218,29 @@ class DownloadManager(TaskManager):
         logger.info("Notify shutdown state: %s", state)
         self.notifier.notify(Notification.tribler_shutdown_state, state=state)
 
+    def clear_orphaned_parts(self) -> None:
+        """
+        Scan the default downloads folder for parts files that are not in our downloads list.
+        """
+        dl_folder_files = []
+        try:
+            dl_folder_files = os.listdir(self.config.get("libtorrent/download_defaults/saveas"))
+        except OSError:
+            logger.warning("Default download dir is unreadable, skipping removing orphaned parts!")
+        for fname in dl_folder_files:
+            # File format is ``.<<40/64-len hex>>.parts``
+            if fname.startswith(".") and fname.endswith(".parts") and len(fname) in [47, 71]:
+                infohash_hex = fname[1:-6]
+                try:
+                    infohash_raw = binascii.unhexlify(infohash_hex)
+                    if infohash_raw not in self.downloads:
+                        try:
+                            os.remove(os.path.join(self.config.get("libtorrent/download_defaults/saveas"), fname))
+                        except OSError:
+                            logger.warning("Failed to remove parts file %s!", fname)
+                except binascii.Error:
+                    logger.warning("Parts file %s has an invalid infohash!", fname)
+
     async def shutdown(self, timeout: int = 30) -> None:
         """
         Shut down all pending tasks and background tasks.
@@ -224,6 +248,10 @@ class DownloadManager(TaskManager):
         logger.info("Shutting down...")
         self.cancel_pending_task("start")
         self.cancel_pending_task("download_states_lc")
+
+        if self.config.get("libtorrent/clear_orphaned_parts"):
+            self.clear_orphaned_parts()
+
         if self.downloads:
             logger.info("Stopping downloads...")
 

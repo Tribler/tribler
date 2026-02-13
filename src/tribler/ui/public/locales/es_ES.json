@@ -224,6 +224,7 @@
     "DownloadLimit": "Límite de velocidad de descarga",
     "ToastErrorSetBandwidthLimit": "¡No se pudo establecer el límite de ancho de banda!",
     "AutoManageEnable": "Habilitar el autogestión",
+    "ClearOrphanedParts": "Busque y elimine archivos antiguos parcialmente descargados al apagar",
     "AutoManageMax": "Número máximo de torrentes administrados automáticamente por conteo de lúpulo ...",
     "AutoManaged": "Gestionado",
     "ActiveDownloads": "descarga",

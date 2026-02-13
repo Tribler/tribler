@@ -198,6 +198,7 @@ class LibtorrentConfig(TypedDict):
     active_limit: int
 
     ask_download_settings: bool
+    clear_orphaned_parts: bool
 
 
 class RecommenderConfig(TypedDict):
@@ -344,7 +345,8 @@ DEFAULT_CONFIG = {
         active_tracker_limit=1600,
         active_lsd_limit=60,
         active_limit=500,
-        ask_download_settings=False
+        ask_download_settings=False,
+        clear_orphaned_parts=False
         ),
     "recommender": RecommenderConfig(enabled=True),
     "rendezvous": RendezvousConfig(enabled=True),
