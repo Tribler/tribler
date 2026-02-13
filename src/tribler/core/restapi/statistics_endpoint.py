@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import shutil
+from pathlib import Path
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
 from aiohttp import web
@@ -197,6 +199,10 @@ class StatisticsEndpoint(RESTEndpoint):
     async def get_dirspace_stats(self, request: web.Request) -> RESTResponse:
         """
         Return disk space statistics for a given directory.
+
+        This method fits the download logic: if the given directory does not exist, the folder is created. So, to
+        account for future folders, this method returns the stats for the first parent folder of the given folder
+        if it does not exist (yet).
         """
         if not self.session:
             return RESTResponse({"error": {"handled": True, "message": "Session was not initialized!"}},
@@ -204,5 +210,12 @@ class StatisticsEndpoint(RESTEndpoint):
         directory = (await request.json()).get("directory")
         if not directory:
             directory = self.session.config.get("libtorrent/download_defaults/saveas")
-        usage = shutil.disk_usage(directory)
-        return RESTResponse({"statistics": {"total": usage.total, "used": usage.used, "free": usage.free}})
+        path_parts = Path(directory).parts
+        while path_parts:
+            try:
+                usage = shutil.disk_usage(os.path.join(*path_parts))
+                return RESTResponse({"statistics": {"total": usage.total, "used": usage.used, "free": usage.free}})
+            except FileNotFoundError:
+                path_parts = path_parts[:-1]
+        return RESTResponse({"error": {"handled": True, "message": "No stats for directory!"}},
+                            status=HTTP_NOT_FOUND)
