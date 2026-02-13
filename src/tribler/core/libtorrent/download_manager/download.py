@@ -328,7 +328,7 @@ class Download(TaskManager):
 
         file_name = f"{self.tdef.name} [{hexlify(self.tdef.infohash).decode()}].torrent"
         folder = Path(self.download_manager.config.get("libtorrent/download_defaults/torrent_folder"))
-        folder.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+        folder.mkdir(parents=True, exist_ok=True)
         with open(str(folder / file_name), "wb") as f:  # noqa: ASYNC230
             f.write(lt.bencode(meta_dict))
 

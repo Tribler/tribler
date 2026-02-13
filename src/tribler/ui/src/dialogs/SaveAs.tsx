@@ -296,7 +296,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                                 </EasyTooltip>
                             ) : (
                                 <EasyTooltip
-                                    content={`(${formatBytes(torrentSize)}+${formatBytes(dirspaceStatistics.used)})/${formatBytes(dirspaceStatistics.total)}`}>
+                                    content={`Torrent: ${formatBytes(torrentSize)} Free: ${formatBytes(dirspaceStatistics.used)}`}>
                                     <Icons.diskusage
                                         disktotal={dirspaceStatistics.total}
                                         diskused={dirspaceStatistics.used}

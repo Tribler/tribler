@@ -329,7 +329,7 @@ class TestDownloadManager(TestBase):
             b"piece length": 128,
             b"pieces": b"\x00" * 20
         }}))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -361,7 +361,7 @@ class TestDownloadManager(TestBase):
             },
             b"piece layers": [b"\x01" * 32]
         }))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -390,7 +390,7 @@ class TestDownloadManager(TestBase):
             },
             b"piece layers": [b"\x01" * 32]
         }))
-        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
         with self._patch_dlconfig(download_config), patch.object(self.manager, "start_download", AsyncMock()):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
 
@@ -407,7 +407,7 @@ class TestDownloadManager(TestBase):
         atp.name = "torrent name"
         atp.info_hashes = libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20))
         download_config.set_engineresumedata(atp)
-        download_config.set_dest_dir(Path(__file__).absolute().parent)  # noqa: ASYNC240
+        download_config.set_dest_dir(Path(__file__).absolute().parent)
         self.manager.start_download = AsyncMock()
         with self._patch_dlconfig(download_config):
             value = await self.manager.load_checkpoint(self.MOCK_CONF_PATH)
