@@ -185,8 +185,8 @@ class StatisticsEndpoint(RESTEndpoint):
         summary="Return disk space statistics for a given directory.",
         responses={
             200: {
-                "schema": schema(IPv8StatisticsResponse={
-                    "statistics": schema(IPv8Statistics={
+                "schema": schema(DirspaceStatsRequest={
+                    "statistics": schema(DirspaceStats={
                         "total": Integer,
                         "used": Integer,
                         "free": Integer
@@ -195,7 +195,7 @@ class StatisticsEndpoint(RESTEndpoint):
             }
         }
     )
-    @json_schema(schema(DirspaceStatsRequest={"directory": String}))
+    @json_schema(schema(DirspaceStatsRequestBody={"directory": String}))
     async def get_dirspace_stats(self, request: web.Request) -> RESTResponse:
         """
         Return disk space statistics for a given directory.

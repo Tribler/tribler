@@ -25,6 +25,8 @@ from tribler.core.restapi.rest_endpoint import (
     return_handled_exception,
 )
 
+handled_error_schema = schema(HandledErrorSchema={"error": "any failures that may have occurred"})
+
 
 class CreateTorrentEndpoint(RESTEndpoint):
     """
@@ -60,7 +62,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 "examples": {"Success": {"success": True}}
             },
             HTTP_BAD_REQUEST: {
-                "schema": schema(HandledErrorSchema={"error": "any failures that may have occurred"}),
+                "schema": handled_error_schema,
                 "examples": {"Error": {"error": {"handled": True, "message": "files parameter missing"}}}
             }
         }
@@ -122,7 +124,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 parameters.get("filenames"),
                 parameters.get("name"),
                 tracker_url_list[0] if tracker_url_list else None,
-                tracker_url_list if tracker_url_list else None,
+                tracker_url_list or None,
                 parameters.get("description"),
                 f"Tribler version: {v}",
                 None,
@@ -151,7 +153,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 "examples": {"success": "true"}
             },
             HTTP_BAD_REQUEST: {
-                "schema": schema(HandledErrorSchema={"error": "any failures that may have occurred"}),
+                "schema": handled_error_schema,
                 "examples": {"error": {"handled": True, "message": "name already exists"}}
             }
         }
