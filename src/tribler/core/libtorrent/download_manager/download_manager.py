@@ -445,7 +445,7 @@ class DownloadManager(TaskManager):
         """
         self._map_call_on_ltsessions(hops, "set_max_connections", conns)
 
-    def process_alert(self, alert: lt.alert, hops: int = 0) -> None:  # noqa: C901, PLR0912
+    def process_alert(self, alert: lt.alert, hops: int = 0) -> None:  # noqa: C901, PLR0912, PLR0915
         """
         Process a libtorrent alert.
         """
@@ -481,6 +481,12 @@ class DownloadManager(TaskManager):
         ))
         download = self.downloads.get(infohash)
         if download and download.config.get_hops() == hops:
+            if alert_type == "storage_moved_failed_alert" and \
+                    download.handle and not os.access(download.handle.status().save_path, os.R_OK):
+                # Moving storage has probably failed due to the previous save_path being inaccessible.
+                # Re-adding the download with the new path should fix this.
+                download.tdef.atp.save_path = str(download.config.get_dest_dir())
+                self.register_anonymous_task("fix_inaccessible_path", self.update_hops, download, hops)
             download.process_alert(cast("lt.torrent_alert", alert), alert_type)
         elif infohash:
             logger.debug("Got alert for unknown download %s: %s", hexlify(infohash), str(alert))
