@@ -20,19 +20,14 @@ from aiohttp import (
 )
 from aiohttp_apispec import docs
 from ipv8.REST.schema import schema
-from marshmallow.fields import Boolean, String
+from marshmallow.fields import Boolean, Integer, List, Nested, String
 from yarl import URL
 
 from tribler.core.database.orm_bindings.torrent_metadata import tdef_to_metadata_dict
 from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.uris import unshorten, url_to_path
 from tribler.core.notifier import Notification
-from tribler.core.restapi.rest_endpoint import (
-    HTTP_BAD_REQUEST,
-    HTTP_INTERNAL_SERVER_ERROR,
-    RESTEndpoint,
-    RESTResponse,
-)
+from tribler.core.restapi.rest_endpoint import HTTP_BAD_REQUEST, HTTP_INTERNAL_SERVER_ERROR, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -53,6 +48,9 @@ class JSONMiniFileInfo(TypedDict):
     index: int
     name: str
     size: int
+
+
+file_info_schema = schema(JSONMiniFileInfo={"index": Integer, "name": String, "size": Integer})
 
 
 def recursive_unicode(obj: Iterable, ignore_errors: bool = False) -> Iterable:
@@ -169,7 +167,13 @@ class TorrentInfoEndpoint(RESTEndpoint):
             200: {
                 "description": "Return a hex-encoded json-encoded string with torrent metainfo",
                 "schema": schema(
-                    GetMetainfoResponse={"metainfo": String, "download_exists": Boolean, "valid_certificate": Boolean}
+                    GetMetainfoResponse={
+                        "files": List(Nested(file_info_schema)),
+                        "name": String,
+                        "description": String,
+                        "download_exists": Boolean,
+                        "valid_certificate": Boolean
+                    }
                 ),
             }
         },
@@ -314,9 +318,17 @@ class TorrentInfoEndpoint(RESTEndpoint):
         responses={
             200: {
                 "description": "Return a hex-encoded json-encoded string with torrent metainfo",
-                "schema": schema(GetMetainfoResponse={"metainfo": String})
+                "schema": schema(
+                    GetFileMetainfoResponse={
+                        "infohash": String,
+                        "files": List(Nested(file_info_schema)),
+                        "name": String,
+                        "description": String,
+                        "download_exists": Boolean
+                    }
+                ),
             }
-        }
+        },
     )
     async def get_torrent_info_from_file(self, request: web.Request) -> RESTResponse:
         """

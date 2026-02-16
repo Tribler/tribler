@@ -737,12 +737,12 @@ class DownloadsEndpoint(RESTEndpoint):
         }],
         responses={
             200: {
-                "schema": schema(AddTrackerResponse={"removed": Boolean}),
+                "schema": schema(RemoveTrackerResponse={"removed": Boolean}),
                 "examples": {"removed": True}
             }
         }
     )
-    @json_schema(schema(AddTrackerRequest={
+    @json_schema(schema(RemoveTrackerRequest={
         "url": (String, "The tracker URL to remove"),
     }))
     async def remove_tracker(self, request: Request) -> RESTResponse:
@@ -788,12 +788,12 @@ class DownloadsEndpoint(RESTEndpoint):
         }],
         responses={
             200: {
-                "schema": schema(AddTrackerResponse={"forced": Boolean}),
+                "schema": schema(ReannounceTrackerResponse={"forced": Boolean}),
                 "examples": {"forced": True}
             }
         }
     )
-    @json_schema(schema(AddTrackerRequest={
+    @json_schema(schema(ReannounceTrackerRequest={
         "url": (String, "The tracker URL to query"),
     }))
     async def tracker_force_announce(self, request: Request) -> RESTResponse:
