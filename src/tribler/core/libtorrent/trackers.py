@@ -115,7 +115,10 @@ def _parse_tracker_url(tracker_url: str) -> tuple[str, tuple[str, int], str]:
     :param tracker_url the URL of the tracker
     :returns: Tuple (scheme, (host, port), announce_path)
     """
-    parsed_url = urlparse(tracker_url)
+    try:
+        parsed_url = urlparse(tracker_url)
+    except ValueError as e:
+        raise MalformedTrackerURLException from e
     host = parsed_url.hostname
     path = parsed_url.path
     scheme = parsed_url.scheme
