@@ -32,6 +32,7 @@ To run the docker image:
 .. code-block::
 
     docker run -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" \
+               -e LANG=C.UTF-8 \
                -v ~/.Tribler:/home/ubuntu/.Tribler \
                -v ~/downloads/TriblerDownloads:/home/ubuntu/Downloads \
                -v $XDG_CACHE_HOME/tmp/:$XDG_CACHE_HOME/tmp/ -v /run:/run \
@@ -48,6 +49,7 @@ To run the docker image:
 .. code-block::
 
     docker run -e CORE_API_PORT=8085 -e CORE_API_KEY="changeme" \
+               -e LANG=C.UTF-8 \
                -v ~/.Tribler:/home/ubuntu/.Tribler \
                -v ~/downloads/TriblerDownloads:/home/ubuntu/Downloads \
                --net="host" -it ghcr.io/tribler/tribler:latest -s

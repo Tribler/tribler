@@ -5,6 +5,7 @@ services:
     security_opt:
       - apparmor:unconfined  # Not ideal, but allows DBUS communication TO host from the container (see "dirty hack")
     environment:
+      - LANG=C.UTF-8
       # DBUS/Xorg stuff
       - DISPLAY=$DISPLAY
       - DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS
