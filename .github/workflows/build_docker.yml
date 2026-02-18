@@ -1,6 +1,9 @@
 name: Publish Docker Image
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
 env:
   REF_NAME: ${{ github.ref_name }}
 
