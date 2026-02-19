@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import Mock, call, patch
+
 from ipv8.community import Community, CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.test.base import TestBase
@@ -281,3 +283,48 @@ class TestMetadataStore(TestBase[MockCommunity]):
 
         ordered1, = self.metadata_store.get_entries_query(sort_by="size", tags=["tag1", "tag2"])[:]
         self.assertEqual(3, ordered1.size)
+
+    def test_fast_integrity_check_no_remove(self) -> None:
+        """
+        Check that we detect a random file as broken.
+        """
+        self.metadata_store.db_path = __file__
+
+        self.assertTrue(self.metadata_store.fast_integrity_check(False))
+
+    def test_fast_integrity_check_remove(self) -> None:
+        """
+        Check that we detect a random file as broken and remove it.
+        """
+        self.metadata_store.db_path = __file__
+
+        with patch("os.remove", Mock()) as remove_mock:
+            self.assertTrue(self.metadata_store.fast_integrity_check(True))
+        self.assertEqual(call(__file__), remove_mock.call_args)
+
+    def test_fast_integrity_check_non_existent(self) -> None:
+        """
+        Check that we don't detect a non-existent file as broken.
+        """
+        self.metadata_store.db_path = "\\thisfiledoesntexistanywhere"
+
+        self.assertFalse(self.metadata_store.fast_integrity_check(False))
+
+    def test_fast_integrity_check_malformed(self) -> None:
+        """
+        Check that we detect a malformed db file as broken and remove it.
+        """
+        self.metadata_store.db_path = __file__
+        cursor_mock = Mock(fetchall=Mock(return_value=[("""*** in database main ***
+On tree page 4615 cell 194: Offset 40680 out of range 832..4092
+On tree page 158 cell 8: Offset 20922 out of range 918..4092
+On tree page 3142 cell 3: Rowid 11077 out of order
+Fragmentation of 1 bytes reported as 0 on page 3142
+On tree page 6345 cell 127: Offset 6770 out of range 482..4092
+On tree page 2895 cell 260: Offset 32226 out of range 1240..4092
+On tree page 7257 cell 29: Extends off end of page
+Multiple uses for byte 3460 of page 7294""", ), ("database disk image is malformed", )]))
+        sqlite_connect_mock = Mock(return_value=Mock(cursor=Mock(return_value=cursor_mock)))
+
+        with patch("sqlite3.connect", sqlite_connect_mock):
+            self.assertTrue(self.metadata_store.fast_integrity_check(False))
