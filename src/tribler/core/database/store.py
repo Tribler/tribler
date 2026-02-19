@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import enum
 import logging
+import os.path
 import re
+import sqlite3
 import threading
 from asyncio import get_running_loop
 from dataclasses import dataclass, field
@@ -153,6 +155,11 @@ class MetadataStore:
         self.reference_timedelta = timedelta(milliseconds=100)
         self.sleep_on_external_thread = 0.05  # sleep this amount of seconds between batches executed on external thread
 
+        # Before we start binding and initializing, do a quick integrity check. We remove the existing db if this fails.
+        # See https://github.com/Tribler/tribler/issues/8815 for the reasons behind this behavior.
+        if not disable_sync and db_filename != ":memory:":
+            self._logger.info("Database corrupted? %s", str(self.fast_integrity_check()))
+
         # We have to dynamically define/init ORM-managed entities here to be able to support
         # multiple sessions in Tribler. ORM-managed classes are bound to the database instance
         # at definition.
@@ -217,6 +224,34 @@ class MetadataStore:
         if create_db:
             with db_session:
                 self.MiscData(name="db_version", value=str(db_version))
+
+    def fast_integrity_check(self, remove_broken: bool = True) -> bool:
+        """
+        Inspect the database file and return whether it was broken or not.
+
+        By default, this method also removes the given db file if it is broken. Set ``remove_broken`` to False if you
+        want to keep the broken file.
+
+        :returns: Whether the database file was broken (False if no errors occurred).
+        """
+        if not os.path.exists(self.db_path):
+            return False
+        errors = []
+        try:
+            connection = sqlite3.connect(self.db_path)
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA quick_check")
+            errors.extend(cursor.fetchall())
+            connection.close()
+        except (sqlite3.DatabaseError, sqlite3.OperationalError) as e:
+            errors.insert(0, (str(e), ))
+        if len(errors) != 1 or errors[0] != ("ok",):
+            self._logger.error("These are the errors that caused the corruption: %s", ", ".join(e[0] for e in errors))
+            if remove_broken:
+                self._logger.info("Removing broken db file %s", self.db_path)
+                os.remove(self.db_path)
+            return True
+        return False
 
     def set_value(self, key: str, value: str) -> None:
         """
