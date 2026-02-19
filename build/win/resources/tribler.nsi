@@ -89,6 +89,7 @@ BrandingText "${PRODUCT}"
 LangString DESC_SecMain ${LANG_ENGLISH} "Install ${PRODUCT}"
 LangString DESC_SecDesk ${LANG_ENGLISH} "Create Desktop Shortcuts"
 LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
+LangString DESC_SecStartupApp ${LANG_ENGLISH} "Register as Startup App"
 LangString DESC_SecDefaultTorrent ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
 LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${PRODUCT}"
 
@@ -155,6 +156,10 @@ Section "Startmenu Icons" SecStart
     CreateShortCut "$SMPROGRAMS\${PRODUCT}.lnk" "$INSTDIR\${PRODUCT}.exe"
 SectionEnd
 
+Section "Register as Startup App" SecStartupApp
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCT}" "$INSTDIR\${PRODUCT}.exe"
+SectionEnd
+
 
 Section "Make Default For .torrent" SecDefaultTorrent
     ; Delete ddeexec key if it exists
@@ -185,6 +190,7 @@ SectionEnd
 !insertmacro MUI_DESCRIPTION_TEXT ${SecMain} $(DESC_SecMain)
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDesk} $(DESC_SecDesk)
 !insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
+!insertmacro MUI_DESCRIPTION_TEXT ${SecStartupApp} $(DESC_SecStartupApp)
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDefaultTorrent} $(DESC_SecDefaultTorrent)
 !insertmacro MUI_DESCRIPTION_TEXT ${SecDefaultMagnet} $(DESC_SecDefaultMagnet)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
@@ -204,6 +210,7 @@ Section "Uninstall"
 
     DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
     DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCT}"
 
     ; Remove an application from the firewall exception list
     SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
