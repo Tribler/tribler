@@ -251,6 +251,7 @@
     "InitialNodes": "初始节点",
     "Appearance": "外貌",
     "TrayIconColor": "更改托盘图标的颜色",
+    "StartMinimized": "最小化启动",
     "NotifyPreReleases": "预发布通知",
     "DisableAnonimity": "禁用匿名",
     "DisableAnonimityConfirm": "您即将禁用所有选定种子的匿名性。你确定吗？",

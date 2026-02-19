@@ -251,6 +251,7 @@
     "InitialNodes": "Initial nodes",
     "Appearance": "Appearance",
     "TrayIconColor": "Change the tray icon's color",
+    "StartMinimized": "Start minimized",
     "NotifyPreReleases": "Notify for pre-releases",
     "DisableAnonymity": "Disabling anonymity",
     "DisableAnonymityConfirm": "You're about the disable anonymity for all selected torrents. Are you sure?",
