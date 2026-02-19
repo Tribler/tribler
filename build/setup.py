@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import re
 import shutil
 from pathlib import Path
@@ -55,7 +56,8 @@ Version: {str(version)}""")
 setup(
     name="tribler",
     version=str(version),
-    description="Privacy enhanced BitTorrent client with P2P content discovery",
+    description=("Tribler" if platform.system() == "Windows"  # This is what you see in Task Manager
+                 else "Privacy enhanced BitTorrent client with P2P content discovery"),
     long_description=Path("README.rst").read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
     author="Tribler Team",

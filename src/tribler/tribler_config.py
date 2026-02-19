@@ -261,6 +261,7 @@ class TriblerConfig(TypedDict):
 
     api: ApiConfig
     headless: bool
+    start_minimized: bool
 
     ipv8: IPv8Config
     statistics: bool
@@ -296,6 +297,7 @@ DEFAULT_CONFIG = {
         "https_port_running": 0,
     },
     "headless": False,
+    "start_minimized": False,
 
     "ipv8": ipv8_default_config,
     "statistics": False,

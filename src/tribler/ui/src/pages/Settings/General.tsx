@@ -490,6 +490,24 @@ export default function General() {
                     }}
                 />
             </div>
+            <div className="py-2 flex items-center">
+                <Label htmlFor="start_minimized" className="whitespace-nowrap pr-5">
+                    {t("StartMinimized")}:
+                </Label>
+                <Checkbox
+                    id="start_minimized"
+                    checked={!!settings?.start_minimized}
+                    className="mr-10"
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                start_minimized: !!value,
+                            });
+                        }
+                    }}
+                />
+            </div>
 
             <SaveButton
                 onClick={async () => {

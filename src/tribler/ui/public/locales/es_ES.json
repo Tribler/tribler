@@ -251,6 +251,7 @@
     "InitialNodes": "Nodos iniciales",
     "Appearance": "Apariencia",
     "TrayIconColor": "Cambiar el color del ícono de la bandeja",
+    "StartMinimized": "Empezar minimizado",
     "NotifyPreReleases": "Notificar para prelanzamientos",
     "DisableAnonimity": "Desactivar el anonimato",
     "DisableAnonimityConfirm": "Se trata de desactivar el anonimato de todos los torrents seleccionados. ¿Está seguro?",

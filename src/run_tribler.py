@@ -267,9 +267,10 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
     menu = (pystray.MenuItem("Open", lambda: open_webbrowser_tab(url)),
-            pystray.MenuItem("Quit", lambda: session.shutdown_event.set()))
+            pystray.MenuItem("Quit", session.shutdown_event.set))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
-    open_webbrowser_tab(url)
+    if not config.get("start_minimized"):
+        open_webbrowser_tab(url)
     if sys.platform == "darwin":
         icon.run_detached(None)
         asyncio.ensure_future(mac_event_loop())  # noqa: RUF006

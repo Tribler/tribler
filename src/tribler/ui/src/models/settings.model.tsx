@@ -114,6 +114,7 @@ export interface Settings {
     memory_db: boolean;
     tray_icon_color: string;
     ui: GuiSettings;
+    start_minimized: boolean;
 }
 
 export interface AutoManageSettings {
