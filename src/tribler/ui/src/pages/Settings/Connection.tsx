@@ -229,6 +229,7 @@ export default function Connection() {
                 </Label>
                 <Input
                     id="proxy_pass"
+                    type="password"
                     value={(settings?.libtorrent?.proxy_auth || ":").split(":")[1]}
                     onChange={(event) => {
                         if (settings) {
