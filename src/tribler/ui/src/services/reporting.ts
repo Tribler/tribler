@@ -39,6 +39,11 @@ export function formatAxiosError(error: Error | AxiosError): ErrorDict | undefin
             // This is an error that conforms to the internal unhandled error format: ask the user what to do
             handleHTTPError(error);
         }
+        if (typeof error.response.data === "string") {
+            // If a field is too long, we can end up with a string as the response. We'll repack it as an error dict.
+            // Because this is not a core crash, perhaps counter-intuitively, we set "handled" to true.
+            return {error: {handled: true, message: error.response.data}, errorCode: error.status};
+        }
         // This is some (probably expected) REST API error
         let errorDict = error.response.data;
         errorDict.errorCode = error.status;

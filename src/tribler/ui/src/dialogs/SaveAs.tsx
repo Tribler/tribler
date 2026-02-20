@@ -269,7 +269,9 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
             <DialogContent className="max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>{t("DownloadTorrent")}</DialogTitle>
-                    <DialogDescription className="break-all text-xs">{uri ?? torrent?.name ?? ""}</DialogDescription>
+                    <DialogDescription className="break-all text-xs max-w-4xl line-clamp-2">
+                        {uri ?? torrent?.name ?? ""}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex flex-cols-[theme(spacing.64)_1fr] flex-rows-2 mt-2">

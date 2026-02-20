@@ -41,7 +41,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when the supplied number of hops is an int value.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": "foo", "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": "foo", "uri": "file://"})
 
         response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
@@ -53,7 +53,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when the supplied the URI scheme is unknown.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "xxx://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "xxx://"})
 
         response = await self.endpoint.get_torrent_info(request)
         response_body_json = await response_to_json(response)
@@ -65,7 +65,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when no metainfo is available for a file.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=FakeTDef())):
             response = await self.endpoint.get_torrent_info(request)
@@ -78,7 +78,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a FileNotFoundError occurs when loading a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(side_effect=FileNotFoundError)):
             response = await self.endpoint.get_torrent_info(request)
@@ -91,7 +91,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a TypeError occurs when loading a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(side_effect=TypeError)):
             response = await self.endpoint.get_torrent_info(request)
@@ -104,7 +104,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ValueError occurs when loading a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(side_effect=ValueError)):
             response = await self.endpoint.get_torrent_info(request)
@@ -117,7 +117,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a RuntimeError occurs when loading a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(side_effect=RuntimeError)):
             response = await self.endpoint.get_torrent_info(request)
@@ -130,7 +130,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a RuntimeError occurs when loading a magnet in compatibility mode.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "magnet://"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"lt": Mock(parse_magnet_uri=Mock(side_effect=RuntimeError))}):
@@ -145,7 +145,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a RuntimeError occurs when loading a magnet.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "magnet://"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"lt": Mock(parse_magnet_uri=type("test", (object, ), {
@@ -164,7 +164,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a graceful error is returned when no metainfo is available for a magnet.
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "magnet://"})
         alert = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
@@ -184,7 +184,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if an empty response is returned when no metainfo is available for a magnet and it is skipped.
         """
         self.download_manager.get_metainfo = AsyncMock(side_effect=AssertionError)
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "magnet:", "skipmagnet": "true"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "magnet:", "skipmagnet": "true"})
         alert = Mock(info_hash=libtorrent.sha1_hash(b"\x01" * 20))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
@@ -201,7 +201,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ServerConnectionError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -217,7 +217,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ClientResponseError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -233,7 +233,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a SSLError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -249,7 +249,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ClientConnectorError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -266,7 +266,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a TimeoutError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -282,7 +282,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ValueError occurs when loading from an HTTP link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -298,7 +298,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a valid HTTP address does not return a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "http://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "http://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -314,7 +314,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ServerConnectionError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -330,7 +330,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ClientResponseError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -346,7 +346,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a SSLError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -362,7 +362,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ClientConnectorError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -379,7 +379,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a TimeoutError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -395,7 +395,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a ValueError occurs when loading from an HTTPS link.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -411,7 +411,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         Test if a graceful error is returned when a valid HTTP address does not return a torrent.
         """
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -435,7 +435,7 @@ class TestTorrentInfoEndpoint(TestBase):
                 raise ClientConnectorCertificateError(None, RuntimeError("Invalid certificate test error!"))
             return await succeed(TORRENT_WITH_VIDEO)
 
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
                         {"unshorten": mock_unshorten}), \
@@ -452,7 +452,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a graceful error is returned when no metainfo is available for a http link.
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__, {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
@@ -468,7 +468,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a graceful error is returned when no metainfo is available for a https link.
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__, {"unshorten": mock_unshorten}), \
                 patch("tribler.core.libtorrent.restapi.torrentinfo_endpoint.query_uri",
@@ -484,7 +484,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a graceful error is returned when no metainfo is available for a magnet returned by a HTTP link.
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
         atp = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
@@ -508,7 +508,7 @@ class TestTorrentInfoEndpoint(TestBase):
         Test if a graceful error is returned when no metainfo is available for a magnet returned by a HTTPS link.
         """
         self.download_manager.get_metainfo = AsyncMock(return_value=MetainfoLookupResult(tdef=None))
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "https://127.0.0.1/file"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "https://127.0.0.1/file"})
         alert = Mock(info_hashes=libtorrent.info_hash_t(libtorrent.sha1_hash(b"\x01" * 20)))
 
         with patch.dict(tribler.core.libtorrent.restapi.torrentinfo_endpoint.__dict__,
@@ -533,7 +533,7 @@ class TestTorrentInfoEndpoint(TestBase):
         """
         tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         self.download_manager.metainfo_requests = {}
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(request)
@@ -552,7 +552,7 @@ class TestTorrentInfoEndpoint(TestBase):
         tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
         download = self.download_manager.downloads.get(tdef.infohash)
         self.download_manager.metainfo_requests = {tdef.infohash: MetainfoLookup(download, 1)}
-        request = MockRequest("/api/torrentinfo", query={"hops": 0, "uri": "file://"})
+        request = MockRequest("/api/torrentinfo/uri", "POST", {"hops": 0, "uri": "file://"})
 
         with patch("tribler.core.libtorrent.torrentdef.TorrentDef.load", AsyncMock(return_value=tdef)):
             response = await self.endpoint.get_torrent_info(request)
