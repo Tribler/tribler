@@ -117,8 +117,8 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         super().__init__()
         self.download_manager = download_manager
-        self.app.add_routes([web.get("", self.get_torrent_info),
-                             web.put("", self.get_torrent_info_from_file)])
+        self.app.add_routes([web.post("/uri", self.get_torrent_info),
+                             web.put("/file", self.get_torrent_info_from_file)])
 
     def get_files(self, tdef: TorrentDef) -> list[JSONMiniFileInfo]:
         """
@@ -182,11 +182,11 @@ class TorrentInfoEndpoint(RESTEndpoint):
         """
         Return metainfo from a torrent found at a provided URI.
         """
-        params = request.query
+        params = await request.json()
         hops = params.get("hops")
         i_hops = 0
         p_uri = params.get("uri")
-        skip_check_metainfo = params.get("skipmagnet", "false") in ["true", "1"]
+        skip_check_metainfo = params.get("skipmagnet", False)
         self._logger.info("URI: %s", p_uri)
         if hops:
             try:

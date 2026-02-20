@@ -336,7 +336,7 @@ export class TriblerService {
           }
     > {
         try {
-            return (await this.http.get(`/torrentinfo`, {params: {uri, skipmagnet: skipMagnet}, ...config})).data;
+            return (await this.http.post(`/torrentinfo/uri`, {uri: uri, skipmagnet: skipMagnet}, config)).data;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }
@@ -355,7 +355,7 @@ export class TriblerService {
     > {
         try {
             return (
-                await this.http.put("/torrentinfo", torrent, {
+                await this.http.put("/torrentinfo/file", torrent, {
                     headers: {
                         "Content-Type": "applications/x-bittorrent",
                     },
