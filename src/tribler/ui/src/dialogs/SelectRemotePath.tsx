@@ -98,19 +98,21 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
         if (props.open) reloadPaths(initialPath);
     }, [initialPath, showFiles, props.open]);
 
-    async function reloadPaths(dir: string) {
+    async function reloadPaths(dir: string): Promise<boolean> {
         const response = await triblerService.browseFiles(dir, showFiles || false);
         if (response === undefined) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${t("ToastErrorGenNetworkErr")}`);
+            return false;
         } else if (isErrorDict(response) && response.errorCode != 404) {
             toast.error(`${t("ToastErrorBrowseFiles")} ${response.error.message}`);
+            return false;
         } else if (isErrorDict(response)) {
             // If we couldn't get the requested path, browse the default path instead.
             let settings = await triblerService.getSettings();
             if (settings !== undefined && !isErrorDict(settings)) {
                 let nextDir = settings.libtorrent.download_defaults.saveas;
                 if (dir != nextDir) {
-                    reloadPaths(nextDir);
+                    return await reloadPaths(nextDir);
                 }
             }
         } else {
@@ -120,11 +122,15 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
             setLastClicked(selectDir ? {name: "", path: response.current, dir: true} : undefined);
             setSeparator(response.separator);
         }
+        return true;
     }
 
-    function OnClick(row: Row<Path>) {
-        if (row.original.dir) reloadPaths(row.original.path);
-        setLastClicked(row.original);
+    async function OnClick(row: Row<Path>) {
+        if (row.original.dir) {
+            if (await reloadPaths(row.original.path)) {
+                setLastClicked(row.original);
+            }
+        }
     }
     function OnNew() {
         setNewFolderName("");
@@ -146,14 +152,15 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                                 <span key={index}>
                                     <a
                                         className="cursor-pointer hover:text-black dark:hover:text-white"
-                                        onClick={(event) => {
+                                        onClick={async (event) => {
                                             let path = array.slice(0, index + 1).join(separator) + separator;
-                                            reloadPaths(path);
-                                            setLastClicked({
-                                                name: dir,
-                                                path,
-                                                dir: true,
-                                            });
+                                            if (await reloadPaths(path)) {
+                                                setLastClicked({
+                                                    name: dir,
+                                                    path,
+                                                    dir: true,
+                                                });
+                                            }
                                         }}>
                                         {dir}
                                     </a>
