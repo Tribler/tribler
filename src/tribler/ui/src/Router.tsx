@@ -1,8 +1,15 @@
 import {createHashRouter, Await, useRouteError} from "react-router-dom";
 import {Suspense} from "react";
 import {SideLayout} from "./components/layouts/SideLayout";
-import {filterActive, filterAll, filterCompleted, filterDownloading, filterInactive, filterInactiveUnqueued,
-        filterCompletedOrInactive} from "./pages/Downloads";
+import {
+    filterActive,
+    filterAll,
+    filterCompleted,
+    filterDownloading,
+    filterInactive,
+    filterInactiveUnqueued,
+    filterCompletedOrInactive,
+} from "./pages/Downloads";
 import {handleHTTPError} from "./services/reporting";
 import NoMatch from "./pages/NoMatch";
 import Dashboard from "./pages/Dashboard";
@@ -23,6 +30,7 @@ import DHT from "./pages/Debug/DHT";
 import Libtorrent from "./pages/Debug/Libtorrent";
 import Asyncio from "./pages/Debug/Asyncio";
 import Popularity from "./pages/Debug/Popularity";
+import Interface from "./pages/Settings/Interface";
 
 var raiseUnhandledError: (reason?: any) => void;
 const errorPromise = new Promise(function (resolve, reject) {
@@ -116,6 +124,10 @@ export const router = createHashRouter([
             {
                 path: "settings/versions",
                 element: <Versions />,
+            },
+            {
+                path: "settings/interface",
+                element: <Interface />,
             },
             {
                 path: "debug/general",

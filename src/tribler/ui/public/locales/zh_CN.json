@@ -259,5 +259,11 @@
     "AnonStatusDisabled": "未启用匿名功能",
     "AnonStatusNoPeers": "无法建立匿名，根本没有同行！",
     "AnonStatusOnlyRelays": "可用的匿名性有限：使用 2 跳下载",
-    "AnonStatusHasExits": "可用匿名化"
+    "AnonStatusHasExits": "可用匿名化",
+    "FontType": "字体类型",
+    "FontSize": "字体大小",
+    "Small": "小的",
+    "Default": "默认",
+    "Large": "大的",
+    "ExtraLarge": "特大号"
 }

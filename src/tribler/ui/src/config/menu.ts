@@ -91,6 +91,10 @@ export const sideMenu: NavItemWithChildren[] = [
                 title: "Versions",
                 to: "/settings/versions",
             },
+            {
+                title: "User Interface",
+                to: "/settings/interface",
+            },
         ],
     },
     {

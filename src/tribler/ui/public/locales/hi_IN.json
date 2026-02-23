@@ -259,5 +259,11 @@
     "AnonStatusDisabled": "गुमनामी सुविधा सक्षम नहीं है",
     "AnonStatusNoPeers": "गुमनामी स्थापित नहीं की जा सकती, कोई सहकर्मी ही नहीं!",
     "AnonStatusOnlyRelays": "सीमित गुमनामी उपलब्ध: 2-हॉप डाउनलोड का उपयोग करें",
-    "AnonStatusHasExits": "गुमनामीकरण उपलब्ध है"
+    "AnonStatusHasExits": "गुमनामीकरण उपलब्ध है",
+    "FontType": "फ़ॉन्ट प्रकार",
+    "FontSize": "फ़ॉन्ट आकार",
+    "Small": "छोटा",
+    "Default": "गलती करना",
+    "Large": "बड़ा",
+    "ExtraLarge": "एक्स्ट्रा लार्ज"
 }
