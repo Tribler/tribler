@@ -132,6 +132,8 @@ export interface GuiSettings {
     dev_mode?: boolean;
     lang?: string;
     theme?: string;
+    fontFamily?: string;
+    fontSize?: number | string;
     sorting?: string;
     columns?: string;
 }

@@ -259,5 +259,11 @@
     "AnonStatusDisabled": "Anonymity feature is not enabled",
     "AnonStatusNoPeers": "Cannot establish anonymization, no peers at all!",
     "AnonStatusOnlyRelays": "Limited anonymization available: use 2-hop downloads",
-    "AnonStatusHasExits": "Anonymization available"
+    "AnonStatusHasExits": "Anonymization available",
+    "FontType": "Font type",
+    "FontSize": "Font size",
+    "Small": "Small",
+    "Default": "Default",
+    "Large": "Large",
+    "ExtraLarge": "Extra large"
 }

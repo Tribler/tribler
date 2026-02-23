@@ -36,6 +36,9 @@
         --ring: 0 0% 4.9%;
 
         --radius: 0.5rem;
+		
+        font-family: var(--user-font, system-ui);
+        font-size: var(--user-font-size, 16px);
     }
 
     .dark {

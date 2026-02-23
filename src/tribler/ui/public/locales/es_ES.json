@@ -259,5 +259,11 @@
     "AnonStatusDisabled": "La función de anonimato no está habilitada",
     "AnonStatusNoPeers": "¡No se puede establecer el anonimato, no hay compañeros en absoluto!",
     "AnonStatusOnlyRelays": "Anonimización limitada disponible: use descargas de 2 saltos",
-    "AnonStatusHasExits": "Anonimización disponible"
+    "AnonStatusHasExits": "Anonimización disponible",
+    "FontType": "Tipo de fuente",
+    "FontSize": "Tamaño de fuente",
+    "Small": "Pequeño",
+    "Default": "Por defecto",
+    "Large": "Grande",
+    "ExtraLarge": "Extra grande"
 }
