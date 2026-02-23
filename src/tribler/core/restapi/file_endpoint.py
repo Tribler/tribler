@@ -67,11 +67,17 @@ class FileEndpoint(RESTEndpoint):
 
         # Get all files/subdirs
         results = []
-        for file in parent_path.iterdir():
-            if not file.is_dir() and not show_files:
-                continue
-            with contextlib.suppress(PermissionError):
-                results.append({"name": file.name, "path": str(file.resolve()), "dir": file.is_dir()})
+        try:
+            for file in parent_path.iterdir():
+                if not file.is_dir() and not show_files:
+                    continue
+                with contextlib.suppress(PermissionError):
+                    results.append({"name": file.name, "path": str(file.resolve()), "dir": file.is_dir()})
+        except PermissionError:
+            return RESTResponse({"error": {
+                "handled": True,
+                "message": f"Directory {path} is not accessible"
+            }}, status=HTTP_INTERNAL_SERVER_ERROR)
 
         results.sort(key=lambda f: not f["dir"])
 
