@@ -44,7 +44,6 @@ def get_freeze_build_options():
     sys.path.insert(0, 'pyipv8')
     included_packages = [
         "aiohttp_apispec",
-        "pkg_resources",
         "requests",
         "tribler.core",
         "libtorrent",

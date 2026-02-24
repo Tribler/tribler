@@ -509,7 +509,7 @@ function SimpleTable<T extends object>({
                                                 <DotsHorizontalIcon className="h-4 w-4" />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>{t("Toggle columns")}</DropdownMenuLabel>
+                                                <DropdownMenuLabel>{t("ToggleColumns")}</DropdownMenuLabel>
                                                 <DropdownMenuSeparator />
                                                 {table.getAllLeafColumns().map((column) => {
                                                     const fakeColumn = {
