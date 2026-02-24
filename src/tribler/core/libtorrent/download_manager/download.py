@@ -693,6 +693,11 @@ class Download(TaskManager):
         self._logger.info("On torrent checked alert: %s", str(alert))
 
         if self.pause_after_next_hashcheck and self.handle:
+            if self.get_state().get_status() == DownloadStatus.SEEDING:
+                check_after_finish = self.get_task("Recheck torrent after finish")
+                if check_after_finish:
+                    # No need to check after finish if we just discovered that we finished after checking.
+                    check_after_finish.cancel()
             self.pause_after_next_hashcheck = False
             self.handle.pause()
         if self.checkpoint_after_next_hashcheck:
