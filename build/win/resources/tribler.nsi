@@ -14,6 +14,7 @@ RequestExecutionLevel admin
 ;General
 Name "${PRODUCT} ${VERSION}"
 OutFile "${PRODUCT}_${VERSION}_x64.exe"
+Var TSTATEDIR
 
 ;Folder selection page. 
 ; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64
@@ -71,6 +72,14 @@ BrandingText "${PRODUCT}"
 ;Pages
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
+!define MUI_PAGE_CUSTOMFUNCTION_PRE "SetupTSTATEDIR"
+!define MUI_PAGE_HEADER_TEXT "Custom state directory"
+!define MUI_PAGE_HEADER_SUBTEXT "(optional)"
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Specify a custom directory to store database and configuration files."
+!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "$TSTATEDIR"
+!define MUI_DIRECTORYPAGE_VARIABLE $TSTATEDIR
+SpaceTexts none
+!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -107,6 +116,10 @@ Section "!Main EXE" SecMain
     ; Install Tribler stuff
     SetOutPath "$INSTDIR"
     File /r *
+
+    ; Write TSTATEDIR env var from $TSTATEDIR installer variable
+    WriteRegStr HKCU "Environment" "TSTATEDIR" "$TSTATEDIR"
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
     ; Install MSVCR 2008, 2012 and 2015
     SetOutPath "$INSTDIR"
@@ -253,3 +266,6 @@ Function .onInit
 
 FunctionEnd
 
+Function SetupTSTATEDIR
+    ReadRegStr $TSTATEDIR HKCU "Environment" "TSTATEDIR"
+FunctionEnd
