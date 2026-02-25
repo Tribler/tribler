@@ -123,7 +123,7 @@ def tdef_to_metadata_dict(tdef: TorrentDef) -> dict:
         "tags": tags[:200],
         "size": tdef.torrent_info.total_size() if tdef.torrent_info else 0,
         "torrent_date": max(torrent_date, EPOCH),
-        "tracker_info_list": [get_uniformed_tracker_url(tracker_url) for tracker_url in (tdef.atp.trackers or [])],
+        "tracker_info_list": list(filter(None, map(get_uniformed_tracker_url, tdef.atp.trackers or []))),
     }
 
 
