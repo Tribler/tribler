@@ -310,7 +310,7 @@ class DownloadManager(TaskManager):
         """
         return all(self.lt_session_shutdown_ready.values())
 
-    def create_session(self, hops: int = 0) -> lt.session:
+    def create_session(self, hops: int = 0, no_memory_cache: bool = False) -> lt.session:  # noqa: PLR0912,PLR0915
         """
         Construct a libtorrent session for the given number of anonymization hops.
         """
@@ -329,9 +329,15 @@ class DownloadManager(TaskManager):
             "announce_to_all_tiers": int(self.config.get("libtorrent/announce_to_all_tiers")),
             "announce_to_all_trackers": int(self.config.get("libtorrent/announce_to_all_trackers")),
             "max_concurrent_http_announces": int(self.config.get("libtorrent/max_concurrent_http_announces")),
-            "disk_write_mode": 0,  # always_pwrite
-            "mmap_file_size_cutoff": 2147483647  # use pwrite for files up to maxint * 16kB ("always")
         }
+
+        if no_memory_cache:
+            settings["disk_write_mode"] = 0  # always_pwrite
+            settings["mmap_file_size_cutoff"] = 2147483647  # use pwrite for files up to maxint * 16kB ("always")
+        else:
+            settings["disk_write_mode"] = 1  # always_mmap_write
+            settings["disk_io_write_mode"] = 2  # write_through (flush pieces to disk as they complete validation)
+            settings["mmap_file_size_cutoff"] = 0  # start memory mapping even for 0 byte files
 
         # Copy construct so we don't modify the default list
         extensions = list(DEFAULT_LT_EXTENSIONS)
@@ -414,7 +420,7 @@ class DownloadManager(TaskManager):
                 actual_hops = max(default_hops, 1)
 
             self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}",
-                                                                self.create_session, actual_hops)
+                                                                self.create_session, actual_hops, hops < 0)
 
             if self.dht_readiness_timeout > 0 and self.config.get("libtorrent/dht"):
                 self.dht_ready_tasks[hops] = self.register_task(f"DHT readiness check {hops}",
