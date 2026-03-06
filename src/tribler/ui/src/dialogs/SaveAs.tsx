@@ -349,7 +349,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
 
                 {error === undefined && files.length === 0 && (
                     <div className="flex justify-center p-5">
-                        {t("LoadingTorrent", {method: (params.anon_hops !== 0) ? "$t(anonymously)" : "$t(directly)"})}
+                        {t("LoadingTorrent", {method: t((params.anon_hops !== 0) ? "anonymously" : "directly")})}
                         <Icons.spinner className="h-6 w-6 mx-3" />
                     </div>
                 )}
