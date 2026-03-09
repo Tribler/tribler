@@ -256,11 +256,8 @@ class ContentDiscoveryCommunity(Community):
         request_uuid = uuid.uuid4()
 
         def notify_gui(request: SelectRequest, processing_results: list[ProcessingResult]) -> None:
-            results = [
-                r.md_obj.to_simple_dict()
-                for r in processing_results
-                if r.obj_state == ObjState.NEW_OBJECT
-            ]
+            results = [r.data for r in processing_results if r.obj_state == ObjState.NEW_OBJECT]
+
             if self.composition.notifier:
                 self.composition.notifier.notify(Notification.remote_query_results,
                                                  query=kwargs.get("txt_filter"),
