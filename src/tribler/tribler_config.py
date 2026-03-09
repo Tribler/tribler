@@ -176,6 +176,8 @@ class LibtorrentConfig(TypedDict):
     max_connections_download: int
     max_download_rate: int
     max_upload_rate: int
+    use_advanced_rate_limits: bool
+    advanced_rate_limits: dict[str, str]  # Values are packed JSON: list[tuple[int, int]]
     utp: bool
     dht: bool
     dht_readiness_timeout: int
@@ -315,6 +317,8 @@ DEFAULT_CONFIG = {
         max_connections_download=-1,
         max_download_rate=0,
         max_upload_rate=0,
+        use_advanced_rate_limits=False,
+        advanced_rate_limits={str(i - 1): json.dumps([(None, None)] * 48, separators=(",", ":")) for i in range(4)},
         utp=True,
         dht=True,
         dht_readiness_timeout=30,
@@ -502,6 +506,10 @@ if __name__ == "__main__":
             if getattr(key_type, "__name__", None) == "list" and get_args(key_type):
                 key_type, = get_args(key_type)
                 global_keys[abs_key] = f"list[{getattr(key_type, '__name__', str(key_type))}]"
+            elif getattr(key_type, "__name__", None) == "dict" and get_args(key_type):
+                key_type, value_type = get_args(key_type)
+                global_keys[abs_key] = (f"dict[{getattr(key_type, '__name__', str(key_type))},"
+                                        f" {getattr(value_type, '__name__', str(value_type))}]")
             elif getattr(key_type, "__name__", None) == "NotRequired":
                 key_type, = get_args(key_type)
             else:

@@ -58,6 +58,8 @@ export interface Settings {
         max_connections_download: number;
         max_download_rate: number;
         max_upload_rate: number;
+        use_advanced_rate_limits: boolean;
+        advanced_rate_limits: {[key: string]: string};
         utp: boolean;
         dht: boolean;
         dht_readiness_timeout: number;

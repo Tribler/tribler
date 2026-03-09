@@ -273,5 +273,7 @@
     "Popularity": "Popularity",
     "Libtorrent": "Libtorrent",
     "ToggleColumns": "कॉलम टॉगल करें",
-    "Queue": "कतार"
+    "Queue": "कतार",
+    "SimpleSettings": "सरल सेटिंग्स का प्रयोग करें",
+    "AdvancedSettings": "उन्नत सेटिंग्स का उपयोग करें"
 }

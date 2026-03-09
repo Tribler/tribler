@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
@@ -776,3 +777,86 @@ class TestDownloadManager(TestBase):
             self.manager.clear_orphaned_parts()
 
         self.assertIsNone(remove_mock.call_args)
+
+    async def test_homogeneous_adv_rate_limits(self) -> None:
+        """
+        Check if the advanced rate limits are set somewhere, regardless of the time of day.
+
+        Note: ``test_disabled_adv_rate_limits`` depends on this test.
+        """
+        session = Mock(get_settings=Mock(return_value={}))
+        self.manager.ltsessions[0] = succeed(session)
+        self.manager.config.set("libtorrent/use_advanced_rate_limits", True)
+        self.manager.config.set("libtorrent/advanced_rate_limits", {"0": json.dumps([(1, 1)] * 48)})
+
+        self.manager.process_advanced_rate_limits()
+        await sleep(0)
+
+        self.assertEqual(call({"upload_rate_limit": 1, "download_rate_limit": 1}), session.apply_settings.call_args)
+
+    async def test_disabled_adv_rate_limits(self) -> None:
+        """
+        Check if disabled advanced rate limits don't affect "normal" rate limits.
+        """
+        session = Mock(get_settings=Mock(return_value={}))
+        self.manager.ltsessions[0] = succeed(session)
+        self.manager.config.set("libtorrent/use_advanced_rate_limits", False)
+        self.manager.config.set("libtorrent/advanced_rate_limits", {"0": json.dumps([(1, 1)] * 48)})
+
+        self.manager.process_advanced_rate_limits()
+        await sleep(0)
+
+        self.assertIsNone(session.apply_settings.call_args)
+
+    async def test_adv_rate_limits_interp_correct_time(self) -> None:
+        """
+        Check if the exact set rate limit is achieved at the exact time.
+        """
+        session = Mock(get_settings=Mock(return_value={}))
+        self.manager.ltsessions[0] = succeed(session)
+        self.manager.config.set("libtorrent/use_advanced_rate_limits", True)
+        self.manager.config.set(
+            "libtorrent/advanced_rate_limits", {"0": json.dumps([(1, 1)] * 11 + [(42, 7)] + [(1, 1)] * 36)}
+        )
+
+        with patch("time.localtime", Mock(return_value=Mock(tm_min=30, tm_hour=5))):
+            self.manager.process_advanced_rate_limits()
+        await sleep(0)
+
+        self.assertEqual(call({"upload_rate_limit": 42, "download_rate_limit": 7}), session.apply_settings.call_args)
+
+    async def test_adv_rate_limits_interp_middle_time(self) -> None:
+        """
+        Check if the rate limit is interpolated between two set times.
+        """
+        session = Mock(get_settings=Mock(return_value={}))
+        self.manager.ltsessions[0] = succeed(session)
+        self.manager.config.set("libtorrent/use_advanced_rate_limits", True)
+        self.manager.config.set(
+            "libtorrent/advanced_rate_limits", {"0": json.dumps([(1, 1)] * 10 + [(7, 42), (42, 7)] + [(1, 1)] * 36)}
+        )
+
+        with patch("time.localtime", Mock(return_value=Mock(tm_min=15, tm_hour=5))):  # Halfway between two values
+            self.manager.process_advanced_rate_limits()
+        await sleep(0)
+
+        # Secondary test: rate limits should always be in whole bytes per second ((7+42)/2 is rounded down)
+        self.assertEqual(call({"upload_rate_limit": 24, "download_rate_limit": 24}), session.apply_settings.call_args)
+
+    async def test_adv_rate_limits_interp_middle_time_midnight_spillover(self) -> None:
+        """
+        Check if the rate limit is interpolated between two set times if they go over the 24 hour mark.
+        """
+        session = Mock(get_settings=Mock(return_value={}))
+        self.manager.ltsessions[0] = succeed(session)
+        self.manager.config.set("libtorrent/use_advanced_rate_limits", True)
+        self.manager.config.set(
+            "libtorrent/advanced_rate_limits", {"0": json.dumps([(7, 42)] + [(1, 1)] * 46 + [(42, 7)])}
+        )
+
+        with patch("time.localtime", Mock(return_value=Mock(tm_min=45, tm_hour=23))):  # Halfway between two values
+            self.manager.process_advanced_rate_limits()
+        await sleep(0)
+
+        # Secondary test: rate limits should always be in whole bytes per second ((7+42)/2 is rounded down)
+        self.assertEqual(call({"upload_rate_limit": 24, "download_rate_limit": 24}), session.apply_settings.call_args)
