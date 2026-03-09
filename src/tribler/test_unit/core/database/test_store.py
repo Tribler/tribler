@@ -52,13 +52,13 @@ class TestMetadataStore(TestBase[MockCommunity]):
             for i in range(10)
         ]
         chunk, _ = entries_to_chunk(md_list, chunk_size=999999999999999)
-        signatures = [d.signature for d in md_list]
+        titles = [d.title for d in md_list]
         for d in md_list:
             d.delete()
 
         uncompressed = self.metadata_store.process_compressed_mdblob(chunk, skip_personal_metadata_payload=False)
 
-        self.assertEqual(signatures, [d.md_obj.signature for d in uncompressed])
+        self.assertEqual(titles, [d.data["name"] for d in uncompressed])
 
     @db_session
     def test_squash_mdblobs_multiple_chunks(self) -> None:
@@ -76,15 +76,15 @@ class TestMetadataStore(TestBase[MockCommunity]):
         # Test splitting into multiple chunks
         chunks1, index = entries_to_chunk(md_list, chunk_size=1)
         chunks2, _ = entries_to_chunk(md_list, chunk_size=999999999999999, start_index=index)
-        signatures = [d.signature for d in md_list]
+        titles = [d.title for d in md_list]
         for d in md_list:
             d.delete()
 
         uncompressed1 = self.metadata_store.process_compressed_mdblob(chunks1, skip_personal_metadata_payload=False)
         uncompressed2 = self.metadata_store.process_compressed_mdblob(chunks2, skip_personal_metadata_payload=False)
 
-        self.assertEqual(signatures[:index], [d.md_obj.signature for d in uncompressed1])
-        self.assertEqual(signatures[index:], [d.md_obj.signature for d in uncompressed2])
+        self.assertEqual(titles[:index], [d.data["name"] for d in uncompressed1])
+        self.assertEqual(titles[index:], [d.data["name"] for d in uncompressed2])
 
     @db_session
     def test_process_invalid_compressed_mdblob(self) -> None:
@@ -129,7 +129,7 @@ class TestMetadataStore(TestBase[MockCommunity]):
         # Check if node metadata object is properly created on payload processing
         result, = self.metadata_store.process_payload(payload)
         self.assertEqual(ObjState.NEW_OBJECT, result.obj_state)
-        self.assertEqual(payload.metadata_type, result.md_obj.to_dict()["metadata_type"])
+        self.assertEqual(md.title, result.data["name"])
 
         # Check that we flag this as duplicate in case we already know about the local node
         result, = self.metadata_store.process_payload(payload)

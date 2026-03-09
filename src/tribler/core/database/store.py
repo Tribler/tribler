@@ -7,7 +7,7 @@ import re
 import sqlite3
 import threading
 from asyncio import get_running_loop
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from os.path import getsize
 from pathlib import Path
@@ -61,14 +61,13 @@ class ObjState(enum.Enum):
 class ProcessingResult:
     """
     This class is used to return results of processing of a payload by process_payload.
-    It includes the ORM object created as a result of processing, the state of the object
-    as indicated by ObjState enum, and missing dependencies list that includes a list of query
-    arguments for get_entries to query the sender back through Remote Query Community.
+    It includes a dictionary of the metadata (data), the database rowid, and the
+    state of the object as indicated by the ObjState enum.
     """
 
-    md_obj: TorrentMetadata
-    obj_state: object
-    missing_deps: list = field(default_factory=list)
+    data: dict[str, Any]
+    obj_state: ObjState
+    rowid: list[int]
 
 
 BETA_DB_VERSIONS = [0, 1, 2, 3, 4, 5]
@@ -511,16 +510,24 @@ class MetadataStore:
         # Process unsigned torrents
         if payload.public_key == NULL_KEY:
             node = self.TorrentMetadata.add_ffa_from_dict(payload.to_dict())
-            return [ProcessingResult(md_obj=node, obj_state=ObjState.NEW_OBJECT)] if node else []
+            if node:
+                return [ProcessingResult(data=node.to_simple_dict(),
+                                         obj_state=ObjState.NEW_OBJECT,
+                                         rowid=node.rowid)]
+            return []
 
         # Do we already know about this object? In that case, we keep the first one (i.e., no versioning).
         node = self.TorrentMetadata.get_for_update(public_key=payload.public_key, id_=payload.id_)
         if node:
-            return [ProcessingResult(md_obj=node, obj_state=ObjState.DUPLICATE_OBJECT)]
+            return [ProcessingResult(data=node.to_simple_dict(),
+                                     obj_state=ObjState.DUPLICATE_OBJECT,
+                                     rowid=node.rowid)]
 
         # Process signed torrents
         obj = self.TorrentMetadata.from_payload(payload)
-        return [ProcessingResult(md_obj=obj, obj_state=ObjState.NEW_OBJECT)]
+        return [ProcessingResult(data=obj.to_simple_dict(),
+                                 obj_state=ObjState.NEW_OBJECT,
+                                 rowid=obj.rowid)]
 
     @db_session
     def get_num_torrents(self) -> int:
