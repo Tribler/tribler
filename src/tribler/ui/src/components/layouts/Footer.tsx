@@ -44,7 +44,7 @@ export function Footer() {
         if (anonResponse && !isErrorDict(anonResponse)) {
             if (anonResponse.length == 0) {
                 setAnonymityStatus(AnonStatus.NoPeers);
-            } else if (anonResponse.find((p) => (p.flags.includes(2) || p.flags.includes(16384))) !== undefined) {
+            } else if (anonResponse.find((p) => p.flags.includes(2) || p.flags.includes(16384)) !== undefined) {
                 // See also utils.formatFlags() for human description of these flags
                 setAnonymityStatus(AnonStatus.HasExits);
             } else {

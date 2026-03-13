@@ -9,14 +9,14 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: 'true'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         id: restore_cache
         with:
           path: src/libsodium.dll
@@ -29,7 +29,7 @@ jobs:
 
           cd src
           python run_unit_tests.py -a
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v5
         if: always()  # Even if the tests fail or the job is cancelled, the cache should be refreshed
         with:
           path: src/libsodium.dll
