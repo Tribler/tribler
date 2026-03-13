@@ -29,7 +29,7 @@ jobs:
           Move-Item -Path "C:\WINDOWS\Temp\unzip-nsis-3.10\nsis-3.10" -Destination "C:\Program Files (x86)\NSIS"
       - name: Check out SimpleFC repository (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: mazinsw/SimpleFC
       - name: Build SimpleFC NSIS Plugin (Windows)
@@ -38,7 +38,7 @@ jobs:
           copy "bin\x86-unicode\SimpleFC.dll" "C:\Program Files (x86)\NSIS\Plugins\x86-unicode\SimpleFC.dll"
       - name: Check out nsProcess repository (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: simdsoft/nsProcess
           submodules: 'true'
@@ -59,7 +59,7 @@ jobs:
       # Package preparation #
       #######################
       - name: Check-out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: 'true'
           fetch-tags: 'true'
@@ -91,7 +91,7 @@ jobs:
           rm -rf pyipv8/ipv8/test
       - name: Setup Python ${{ matrix.architecture }}
         if: matrix.architecture != 'aarch64'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           architecture: ${{ matrix.architecture }}
@@ -103,7 +103,7 @@ jobs:
         run: |
           pip install --upgrade -r build/requirements.txt
       - name: Setup npm
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
       - name: Build npm
         shell: bash
         run: |
@@ -200,7 +200,7 @@ jobs:
       # Cleanup and artifact uploads #
       ################################
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ runner.os }} ${{ matrix.architecture }} Build
           path: |

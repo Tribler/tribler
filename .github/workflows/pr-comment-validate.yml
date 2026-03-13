@@ -15,15 +15,15 @@ jobs:
         version: ["3.12"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: refs/pull/${{ github.event.issue.number }}/head
           submodules: 'true'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.version }}
           cache: 'pip'
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v5
         if: matrix.os == 'windows-latest'
         id: restore_cache
         with:
@@ -70,7 +70,7 @@ jobs:
         id: sha_share_step
         run: echo "actual_pull_head=${{ env.actual_pull_head }}" >> "$GITHUB_OUTPUT"
       - name: Set commit pending status
-        uses: guibranco/github-status-action-v2@v1.1.13
+        uses: guibranco/github-status-action-v2@v1.1.14
         with:
           authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
@@ -87,7 +87,7 @@ jobs:
       - name: Set commit failed status
         env:
           actual_pull_head: ${{needs.set_pending_status.outputs.actual_pull_head}}
-        uses: guibranco/github-status-action-v2@v1.1.13
+        uses: guibranco/github-status-action-v2@v1.1.14
         with:
           authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
@@ -104,7 +104,7 @@ jobs:
       - name: Set commit success status
         env:
           actual_pull_head: ${{needs.set_pending_status.outputs.actual_pull_head}}
-        uses: guibranco/github-status-action-v2@v1.1.13
+        uses: guibranco/github-status-action-v2@v1.1.14
         with:
           authToken: ${{secrets.COMMIT_STATUS_TOKEN}}
           context: 'Cross-env Validation'
