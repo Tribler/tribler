@@ -48,7 +48,7 @@ export const popularityColumns: ColumnDef<Health>[] = [
 ];
 
 export default function Popularity() {
-    const [healthChecks, setHealthChecks] = useState<{local: Health[], remote: Health[]}>({local: [], remote: []});
+    const [healthChecks, setHealthChecks] = useState<{local: Health[]; remote: Health[]}>({local: [], remote: []});
 
     useInterval(
         async () => {
@@ -84,6 +84,5 @@ export default function Popularity() {
                 />
             </TabsContent>
         </Tabs>
-
     );
 }

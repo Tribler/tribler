@@ -330,7 +330,7 @@ export default function General() {
                                 ...settings,
                                 libtorrent: {
                                     ...settings.libtorrent,
-                                    clear_orphaned_parts: !!value
+                                    clear_orphaned_parts: !!value,
                                 },
                             });
                         }

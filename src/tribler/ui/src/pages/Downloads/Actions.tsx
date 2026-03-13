@@ -168,29 +168,22 @@ function getBandwidthLimit(
     return allEqual ? limits[0] : undefined;
 }
 
-function setSeedingRatio(
-    selectedDownloads: Download[],
-    value: number | undefined,
-    t: TFunction
-) {
+function setSeedingRatio(selectedDownloads: Download[], value: number | undefined, t: TFunction) {
     if (value === undefined) return;
     selectedDownloads.forEach((download) => {
         download.seeding_ratio = value;
-        triblerService.setSeedingRatio(download.infohash, value).then((response) =>
-            handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr"))
-        );
+        triblerService
+            .setSeedingRatio(download.infohash, value)
+            .then((response) => handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr")));
     });
 }
 
-function resetSeedingRatio(
-    selectedDownloads: Download[],
-    t: TFunction
-) {
+function resetSeedingRatio(selectedDownloads: Download[], t: TFunction) {
     selectedDownloads.forEach((download) => {
         download.seeding_ratio = undefined;
-        triblerService.resetSeedingRatio(download.infohash).then((response) =>
-            handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr"))
-        );
+        triblerService
+            .resetSeedingRatio(download.infohash)
+            .then((response) => handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr")));
     });
 }
 
@@ -502,29 +495,22 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                     className="outline px-1 py-1 h-6 ml-1"
                                     onClick={() => {
                                         if (seedingRatioRef.current?.value) {
-                                            setSeedingRatio(
-                                                selectedDownloads,
-                                                +seedingRatioRef.current?.value,
-                                                t
-                                            );
+                                            setSeedingRatio(selectedDownloads, +seedingRatioRef.current?.value, t);
                                         }
                                     }}>
                                     Set
                                 </Button>
                             </ContextMenuRadioItem>
-                                <Button
-                                    className="outline px-1 py-1 h-6 ml-1"
-                                    onClick={() => {
-                                        resetSeedingRatio(
-                                            selectedDownloads,
-                                            t
-                                        );
-                                        if (seedingRatioRef.current !== undefined && seedingRatioRef.current !== null) {
-                                            seedingRatioRef.current.value = "";
-                                        }
-                                    }}>
-                                    Default
-                                </Button>
+                            <Button
+                                className="outline px-1 py-1 h-6 ml-1"
+                                onClick={() => {
+                                    resetSeedingRatio(selectedDownloads, t);
+                                    if (seedingRatioRef.current !== undefined && seedingRatioRef.current !== null) {
+                                        seedingRatioRef.current.value = "";
+                                    }
+                                }}>
+                                Default
+                            </Button>
                         </ContextMenuRadioGroup>
                     </ContextMenuSubContent>
                 </ContextMenuSub>

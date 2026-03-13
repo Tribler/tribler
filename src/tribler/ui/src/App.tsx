@@ -18,8 +18,12 @@ function collapseError() {
 function reportError() {
     const error_popup_text = document.querySelector("#error_popup_text");
     if (error_popup_text) {
-        const err_text = "Hi! I was using Tribler " + (triblerService.version || "uninitialized") +
-                         " and THIS happened! :cry:\r\n```\r\n" + error_popup_text.textContent + "\r\n```";
+        const err_text =
+            "Hi! I was using Tribler " +
+            (triblerService.version || "uninitialized") +
+            " and THIS happened! :cry:\r\n```\r\n" +
+            error_popup_text.textContent +
+            "\r\n```";
         const url = encodeURI("https://github.com/Tribler/tribler/issues/new?body=" + err_text);
         window.open(url, "_blank")?.focus();
     }

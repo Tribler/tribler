@@ -46,8 +46,7 @@ function getRateLimitsFor(settings: Settings, hops: string) {
         (JSON.parse(rateSettings[hops]) as [number | null, number | null][]).forEach((limit, i) => {
             limits.push({rate_up: limit[0], rate_down: limit[1], time: i / 2});
         });
-        if (limits.length == 48)
-            return limits;
+        if (limits.length == 48) return limits;
     }
     return initChartData();
 }
@@ -99,16 +98,10 @@ export default function Bandwith() {
         let chart = lineChart.current;
         if (chart === null || data === null) return;
         if (mouseDown || event.type == "mousedown") {
-            const drawAreaHeight =
-                chart.state.prevHeight -
-                chart.state.offset.top -
-                chart.state.offset.bottom;
+            const drawAreaHeight = chart.state.prevHeight - chart.state.offset.top - chart.state.offset.bottom;
             const pressedValue =
                 (chart.state.yAxisMap[0].domain[1] *
-                    (drawAreaHeight -
-                        chart.state.activeCoordinate.y +
-                        chart.props.margin.top -
-                        1)) /
+                    (drawAreaHeight - chart.state.activeCoordinate.y + chart.props.margin.top - 1)) /
                 drawAreaHeight;
             const newValue = event.buttons == 2 ? null : Math.max(1, Math.floor(pressedValue));
             const hopsKey = `${hops}`;
@@ -118,8 +111,7 @@ export default function Bandwith() {
                     return {
                         time: e.time,
                         rate_up: uploadSelected && e.time == chart.state.activeLabel ? newValue : e.rate_up,
-                        rate_down:
-                            !uploadSelected && e.time == chart.state.activeLabel ? newValue : e.rate_down,
+                        rate_down: !uploadSelected && e.time == chart.state.activeLabel ? newValue : e.rate_down,
                     };
                 }),
             });
@@ -127,8 +119,7 @@ export default function Bandwith() {
     }
 
     function toggleAdvancedSettings() {
-        if (accordion.current !== null)
-            accordion.current.classList.toggle("renderadvanced");
+        if (accordion.current !== null) accordion.current.classList.toggle("renderadvanced");
         if (settings) {
             let mode = !(settings?.libtorrent?.use_advanced_rate_limits || false);
             setSettings({
@@ -253,9 +244,7 @@ export default function Bandwith() {
                         </button>
                     </h2>
 
-                    <div
-                        id="collapseTwo"
-                        className="!visible group-[:not(.renderadvanced)]:hidden w-full p-[2px]">
+                    <div id="collapseTwo" className="!visible group-[:not(.renderadvanced)]:hidden w-full p-[2px]">
                         <div className="flex flex-cols-4 p-4">
                             <label>{t("Hops")}:</label>
                             <Slider

@@ -15,7 +15,7 @@ i18n.use(HttpBackend)
         backend: {
             loadPath: `${window.location.origin}/locales/{{lng}}.json`,
         },
-        load: "currentOnly"
+        load: "currentOnly",
     });
 
 export default i18n;
