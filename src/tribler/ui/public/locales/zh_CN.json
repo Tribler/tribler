@@ -273,5 +273,7 @@
     "Popularity": "Popularity",
     "Libtorrent": "Libtorrent",
     "ToggleColumns": "切换列",
-    "Queue": "队列"
+    "Queue": "队列",
+    "SimpleSettings": "使用简单的设置",
+    "AdvancedSettings": "使用高级设置"
 }

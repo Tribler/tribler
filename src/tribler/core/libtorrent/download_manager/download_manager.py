@@ -9,6 +9,7 @@ import asyncio
 import base64
 import binascii
 import dataclasses
+import json
 import logging
 import os
 import time
@@ -196,6 +197,7 @@ class DownloadManager(TaskManager):
         self.register_task("request_torrent_updates", self._request_torrent_updates, interval=1)
         self.register_task("task_cleanup_metacache", self._task_cleanup_metainfo_cache, interval=60, delay=0)
         self.register_task("request_session_stats", self._request_session_stats, interval=5)
+        self.register_task("process_advanced_rate_limits", self.process_advanced_rate_limits, interval=300)
 
         self.set_download_states_callback(self.sesscb_states_callback)
 
@@ -846,9 +848,7 @@ class DownloadManager(TaskManager):
         """
         Set the session limits for the libtorrent session with the specified hop count.
         """
-        settings = {"download_rate_limit": min(self.config.get("libtorrent/max_download_rate"), 2147483647),
-                    "upload_rate_limit": min(self.config.get("libtorrent/max_upload_rate"), 2147483647),
-                    "active_downloads": self.config.get("libtorrent/active_downloads"),
+        settings = {"active_downloads": self.config.get("libtorrent/active_downloads"),
                     "active_seeds": self.config.get("libtorrent/active_seeds"),
                     "active_checking": self.config.get("libtorrent/active_checking"),
                     "active_dht_limit": self.config.get("libtorrent/active_dht_limit"),
@@ -857,9 +857,57 @@ class DownloadManager(TaskManager):
                     "active_limit": self.config.get("libtorrent/active_limit"),
                     "dont_count_slow_torrents": False}
 
+        if not self.config.get("libtorrent/use_advanced_rate_limits"):
+            settings["download_rate_limit"] = min(self.config.get("libtorrent/max_download_rate"), 2147483647)
+            settings["upload_rate_limit"] = min(self.config.get("libtorrent/max_upload_rate"), 2147483647)
+
         for lt_hops, lt_session in self.ltsessions.items():
             if hops is None or lt_hops == hops:
                 lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
+
+        self.process_advanced_rate_limits()
+
+    def _user_rate_limit_to_value(self, settings: list[tuple[int | None, int | None]],
+                                  idx1: int, idx2: int, key: int, interp: float) -> int:
+        if settings[idx1][key] is None and settings[idx2][key] is None:
+            return 0  # True infinite
+        # For interpolation between non-infinites or with one infinite, we use the max download limit.
+        ua = settings[idx1][key]
+        ub = settings[idx2][key]
+        a = max(1, min(2147483647, 1 if ua is None else ua))
+        b = max(1, min(2147483647, 1 if ub is None else ub))
+        return max(1, min(2147483647, int(a + interp * (b - a))))
+
+    def process_advanced_rate_limits(self) -> None:
+        """
+        Check if we have to change our rates.
+
+        This is called in one of two cases:
+         a. ``set_session_limits()`` after a user change.
+         b. Every 5 minutes in the ``process_advanced_rate_limits`` task.
+        """
+        if self.config.get("libtorrent/use_advanced_rate_limits"):
+            localtime = time.localtime()
+            half_hour, remainder = divmod(localtime.tm_min, 30)
+            half_hour += 2 * localtime.tm_hour
+            next_half_hour = (half_hour + 1) % 48
+            interp = remainder / 30
+            for k, v in self.config.get("libtorrent/advanced_rate_limits").items():
+                try:
+                    hops = int(k)
+                    a = json.loads(v)
+                except ValueError:
+                    logger.warning("Ignoring advanced limits for '%s' hops, not an int!", k)
+                    continue
+                if hops in self.ltsessions:
+                    lims = {
+                        "upload_rate_limit": self._user_rate_limit_to_value(a, half_hour, next_half_hour, 0, interp),
+                        "download_rate_limit": self._user_rate_limit_to_value(a, half_hour, next_half_hour, 1, interp),
+                    }
+                    self.ltsessions[hops].add_done_callback(
+                        lambda s, l=lims: self.set_session_settings(s.result(), l)  # type: ignore[misc]
+                    )
+
 
     async def remove_download(self, download: Download, remove_content: bool = False,
                               remove_checkpoint: bool = True) -> None:

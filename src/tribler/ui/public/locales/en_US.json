@@ -273,5 +273,7 @@
     "Popularity": "Popularity",
     "Libtorrent": "Libtorrent",
     "ToggleColumns": "Toggle columns",
-    "Queue": "Queue"
+    "Queue": "Queue",
+    "SimpleSettings": "Use simple settings",
+    "AdvancedSettings": "Use advanced settings"
 }
