@@ -102,6 +102,17 @@ jobs:
         if: matrix.architecture != 'aarch64'
         run: |
           pip install --upgrade -r build/requirements.txt
+      - name: Stamp release
+        shell: python
+        env:
+          GITHUB_BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          import fileinput, os
+          with fileinput.input('src/tribler/ui/src/pages/Settings/Versions.tsx', inplace=True) as file:
+            for line in file:
+              new_line = line.replace('<Label key="version_build_stamp"></Label>',
+                                      f'<Label key="version_build_stamp">build #{os.getenv("GITHUB_BUILD_NUMBER")}</Label>')
+              print(new_line, end='')
       - name: Setup npm
         uses: actions/setup-node@v6
       - name: Build npm

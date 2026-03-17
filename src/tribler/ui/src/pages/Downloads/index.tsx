@@ -84,6 +84,17 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
     {
+        accessorKey: "all_time_ratio",
+        header: getHeader("Ratio"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            if (row.original.all_time_ratio == 0) return <span>-</span>;
+            return <span className="text-nowrap">{formatBytes(row.original.all_time_ratio)}</span>;
+        },
+    },
+    {
         accessorKey: "progress",
         header: getHeader("Status"),
         cell: ({row}) => {
@@ -178,6 +189,17 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
     {
+        accessorKey: "last_download",
+        header: getHeader("LastDownload"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            if (row.original.last_download == 0) return <span>-</span>;
+            return <span>{formatDateTime(row.original.last_download)}</span>;
+        },
+    },
+    {
         accessorKey: "last_upload",
         header: getHeader("LastUpload"),
         meta: {
@@ -229,7 +251,7 @@ function Progress({progress, color}: {progress: number; color: string}) {
         <canvas
             ref={ref}
             className={`rounded-sm ${color}`}
-            style={{height: "20px", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
+            style={{height: "calc(var(--user-font-size, 16px) + 7px)", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
         />
     );
 }
