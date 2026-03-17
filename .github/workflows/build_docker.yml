@@ -3,13 +3,14 @@ name: Publish Docker Image
 on:
   workflow_dispatch:
   release:
-    types: [created]
+    types: [edited]
 env:
   REF_NAME: ${{ github.ref_name }}
 
 jobs:
   build-and-push-image-ghcr:
     runs-on: ubuntu-latest
+    if: ${{ contains(join(github.event.release.assets.*.name, ', '), '_x64.deb') }}
 
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -68,6 +69,7 @@ jobs:
 
   build-and-push-image-dockerhub:
     runs-on: ubuntu-latest
+    if: ${{ contains(join(github.event.release.assets.*.name, ', '), '_x64.deb') }}
 
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
