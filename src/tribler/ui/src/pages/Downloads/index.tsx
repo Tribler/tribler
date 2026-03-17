@@ -229,7 +229,7 @@ function Progress({progress, color}: {progress: number; color: string}) {
         <canvas
             ref={ref}
             className={`rounded-sm ${color}`}
-            style={{height: "20px", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
+            style={{height: "calc(var(--user-font-size, 16px) + 7px)", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
         />
     );
 }
