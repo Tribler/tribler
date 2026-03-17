@@ -144,7 +144,7 @@ export default function Versions() {
                         <Label key="current_version_available"></Label>
                     )}
                 </Suspense>
-                <Label key="spacer1"></Label>
+                <Label key="version_build_stamp"></Label>
 
                 <Label className="whitespace-nowrap pr-5 font-bold">{t("NotifyPreReleases")}:</Label>
                 <Checkbox
