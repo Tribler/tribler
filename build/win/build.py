@@ -88,7 +88,8 @@ def get_freeze_build_options():
             'build_exe': 'dist/tribler'
         },
         "bdist_mac": {
-            "bundle_name": os.getenv("APPNAME")
+            "bundle_name": os.getenv("APPNAME"),
+            "custom_info_plist": "build/mac/resources/Info.plist"
         }
     }
     if platform.system() == 'Linux':
