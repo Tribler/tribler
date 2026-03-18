@@ -159,6 +159,7 @@ jobs:
             --volume "${PWD}:/tribler"
           env: |
             GITHUB_TAG: ${{ env.GITHUB_TAG }}
+            BUILDKIT_DOCKERFILE_CHECK: skip=FromPlatformFlagConstDisallowed
           shell: /bin/sh
           install: |
             apt-get update -q -y
