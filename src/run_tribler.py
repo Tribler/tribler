@@ -164,6 +164,13 @@ def init_config(parsed_args: Arguments) -> TriblerConfigManager:
     logger.info("Root state dir: %s", root_state_dir)
     config = TriblerConfigManager(root_state_dir / VERSION_SUBDIR / "configuration.json")
     config.set("state_dir", str(root_state_dir))
+    config.set("ipv8/working_directory", str(root_state_dir))
+    new_key_paths = []
+    for key_entry in config.get("ipv8/keys"):
+        if "file" in key_entry:
+            key_entry["file"] = str(root_state_dir / Path(key_entry["file"]).parts[-1])
+        new_key_paths.append(key_entry)
+    config.set("ipv8/keys", new_key_paths)
 
     if "CORE_API_PORT" in os.environ:
         config.set("api/http_port", int(os.environ.get("CORE_API_PORT")))
