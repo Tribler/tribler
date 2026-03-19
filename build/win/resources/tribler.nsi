@@ -77,6 +77,7 @@ BrandingText "${PRODUCT}"
 !define MUI_PAGE_HEADER_SUBTEXT "(optional)"
 !define MUI_DIRECTORYPAGE_TEXT_TOP "Specify a custom directory to store database and configuration files."
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "$TSTATEDIR"
+!define MUI_DIRECTORYPAGE_VERIFYONLEAVE
 !define MUI_DIRECTORYPAGE_VARIABLE $TSTATEDIR
 SpaceTexts none
 !insertmacro MUI_PAGE_DIRECTORY
