@@ -611,12 +611,12 @@ function SimpleTable<T extends object>({
                                                 onRowDoubleClick(row.original);
                                             }
                                         }}>
-                                        {row.getVisibleCells().map((cell, colIndex) => (
+                                        {row.getVisibleCells().map((cell, colIndex, arr) => (
                                             <TableCell
                                                 key={cell.id}
                                                 className={cn({
                                                     "pl-4": colIndex === 0,
-                                                    "pr-4": colIndex + 1 === row.getVisibleCells().length,
+                                                    "pr-4": colIndex + 1 === arr.length,
                                                 })}>
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </TableCell>
