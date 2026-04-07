@@ -126,7 +126,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
     }
 
     async function OnClick(row: Row<Path>) {
-        if (row.original.dir) {
+        if (!selectDir || row.original.dir) {
             if (await reloadPaths(row.original.path)) {
                 setLastClicked(row.original);
             }
