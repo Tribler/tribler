@@ -147,7 +147,7 @@ class TrackerManager:
                       and g.alive
                       and g.last_check + TRACKER_RETRY_INTERVAL <= int(time.time())
                       and str(g.url) not in self.blacklist
-        ).order_by(self.TrackerState.last_check).limit(1)
+        ).order_by(self.TrackerState.last_check).limit(1)  # type: ignore[misc]
         if not tracker:
             return None
         return tracker[0]
