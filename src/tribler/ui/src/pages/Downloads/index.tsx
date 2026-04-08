@@ -91,7 +91,7 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
         cell: ({row}) => {
             if (row.original.all_time_ratio == 0) return <span>-</span>;
-            return <span className="text-nowrap">{formatBytes(row.original.all_time_ratio)}</span>;
+            return <span className="text-nowrap">{row.original.all_time_ratio < 0 ? String(`∞`) : row.original.all_time_ratio.toFixed(2)}</span>;
         },
     },
     {

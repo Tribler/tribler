@@ -225,6 +225,7 @@
     "DownloadLimit": "속도 제한을 다운로드하십시오",
     "ToastErrorSetBandwidthLimit": "대역폭 제한을 설정하지 못했습니다!",
     "AutoManageEnable": "자동 관리를 활성화합니다",
+    "AllowMmap": "토렌트 정보를 RAM에 저장하는 것을 선호합니다(메모리가 부족하면 비활성화).",
     "ClearOrphanedParts": "종료 시 부분적으로 다운로드된 오래된 파일 찾기 및 제거",
     "AutoManageMax": "홉 카운트 당 최대 자동 관리 토렌트 수 ...",
     "AutoManaged": "자동 관리",
