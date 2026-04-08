@@ -225,6 +225,7 @@
     "DownloadLimit": "Download Limite de velocidade",
     "ToastErrorSetBandwidthLimit": "Falha ao definir limite de largura de banda!",
     "AutoManageEnable": "Ativar gerenciamento automático",
+    "AllowMmap": "Prefira armazenar informações de torrent na RAM (desative se tiver pouca memória)",
     "ClearOrphanedParts": "Encontre e remova arquivos antigos parcialmente baixados ao desligar",
     "AutoManageMax": "Número máximo de torrentes gerenciados automaticamente por contagem de lúpulo ...",
     "AutoManaged": "Gerenciado automaticamente",

@@ -72,6 +72,7 @@ export interface Settings {
         check_after_complete: boolean;
         ask_download_settings: boolean;
         clear_orphaned_parts: boolean;
+        allow_mmap: boolean;
         download_defaults: {
             anonymity_enabled: boolean;
             number_hops: number;

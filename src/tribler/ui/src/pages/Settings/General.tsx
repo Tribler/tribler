@@ -322,6 +322,29 @@ export default function General() {
 
             <div className="flex items-center space-x-2 py-2">
                 <Checkbox
+                    checked={!!settings?.libtorrent?.allow_mmap}
+                    onCheckedChange={(value) => {
+                        if (settings) {
+                            setSettings({
+                                ...settings,
+                                libtorrent: {
+                                    ...settings?.libtorrent,
+                                    allow_mmap: !!value,
+                                },
+                            });
+                        }
+                    }}
+                    id="allow_mmap"
+                />
+                <label
+                    htmlFor="allow_mmap"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {t("AllowMmap")}
+                </label>
+            </div>
+
+            <div className="flex items-center space-x-2 py-2">
+                <Checkbox
                     checked={!!settings?.libtorrent?.clear_orphaned_parts}
                     id="clear_orphaned_parts"
                     onCheckedChange={(value) => {

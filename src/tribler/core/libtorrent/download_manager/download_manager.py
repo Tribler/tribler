@@ -421,8 +421,9 @@ class DownloadManager(TaskManager):
                 default_hops = self.config.get("libtorrent/download_defaults/number_hops")
                 actual_hops = max(default_hops, 1)
 
+            enable_mmap = self.config.get("libtorrent/allow_mmap") and hops < 0
             self.ltsessions[hops] = self.register_executor_task(f"Create session {hops}",
-                                                                self.create_session, actual_hops, hops < 0)
+                                                                self.create_session, actual_hops, enable_mmap)
 
             if self.dht_readiness_timeout > 0 and self.config.get("libtorrent/dht"):
                 self.dht_ready_tasks[hops] = self.register_task(f"DHT readiness check {hops}",
