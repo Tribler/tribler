@@ -89,7 +89,11 @@ def get_freeze_build_options():
         },
         "bdist_mac": {
             "bundle_name": os.getenv("APPNAME"),
-            "custom_info_plist": "build/mac/resources/Info.plist"
+            "custom_info_plist": "build/mac/resources/Info.plist",
+            "plist_items": [
+                ("CFBundleVersion", os.getenv("GITHUB_TAG")),
+                ("CFBundleShortVersionString", os.getenv("GITHUB_TAG"))
+            ]
         }
     }
     if platform.system() == 'Linux':
