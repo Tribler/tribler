@@ -64,6 +64,10 @@ def get_freeze_build_options():
         ("tribler.dist-info/METADATA", "lib/tribler.dist-info/METADATA"),
     ]
 
+    if platform.system() == "Darwin":
+        import libnacl
+        included_files.append((libnacl.nacl._name, "lib/libsodium.dylib"))
+
     # These packages will be excluded from the build
     excluded_packages = [
         'wx',
