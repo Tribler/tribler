@@ -25,6 +25,8 @@ RUN mkdir -p /home/ubuntu/custombin \
   && echo 'gdbus call --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.OpenURI.OpenURI "" "$1" "{}"' >> /home/ubuntu/custombin/x-www-browser \
   && chmod 777 /home/ubuntu/custombin/x-www-browser
 
+USER ubuntu
+
 # This is supposed to give icons on Xorg systems, but it doesn't seem to always work.
 ENV TMPDIR="/hosttmp/"
 
