@@ -57,7 +57,7 @@ jobs:
           tag: ${{ github.ref_name }}
 
       - name: Build and push Docker image
-        if: ${{ steps.build_exists.outputs.tag == "not found" }}
+        if: ${{ steps.build_exists.outputs.tag == 'not found' }}
         id: push
         uses: docker/build-push-action@v7
         with:
@@ -73,7 +73,7 @@ jobs:
             GIT_REPO=https://github.com/${{ github.repository }}
 
       - name: Generate artifact attestation
-        if: ${{ steps.build_exists.outputs.tag == "not found" }}
+        if: ${{ steps.build_exists.outputs.tag == 'not found' }}
         uses: actions/attest-build-provenance@v4
         with:
           subject-name: ghcr.io/tribler/tribler
@@ -124,7 +124,7 @@ jobs:
           tag: ${{ github.ref_name }}
 
       - name: Build and push Docker image
-        if: ${{ steps.build_exists.outputs.tag == "not found" }}
+        if: ${{ steps.build_exists.outputs.tag == 'not found' }}
         id: push
         uses: docker/build-push-action@v7
         with:
@@ -140,7 +140,7 @@ jobs:
             GIT_REPO=https://github.com/${{ github.repository }}
 
       - name: Generate artifact attestation
-        if: ${{ steps.build_exists.outputs.tag == "not found" }}
+        if: ${{ steps.build_exists.outputs.tag == 'not found' }}
         uses: actions/attest-build-provenance@v4
         with:
           subject-name: index.docker.io/tribler/tribler

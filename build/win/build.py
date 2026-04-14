@@ -64,6 +64,10 @@ def get_freeze_build_options():
         ("tribler.dist-info/METADATA", "lib/tribler.dist-info/METADATA"),
     ]
 
+    if platform.system() == "Darwin":
+        import libnacl
+        included_files.append((libnacl.nacl._name, "lib/libsodium.dylib"))
+
     # These packages will be excluded from the build
     excluded_packages = [
         'wx',
@@ -89,7 +93,11 @@ def get_freeze_build_options():
         },
         "bdist_mac": {
             "bundle_name": os.getenv("APPNAME"),
-            "custom_info_plist": "build/mac/resources/Info.plist"
+            "custom_info_plist": "build/mac/resources/Info.plist",
+            "plist_items": [
+                ("CFBundleVersion", os.getenv("GITHUB_TAG")),
+                ("CFBundleShortVersionString", os.getenv("GITHUB_TAG"))
+            ]
         }
     }
     if platform.system() == 'Linux':

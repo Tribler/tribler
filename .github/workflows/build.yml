@@ -188,6 +188,8 @@ jobs:
       - name: Build Executables (MacOS)
         if: startsWith(matrix.os, 'macos-15')
         run: |
+          brew install libsodium
+          find "$(brew --cellar)/libsodium/" -name "libsodium.dylib" -exec cp {} /Library/Frameworks/Python.framework/Versions/3.12/lib/ \;
           ./build/mac/makedist_macos.sh
 
       - name: Fetch libsodium.dll (Windows)
