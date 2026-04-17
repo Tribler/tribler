@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ln -s /usr/share/tribler/tribler /usr/bin/tribler

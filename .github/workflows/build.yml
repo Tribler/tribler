@@ -13,6 +13,8 @@ jobs:
             architecture: x64
           - os: ubuntu-latest
             architecture: aarch64
+          - os: ubuntu-latest
+            architecture: x64
           - os: windows-latest
             architecture: x64
     runs-on: ${{ matrix.os }}
@@ -147,6 +149,41 @@ jobs:
           
           mv tribler_${GITHUB_TAG}_all.deb tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
 
+      - name: Setup latest Alpine Linux (Alpine musl x86_64)
+        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        uses: jirutka/setup-alpine@v1
+        id: alpine-target
+        with:
+          shell-name: alpine-x86_64.sh
+          arch: x86_64
+          branch: v3.23
+          packages: python3-dev py-pip py3-gobject3 py3-lz4 build-base libsodium abuild doas sudo shadow-login
+
+      - name: Build musl Executables (Alpine musl x86_64)
+        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        env:
+          GITHUB_BUILD_NUMBER: ${{ github.run_number }}
+        shell: alpine-x86_64.sh {0}
+        run: |
+          python3 -m venv ./.venv --system-site-packages
+          . ./.venv/bin/activate 
+          python3 -m pip install -r build/requirements.txt
+          python3 build/setup.py build > /dev/null 2>&1
+          
+          cd build/alpine
+          ./build.sh
+          
+          cp /home/runner/packages/build/x86_64/tribler-*.apk .
+      - name: Move musl artifact (Alpine musl x86_64)
+        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        run: |
+          mkdir -p dist
+          mv ${{ steps.alpine-target.outputs.root-path }}/home/runner/work/tribler/tribler/build/alpine/tribler-*.apk ./dist/
+          cd dist
+          for x in *.apk; do
+            mv -- "$x" "${x%.apk}.x86_64.apk"
+          done
+
       - name: Build Executables (Ubuntu aarch64)
         if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'aarch64'
         uses: uraimo/run-on-arch-action@v3
@@ -221,3 +258,4 @@ jobs:
             dist/*.exe
             dist/*.dmg
             build/debian/*.deb
+            dist/*.apk

@@ -1,0 +1,23 @@
+pkgname=tribler
+pkgdesc="Privacy enhanced BitTorrent client with P2P content discovery "
+url="https://tribler.org/"
+arch="x86_64"
+license="GPL-3"
+depends="libsodium"
+makedepends=""
+checkdepends=""
+subpackages=""
+source="tribler.tar.gz"
+builddir=""
+options="!tracedeps"
+install="$pkgname.post-install $pkgname.post-deinstall"
+
+
+package() {
+	mkdir -p "$pkgdir/usr/share/tribler"
+	cp -r "$srcdir/tribler" "$pkgdir/usr/share/"
+}
+
+check() {
+    :
+}
