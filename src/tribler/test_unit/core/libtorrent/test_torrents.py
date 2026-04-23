@@ -200,7 +200,7 @@ class TestTorrents(TestBase):
         """
         result = create_torrent_file(str(Path(__file__).parent), [Path(__file__).absolute()], comment="test")
 
-        self.assertEqual("test", result["atp"].ti.comment())
+        self.assertEqual("test", result["atp"].comment)
 
     def test_create_torrent_file_with_created_by(self) -> None:
         """
@@ -208,7 +208,7 @@ class TestTorrents(TestBase):
         """
         result = create_torrent_file(str(Path(__file__).parent), [Path(__file__).absolute()], created_by="test")
 
-        self.assertEqual("test", result["atp"].ti.creator())
+        self.assertEqual("test", result["atp"].created_by)
 
     def test_create_torrent_file_with_announce(self) -> None:
         """

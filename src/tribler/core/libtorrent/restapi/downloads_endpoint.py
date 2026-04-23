@@ -31,7 +31,6 @@ from tribler.core.restapi.rest_endpoint import (
 )
 
 if TYPE_CHECKING:
-    from typing import Any
 
     from aiohttp.abc import AbstractStreamWriter, BaseRequest
     from aiohttp.web_request import Request
@@ -765,7 +764,7 @@ class DownloadsEndpoint(RESTEndpoint):
 
         try:
             handle = cast("lt.torrent_handle", download.handle)
-            handle.replace_trackers(cast("list[dict[str, Any]]",
+            handle.replace_trackers(cast("list[lt.announce_entry]",
                                          [tracker for tracker in handle.trackers() if tracker["url"] != url]))
         except RuntimeError as e:
             return RESTResponse({"error": {

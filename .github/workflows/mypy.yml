@@ -17,5 +17,4 @@ jobs:
         run: pip install mypy
       - name: Run mypy
         run: |
-          wget -O libtorrent.pyi https://raw.githubusercontent.com/arvidn/libtorrent/1d644d19cb916261f651458aa5990b9fe1017299/bindings/python/libtorrent/__init__.pyi
           mypy --install-types --non-interactive

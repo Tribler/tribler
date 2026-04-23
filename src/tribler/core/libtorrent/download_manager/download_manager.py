@@ -53,11 +53,6 @@ DEFAULT_DHT_ROUTERS = [
     ("router.bittorrent.com", 6881),
     ("router.utorrent.com", 6881),
 ]
-DEFAULT_LT_EXTENSIONS = [
-    lt.create_ut_metadata_plugin,
-    lt.create_ut_pex_plugin,
-    lt.create_smart_ban_plugin
-]
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +115,7 @@ class DownloadManager(TaskManager):
         self.config = config
 
         self.state_dir = Path(config.get("state_dir"))
-        self.ltsettings: dict[lt.session, dict] = {}  # Stores a copy of the settings dict for each libtorrent session
+        self.ltsettings: dict[lt.session, lt.settings_pack] = {}  # Stores a copy of the settings for each lt session
         self.ltsessions: dict[int, Future[lt.session]] = {}
         self.dht_health_manager: DHTHealthManager | None = None
         self.listen_ports: dict[int, dict[str, int]] = defaultdict(dict)
@@ -312,7 +307,7 @@ class DownloadManager(TaskManager):
         """
         return all(self.lt_session_shutdown_ready.values())
 
-    def create_session(self, hops: int = 0, no_memory_cache: bool = False) -> lt.session:  # noqa: PLR0912,PLR0915
+    def create_session(self, hops: int = 0, no_memory_cache: bool = False) -> lt.session:  # noqa: PLR0915
         """
         Construct a libtorrent session for the given number of anonymization hops.
         """
@@ -341,9 +336,6 @@ class DownloadManager(TaskManager):
             settings["disk_io_write_mode"] = 2  # write_through (flush pieces to disk as they complete validation)
             settings["mmap_file_size_cutoff"] = 0  # start memory mapping even for 0 byte files
 
-        # Copy construct so we don't modify the default list
-        extensions = list(DEFAULT_LT_EXTENSIONS)
-
         logger.info("Hops: %d.", hops)
 
         # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
@@ -367,7 +359,7 @@ class DownloadManager(TaskManager):
             settings["anonymous_mode"] = True
             settings["force_proxy"] = True
 
-        self.set_session_settings(ltsession, settings)
+        self.set_session_settings(ltsession, cast("lt.settings_pack", settings))
         ltsession.set_alert_mask(self.default_alert_mask)
 
         if hops == 0:
@@ -375,8 +367,9 @@ class DownloadManager(TaskManager):
         else:
             self.set_proxy_settings(ltsession, SOCKS5_PROXY_DEF, ("127.0.0.1", self.socks_listen_ports[hops - 1]))
 
-        for extension in extensions:
-            ltsession.add_extension(extension)
+        ltsession.add_extension(lt.create_ut_metadata_plugin)
+        ltsession.add_extension(lt.create_ut_pex_plugin)
+        ltsession.add_extension(lt.create_smart_ban_plugin)
 
         # Set listen port & start the DHT
         if hops == 0:
@@ -385,7 +378,7 @@ class DownloadManager(TaskManager):
                 with open(self.state_dir / LTSTATE_FILENAME, "rb") as fp:
                     lt_state = lt.bdecode(fp.read())
                 if lt_state is not None:
-                    ltsession.load_state(lt_state)
+                    ltsession.load_state(cast("lt.SessionParamsDict", lt_state))
                 else:
                     logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception as exc:
@@ -446,7 +439,7 @@ class DownloadManager(TaskManager):
         if auth is not None:
             settings["proxy_username"] = auth[0]
             settings["proxy_password"] = auth[1]
-        self.set_session_settings(ltsession, settings)
+        self.set_session_settings(ltsession, cast("lt.settings_pack", settings))
 
     def set_max_connections(self, conns: int, hops: int | None = None) -> None:
         """
@@ -822,7 +815,7 @@ class DownloadManager(TaskManager):
         except AttributeError:
             return lt.version
 
-    def set_session_settings(self, lt_session: lt.session, new_settings: dict) -> None:
+    def set_session_settings(self, lt_session: lt.session, new_settings: lt.settings_pack) -> None:
         """
         Apply/set new sessions in a libtorrent session.
 
@@ -841,7 +834,7 @@ class DownloadManager(TaskManager):
             msg = f"Overflow error when setting libtorrent sessions with settings: {new_settings}"
             raise OverflowError(msg) from e
 
-    def get_session_settings(self, lt_session: lt.session) -> dict:
+    def get_session_settings(self, lt_session: lt.session) -> lt.settings_pack:
         """
         Get a copy of the libtorrent settings for the given session.
         """
@@ -866,7 +859,8 @@ class DownloadManager(TaskManager):
 
         for lt_hops, lt_session in self.ltsessions.items():
             if hops is None or lt_hops == hops:
-                lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(), settings))
+                lt_session.add_done_callback(lambda s: self.set_session_settings(s.result(),
+                                                                                 cast("lt.settings_pack", settings)))
 
         self.process_advanced_rate_limits()
 
@@ -1093,17 +1087,16 @@ class DownloadManager(TaskManager):
         decoded = lt.bdecode(raw)
         if "infohash" in decoded:  # type: ignore[operator]
             atp = lt.add_torrent_params()
-            atp.name = decoded["name"]  # type: ignore[call-overload,index]
-            atp.url = decoded.get("url", "")  # type: ignore[call-overload,union-attr]
-            if len(decoded["infohash"]) == 20:  # type: ignore[call-overload,index]
-                atp.info_hashes = lt.info_hash_t(lt.sha1_hash(decoded["infohash"]))  # type: ignore[call-overload,index]
+            atp.name = decoded["name"]  # type: ignore[assignment,call-overload,index]
+            atp.url = decoded.get("url", "")  # type: ignore[assignment,call-overload,union-attr]
+            ih = cast("str", decoded["infohash"])  # type: ignore[call-overload,index]
+            if len(ih) == 20:  # type: ignore[call-overload,index]
+                atp.info_hashes = lt.info_hash_t(lt.sha1_hash(ih))
             else:
-                atp.info_hashes = lt.info_hash_t(lt.sha256_hash(
-                    decoded["infohash"]  # type: ignore[call-overload,index]
-                ))
+                atp.info_hashes = lt.info_hash_t(lt.sha256_hash(ih))
         else:
             try:
-                atp = lt.load_torrent_buffer(raw)  # type: ignore[attr-defined]
+                atp = lt.load_torrent_buffer(raw)
             except RuntimeError:
                 decoded[b"file-format"] = b"libtorrent resume file"  # type: ignore[call-overload,index]
                 decoded[b"file-version"] = 1  # type: ignore[call-overload,index]

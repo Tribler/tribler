@@ -5,6 +5,7 @@ import re
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from tempfile import TemporaryFile
+from typing import cast
 
 import libtorrent as lt
 from aiohttp import web
@@ -140,7 +141,7 @@ class CreateTorrentEndpoint(RESTEndpoint):
         await self.download_manager.start_download(tdef=TorrentDef(result["atp"]), config=download_config)
 
         return RESTResponse(json.dumps({"torrent": base64.b64encode(
-            lt.bencode(lt.write_torrent_file(result["atp"]))  # type: ignore[attr-defined]
+            lt.bencode(cast("bytes", lt.write_torrent_file(result["atp"])))
         ).decode()}))
 
     @docs(
