@@ -530,7 +530,7 @@ class TestDownloadManager(TestBase):
         """
         magnet = (f'magnet:?xt=urn:btih:{"A" * 40}'  # 1. [required] infohash
                   "&dn=AwesomeTorrent"  # 2. name
-                  "&tr=tracker1&tr=tracker2"  # 3. tracker list
+                  "&tr=http%3A%2F%2Ftracker1%2F&tr=http%3A%2F%2Ftracker2%2F"  # 3. tracker list
                   "&ws=http%3A%2F%2Flocalhost%2Ffile&ws=http%3A%2F%2Flocalhost%2Fcdn"  # 4. initial URL seeds
                   "&so=0,2,4,6-8"  # 5. selected files
                   "&x.pe=1.2.3.4:5&x.pe=6.7.8.9:0")  # 6. initial peers (see NOTE)
@@ -546,7 +546,8 @@ class TestDownloadManager(TestBase):
             await sleep(0)  # Run callback after handle is available.
 
         self.assertEqual("AwesomeTorrent", start_download.call_args.kwargs["tdef"].name)
-        self.assertEqual(["tracker1", "tracker2"], start_download.call_args.kwargs["tdef"].atp.trackers)
+        self.assertEqual(["http://tracker1/", "http://tracker2/"],
+                         start_download.call_args.kwargs["tdef"].atp.trackers)
         self.assertEqual(["http://localhost/file", "http://localhost/cdn"],
                          start_download.call_args.kwargs["tdef"].atp.url_seeds)
         self.assertEqual([0, 2, 4, 6, 7, 8], config.get_selected_files())

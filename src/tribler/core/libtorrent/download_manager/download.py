@@ -859,7 +859,7 @@ class Download(TaskManager):
                 "dtotal": peer_info.total_download,
                 "completed": peer_info.progress,
                 "speed": peer_info.remote_dl_rate,
-                "connection_type": peer_info.connection_type,  # type: ignore[attr-defined] # shortcoming of stubs
+                "connection_type": peer_info.connection_type,
                 "seed": bool(peer_info.flags & peer_info.seed),
                 "upload_only": bool(peer_info.flags & peer_info.upload_only),
                 "from_dht": bool(peer_info.source & peer_info.dht),
@@ -909,7 +909,7 @@ class Download(TaskManager):
         # Make sure all trackers are in the tracker_status dict
         result: list[TrackerStatusDict] = []
         try:
-            trackers = cast("list[lt._AnnounceEntryDict]", handle.trackers())  # noqa: SLF001
+            trackers = handle.trackers()
             for removed in (set(self.tracker_status.keys()) - {t["url"] for t in trackers}):
                 self.tracker_status.pop(removed)
             for tracker in trackers:

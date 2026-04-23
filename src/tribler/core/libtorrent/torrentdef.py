@@ -58,7 +58,7 @@ class TorrentDef:
         """
         Get the description of this torrent.
         """
-        return self.torrent_info.comment() if self.torrent_info else ""
+        return self.atp.comment
 
     @property
     def torrent_info(self) -> lt.torrent_info | None:
@@ -82,7 +82,7 @@ class TorrentDef:
         Called from a thread: don't call this directly!
         """
         try:
-            return TorrentDef(lt.load_torrent_file(filepath))  # type: ignore[attr-defined]  # missing in lt .pyi
+            return TorrentDef(lt.load_torrent_file(filepath))
         except RuntimeError as e:
             raise ValueError from e
 
@@ -103,7 +103,7 @@ class TorrentDef:
         :param bencoded_data: The bencoded data to decode and use as metainfo
         """
         try:
-            return TorrentDef(lt.load_torrent_buffer(bencoded_data))  # type: ignore[attr-defined]  # missing in lt .pyi
+            return TorrentDef(lt.load_torrent_buffer(bencoded_data))
         except RuntimeError as e:
             raise ValueError from e
 
@@ -121,7 +121,7 @@ class TorrentDef:
         """
         Get the piece range from a file index.
         """
-        start_idx = fstorage.piece_index_at_file(file_idx)  # type: ignore[attr-defined]
+        start_idx = fstorage.piece_index_at_file(file_idx)
         div, rem = divmod(fstorage.file_size(file_idx), fstorage.piece_length())
         return range(start_idx, start_idx + div + (rem > 0))
 
@@ -133,7 +133,7 @@ class TorrentDef:
             return b""
 
         storage = self.torrent_info.files()
-        file_idx = storage.file_index_at_piece(piece_index)  # type: ignore[attr-defined]
+        file_idx = storage.file_index_at_piece(piece_index)
         piece_range = list(self._get_piece_range_from_file_idx(storage, file_idx))
         max_blocks = len(piece_buffer) // BLOCK_SIZE
 
@@ -163,7 +163,7 @@ class TorrentDef:
 
         storage = self.torrent_info.files()
         return {
-            storage.root(f).to_bytes():  # type: ignore[attr-defined]
+            storage.root(f).to_bytes():
                 list(self._get_piece_range_from_file_idx(storage, f))
             for f in self.get_file_indices()
             if storage.file_size(f) > storage.piece_length()

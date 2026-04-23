@@ -232,9 +232,10 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
             torrent.add_node(*node)
     # HTTP seeding
     # http://www.bittorrent.org/beps/bep_0017.html
-    if http_seeds is not None:
-        for http_seed in http_seeds:
-            torrent.add_http_seed(http_seed)
+    # >> BROKEN in libtorrent=2.1.0-rc1
+    #if http_seeds is not None:
+    #    for http_seed in http_seeds:
+    #        torrent.add_http_seed(http_seed)
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
@@ -247,11 +248,14 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
 
     t1 = torrent.generate()
     torrent_bytes = lt.bencode(t1)
+    atp = lt.load_torrent_buffer(torrent_bytes)
+    if http_seeds is not None:  # >> [BROKEN in libtorrent=2.1.0-rc1] workaround
+        atp.http_seeds = http_seeds
 
     return {
         "success": True,
         "base_dir": base_dir,
-        "atp": lt.load_torrent_buffer(torrent_bytes),  # type: ignore[attr-defined]
+        "atp": atp,
         "infohash": sha1(lt.bencode(t1[b"info"])).digest()
     }
 

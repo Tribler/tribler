@@ -24,23 +24,16 @@ IF NOT EXIST %NSIS% (
 
 REM ----- Build
 
-REM Sandip 2024-03-22: Deprecated, we are not using PyInstaller anymore because of issue with False Malware detections.
-REM %PYTHONHOME%\Scripts\pyinstaller.exe tribler.spec --log-level=%LOG_LEVEL% || exit /b
 ECHO Building Tribler using Cx_Freeze
 call python3 build/setup.py build
 
 copy build\win\resources\tribler*.nsi dist\tribler
 
-REM Martijn 2016-11-05: causing problems with PyInstaller
-REM copy Tribler\Main\Build\Win\tribler.exe.manifest dist\tribler
-
 mkdir dist\tribler\tools
 copy build\win\tools\reset*.bat dist\tribler\tools
 
-REM Copy various libraries required on runtime (libsodium and openssl)
+REM Copy libsodium library required on runtime
 move src\libsodium.dll dist\tribler\lib
-REM Sandip, 2024-03-26: Some openssl dlls are missing so need to be copied manually.
-copy C:\Program Files\OpenSSL\bin\*.dll dist\tribler\lib
 
 
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
