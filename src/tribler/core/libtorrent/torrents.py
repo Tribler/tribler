@@ -178,7 +178,6 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
                         announce_list: list[str] | None = None,
                         comment: str | None = None,
                         created_by: str | None = None,
-                        http_seeds: list[str] | None = None,
                         nodes: list[tuple[str, int]] | None = None,
                         piece_size: int = 0,
                         url_list: list[str] | None = None,
@@ -230,12 +229,6 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
     if nodes is not None:
         for node in nodes:
             torrent.add_node(*node)
-    # HTTP seeding
-    # http://www.bittorrent.org/beps/bep_0017.html
-    # >> BROKEN in libtorrent=2.1.0-rc1
-    #if http_seeds is not None:
-    #    for http_seed in http_seeds:
-    #        torrent.add_http_seed(http_seed)
 
     # Web seeding
     # http://www.bittorrent.org/beps/bep_0019.html
@@ -249,8 +242,6 @@ def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
     t1 = torrent.generate()
     torrent_bytes = lt.bencode(t1)
     atp = lt.load_torrent_buffer(torrent_bytes)
-    if http_seeds is not None:  # >> [BROKEN in libtorrent=2.1.0-rc1] workaround
-        atp.http_seeds = http_seeds
 
     return {
         "success": True,

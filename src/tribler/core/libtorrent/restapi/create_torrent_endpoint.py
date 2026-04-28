@@ -128,7 +128,6 @@ class CreateTorrentEndpoint(RESTEndpoint):
                 tracker_url_list or None,
                 parameters.get("description"),
                 f"Tribler version: {v}",
-                None,
                 initial_nodes,
                 0,
                 None,
