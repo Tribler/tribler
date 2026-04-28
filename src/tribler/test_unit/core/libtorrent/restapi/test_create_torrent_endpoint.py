@@ -113,8 +113,7 @@ class TestCreateTorrentEndpoint(TestBase):
         self.assertEqual(200, response.status)
         self.assertEqual(TORRENT_WITH_DIRS_CONTENT, base64.b64decode(response_body_json["torrent"]))
         self.assertIsNone(call_args[8])
-        self.assertIsNone(call_args[9])
-        self.assertEqual(0, call_args[10])
+        self.assertEqual(0, call_args[9])
 
     @patch(*PATCH_DEFAULT_SPEC)
     async def test_create_with_comment(self) -> None:

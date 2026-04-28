@@ -240,15 +240,6 @@ class TestTorrents(TestBase):
 
         self.assertEqual(node_list, result["atp"].dht_nodes)
 
-    def test_create_torrent_file_with_http_seed(self) -> None:
-        """
-        Test if torrents can be created with a specified http seed.
-        """
-        result = create_torrent_file(str(Path(__file__).parent), [Path(__file__).absolute()],
-                                     http_seeds=["http://127.0.0.1/file"])
-
-        self.assertEqual("http://127.0.0.1/file", result["atp"].http_seeds[0])
-
     def test_create_torrent_file_with_url_list(self) -> None:
         """
         Test if torrents can be created with a specified url list.
