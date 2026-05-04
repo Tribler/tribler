@@ -192,6 +192,40 @@ class TestDownloadManager(TestBase):
 
         self.assertEqual(mock_handle, await download.get_handle())
 
+    async def test_start_download_populates_atp_file_priorities(self) -> None:
+        """
+        Test if starting a download correctly passes the config's file priorities to libtorrent's add_torrent_params.
+        """
+        tdef = TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT)
+        config = self.create_mock_download_config()
+        # Set priorities for 6 files
+        config.set_file_priorities([4, 0, 4, 1, 2, 3])
+        
+        infohashes = libtorrent.info_hash_t(libtorrent.sha1_hash(tdef.infohash))
+        mock_handle = Mock(info_hashes=Mock(return_value=infohashes), is_valid=Mock(return_value=True),
+                           flags=Mock(return_value=0))
+        mock_alert = type("add_torrent_alert", (object,), {"handle": mock_handle,
+                                                           "error": Mock(value=Mock(return_value=None)),
+                                                           "category": MagicMock(return_value=None),
+                                                           "params": libtorrent.add_torrent_params()})
+        mock_alert.params.info_hashes = infohashes
+        
+        captured_atp = []
+        def handle_add_torrent(atp):
+            captured_atp.append(atp)
+            self.manager.process_alert(mock_alert())
+            
+        self.manager.ltsessions[0].result().async_add_torrent = handle_add_torrent
+
+        with patch.object(self.manager, "remove_download", AsyncMock()):
+            download = await self.manager.start_download(tdef=tdef,
+                                                         config=config,
+                                                         checkpoint_disabled=True)
+            await download.get_handle()
+
+        self.assertTrue(len(captured_atp) > 0)
+        self.assertEqual([4, 0, 4, 1, 2, 3], captured_atp[0].file_priorities)
+
     async def test_start_handle_wait_for_dht_timeout(self) -> None:
         """
         Test if start handle waits no longer than the set timeout for the DHT to be ready.
@@ -445,7 +479,7 @@ class TestDownloadManager(TestBase):
         """
         config = self.create_mock_download_config()
         config.set_safe_seeding(True)
-        download = Download(FakeTDef(), self.manager, checkpoint_disabled=True,
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager, checkpoint_disabled=True,
                             config=config)
         download.futures["save_resume_data"] = succeed(True)
         download_state = DownloadState(download, Mock(state=4, paused=False, moving_storage=False, error=None), None)

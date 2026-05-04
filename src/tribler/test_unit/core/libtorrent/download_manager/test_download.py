@@ -2,6 +2,7 @@ import sys
 from asyncio import Future, ensure_future, sleep
 from binascii import hexlify
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, call, patch
 
 import libtorrent
@@ -197,12 +198,12 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(file_priorities=Mock(return_value=[0, 4]))
+        download.handle = Mock(file_priorities=Mock(return_value=[0, 0, 0, 0, 0, 4]))
 
-        download.set_selected_files([1])
+        download.set_selected_files([5])
 
-        self.assertEqual([1], download.config.get_selected_files())
-        self.assertEqual([0, 4], download.get_file_priorities())
+        self.assertEqual([5], download.config.get_selected_files())
+        self.assertEqual([0, 0, 0, 0, 0, 4], download.get_file_priorities())
 
     def test_selected_files_first(self) -> None:
         """
@@ -210,12 +211,12 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(file_priorities=Mock(return_value=[4, 0]))
+        download.handle = Mock(file_priorities=Mock(return_value=[4, 0, 0, 0, 0, 0]))
 
         download.set_selected_files([0])
 
         self.assertEqual([0], download.config.get_selected_files())
-        self.assertEqual([4, 0], download.get_file_priorities())
+        self.assertEqual([4, 0, 0, 0, 0, 0], download.get_file_priorities())
 
     def test_selected_files_all(self) -> None:
         """
@@ -223,12 +224,12 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+        download.handle = Mock(file_priorities=Mock(return_value=[4, 4, 4, 4, 4, 4]))
 
-        download.set_selected_files([0, 1])
+        download.set_selected_files([0, 1, 2, 3, 4, 5])
 
-        self.assertEqual([0, 1], download.config.get_selected_files())
-        self.assertEqual([4, 4], download.get_file_priorities())
+        self.assertEqual([0, 1, 2, 3, 4, 5], download.config.get_selected_files())
+        self.assertEqual([4, 4, 4, 4, 4, 4], download.get_file_priorities())
 
     def test_selected_files_all_through_none(self) -> None:
         """
@@ -236,25 +237,27 @@ class TestDownload(TestBase):
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+        download.handle = Mock(file_priorities=Mock(return_value=[4, 4, 4, 4, 4, 4]))
 
         download.set_selected_files()
 
-        self.assertEqual(None, download.config.get_selected_files())
-        self.assertEqual([4, 4], download.get_file_priorities())
+        self.assertEqual([0, 1, 2, 3, 4, 5], download.config.get_selected_files())
+        download.handle.prioritize_files.assert_called_with([4, 4, 4, 4, 4, 4])
+        self.assertEqual([4, 4, 4, 4, 4, 4], download.get_file_priorities())
 
-    def test_selected_files_all_through_empty_list(self) -> None:
+    def test_selected_files_none_through_empty_list(self) -> None:
         """
-        Test if all files can be selected by selecting an empty list.
+        Test if explicitly no files are selected when selecting an empty list.
         """
         download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.dlmngr,
                             checkpoint_disabled=True, config=self.create_mock_download_config())
-        download.handle = Mock(file_priorities=Mock(return_value=[4, 4]))
+        download.handle = Mock(file_priorities=Mock(return_value=[0, 0, 0, 0, 0, 0]))
 
         download.set_selected_files([])
 
         self.assertEqual([], download.config.get_selected_files())
-        self.assertEqual([4, 4], download.get_file_priorities())
+        download.handle.prioritize_files.assert_called_with([0, 0, 0, 0, 0, 0])
+        self.assertEqual([0, 0, 0, 0, 0, 0], download.get_file_priorities())
 
     def test_get_share_mode_enabled(self) -> None:
         """
@@ -993,11 +996,16 @@ class TestDownload(TestBase):
         download = Download(tdef, Mock(config=config), self.create_mock_download_config(), checkpoint_disabled=True)
 
         def read_piece(p: int) -> None:
-            download.register_task(f"read_piece({p})", download.on_read_piece_alert,
-                                   Mock(piece=p, buffer=b"\x01"*524288, ec=Mock(value=Mock(return_value=0))))
+            pass  # Avoid scheduling 2,196 tasks on the event loop
 
         download.handle = Mock(is_valid=Mock(return_value=True), read_piece=read_piece)
         download.lt_status = Mock(pieces=[True] * 2196)
+
+        async def mock_wait_for_alert(*args: Any) -> None:
+            # Simulate the callbacks completing by manually filling the piece hashes
+            download.piece_hashes_v2 = [b"a" * 32] * 2196
+
+        download.wait_for_alert = mock_wait_for_alert
 
         torrent_data = await download.get_torrent_data()
 

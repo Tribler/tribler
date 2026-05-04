@@ -657,9 +657,9 @@ class DownloadManager(TaskManager):
             magnet_seeds = tdef.atp.url_seeds
 
             if config and not config.get_selected_files() and tdef.atp.file_priorities:
-                config.set_selected_files(
-                    [i for i in range(len(tdef.atp.file_priorities)) if tdef.atp.file_priorities[i] > 0]
-                )
+                # set_file_priorities also handles setting selected_files
+                config.set_file_priorities(tdef.atp.file_priorities)
+
             logger.info("Name: %s. Infohash: %s", tdef.name, tdef.infohash)
             if tdef.infohash in self.metainfo_cache:
                 logger.info("Metainfo found in cache")
@@ -757,6 +757,8 @@ class DownloadManager(TaskManager):
         atp.download_limit = download.config.get_download_limit()
         if download.config.get_upload_mode():
             atp.flags |= lt.torrent_flags.upload_mode
+        if download.config.get_file_priorities():
+            atp.file_priorities = download.config.get_file_priorities()
 
         if infohash in self.metainfo_requests and self.metainfo_requests[infohash].download != download:
             logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))

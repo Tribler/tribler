@@ -24,7 +24,7 @@ import libtorrent as lt
 from ipv8.taskmanager import TaskManager, task
 from ipv8.util import succeed
 
-from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, PostHandleOp
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, DownloadPriority, PostHandleOp
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import Stream
 from tribler.core.libtorrent.torrents import check_handle, get_info_from_handle, require_handle
@@ -764,21 +764,36 @@ class Download(TaskManager):
     def set_selected_files(self, handle: lt.torrent_handle, selected_files: list[int] | None = None, prio: int = 4,
                            force: bool = False) -> None:
         """
-        Set the selected files. If the selected files is None or empty, all files will be selected.
+        Set the selected files. If the selected files is None, all files will be selected.
         """
         if not force and self.stream is not None:
             return
         if self.tdef.torrent_info is not None and not self.get_share_mode():
-            if selected_files is None:
-                selected_files = self.config.get_selected_files()
-            else:
-                self.config.set_selected_files(selected_files)
             total_files = self.tdef.torrent_info.num_files()
 
             if selected_files is None:
-                selected_files = list(range(total_files))
+                # Retrieve any pre-selected files before priorities are initialized
+                selected_files_from_config = self.config.get_selected_files()
+            else:
+                selected_files_from_config = selected_files
 
-            self.set_file_priorities([prio if index in selected_files else 0 for index in range(total_files)])
+            if not self.config.get_file_priorities():
+                if selected_files_from_config is None:
+                    # No selection exists, default to all files
+                    self.config.set_file_priorities([prio] * total_files)
+                else:
+                    # Apply pre-selection
+                    priorities = [
+                        prio if index in selected_files_from_config else DownloadPriority.NO_DOWNLOAD
+                        for index in range(total_files)
+                    ]
+                    self.config.set_file_priorities(priorities)
+            elif selected_files is not None:
+                # Priorities exist, update them explicitly via config
+                self.config.set_selected_files(selected_files)
+
+            priorities = self.config.get_file_priorities()
+            self.set_file_priorities(priorities)
         return
 
     @check_handle(False)

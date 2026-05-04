@@ -21,7 +21,8 @@ class DownloadConfigDefaultsSection(TypedDict):
     """
 
     hops: NotRequired[int]
-    files: NotRequired[list[int]]
+    files: NotRequired[list[int]]  # TODO: Remove entirely in favor of file_priorities as source-of-truth
+    file_priorities: NotRequired[list[int]]
     safe_seeding: NotRequired[bool]
     user_stopped: NotRequired[bool]
     share_mode: NotRequired[bool]
@@ -67,6 +68,19 @@ class PostHandleOp:
 
     ADD_DEFAULT_TRACKERS = 1  # 2**0
     WRITE_BACKUP_TORRENT = 2  # 2**1
+
+
+@dataclass
+class DownloadPriority:
+    """
+    Human-readable file priorities.
+    Integer values set to match libtorrent's download_priority_t.
+    """
+
+    MEDIUM = 4       # Default value; when a new download is added, all files are set to this priority
+    HIGH = 7         # Files with this priority will be downloaded first
+    LOW = 1          # Files with this priority will be downloaded last
+    NO_DOWNLOAD = 0
 
 
 DEFAULTS = DownloadConfigSection(
@@ -265,12 +279,44 @@ class DownloadConfig:
         """
         Select which files in the torrent to download.
 
-        :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1])
+        :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1]) or None. None will set all files to download at default priority.
         """
         if file_indexes is None:
-            self.config.remove_option("download_defaults", "files")
+            priorities = self.get_file_priorities()
+            if priorities:
+                self.set_file_priorities([DownloadPriority.MEDIUM] * len(priorities))
+            self.config["download_defaults"].pop("files", None)
         else:
+            indexes_set = set(file_indexes)
+            priorities = self.get_file_priorities()
+            if priorities is None or len(priorities) == 0:
+                if len(file_indexes) > 0:
+                    self.config["download_defaults"]["files"] = ",".join(str(f) for f in file_indexes) + ","
+                else:
+                    self.config["download_defaults"]["files"] = ""
+                return
+            for idx in range(len(priorities)):
+                if idx in indexes_set:
+                    # Don't overwrite priority if already set to something other than NO_DOWNLOAD
+                    if priorities[idx] == DownloadPriority.NO_DOWNLOAD:
+                        priorities[idx] = DownloadPriority.MEDIUM
+                else:
+                    priorities[idx] = DownloadPriority.NO_DOWNLOAD
+            # Treat file priorities as source-of-truth for selected files
+            self.set_file_priorities(priorities)
+
+    def update_selected_files(self) -> None:
+        """"
+        Updates the list of selected files based on the file priorities.
+        """
+        priorities = self.get_file_priorities()
+        if priorities is None or len(priorities) == 0:
+            return
+        file_indexes = [i for i in range(len(priorities)) if priorities[i] > DownloadPriority.NO_DOWNLOAD]
+        if len(file_indexes) > 0:
             self.config["download_defaults"]["files"] = ",".join(str(i) for i in file_indexes) + ","
+        else:
+            self.config["download_defaults"]["files"] = ""
 
     def get_selected_files(self) -> list[int] | None:
         """
@@ -278,9 +324,58 @@ class DownloadConfig:
 
         :return: A list of file indexes.
         """
-        if self.config["download_defaults"].get("files"):
-            return [int(i) for i in self.config["download_defaults"]["files"].split(",") if i]
+        if self.config.has_option("download_defaults", "files"):
+            val = self.config["download_defaults"]["files"]
+            if val == "":
+                return []
+            return [int(i) for i in val.split(",") if i]
         return None
+
+    def set_file_priority(self, file_index: int, priority: int) -> None:
+        """
+        Set the priority for a specific file.
+
+        :param file_index: The index of the file for which to change priority.
+        :param priority: The updated priority for the file.
+        """
+        priorities = self.get_file_priorities()
+        priorities[file_index] = priority
+        self.config["download_defaults"]["file_priorities"] = ",".join(str(p) for p in priorities) + ","
+        # Treat file priorities as source-of-truth for selected files
+        self.update_selected_files()
+
+    def get_file_priority(self, file_index: int) -> int:
+        return self.get_file_priorities()[file_index]
+
+    def set_file_priorities(self, file_priorities: list[int]) -> None:
+        """
+        Set the file priorities for the download.
+
+        :param file_priorities: List of file priorities, each corresponding to the exact index in torrent
+        """
+        self.config["download_defaults"]["file_priorities"] = ",".join(str(p) for p in file_priorities) + ","
+        # Treat file priorities as source-of-truth for selected files
+        self.update_selected_files()
+
+    def get_file_priorities(self) -> list[int] | None:
+        """
+        Get the file priorities for the download.
+
+        :return: A list of file priorities, or None if file priorities are not set.
+        """
+        if self.config["download_defaults"].get("file_priorities"):
+            return [int(i) for i in self.config["download_defaults"]["file_priorities"].split(",") if i]
+        return None
+
+    def clear_file_priorities(self) -> None:
+        """
+        Set all file priorities to not download.
+        """
+        priorities = self.get_file_priorities()
+        if not priorities:
+            return
+        file_priorities = [DownloadPriority.NO_DOWNLOAD] * len(priorities)
+        self.set_file_priorities(file_priorities)
 
     def set_bootstrap_download(self, value: bool) -> None:
         """
