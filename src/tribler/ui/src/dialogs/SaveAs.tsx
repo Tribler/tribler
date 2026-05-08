@@ -238,10 +238,10 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
         };
     }, [uri, torrent]);
 
-    function OnDownloadClicked() {
+    function OnDownloadClicked(moveEnabled: boolean) {
         if (!settings) return;
 
-        const completed_dir = moveCompleted ? params.completed_dir : "";
+        const completed_dir = moveEnabled ? params.completed_dir : "";
 
         if (torrent) {
             triblerService.startDownloadFromFile(torrent, {...params, completed_dir}).then((response) => {
@@ -260,7 +260,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     }
 
     if (props.open && props.onOpenChange && settings?.libtorrent?.ask_download_settings === false) {
-        OnDownloadClicked();
+        OnDownloadClicked((settings?.libtorrent?.download_defaults.completed_dir ?? "").length > 0);
         return <></>;
     }
 
@@ -444,7 +444,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             <label className="whitespace-pre-line text-xs self-center">{warning}</label>
                         </div>
                     )}
-                    <Button variant="outline" type="submit" onClick={() => OnDownloadClicked()} disabled={exists}>
+                    <Button variant="outline" type="submit" onClick={() => OnDownloadClicked(moveCompleted)} disabled={exists}>
                         {t("Download")}
                     </Button>
                     <DialogClose asChild>
