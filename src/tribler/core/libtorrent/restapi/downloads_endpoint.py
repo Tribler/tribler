@@ -16,7 +16,7 @@ from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.REST.schema import schema
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
-from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, PostHandleOp
+from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, DownloadPriority, PostHandleOp
 from tribler.core.libtorrent.download_manager.download_state import DOWNLOAD, UPLOAD, DownloadStatus
 from tribler.core.libtorrent.download_manager.stream import StreamReader
 from tribler.core.libtorrent.torrentdef import TorrentDef
@@ -54,8 +54,9 @@ class JSONFilesInfo(TypedDict):
     index: int
     name: str
     size: int
-    included: bool
+    included: bool  # Retained for backwards compatibility
     progress: float
+    priority: int
 
 
 class DownloadsEndpoint(RESTEndpoint):
@@ -128,6 +129,11 @@ class DownloadsEndpoint(RESTEndpoint):
         if "selected_files" in parameters:
             download_config.set_selected_files(parameters["selected_files"])
 
+        # NOTE: Flle prioritiy support from params is not supported at present;
+        # should be added here, but will need safety guards elsewhere to ensure
+        # that mismatched lengths of priorities with actual file list are handled
+        # gracefully.
+
         if "auto_managed" in parameters:
             download_config.set_auto_managed(parameters["auto_managed"])
 
@@ -144,6 +150,7 @@ class DownloadsEndpoint(RESTEndpoint):
             return []
         files_completion = dict(download.get_state().get_files_completion())
         selected_files = download.config.get_selected_files()
+        file_priorities = download.config.get_file_priorities()
         index_mapping = download.get_def().get_file_indices()
         for file_index in index_mapping:
             fn = Path(tinfo.file_at(file_index).path)
@@ -157,7 +164,12 @@ class DownloadsEndpoint(RESTEndpoint):
                     name=str(fn.as_posix()),
                     size=size,
                     included=(selected_files is None or file_index in selected_files),
-                    progress= files_completion.get(fn, 0.0),
+                    progress=files_completion.get(fn, 0.0),
+                    priority=(
+                        file_priorities[file_index]
+                        if file_priorities is not None
+                        else DownloadPriority.MEDIUM
+                    ),
                 )
             )
         return files_json
@@ -543,7 +555,8 @@ class DownloadsEndpoint(RESTEndpoint):
         "seeding_ratio_default": (Boolean, "Reset seeding ratio to default."),
         "queue_position": (String, "Change the position of the download in the queue. "
                                    "Possible values are queue_up/queue_top/queue_down/queue_bottom."),
-        "auto_managed": (Boolean, "Set the auto managed flag.")
+        "auto_managed": (Boolean, "Set the auto managed flag."),
+        "file_priorities": (List(Integer), "File priorities to be set for the download."),
     }))
     async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0915, PLR0911
         """
@@ -578,6 +591,17 @@ class DownloadsEndpoint(RESTEndpoint):
                                         "message": "index out of range"
                                     }}, status=HTTP_BAD_REQUEST)
             download.set_selected_files(selected_files_list)
+
+        if "file_priorities" in parameters:
+            file_priorities_list = parameters["file_priorities"]
+            expected_length = len(download.tdef.get_file_indices())
+            if len(file_priorities_list) != expected_length:
+                return RESTResponse({"error": {
+                                        "handled": True,
+                                        "message": f"file_priorities length ({len(file_priorities_list)}) does not match torrent files count ({expected_length})"
+                                    }}, status=HTTP_BAD_REQUEST)
+            download.config.set_file_priorities(file_priorities_list)
+            download.set_file_priorities(file_priorities_list)
 
         if upload_limit := parameters.get("upload_limit"):
             await download.set_upload_limit(upload_limit)

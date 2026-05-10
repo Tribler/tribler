@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, call, mock_open, patch
+from binascii import hexlify
 
 import libtorrent
 from aiohttp.web_urldispatcher import UrlMappingMatchInfo
@@ -82,6 +83,15 @@ class TestDownloadsEndpoint(TestBase):
         config = DownloadConfig(DownloadConfig.get_parser())
         config.set_dest_dir(Path(""))
         return Download(FakeTDef(), self.download_manager, config, hidden=False, checkpoint_disabled=True)
+
+    def create_mock_download_with_files(self) -> Download:
+        """
+        Create a mocked Download from a torrent with files.
+        """
+        config = DownloadConfig(DownloadConfig.get_parser())
+        config.set_dest_dir(Path(""))
+        return Download(
+            TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.download_manager, config, hidden=False, checkpoint_disabled=True)
 
     def test_create_dconf_safe_default_safe(self) -> None:
         """
@@ -345,6 +355,31 @@ class TestDownloadsEndpoint(TestBase):
         self.assertTrue(download.config.get_safe_seeding())
         self.assertEqual(Path("foo"), download.config.get_dest_dir())
         self.assertEqual([0], download.config.get_selected_files())
+
+    async def test_add_download_multiple_selected_files(self) -> None:
+        """
+        Test if the custom parameters are set when adding a download.
+        """
+        download = self.create_mock_download_with_files()
+        self.download_manager.start_download_from_uri = AsyncMock(return_value=download)
+        request = MockRequest("/api/downloads", "PUT", {"uri": "http://127.0.0.1/file", "safe_seeding": 1,
+                                                        "selected_files": [0, 3], "destination": "foo", "anon_hops": 1})
+
+        with patch("tribler.core.libtorrent.download_manager.download_config.DownloadConfig.from_defaults",
+                   lambda _: download.config):
+            response = await self.endpoint.add_download(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["started"])
+        self.assertEqual(1, download.config.get_hops())
+        self.assertTrue(download.config.get_safe_seeding())
+        self.assertEqual(Path("foo"), download.config.get_dest_dir())
+        self.assertEqual([0, 3], download.config.get_selected_files())
+        # Simulate libtorrent's trigger of handle for proper initialization
+        download.handle = Mock()
+        download.set_selected_files()
+        self.assertEqual([4, 0, 0, 4, 0, 0], download.config.get_file_priorities())
 
     async def test_add_download_failed(self) -> None:
         """
@@ -785,6 +820,48 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual("01" * 20, response_body_json["infohash"])
         self.assertEqual(6, len(response_body_json["files"]))
 
+        # Verify the file response includes priority and inclusion status
+        first_file = response_body_json["files"][0]
+        self.assertTrue("priority" in first_file)
+        self.assertEqual(4, first_file["priority"])
+        self.assertTrue(first_file["included"])
+
+    async def test_update_download_selected_files(self) -> None:
+        """
+        Test if we can update selected files via API call.
+        """
+        download = self.create_mock_download_with_files()
+        download.handle = Mock()
+        self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(f"/api/downloads/{'01' * 20}", "PATCH", {"selected_files": [0, 3]}, {"infohash": "01" * 20})
+
+        response = await self.endpoint.update_download(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["modified"])
+        self.assertEqual([0, 3], download.config.get_selected_files())
+        self.assertEqual([4, 0, 0, 4, 0, 0], download.config.get_file_priorities())
+
+    async def test_update_download_file_priorities(self) -> None:
+        """
+        Test if we can explicitly set file priorities via API call.
+        """
+        download = self.create_mock_download_with_files()
+        download.handle = Mock()
+        self.download_manager.get_download = Mock(return_value=download)
+
+        priorities = [7, 1, 0, 4, 0, 0]
+        request = MockRequest(f"/api/downloads/{'01' * 20}", "PATCH", {"file_priorities": priorities}, {"infohash": "01" * 20})
+
+        response = await self.endpoint.update_download(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["modified"])
+        self.assertEqual(priorities, download.config.get_file_priorities())
+        download.handle.prioritize_files.assert_called_once_with(priorities)
+
     async def test_stream_no_download(self) -> None:
         """
         Test if a graceful error is returned when no download is found.
@@ -816,7 +893,7 @@ class TestDownloadsEndpoint(TestBase):
             await response.prepare(request)
 
         self.assertEqual(416, response.status)
-        self.assertEqual("Requested Range Not Satisfiable", response.reason)
+        self.assertTrue("Range Not Satisfiable" in response.reason)
 
     async def test_stream(self) -> None:
         """

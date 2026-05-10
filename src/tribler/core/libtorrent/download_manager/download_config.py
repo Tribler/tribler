@@ -297,9 +297,11 @@ class DownloadConfig:
                 return
             for idx in range(len(priorities)):
                 if idx in indexes_set:
-                    # Don't overwrite priority if already set to something other than NO_DOWNLOAD
                     if priorities[idx] == DownloadPriority.NO_DOWNLOAD:
                         priorities[idx] = DownloadPriority.MEDIUM
+                    else:
+                        # Don't overwrite priority if already set to something other than NO_DOWNLOAD
+                        pass
                 else:
                     priorities[idx] = DownloadPriority.NO_DOWNLOAD
             # Treat file priorities as source-of-truth for selected files
@@ -345,6 +347,8 @@ class DownloadConfig:
         self.update_selected_files()
 
     def get_file_priority(self, file_index: int) -> int:
+        if self.get_file_priorities() is None:
+            return DownloadPriority.MEDIUM
         return self.get_file_priorities()[file_index]
 
     def set_file_priorities(self, file_priorities: list[int]) -> None:

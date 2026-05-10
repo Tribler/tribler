@@ -784,7 +784,8 @@ class Download(TaskManager):
                 else:
                     # Apply pre-selection
                     priorities = [
-                        prio if index in selected_files_from_config else DownloadPriority.NO_DOWNLOAD
+                        prio if index in selected_files_from_config
+                        else DownloadPriority.NO_DOWNLOAD
                         for index in range(total_files)
                     ]
                     self.config.set_file_priorities(priorities)
