@@ -794,7 +794,8 @@ class Download(TaskManager):
                 # Priorities exist, update them explicitly via config
                 self.config.set_selected_files(selected_files)
 
-            priorities = self.config.get_file_priorities()
+            # Ignore mytype warning; we just ensured in the above block that this is not None
+            priorities = self.config.get_file_priorities()  # type: ignore[assignment]
             self.set_file_priorities(priorities)
         return
 

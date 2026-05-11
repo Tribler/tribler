@@ -342,6 +342,9 @@ class DownloadConfig:
         :param priority: The updated priority for the file.
         """
         priorities = self.get_file_priorities()
+        if priorities is None:
+            # Early terminate when file priorities are not yet set
+            return
         priorities[file_index] = priority
         self.config["download_defaults"]["file_priorities"] = ",".join(str(p) for p in priorities) + ","
         # Treat file priorities as source-of-truth for selected files
@@ -354,9 +357,13 @@ class DownloadConfig:
         :param file_index: The index of the file for which to get priority.
         :return: The priority of the file.
         """
-        if self.get_file_priorities() is None:
+        priorities = self.get_file_priorities()
+        if priorities is None:
             return DownloadPriority.MEDIUM
-        return self.get_file_priorities()[file_index]
+        try:
+            return priorities[file_index]
+        except IndexError:
+            return DownloadPriority.MEDIUM
 
     def set_file_priorities(self, file_priorities: list[int]) -> None:
         """
