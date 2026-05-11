@@ -1001,7 +1001,7 @@ class TestDownload(TestBase):
         download.handle = Mock(is_valid=Mock(return_value=True), read_piece=read_piece)
         download.lt_status = Mock(pieces=[True] * 2196)
 
-        async def mock_wait_for_alert(*args: Any) -> None:
+        async def mock_wait_for_alert(*args: Any) -> None:  # noqa: ANN401
             # Simulate the callbacks completing by manually filling the piece hashes
             download.piece_hashes_v2 = [b"a" * 32] * 2196
 

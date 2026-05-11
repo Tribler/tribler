@@ -771,7 +771,8 @@ class Download(TaskManager):
         if self.tdef.torrent_info is not None and not self.get_share_mode():
             total_files = self.tdef.torrent_info.num_files()
 
-            if selected_files is None:
+            # Deliberately avoid use of ternary operator for readability and comment
+            if selected_files is None:  # noqa: SIM108
                 # Retrieve any pre-selected files before priorities are initialized
                 selected_files_from_config = self.config.get_selected_files()
             else:

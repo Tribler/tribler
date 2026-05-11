@@ -598,7 +598,10 @@ class DownloadsEndpoint(RESTEndpoint):
             if len(file_priorities_list) != expected_length:
                 return RESTResponse({"error": {
                                         "handled": True,
-                                        "message": f"file_priorities length ({len(file_priorities_list)}) does not match torrent files count ({expected_length})"
+                                        "message": (
+                                            f"file_priorities length ({len(file_priorities_list)}) "
+                                            f"does not match torrent files count ({expected_length})"
+                                        ),
                                     }}, status=HTTP_BAD_REQUEST)
             download.config.set_file_priorities(file_priorities_list)
             download.set_file_priorities(file_priorities_list)

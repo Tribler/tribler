@@ -119,7 +119,8 @@ class TestDownloadConfig(TestBase):
         """
         Test if a single file priority is updated correctly.
         """
-        self.download_config.set_file_priorities([DownloadPriority.MEDIUM, DownloadPriority.MEDIUM, DownloadPriority.MEDIUM])
+        self.download_config.set_file_priorities(
+            [DownloadPriority.MEDIUM, DownloadPriority.MEDIUM, DownloadPriority.MEDIUM])
 
         self.download_config.set_file_priority(1, DownloadPriority.HIGH)
 

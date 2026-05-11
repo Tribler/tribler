@@ -21,7 +21,7 @@ class DownloadConfigDefaultsSection(TypedDict):
     """
 
     hops: NotRequired[int]
-    files: NotRequired[list[int]]  # TODO: Remove entirely in favor of file_priorities as source-of-truth
+    files: NotRequired[list[int]]  # NOTE: Remove entirely in favor of file_priorities as source-of-truth
     file_priorities: NotRequired[list[int]]
     safe_seeding: NotRequired[bool]
     user_stopped: NotRequired[bool]
@@ -279,7 +279,8 @@ class DownloadConfig:
         """
         Select which files in the torrent to download.
 
-        :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1]) or None. None will set all files to download at default priority.
+        :param file_indexes: List of file indexes as ordered in the torrent (e.g. [0,1]) or None.
+                             None will set all files to download at default priority.
         """
         if file_indexes is None:
             priorities = self.get_file_priorities()
@@ -308,7 +309,7 @@ class DownloadConfig:
             self.set_file_priorities(priorities)
 
     def update_selected_files(self) -> None:
-        """"
+        """
         Updates the list of selected files based on the file priorities.
         """
         priorities = self.get_file_priorities()
@@ -347,6 +348,12 @@ class DownloadConfig:
         self.update_selected_files()
 
     def get_file_priority(self, file_index: int) -> int:
+        """
+        Get the priority for a specific file by index.
+
+        :param file_index: The index of the file for which to get priority.
+        :return: The priority of the file.
+        """
         if self.get_file_priorities() is None:
             return DownloadPriority.MEDIUM
         return self.get_file_priorities()[file_index]
