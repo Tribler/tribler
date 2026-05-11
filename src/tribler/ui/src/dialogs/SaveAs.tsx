@@ -43,8 +43,10 @@ function startDownloadCallback(response: any, t: TFunction) {
 
 const getFileColumns = ({
     onSelectedFiles,
+    onFilePriorityChange
 }: {
     onSelectedFiles: (row: Row<FileTreeItem>) => void;
+    onFilePriorityChange: (row: Row<FileTreeItem>, priority: number) => void;
 }): ColumnDef<FileTreeItem>[] => [
     {
         accessorKey: "name",
@@ -87,7 +89,7 @@ const getFileColumns = ({
             return (
                 <select
                     value={row.original.priority ?? "indeterminate"}
-                    onChange={(e) => { onPriorityChange(row, e.target.value) }}
+                    onChange={(e) => { onFilePriorityChange(row, Number(e.target.value)) }}
                     className="border rounded px-1 text-sm bg-transparent"
                 >
                     <option value="indeterminate" disabled className="hidden">--</option>
@@ -145,21 +147,12 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [dirspaceStatistics, setDirspaceStatistics] = useState<DirspaceStatistics | undefined>(undefined);
 
     function OnSelectedFilesChange(row: Row<FileTreeItem>) {
-        let newPriority = (row.original.priority > 0) ? 0 : 4;
+        let newPriority = (Number(row.original.priority ?? 4) > 0) ? 0 : 4;
         OnFilePriorityChange(row, newPriority);
     }
 
     function OnFilePriorityChange(row: Row<FileTreeItem>, priority: number) {
-        if (row.original.subRows && row.original.subRows.length) {
-            // On priority change, folders need to propagate downward
-            for (const item of row.original.subRows) {
-                OnFilePriorityChange(item, priority);
-            }
-            // Folders shouldn't have inherent priorities
-            row.original.priority = "indeterminate";
-        } else {
-            row.original.priority = priority;
-        }
+        setTreePriority(row.original, priority);
         fixTreeProps(files[0]);
         setFiles([...files]);
         setParams({
