@@ -212,7 +212,15 @@ export class TriblerService {
 
     async setDownloadFiles(infohash: string, selected_files: number[]): Promise<undefined | ErrorDict | boolean> {
         try {
-            return (await this.http.patch(`/downloads/${infohash}`, {selected_files: selected_files})).data.modified;
+            return (await this.http.patch(`/downloads/${infohash}`, { selected_files: selected_files })).data.modified;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
+    async setDownloadFilePriorities(infohash: string, file_priorities: number[]): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.patch(`/downloads/${infohash}`, { file_priorities: file_priorities })).data.modified;
         } catch (error) {
             return formatAxiosError(error as Error | AxiosError);
         }

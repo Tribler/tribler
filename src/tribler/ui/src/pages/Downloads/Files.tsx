@@ -8,15 +8,18 @@ import {triblerService} from "@/services/tribler.service";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {ChevronDown, ChevronRight} from "lucide-react";
 import {Checkbox} from "@/components/ui/checkbox";
-import {filesToTree, formatBytes, getSelectedFilesFromTree} from "@/lib/utils";
+import {filesToTree, formatBytes, getSelectedFilesFromTree, getFilePrioritiesFromTree} from "@/lib/utils";
 import {useTranslation} from "react-i18next";
+import {setTreePriority} from "@/dialogs/SaveAs";
 
 const getFileColumns = ({
     headers,
     onSelectedFiles,
+    onFilePriorityChange,
 }: {
     headers: any[];
     onSelectedFiles: (row: Row<FileTreeItem>) => void;
+    onFilePriorityChange: (row: Row<FileTreeItem>, priority: number | "indeterminate") => void;
 }): ColumnDef<FileTreeItem>[] => [
     {
         header: headers[0],
@@ -49,19 +52,30 @@ const getFileColumns = ({
         header: headers[1],
         accessorKey: "size",
         cell: ({row}) => {
-            return (
-                <div className="flex items-center">
-                    <Checkbox
-                        className="mr-2"
-                        checked={row.original.included}
-                        onCheckedChange={() => onSelectedFiles(row)}></Checkbox>
-                    <span>{formatBytes(row.original.size)}</span>
-                </div>
-            );
+                return <span>{formatBytes(row.original.size)}</span>;
         },
     },
     {
         header: headers[2],
+        accessorKey: "priority",
+        cell: ({ row }) => {
+            return (
+                <select
+                    value={row.original.priority ?? "indeterminate"}
+                    onChange={(e) => { onFilePriorityChange(row, parseInt(e.target.value)) }}
+                    className="border rounded px-1 text-sm bg-transparent"
+                >
+                    <option value="indeterminate" disabled className="hidden">--</option>
+                    <option value="7">High</option>
+                    <option value="4">Normal</option>
+                    <option value="1">Low</option>
+                    <option value="0">SKIP</option>
+                </select>
+            );
+        }
+    },
+    {
+        header: headers[3],
         accessorKey: "progress",
         cell: ({row}) => {
             return <span>{((row.original.progress || 0) * 100).toFixed(1)}%</span>;
@@ -108,6 +122,29 @@ export default function Files({download, style}: {download: Download; style?: Re
         updateFiles(setFiles, download, initialized);
     }
 
+    function OnFilePriorityChange(row: Row<FileTreeItem>, priority: number | "indeterminate") {
+        // Should never receive indeterminate, but check-and-early-return just in case.
+        if (priority === "indeterminate") return;
+        setTreePriority(row.original, priority);
+        const newPrioritiesMap = getFilePrioritiesFromTree(files[0]);
+        let allPriorities: number[] = [];
+        for (const index of newPrioritiesMap.keys()) {
+            allPriorities[index] = newPrioritiesMap.get(index) || 4;  // 4 is default priority
+        }
+        // Extra just-in-case loop; shouldn't be necessary, but better safe than sorry
+        for (let i=0; i < allPriorities.length; i++) {
+            if (allPriorities[i] === undefined) allPriorities[i] = 4;
+        }
+        triblerService.setDownloadFilePriorities(download.infohash, allPriorities).then((response) => {
+            if (response === undefined) {
+                toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
+            } else if (isErrorDict(response)) {
+                toast.error(`${t("ToastErrorDownloadSetFiles")} ${response.error.message}`);
+            }
+        });
+        updateFiles(setFiles, download, initialized);
+    }
+
     useEffect(() => {
         // Getting the files can take a lot of time, so we avoid doing this twice (due to StrictMode).
         if (initialized.current) {
@@ -125,9 +162,10 @@ export default function Files({download, style}: {download: Download; style?: Re
     const headers = [
         useMemo(() => getHeader("Path", true, true, true), []),
         useMemo(() => getHeader("Size"), []),
+        useMemo(() => getHeader("Priority"), []),
         useMemo(() => getHeader("Progress"), []),
     ];
-    const fileColumns = getFileColumns({headers, onSelectedFiles: OnSelectedFilesChange});
+    const fileColumns = getFileColumns({headers, onSelectedFiles: OnSelectedFilesChange, onFilePriorityChange: OnFilePriorityChange});
 
     // The API call may not be finished yet or the download is still getting metainfo.
     if (files.length === 0) return <span className="flex pl-4 pt-2 text-muted-foreground">No files available</span>;

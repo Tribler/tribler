@@ -77,14 +77,25 @@ const getFileColumns = ({
         accessorKey: "size",
         header: getHeader("Size"),
         cell: ({row}) => {
+            return <span>{formatBytes(row.original.size)}</span>;
+        },
+    },
+    {
+        accessorKey: "priority",
+        header: getHeader("Priority"),
+        cell: ({row}) => {
             return (
-                <div className="flex items-center">
-                    <Checkbox
-                        className="mr-2"
-                        checked={row.original.included}
-                        onCheckedChange={() => onSelectedFiles(row)}></Checkbox>
-                    <span>{formatBytes(row.original.size)}</span>
-                </div>
+                <select
+                    value={row.original.priority ?? "indeterminate"}
+                    onChange={(e) => { onPriorityChange(row, e.target.value) }}
+                    className="border rounded px-1 text-sm bg-transparent"
+                >
+                    <option value="indeterminate" disabled className="hidden">--</option>
+                    <option value="7">High</option>
+                    <option value="4">Normal</option>
+                    <option value="1">Low</option>
+                    <option value="0">SKIP</option>
+                </select>
             );
         },
     },
@@ -102,7 +113,21 @@ const toggleTree = (tree: FileTreeItem, included: boolean = true) => {
         }
     }
     tree.included = included;
+    tree.priority = included ? 4 : 0;
 };
+
+export const setTreePriority = (tree: FileTreeItem, priority: number) => {
+    if (tree.subRows && tree.subRows.length) {
+        for (const item of tree.subRows) {
+            setTreePriority(item, priority);
+        }
+        tree.priority = "indeterminate";
+    } else {
+        tree.priority = priority;
+    }
+    // Backwards-compatible support for `included` on folders
+    tree.included = (priority > 0);
+}
 
 export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & DialogProps) {
     let {uri, torrent} = props;
@@ -120,7 +145,21 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     const [dirspaceStatistics, setDirspaceStatistics] = useState<DirspaceStatistics | undefined>(undefined);
 
     function OnSelectedFilesChange(row: Row<FileTreeItem>) {
-        toggleTree(row.original, !row.original.included);
+        let newPriority = (row.original.priority > 0) ? 0 : 4;
+        OnFilePriorityChange(row, newPriority);
+    }
+
+    function OnFilePriorityChange(row: Row<FileTreeItem>, priority: number) {
+        if (row.original.subRows && row.original.subRows.length) {
+            // On priority change, folders need to propagate downward
+            for (const item of row.original.subRows) {
+                OnFilePriorityChange(item, priority);
+            }
+            // Folders shouldn't have inherent priorities
+            row.original.priority = "indeterminate";
+        } else {
+            row.original.priority = priority;
+        }
         fixTreeProps(files[0]);
         setFiles([...files]);
         setParams({
@@ -130,8 +169,8 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
     }
 
     const fileColumns = useMemo(
-        () => getFileColumns({onSelectedFiles: OnSelectedFilesChange}),
-        [OnSelectedFilesChange]
+        () => getFileColumns({onSelectedFiles: OnSelectedFilesChange, onFilePriorityChange: OnFilePriorityChange}),
+        [OnSelectedFilesChange, OnFilePriorityChange]
     );
     const [params, setParams] = useState<DownloadConfig>({
         destination: "",

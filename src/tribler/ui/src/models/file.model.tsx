@@ -8,6 +8,7 @@ export interface File {
     size: number;
     included: boolean;
     progress: number;
+    priority: number;
 }
 
 export interface FileTreeItem {
@@ -18,6 +19,7 @@ export interface FileTreeItem {
     progress?: number;
     included?: CheckedState;
     subRows?: FileTreeItem[];
+    priority?: number | "indeterminate";
 }
 
 export interface FileLink {

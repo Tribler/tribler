@@ -209,12 +209,19 @@ export const fixTreeProps = (
     if (tree.subRows && tree.subRows.length) {
         tree.size = tree.downloaded = 0;
         tree.included = undefined;
+        // Directories don't have inherent priorities
+        tree.priority = "indeterminate";
         for (const item of tree.subRows) {
             const {size, downloaded, included} = fixTreeProps(item);
             tree.size += size;
             tree.downloaded += downloaded;
-            if (tree.included !== undefined) tree.included = tree.included == included ? included : "indeterminate";
-            else tree.included = included;
+            if (tree.included === undefined) {
+                tree.included = included;
+            } else if (included) {
+                tree.included = included;
+            } else {
+                tree.included = "indeterminate";
+            }
         }
         tree.progress = (tree.downloaded || 0) / tree.size;
     }
@@ -234,6 +241,18 @@ export const getSelectedFilesFromTree = (tree: FileTreeItem, included: boolean =
     } else if (tree.included === included) selectedFiles.push(tree.index);
     return selectedFiles;
 };
+
+export const getFilePrioritiesFromTree = (tree: FileTreeItem) => {
+    const priorities: Map<number, number> = new Map();
+    if (tree.subRows && tree.subRows.length) {
+        for (const item of tree.subRows) {
+            for (const [index, priority] of getFilePrioritiesFromTree(item)) priorities.set(index, priority);
+        }
+    // Explicit guard is probably unnecessary, but better safe than sorry
+    // Forcible cast to bypass Typescript's inability to detect guard clause
+    } else if (tree.priority != "indeterminate") priorities.set(tree.index, Number(tree.priority));
+    return priorities;
+}
 
 export function downloadFile(file: FileLink) {
     var link = document.createElement("a");
