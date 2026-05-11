@@ -167,7 +167,7 @@ class DownloadsEndpoint(RESTEndpoint):
                     progress=files_completion.get(fn, 0.0),
                     priority=(
                         file_priorities[file_index]
-                        if file_priorities is not None
+                        if (file_priorities is not None and file_index < len(file_priorities))
                         else DownloadPriority.MEDIUM
                     ),
                 )
