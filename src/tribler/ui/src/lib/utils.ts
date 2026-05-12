@@ -216,12 +216,10 @@ export const fixTreeProps = (
             tree.size += size;
             tree.downloaded += downloaded;
             if (tree.included === undefined) {
-                tree.included = included;
-            } else if (included) {
-                tree.included = included;
-            } else {
-                tree.included = "indeterminate";
-            }
+                tree.included = included;  // First child sets initial value
+            } else if (tree.included !== included) {
+                tree.included = "indeterminate";  // Disagreement; set indeterminate
+            }  // else agreement among children, leave as-is
         }
         tree.progress = (tree.downloaded || 0) / tree.size;
     }

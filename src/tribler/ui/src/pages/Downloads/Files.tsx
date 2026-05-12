@@ -129,7 +129,7 @@ export default function Files({download, style}: {download: Download; style?: Re
         const newPrioritiesMap = getFilePrioritiesFromTree(files[0]);
         let allPriorities: number[] = [];
         for (const index of newPrioritiesMap.keys()) {
-            allPriorities[index] = newPrioritiesMap.get(index) || 4;  // 4 is default priority
+            allPriorities[index] = newPrioritiesMap.get(index) ?? 4;  // 4 is default priority
         }
         // Extra just-in-case loop; shouldn't be necessary, but better safe than sorry
         for (let i=0; i < allPriorities.length; i++) {
