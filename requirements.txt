@@ -1,7 +1,7 @@
 -r pyipv8/requirements.txt
 
 cryptography==46.0.7  # FIXME: Workaround for deprecated curves!
-ipv8-rust-tunnels
+ipv8-rust-tunnels==0.1.49
 lz4
 pillow
 pony
