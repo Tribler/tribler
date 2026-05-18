@@ -22,8 +22,6 @@ from tribler.core.components import (
     ContentDiscoveryComponent,
     DatabaseComponent,
     DHTDiscoveryComponent,
-    RecommenderComponent,
-    RendezvousComponent,
     RSSComponent,
     TorrentCheckerComponent,
     TunnelComponent,
@@ -148,9 +146,8 @@ class Session:
         """
         Register all IPv8 launchers that allow communities to be loaded.
         """
-        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent,
-                               RecommenderComponent, RendezvousComponent, RSSComponent, TorrentCheckerComponent,
-                               TunnelComponent, VersioningComponent, WatchFolderComponent]:
+        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, RSSComponent,
+                               TorrentCheckerComponent, TunnelComponent, VersioningComponent, WatchFolderComponent]:
             instance: CommunityLauncherWEndpoints = cast("CommunityLauncherWEndpoints", launcher_class())
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
