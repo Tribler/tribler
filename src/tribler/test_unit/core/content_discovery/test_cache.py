@@ -1,6 +1,6 @@
 from asyncio import sleep
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from ipv8.keyvault.private.openssl import OpenSSLSK
 from ipv8.peer import Peer
 from ipv8.requestcache import RequestCache
 from ipv8.test.base import TestBase
@@ -13,7 +13,7 @@ class TestSelectRequest(TestBase):
     Tests for the SelectRequest cache.
     """
 
-    FAKE_PEER = Peer(LibNaCLSK(b""))
+    FAKE_PEER = Peer(OpenSSLSK(b"LibNaCLSK:" + b"0" * 64))
 
     async def test_timeout_no_cb(self) -> None:
         """

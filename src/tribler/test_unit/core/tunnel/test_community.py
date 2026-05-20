@@ -6,7 +6,6 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, call
 
-from ipv8.keyvault.public.libnaclkey import LibNaCLPK
 from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_STATE_CLOSING,
     CIRCUIT_TYPE_IP_SEEDER,
@@ -304,7 +303,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we can cache exit nodes to disk.
         """
-        self.overlay(0).candidates = {Peer(LibNaCLPK(b"\x00" * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).candidates = {Peer(b"LibNaCLPK:" + b"\x00" * 64, ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
         self.overlay(0).cache_exitnodes_to_disk()
 
         self.assertEqual(bytes([ADDRESS_TYPE_IPV4]) + bytes(range(6)), self.fake_cache_file.read())
@@ -313,7 +312,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we can handle an OSError when caching exit nodes to disk and raise no errors.
         """
-        self.overlay(0).candidates = {Peer(LibNaCLPK(b"\x00" * 64), ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
+        self.overlay(0).candidates = {Peer(b"LibNaCLPK:" + b"\x00" * 64, ("0.1.2.3", 1029)): {PEER_FLAG_EXIT_BT}}
         self.overlay(0).settings.exitnode_cache = Mock(write_bytes=Mock(side_effect=FileNotFoundError))
         self.overlay(0).cache_exitnodes_to_disk()
 

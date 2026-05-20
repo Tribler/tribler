@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from ipv8.keyvault.private.libnaclkey import LibNaCLSK
+from ipv8.keyvault.private.openssl import OpenSSLSK
 from ipv8.peer import Peer
 from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
@@ -23,7 +23,7 @@ class MockContentDiscoveryCommunity(ContentDiscoveryCommunity):
         """
         Create a new mocked ContentDiscoveryCommunity.
         """
-        my_peer = Peer(LibNaCLSK(b"\x01" * 64))
+        my_peer = Peer(OpenSSLSK(b"LibNaCLSK:" + b"\x01" * 64))
         super().__init__(self.settings_class(my_peer=my_peer, endpoint=AutoMockEndpoint(), network=Network()))
 
     def send_search_request(self, **kwargs) -> tuple[UUID, list[Peer]]:

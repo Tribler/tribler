@@ -5,10 +5,10 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 
+import ipv8_rust_tunnels
 from aiohttp import web
 from aiohttp_apispec import docs, json_schema
 from ipv8.REST.schema import schema
-from ipv8_rust_tunnels import rust_endpoint
 from marshmallow.fields import Integer, String
 
 from tribler.core.restapi.rest_endpoint import HTTP_NOT_FOUND, MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
@@ -146,9 +146,12 @@ class StatisticsEndpoint(RESTEndpoint):
             stats_dict["libtorrent"] = lt_stats
 
         if self.session and self.session.rust_endpoint:
-            stats_dict["socks5_sessions"] = self.session.rust_endpoint.get_socks5_statistics()
+            stats_dict["socks5_sessions"] = cast(
+                "list[Socks5StatsDict]",
+                self.session.rust_endpoint.get_socks5_statistics()
+            )
 
-        version = getattr(rust_endpoint, "__version__", "unknown")
+        version = ipv8_rust_tunnels.__version__
         stats_dict["endpoint_version"] = "git" if version == "0.1.0" else version
 
         return RESTResponse({"tribler_statistics": stats_dict})
