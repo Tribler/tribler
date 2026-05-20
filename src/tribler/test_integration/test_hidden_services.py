@@ -12,7 +12,7 @@ from ipv8.test.base import TestBase
 from ipv8.test.messaging.anonymization.mock import MockDHTProvider
 from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
-from ipv8_rust_tunnels.endpoint import RustEndpoint
+from ipv8_rust_tunnels import Endpoint as RustEndpoint
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager

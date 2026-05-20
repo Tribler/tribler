@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from ipv8.messaging.payload import IntroductionResponsePayload, NewIntroductionResponsePayload
     from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
     from ipv8.peer import Peer
-    from ipv8_rust_tunnels.endpoint import RustEndpoint
+    from ipv8_rust_tunnels import Endpoint as RustEndpoint
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
