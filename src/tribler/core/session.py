@@ -13,8 +13,8 @@ from ipv8.keyvault.crypto import default_eccrypto
 from ipv8.loader import IPv8CommunityLoader
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.messaging.interfaces.udp.endpoint import UDPv6Endpoint
-from ipv8_rust_tunnels.endpoint import RustEndpoint
-from ipv8_rust_tunnels.rust_endpoint import RustError
+from ipv8_rust_tunnels import Endpoint as RustEndpoint
+from ipv8_rust_tunnels import EndpointNotOpenError
 from ipv8_service import IPv8
 
 from tribler.core.components import (
@@ -22,8 +22,6 @@ from tribler.core.components import (
     ContentDiscoveryComponent,
     DatabaseComponent,
     DHTDiscoveryComponent,
-    RecommenderComponent,
-    RendezvousComponent,
     RSSComponent,
     TorrentCheckerComponent,
     TunnelComponent,
@@ -148,9 +146,8 @@ class Session:
         """
         Register all IPv8 launchers that allow communities to be loaded.
         """
-        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent,
-                               RecommenderComponent, RendezvousComponent, RSSComponent, TorrentCheckerComponent,
-                               TunnelComponent, VersioningComponent, WatchFolderComponent]:
+        for launcher_class in [ContentDiscoveryComponent, DatabaseComponent, DHTDiscoveryComponent, RSSComponent,
+                               TorrentCheckerComponent, TunnelComponent, VersioningComponent, WatchFolderComponent]:
             instance: CommunityLauncherWEndpoints = cast("CommunityLauncherWEndpoints", launcher_class())
             for rest_ep in instance.get_endpoints():
                 self.rest_manager.add_endpoint(rest_ep)
@@ -230,7 +227,7 @@ class Session:
                     self.rust_endpoint.create_socks5_server(port, index+1)
                     for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))
                 ]
-            except RustError:
+            except EndpointNotOpenError:
                 logger.warning("Failed to start SOCKS5 servers")
         await self.download_manager.initialize()
         self.download_manager.start()

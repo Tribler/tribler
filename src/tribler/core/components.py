@@ -28,9 +28,6 @@ if TYPE_CHECKING:
     from tribler.core.database.restapi.database_endpoint import DatabaseEndpoint
     from tribler.core.database.store import MetadataStore
     from tribler.core.libtorrent.restapi.downloads_endpoint import DownloadsEndpoint
-    from tribler.core.recommender.community import RecommenderCommunity
-    from tribler.core.recommender.restapi.endpoint import RecommenderEndpoint
-    from tribler.core.rendezvous.community import RendezvousCommunity
     from tribler.core.restapi.rest_endpoint import RESTEndpoint
     from tribler.core.restapi.statistics_endpoint import StatisticsEndpoint
     from tribler.core.rss.restapi.endpoint import RSSEndpoint
@@ -198,36 +195,6 @@ class DatabaseComponent(ComponentLauncher):
 
 
 @after("DatabaseComponent")
-@precondition('session.config.get("rendezvous/enabled")')
-@overlay("tribler.core.rendezvous.community", "RendezvousCommunity")
-class RendezvousComponent(BaseLauncher["RendezvousCommunity"]):
-    """
-    Launch instructions for the rendezvous community.
-    """
-
-    def get_kwargs(self, session: Session) -> dict:
-        """
-        Create and forward the rendezvous database for the Community.
-        """
-        from tribler.core.rendezvous.database import RendezvousDatabase
-
-        out = super().get_kwargs(session)
-        out["database"] = (RendezvousDatabase(db_path=Path(session.config.get_version_state_dir()) / "sqlite"
-                           / "rendezvous.db"))
-
-        return out
-
-    def finalize(self, ipv8: IPv8, session: Session, community: RendezvousCommunity) -> None:
-        """
-        Start listening to peer connections after starting.
-        """
-        from tribler.core.rendezvous.rendezvous_hook import RendezvousHook
-
-        rendezvous_hook = RendezvousHook(community.composition.database, community)
-        ipv8.network.add_peer_observer(rendezvous_hook)
-
-
-@after("DatabaseComponent")
 @precondition('session.config.get("torrent_checker/enabled")')
 @precondition('session.config.get("database/enabled")')
 class TorrentCheckerComponent(ComponentLauncher):
@@ -277,44 +244,6 @@ class DHTDiscoveryComponent(BaseLauncher["DHTDiscoveryCommunity"]):
         """
         ipv8_root_ep = cast("IPv8RootEndpoint", session.rest_manager.get_endpoint("/api/ipv8"))
         cast("DHTEndpoint", ipv8_root_ep.endpoints["/dht"]).dht = community
-
-
-@precondition('session.config.get("recommender/enabled")')
-@overlay("tribler.core.recommender.community", "RecommenderCommunity")
-class RecommenderComponent(BaseLauncher["RecommenderCommunity"]):
-    """
-    Launch instructions for the user recommender community.
-    """
-
-    def get_kwargs(self, session: Session) -> dict:
-        """
-        Create and forward the rendezvous database for the Community.
-        """
-        from tribler.core.recommender.manager import Manager
-
-        db_path = str(Path(session.config.get_version_state_dir()) / "sqlite" / "recommender.db")
-        if session.config.get("memory_db"):
-            db_path = ":memory:"
-
-        out = super().get_kwargs(session)
-        out["manager"] = Manager(db_path)
-
-        return out
-
-    def finalize(self, ipv8: IPv8, session: Session, community: RecommenderCommunity) -> None:
-        """
-        When we are done launching, register our REST API.
-        """
-        endpoint = cast("RecommenderEndpoint", session.rest_manager.get_endpoint("/api/recommender"))
-        endpoint.manager = community.manager
-
-    def get_endpoints(self) -> list[RESTEndpoint]:
-        """
-        Add the knowledge endpoint.
-        """
-        from tribler.core.recommender.restapi.endpoint import RecommenderEndpoint
-
-        return [*super().get_endpoints(), RecommenderEndpoint()]
 
 
 @precondition('session.config.get("rss/enabled")')

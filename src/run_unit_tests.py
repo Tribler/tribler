@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import pathlib
 import platform
 import sys
@@ -15,9 +14,7 @@ from run_all_tests import (
     DEFAULT_PROCESS_COUNT,
     ProgrammerDistractor,
     find_all_test_class_names,
-    install_libsodium,
     task_test,
-    windows_missing_libsodium,
 )
 
 if platform.system() == "Darwin":
@@ -27,15 +24,6 @@ if platform.system() == "Darwin":
     """
     from ipv8.messaging.interfaces.lan_addresses.interfaces import get_providers
     get_providers().clear()
-
-
-def task_tribler_test(*test_names: str) -> tuple[bool, int, float, list[tuple[str, str, str]], str]:
-    """
-    Same as task_test but corrects the libsodium dll location.
-    """
-    if platform.system() == "Windows":
-        os.add_dll_directory(str(pathlib.Path("libsodium.dll").absolute().parent))
-    return task_test(*test_names)
 
 
 if __name__ == "__main__":
@@ -52,11 +40,6 @@ if __name__ == "__main__":
                         help="The unit test directory.")
     args = parser.parse_args()
 
-    if platform.system() == "Windows" and windows_missing_libsodium() and not args.nodownload:
-        print("Failed to locate libsodium (libnacl requirement), downloading latest dll!")  # noqa: T201
-        install_libsodium()
-        os.add_dll_directory(str(pathlib.Path("libsodium.dll").absolute().parent))
-
     process_count = args.processes
     test_class_names = find_all_test_class_names(pathlib.Path(args.pattern))
 
@@ -72,7 +55,7 @@ if __name__ == "__main__":
 
     with ProgrammerDistractor(not args.noanimation) as programmer_distractor:
         with ProcessPoolExecutor(max_workers=process_count) as executor:
-            result = executor.map(task_tribler_test, test_class_names,
+            result = executor.map(task_test, test_class_names,
                                   chunksize=len(test_class_names) // process_count + 1)
             for process_output_handle in result:
                 failed, tests_run, time_taken, event_log, print_output = process_output_handle
