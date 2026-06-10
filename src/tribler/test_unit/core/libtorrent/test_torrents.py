@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import libtorrent
 from ipv8.test.base import TestBase
+from packaging.version import Version
 
 from tribler.core.libtorrent.download_manager.download import Download
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
@@ -200,7 +201,10 @@ class TestTorrents(TestBase):
         """
         result = create_torrent_file(str(Path(__file__).parent), [Path(__file__).absolute()], comment="test")
 
-        self.assertEqual("test", result["atp"].comment)
+        if Version(libtorrent.__version__) < Version("2.1"):
+            self.assertEqual("test", result["atp"].ti.comment())
+        else:
+            self.assertEqual("test", result["atp"].comment)
 
     def test_create_torrent_file_with_created_by(self) -> None:
         """
@@ -208,7 +212,10 @@ class TestTorrents(TestBase):
         """
         result = create_torrent_file(str(Path(__file__).parent), [Path(__file__).absolute()], created_by="test")
 
-        self.assertEqual("test", result["atp"].created_by)
+        if Version(libtorrent.__version__) < Version("2.1"):
+            self.assertEqual("test", result["atp"].ti.creator())
+        else:
+            self.assertEqual("test", result["atp"].created_by)
 
     def test_create_torrent_file_with_announce(self) -> None:
         """

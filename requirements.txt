@@ -6,6 +6,6 @@ pillow
 pony
 pystray
 pywin32;sys_platform=="win32"
+libtorrent==2.0.13
 
---extra-index-url https://tribler.github.io/pypi/simple/
-libtorrent==2.1.0
+aiohttp==3.13.5
