@@ -367,9 +367,9 @@ class DownloadManager(TaskManager):
         else:
             self.set_proxy_settings(ltsession, SOCKS5_PROXY_DEF, ("127.0.0.1", self.socks_listen_ports[hops - 1]))
 
-        ltsession.add_extension(lt.create_ut_metadata_plugin)
-        ltsession.add_extension(lt.create_ut_pex_plugin)
-        ltsession.add_extension(lt.create_smart_ban_plugin)
+        ltsession.add_extension("ut_metadata")
+        ltsession.add_extension("ut_pex")
+        ltsession.add_extension("smart_ban")
 
         # Set listen port & start the DHT
         if hops == 0:

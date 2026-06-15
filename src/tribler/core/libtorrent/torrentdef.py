@@ -6,6 +6,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING
 
 import libtorrent as lt
+from packaging.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -58,7 +59,9 @@ class TorrentDef:
         """
         Get the description of this torrent.
         """
-        return self.atp.comment
+        if Version(lt.__version__) < Version("2.1"):
+            return self.torrent_info.comment() if self.torrent_info else ""
+        return self.atp.comment  # type: ignore[attr-defined]
 
     @property
     def torrent_info(self) -> lt.torrent_info | None:
