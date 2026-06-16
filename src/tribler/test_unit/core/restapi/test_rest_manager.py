@@ -144,8 +144,7 @@ class TestRESTManager(TestBase):
 
         self.assertEqual(HTTP_REQUEST_ENTITY_TOO_LARGE, response.status)
         self.assertTrue(response_body_json["error"]["handled"])
-        self.assertEqual("Maximum request body size 7 exceeded, actual body size 42",
-                         response_body_json["error"]["message"])
+        self.assertEqual("Maximum request body size 7 exceeded.", response_body_json["error"]["message"])
 
     async def test_error_middleware_other(self) -> None:
         """
