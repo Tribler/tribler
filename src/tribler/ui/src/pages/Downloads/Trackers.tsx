@@ -62,6 +62,7 @@ export default function Trackers({download, style}: {download: Download; style?:
                         className="border-b-4 border-muted"
                         data={download.trackers as TrackerRow[]}
                         allowSelect={true}
+                        storeSortingState="details-trackers-sorting"
                         selectOnRightClick={true}
                         onSelectedRowsChange={setSelectedTrackers}
                         columns={trackerColumns}

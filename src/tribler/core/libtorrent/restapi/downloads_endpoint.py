@@ -279,7 +279,9 @@ class DownloadsEndpoint(RESTEndpoint):
             num_seeds, num_peers = state.get_num_seeds_peers()
             num_connected_seeds, num_connected_peers = download.get_num_connected_seeds_peers()
 
-            tracker_info: list[TrackerStatusDict] = download.get_tracker_status()
+            tracker_info: list[TrackerStatusDict] = (download.get_tracker_status()
+                                                     if download.handle is not None and download.handle.is_valid()
+                                                     else [])
             num_seeds_scraped = max([ti.get("seeds", 0) for ti in tracker_info]) if tracker_info else 0
             num_peers_scraped = max([ti.get("leeches", 0) for ti in tracker_info]) if tracker_info else 0
             if (num_seeds_scraped + num_peers_scraped) > (num_seeds + num_peers):

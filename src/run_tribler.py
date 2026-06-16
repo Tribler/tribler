@@ -308,7 +308,7 @@ async def main() -> bool:
             # Don't open a new tab if we're (a) only adding a torrent with a session open, or (b) running headless.
             if not headless and (not torrent_uri or (initial_message is not None
                                                      and json.loads(initial_message).get("sessions", "0") == "0")):
-                open_webbrowser_tab(server_url + f"?key={config.get('api/key')}")
+                open_webbrowser_tab(server_url + f"/ui/#/downloads/all?key={config.get('api/key')}")
             # Block this process until our download has been delivered.
             if torrent_uri:
                 logger.info("Starting torrent using existing core")
