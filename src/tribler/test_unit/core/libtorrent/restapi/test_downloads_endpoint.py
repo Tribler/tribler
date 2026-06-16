@@ -236,6 +236,23 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual(1, response_body_json["checkpoints"]["loaded"])
         self.assertTrue(response_body_json["checkpoints"]["all_loaded"])
 
+    async def test_get_downloads_invalid_handle_download(self) -> None:
+        """
+        Test if a download with an invalid handle doesn't get its tracker info polled, which causes a RuntimeError.
+        """
+        dl = self.create_mock_download()
+        dl.handle = Mock(is_valid = Mock(return_value=False))
+        dl.get_tracker_status = Mock(side_effect=RuntimeError("invalid torrent handle used [libtorrent:20]"))
+        self.set_loaded_downloads([dl])
+        request = MockRequest("/api/downloads", query={})
+
+        response = await self.endpoint.get_downloads(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertEqual(1, len(response_body_json["downloads"]))
+
+
     async def test_get_downloads_filter_download_pass(self) -> None:
         """
         Test if the information of a download that passes the filter is correctly presented.
