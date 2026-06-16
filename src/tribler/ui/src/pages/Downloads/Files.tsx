@@ -132,5 +132,13 @@ export default function Files({download, style}: {download: Download; style?: Re
     // The API call may not be finished yet or the download is still getting metainfo.
     if (files.length === 0) return <span className="flex pl-4 pt-2 text-muted-foreground">No files available</span>;
 
-    return <SimpleTable data={files} style={style} columns={fileColumns} expandable={true} />;
+    return (
+        <SimpleTable
+            data={files}
+            style={style}
+            columns={fileColumns}
+            expandable={true}
+            storeSortingState="details-files-sorting"
+        />
+    );
 }
