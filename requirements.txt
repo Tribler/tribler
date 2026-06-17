@@ -1,5 +1,6 @@
 -r pyipv8/requirements.txt
 
+aiohttp
 ipv8-rust-tunnels
 lz4
 pillow
@@ -7,5 +8,3 @@ pony
 pystray
 pywin32;sys_platform=="win32"
 libtorrent==2.0.13
-
-aiohttp==3.13.5
