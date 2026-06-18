@@ -32,10 +32,6 @@ copy build\win\resources\tribler*.nsi dist\tribler
 mkdir dist\tribler\tools
 copy build\win\tools\reset*.bat dist\tribler\tools
 
-REM Copy libsodium library required on runtime
-move src\libsodium.dll dist\tribler\lib
-
-
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 REM --- Doing this in ugly way for now
 if not defined SKIP_SIGNING_TRIBLER_BINARIES (

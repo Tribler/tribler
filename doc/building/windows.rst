@@ -6,7 +6,6 @@ Don't forget to build the GUI using NPM!
 Additionally, you will need to install:
 
 - ``NSIS``, the ``SimpleFC`` plugin, and the ``nsProcess`` plugin.
-- The latest ``libsodium.dll`` release.
 - ``Microsoft Visual Studio 2022 Enterprise``. ``2022 Community`` will also work, but you need to edit `tribler.nsi` in the appropriate place.
 - ``Windows Kits 10.0.26100.0``.
 - ``OpenSSL``.

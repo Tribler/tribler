@@ -157,7 +157,7 @@ jobs:
           shell-name: alpine-x86_64.sh
           arch: x86_64
           branch: v3.23
-          packages: python3-dev py-pip py3-gobject3 py3-lz4 build-base libsodium abuild doas sudo shadow-login
+          packages: python3-dev py-pip py3-gobject3 py3-lz4 build-base abuild doas sudo shadow-login
 
       - name: Build musl Executables (Alpine musl x86_64)
         if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
@@ -225,15 +225,8 @@ jobs:
       - name: Build Executables (MacOS)
         if: startsWith(matrix.os, 'macos-15')
         run: |
-          brew install libsodium
-          find "$(brew --cellar)/libsodium/" -name "libsodium.dylib" -exec cp {} /Library/Frameworks/Python.framework/Versions/3.12/lib/ \;
           ./build/mac/makedist_macos.sh
 
-      - name: Fetch libsodium.dll (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          vcpkg install libsodium
-          Copy C:/vcpkg/packages/libsodium_x64-windows/bin/libsodium.dll src/libsodium.dll
       - name: Build Executables (Windows)
         if: matrix.os == 'windows-latest'
         run: |
