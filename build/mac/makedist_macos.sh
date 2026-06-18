@@ -27,6 +27,8 @@ ln -s /Applications $INSTALL_DIR/Applications
 touch $INSTALL_DIR
 
 mkdir -p $TEMP_DIR
+# hack: wait for completion
+sleep 1
 
 # Sign the app if environment variables are set
 ./build/mac/sign_app.sh
@@ -81,6 +83,8 @@ SetFile -a C $TEMP_DIR/mnt || true
 
 # close
 hdiutil detach $TEMP_DIR/mnt || true
+# hack: wait for completion
+sleep 1
 
 # make read-only
 mv $DIST_DIR/$APPNAME.dmg $TEMP_DIR/rw.dmg
