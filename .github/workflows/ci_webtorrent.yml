@@ -1,0 +1,62 @@
+name: CI: WebTorrent
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-linux-webtorrent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        libtorrent:
+          - version: "RC_2_1"
+            libt_build_flags: "-Dwebtorrent=ON"
+          - version: "RC_2_0"
+            libt_build_flags: ""
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: 'true'
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            libboost-python-dev \
+            libboost-system-dev \
+            libssl-dev \
+            python3-dev
+
+      - name: Clone libtorrent ${{ matrix.libtorrent.version }}
+        run: |
+          git clone --branch ${{ matrix.libtorrent.version }} --depth 1 \
+            https://github.com/arvidn/libtorrent.git
+
+      - name: Build libtorrent with Python bindings
+        run: |
+          cmake -B libtorrent/build -S libtorrent \
+            -DCMAKE_BUILD_TYPE=Release \
+            -Dpython-bindings=ON \
+            -Ddeprecated-functions=OFF \
+            ${{ matrix.libtorrent.libt_build_flags }}
+          cmake --build libtorrent/build -j$(nproc)
+          sudo cmake --install libtorrent/build
+
+      - name: Install Tribler dependencies
+        run: python -m pip install -r requirements.txt --ignore-installed libtorrent
+
+      - name: Run unit tests
+        run: |
+          python -c 'import libtorrent as lt; print(lt.__version__)'
+          cd src
+          python run_unit_tests.py -a
