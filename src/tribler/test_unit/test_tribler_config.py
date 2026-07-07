@@ -62,3 +62,11 @@ class TestTriblerConfigManager(TestBase):
         config.set("ui/a/b/c", 42)
 
         self.assertEqual(42, config.configuration["ui"]["a"]["b"]["c"])  # Passed by copy, not ``get()``!
+
+    def test_outgoing_interface_default(self) -> None:
+        """
+        Test that libtorrent/outgoing_interface defaults to an empty string.
+        """
+        config = TriblerConfigManager()
+
+        self.assertEqual("", config.get("libtorrent/outgoing_interface"))

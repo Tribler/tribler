@@ -351,6 +351,7 @@ class DownloadManager(TaskManager):
             settings["enable_incoming_utp"] = enable_utp
             settings["prefer_rc4"] = True
             settings["listen_interfaces"] = f"{libtorrent_if}:{libtorrent_port or 6881}"
+            settings["outgoing_interfaces"] = self.config.get("libtorrent/outgoing_interface")
         else:
             settings["enable_outgoing_utp"] = True
             settings["enable_incoming_utp"] = True
