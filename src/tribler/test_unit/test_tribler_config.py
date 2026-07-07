@@ -62,3 +62,21 @@ class TestTriblerConfigManager(TestBase):
         config.set("ui/a/b/c", 42)
 
         self.assertEqual(42, config.configuration["ui"]["a"]["b"]["c"])  # Passed by copy, not ``get()``!
+
+    def test_exitnode_enabled_default(self) -> None:
+        """
+        Test that tunnel_community/exitnode_enabled defaults to False.
+        """
+        config = TriblerConfigManager()
+
+        self.assertEqual(False, config.get("tunnel_community/exitnode_enabled"))
+
+    def test_exit_flag_defaults(self) -> None:
+        """
+        Test that the per-protocol exit flags all default to True (parity with the previous behavior).
+        """
+        config = TriblerConfigManager()
+
+        self.assertEqual(True, config.get("tunnel_community/exit_bt"))
+        self.assertEqual(True, config.get("tunnel_community/exit_ipv8"))
+        self.assertEqual(True, config.get("tunnel_community/exit_http"))

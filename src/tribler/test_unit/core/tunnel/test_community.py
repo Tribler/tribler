@@ -11,6 +11,7 @@ from ipv8.messaging.anonymization.tunnel import (
     CIRCUIT_TYPE_IP_SEEDER,
     CIRCUIT_TYPE_RP_DOWNLOADER,
     PEER_FLAG_EXIT_BT,
+    PEER_FLAG_EXIT_IPV8,
     Circuit,
 )
 from ipv8.messaging.serialization import ADDRESS_TYPE_IPV4
@@ -25,7 +26,7 @@ from ipv8.util import succeed
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.core.notifier import Notifier
-from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
+from tribler.core.tunnel.community import PEER_FLAG_EXIT_HTTP, TriblerTunnelCommunity, TriblerTunnelSettings
 
 if TYPE_CHECKING:
     from ipv8.community import CommunitySettings
@@ -323,3 +324,41 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         Test if we can join a circuit.
         """
         self.assertTrue(await self.overlay(0).should_join_circuit(create_payload=Mock(), previous_node_address=Mock()))
+
+    def _build_overlay(self, **flags: bool) -> TriblerTunnelCommunity:
+        config = TriblerTunnelSettings(remove_tunnel_delay=0, max_circuits=1, socks_servers=[], notifier=Notifier(),
+                                       exitnode_cache=None, download_manager=None, exitnode_enabled=True, **flags)
+        mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, config)
+        self.nodes.append(mock_ipv8)
+        mock_ipv8.overlay.cancel_all_pending_tasks()
+        return mock_ipv8.overlay
+
+    def test_exit_flags_default_all(self) -> None:
+        """
+        Test that with exitnode enabled and default flags, all exit flags are advertised (previous behavior).
+        """
+        overlay = self._build_overlay()
+
+        self.assertIn(PEER_FLAG_EXIT_BT, overlay.settings.peer_flags)
+        self.assertIn(PEER_FLAG_EXIT_IPV8, overlay.settings.peer_flags)
+        self.assertIn(PEER_FLAG_EXIT_HTTP, overlay.settings.peer_flags)
+
+    def test_exit_flags_only_bt(self) -> None:
+        """
+        Test that disabling IPv8/HTTP exit leaves only the BT exit flag.
+        """
+        overlay = self._build_overlay(exit_bt=True, exit_ipv8=False, exit_http=False)
+
+        self.assertIn(PEER_FLAG_EXIT_BT, overlay.settings.peer_flags)
+        self.assertNotIn(PEER_FLAG_EXIT_IPV8, overlay.settings.peer_flags)
+        self.assertNotIn(PEER_FLAG_EXIT_HTTP, overlay.settings.peer_flags)
+
+    def test_exit_flags_http_enabled(self) -> None:
+        """
+        Test that enabling HTTP exit adds the HTTP flag.
+        """
+        overlay = self._build_overlay(exit_bt=False, exit_ipv8=False, exit_http=True)
+
+        self.assertIn(PEER_FLAG_EXIT_HTTP, overlay.settings.peer_flags)
+        self.assertNotIn(PEER_FLAG_EXIT_BT, overlay.settings.peer_flags)
+        self.assertNotIn(PEER_FLAG_EXIT_IPV8, overlay.settings.peer_flags)

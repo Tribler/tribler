@@ -307,6 +307,10 @@ class TunnelComponent(BaseLauncher["TriblerTunnelCommunity"]):
         out["download_manager"] = session.download_manager
         out["min_circuits"] = session.config.get("tunnel_community/min_circuits")
         out["max_circuits"] = session.config.get("tunnel_community/max_circuits")
+        out["exitnode_enabled"] = session.config.get("tunnel_community/exitnode_enabled")
+        out["exit_bt"] = session.config.get("tunnel_community/exit_bt")
+        out["exit_ipv8"] = session.config.get("tunnel_community/exit_ipv8")
+        out["exit_http"] = session.config.get("tunnel_community/exit_http")
         out["default_hops"] = session.config.get("libtorrent/download_defaults/number_hops")
         out["dht_provider"] = (DHTCommunityProvider(community, 0) # 0 is unused, requires changes in IPv8.
                                if session.ipv8.get_overlay(DHTDiscoveryCommunity) else None)

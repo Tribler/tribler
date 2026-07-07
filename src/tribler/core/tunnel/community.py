@@ -64,6 +64,9 @@ class TriblerTunnelSettings(HiddenTunnelSettings):
     notifier: Notifier
     download_manager: DownloadManager
     exitnode_enabled: bool = False
+    exit_bt: bool = True
+    exit_ipv8: bool = True
+    exit_http: bool = True
     default_hops: int = 0
     max_intro_points: int = 10
 
@@ -84,8 +87,16 @@ class TriblerTunnelCommunity(HiddenTunnelCommunity):
         super().__init__(settings)
         self.settings.endpoint = cast("Endpoint", self.crypto_endpoint)
 
+        flags = set()
         if settings.exitnode_enabled:
-            self.settings.peer_flags |= {PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8, PEER_FLAG_EXIT_HTTP}
+            if settings.exit_bt:
+                flags.add(PEER_FLAG_EXIT_BT)
+            if settings.exit_ipv8:
+                flags.add(PEER_FLAG_EXIT_IPV8)
+            if settings.exit_http:
+                flags.add(PEER_FLAG_EXIT_HTTP)
+        base = self.settings.peer_flags - {PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8, PEER_FLAG_EXIT_HTTP}
+        self.settings.peer_flags = base | flags
 
         self.logger.info("Using %s with flags %s", self.endpoint.__class__.__name__, self.settings.peer_flags)
 

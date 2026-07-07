@@ -245,6 +245,10 @@ class TunnelCommunityConfig(TypedDict):
     enabled: bool
     min_circuits: int
     max_circuits: int
+    exitnode_enabled: bool
+    exit_bt: bool
+    exit_ipv8: bool
+    exit_http: bool
 
 
 class WatchFolderConfig(TypedDict):
@@ -360,7 +364,8 @@ DEFAULT_CONFIG = {
     "rendezvous": RendezvousConfig(enabled=True),
     "rss": RSSConfig(enabled=True, urls=[]),
     "torrent_checker": TorrentCheckerConfig(enabled=True),
-    "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
+    "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8, exitnode_enabled=False,
+                                              exit_bt=True, exit_ipv8=True, exit_http=True),
     "versioning": VersioningConfig(enabled=True, allow_pre=False),
     "watch_folder": WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
 
