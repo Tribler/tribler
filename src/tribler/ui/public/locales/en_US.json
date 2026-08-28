@@ -269,6 +269,7 @@
     "Large": "Large",
     "ExtraLarge": "Extra large",
     "Asyncio": "Asyncio",
+    "AutoCorrect": "AutoCorrect",
     "IPv8": "IPv8",
     "Tunnels": "Tunnels",
     "DHT": "DHT",

@@ -29,6 +29,7 @@ import Tunnels from "./pages/Debug/Tunnels";
 import DHT from "./pages/Debug/DHT";
 import Libtorrent from "./pages/Debug/Libtorrent";
 import Asyncio from "./pages/Debug/Asyncio";
+import AutoCorrect from "./pages/Debug/AutoCorrect";
 import Popularity from "./pages/Debug/Popularity";
 import Interface from "./pages/Settings/Interface";
 
@@ -136,6 +137,10 @@ export const router = createHashRouter([
             {
                 path: "debug/asyncio",
                 element: <Asyncio />,
+            },
+            {
+                path: "debug/autocorrect",
+                element: <AutoCorrect />,
             },
             {
                 path: "debug/ipv8",
