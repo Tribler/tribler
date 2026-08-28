@@ -99,6 +99,7 @@ class DatabaseEndpoint(RESTEndpoint):
                 web.get("/torrents/health", self.get_torrent_health_history),
                 web.get("/search/local", self.local_search),
                 web.get("/search/completions", self.completions),
+                web.get("/search/vocabulary", self.vocabulary),
             ]
         )
 
@@ -563,3 +564,27 @@ class DatabaseEndpoint(RESTEndpoint):
             return True
 
         return RESTResponse({"updated": (await request.context[0].run_threaded(perform_db_act))})
+
+    @docs(
+        tags=["Search"],
+        summary="View the auto-correct vocabulary.",
+        parameters=[],
+        responses={
+            200: {
+                "schema": schema(
+                    VocabularyResponse={
+                        "vocabulary": [String],
+                    }
+                ),
+                "examples": {"vocabulary": ["pioneer one", "pioneer movie"]},
+            }
+        },
+    )
+    def vocabulary(self, _: RequestType) -> RESTResponse:
+        """
+        Return the auto-correct vocabulary.
+        """
+        vocab = []
+        if self.augmenter:
+            vocab = [self.augmenter.processor.IdToPiece(i) for i in range(self.augmenter.processor.vocab_size())]
+        return RESTResponse({"vocabulary": vocab})

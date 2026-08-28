@@ -133,3 +133,18 @@ th,
 .noise tbody {
     filter: url('#noise');
 }
+
+@utility animate-wordart-wave {
+    animation: wordartWave 2s ease-in-out infinite;
+}
+@utility animate-rainbow-shift {
+    animation: rainbowShift 4s linear infinite;
+}
+@keyframes wordartWave {
+    0%, 40%, 100% { transform: translateY(0); }
+    20% { transform: translateY(-24px); }
+}
+@keyframes rainbowShift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}

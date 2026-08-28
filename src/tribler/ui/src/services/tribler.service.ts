@@ -420,6 +420,14 @@ export class TriblerService {
         }
     }
 
+    async getVocabulary(): Promise<undefined | ErrorDict | string[]> {
+        try {
+            return (await this.http.get(`/metadata/search/vocabulary`)).data.vocabulary;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     async searchTorrentsLocal(txt_filter: string): Promise<undefined | ErrorDict | Torrent[]> {
         try {
             return (

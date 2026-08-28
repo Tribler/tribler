@@ -269,6 +269,7 @@
     "Large": "크기가 큰",
     "ExtraLarge": "특대",
     "Asyncio": "Asyncio",
+    "AutoCorrect": "AutoCorrect",
     "IPv8": "IPv8",
     "Tunnels": "Tunnels",
     "DHT": "DHT",

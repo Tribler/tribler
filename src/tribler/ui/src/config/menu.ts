@@ -111,6 +111,10 @@ export const sideMenu: NavItemWithChildren[] = [
                 to: "/debug/asyncio",
             },
             {
+                title: "AutoCorrect",
+                to: "/debug/autocorrect",
+            },
+            {
                 title: "IPv8",
                 to: "/debug/ipv8",
             },
