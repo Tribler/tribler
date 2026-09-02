@@ -475,7 +475,8 @@ class DownloadManager(TaskManager):
         if alert_type in ["tracker_reply_alert", "tracker_warning_alert", "tracker_error_alert"]:
             handle = cast("lt.tracker_alert", alert).handle
             infohash = best_info_hash(handle.info_hashes(), handle.info_hash())
-            self.downloads[infohash].process_alert(cast("lt.tracker_alert", alert), alert_type)
+            if infohash in self.downloads:
+                self.downloads[infohash].process_alert(cast("lt.tracker_alert", alert), alert_type)
 
         infohash = (best_info_hash(alert.params.info_hashes, alert.params.info_hash) if hasattr(alert, "params")
                     else (
