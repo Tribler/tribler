@@ -104,7 +104,7 @@ class DHTHealthManager(TaskManager):
         def tobits(s: bytes) -> list[int]:
             result = []
             for num in s:
-                bits = bin(num)[2:]
+                bits = f"{num:b}"
                 bits = "00000000"[len(bits):] + bits
                 result.extend([int(b) for b in bits])
             return result

@@ -114,7 +114,7 @@ def common_prefix(paths_list: list[Path]) -> Path:
     for p in paths_list[1:]:
         base_set.intersection_update(set(p.parents))
 
-    return sorted(base_set, reverse=True)[0]
+    return sorted(base_set, reverse=True)[0]  # noqa: FURB192
 
 
 def _existing_files(path_list: list[Path], names: list[str] | None) -> Iterable[tuple[str, Path]]:
@@ -170,7 +170,7 @@ def most_efficient_file_dupe(src: Path, dst: Path) -> None:
             shutil.copy(str(src), str(dst))
 
 
-def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913
+def create_torrent_file(export_dir: str,  # noqa: C901,PLR0912,PLR0913,PLR0917
                         file_path_list: list[Path],
                         files_names: list[str] | None = None,
                         name: str | None = None,

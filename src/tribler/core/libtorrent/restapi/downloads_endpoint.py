@@ -409,8 +409,8 @@ class DownloadsEndpoint(RESTEndpoint):
         "anon_hops": (Integer, "Number of hops for the anonymous download. No hops is equivalent to a plain download"),
         "safe_seeding": (Boolean, "Whether the seeding of the download should be anonymous or not"),
         "destination": (String, "The download destination path of the torrent"),
-        "uri*": (String, "The URI of the torrent file that should be downloaded. This URI can either represent a file "
-                         "location, a magnet link or a HTTP(S) url."),
+        "uri*": (String, ("The URI of the torrent file that should be downloaded. This URI can either represent a file "
+                          "location, a magnet link or a HTTP(S) url.")),
         "cli": (Boolean, "This was invoked from CLI, we might still need to ask user permission/settings.")
     }))
     async def add_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912
@@ -540,14 +540,14 @@ class DownloadsEndpoint(RESTEndpoint):
     @json_schema(schema(UpdateDownloadRequest={
         "state": (String, "State parameter to be passed to modify the state of the download (resume/stop/recheck)"),
         "selected_files": (List(Integer), "File indexes to be included in the download"),
-        "anon_hops": (Integer, "The anonymity of a download can be changed at runtime by passing the anon_hops "
-                               "parameter, however, this must be the only parameter in this request."),
+        "anon_hops": (Integer, ("The anonymity of a download can be changed at runtime by passing the anon_hops "
+                                "parameter, however, this must be the only parameter in this request.")),
         "upload_limit": (Integer, "Upload limit in bytes/s."),
         "download_limit": (Integer, "Download limit in bytes/s."),
         "seeding_ratio": (Float, "Individual seeding ratio."),
         "seeding_ratio_default": (Boolean, "Reset seeding ratio to default."),
-        "queue_position": (String, "Change the position of the download in the queue. "
-                                   "Possible values are queue_up/queue_top/queue_down/queue_bottom."),
+        "queue_position": (String, ("Change the position of the download in the queue. "
+                                    "Possible values are queue_up/queue_top/queue_down/queue_bottom.")),
         "auto_managed": (Boolean, "Set the auto managed flag.")
     }))
     async def update_download(self, request: Request) -> RESTResponse:  # noqa: C901, PLR0912, PLR0915, PLR0911

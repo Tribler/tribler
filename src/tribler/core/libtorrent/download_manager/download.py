@@ -135,7 +135,7 @@ class Download(TaskManager):
 
     LAST_TRACKER_FILE_SYNC = 0.0
 
-    def __init__(self,  # noqa: PLR0913
+    def __init__(self,  # noqa: PLR0913, PLR0917
                  tdef: TorrentDef,
                  download_manager: DownloadManager,
                  config: DownloadConfig | None = None,

@@ -177,7 +177,7 @@ class Session:
         Note: at this point the REST interface is available.
         Note2: ignored BaseExceptions are BaseExceptionGroup, GeneratorExit, KeyboardInterrupt and SystemExit
         """
-        logger.exception("Uncaught exception: %s", "".join(format_exception(typ, value, traceback)))
+        logger.error("Uncaught exception: %s", "".join(format_exception(typ, value, traceback)))
         if isinstance(value, Exception):
             cast("EventsEndpoint", self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(value)
 
@@ -190,11 +190,11 @@ class Session:
         """
         exc = context.get("exception")
         if isinstance(exc, ConnectionResetError):
-            logger.exception("Network unreachable: %s",
-                             "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
+            logger.error("Network unreachable: %s",
+                         "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
         elif isinstance(exc, Exception):
-            logger.exception("Uncaught async exception: %s",
-                             "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
+            logger.error("Uncaught async exception: %s",
+                         "".join(format_exception(exc.__class__, exc, exc.__traceback__)))
             cast("EventsEndpoint", self.rest_manager.get_endpoint("/api/events")).on_tribler_exception(exc)
             raise exc
 

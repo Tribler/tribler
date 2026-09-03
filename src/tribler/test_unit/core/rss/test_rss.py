@@ -64,7 +64,7 @@ class TestRSSWatcher(TestBase):
         with patch.dict(tribler.core.rss.rss.__dict__, query_uri=AsyncMock(return_value=TORRENT_WITH_DIRS_CONTENT)):
             await self.watcher.resolve({"localhost/rss"})
 
-        args, kwargs = callback.call_args
+        _, kwargs = callback.call_args
         self.assertEqual(b"\xb3\xba\x19\xc93\xda\x95\x84k\xfd\xf7Z\xd0\x8a\x94\x9cl\xea\xc7\xbc",
                          kwargs["metadata"]["infohash"])
         self.assertEqual("torrent_create", kwargs["metadata"]["title"])

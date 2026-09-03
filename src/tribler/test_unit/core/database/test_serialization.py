@@ -54,7 +54,7 @@ class TestSerialization(TestBase):
                                          id_=7, origin_id=1337, timestamp=10, infohash=b"\x01" * 20, size=42,
                                          torrent_date=int2time(0), title="test", tags="tags", tracker_info="")
 
-        unserialized, offset = read_payload_with_offset(payload.serialized())
+        unserialized, _ = read_payload_with_offset(payload.serialized())
 
         self.assertEqual(payload.metadata_type, unserialized.metadata_type)
         self.assertEqual(payload.reserved_flags, unserialized.reserved_flags)
