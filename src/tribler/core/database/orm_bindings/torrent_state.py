@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         def get(infohash: bytes) -> TorrentState | None: ...  # noqa: D102
 
         @staticmethod
-        def set(  # noqa: D102, PLR0913
+        def set(  # noqa: D102, PLR0913, PLR0917
                 rowid: int | None = None,
                 infohash: bytes | None = None,
                 seeders: int | None = None,

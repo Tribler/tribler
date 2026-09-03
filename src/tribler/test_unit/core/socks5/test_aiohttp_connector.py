@@ -9,6 +9,7 @@ from aiohttp import ClientRequest, ClientTimeout
 from ipv8.test.base import TestBase
 from yarl import URL
 
+from tribler.core.socks5.aiohttp_connector import FakeResolver
 from tribler.core.socks5.client import Socks5Client
 
 
@@ -46,7 +47,7 @@ class TestSocks5Connector(TestBase):
                 del sys.modules[module_name]
         # Patch the module.
         with patch(target="tribler.core.socks5.client.Socks5Client", new=MockSocks5Client) as self.client:
-            from tribler.core.socks5.aiohttp_connector import Socks5Connector
+            from tribler.core.socks5.aiohttp_connector import Socks5Connector  # noqa: PLC0415
             self.connector = Socks5Connector(None)
 
     async def tearDown(self) -> None:
@@ -88,7 +89,6 @@ class TestSocks5Connector(TestBase):
         """
         Test if the resolver creates a correctly resolved dict.
         """
-        from tribler.core.socks5.aiohttp_connector import FakeResolver
         resolver = FakeResolver()
         resolved, = await resolver.resolve("testhostname", 8, socket.AF_INET6)
 

@@ -1123,7 +1123,7 @@ class DownloadManager(TaskManager):
                     self._logger.exception("Failed to read legacy metainfo from checkpoint file %s", filename)
                     return None
             else:
-                self._logger.exception("Could not open checkpoint file %s, missing resumedata.", filename)
+                self._logger.error("Could not open checkpoint file %s, missing resumedata.", filename)
                 return None
         # At this point we can start, but we might be missing out on legacy info: try to inject it.
         if resumedata.ti is None and "metainfo" in config.config["state"]:
@@ -1153,7 +1153,7 @@ class DownloadManager(TaskManager):
         # Replace the following line with ``resumedata = config.get_engineresumedata()`` to drop legacy
         resumedata = self.load_legacy_checkpoint(config.get_engineresumedata(), config, str(filename))
         if resumedata is None:
-            self._logger.exception("Could not open checkpoint file %s, missing resumedata.", filename)
+            self._logger.error("Could not open checkpoint file %s, missing resumedata.", filename)
             return False
         resumedata.flags |= int(lt.torrent_flags.no_verify_files)
 

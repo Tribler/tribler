@@ -31,6 +31,8 @@ class AugmentedSearch:
     user queries.
     """
 
+    study_task_name = "Perform self-study of torrent titles"
+
     def __init__(self, config: TriblerConfigManager, notifier: Notifier, task_manager: TaskManager) -> None:
         """
         We place our trained vocabulary and model into the state directory from the config.
@@ -82,9 +84,17 @@ class AugmentedSearch:
                     self.title_window = json.load(f)
             self.initialized = True
         self.title_window.append(title[:self.max_title_length])
-        if len(self.title_window) > 50:
+        self.schedule_study()
+
+    def schedule_study(self) -> None:
+        """
+        Check if we should update our vocabulary, either due to new information or because we have no vocabulary.
+        """
+        if self.task_manager.get_task(AugmentedSearch.study_task_name) is None and len(self.title_window) > 50:
+            titles = self.title_window
+            self.title_window = []
             logger.info("Scheduling a torrent title vocabulary update.")
-            self.task_manager.register_task("Perform self-study of torrent titles", self.study)
+            self.task_manager.register_task(AugmentedSearch.study_task_name, self.study, titles)
 
     def write(self, trained_model: bytes) -> None:
         """
@@ -101,7 +111,7 @@ class AugmentedSearch:
                 await sleep(0.01)
         self.write_completed = self.task_manager.replace_task("disk flusher", _await_write)
 
-    async def study(self) -> None:
+    async def study(self, titles: list[str]) -> None:
         """
         Study our most recent torrent titles and add them to the top tokens that we have already found in the past.
         """
@@ -113,15 +123,14 @@ class AugmentedSearch:
                          self.processor.pad_id(), self.processor.unk_id()]:
                 best_history.append(self.processor.IdToPiece(i).replace("▁", ""))
                 # Our vocabulary can only fit 8000 entries. Allocate 50 new unigrams per new torrent title.
-                if len(best_history) == 8000 - 50*len(self.title_window):
+                if len(best_history) == 8000 - 50*len(titles):
                     break
-        trainingset = chain(best_history, self.title_window)
+        trainingset = chain(best_history, titles)
         self.write_completed = Future()
         log_level = LOG_LEVELS.get(logger.getEffectiveLevel(), 0)
         SentencePieceTrainer.Train(input_format="text", model_writer=self, model_type="unigram",
                                    sentence_iterator=trainingset, vocab_size=8000, hard_vocab_limit=False,
                                    max_sentence_length=self.max_title_length, minloglevel=log_level)
-        self.title_window = []
         self.title_cache_file.unlink(missing_ok=True)
         await self.write_completed
         self.processor.Load(model_file=str(self.model_file))

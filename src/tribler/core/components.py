@@ -190,7 +190,7 @@ class DatabaseComponent(ComponentLauncher):
 
         if db_endpoint.augmenter.needs_kickstart():
             cast("MetadataStore", session.mds).seed_augmenter(db_endpoint.augmenter)
-            community.register_task("Seed augmenter", db_endpoint.augmenter.study)
+            db_endpoint.augmenter.schedule_study()
 
     def get_endpoints(self) -> list[RESTEndpoint]:
         """

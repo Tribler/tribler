@@ -612,7 +612,7 @@ class MetadataStore:
         return query
 
     @db_session
-    def get_entries_query(  # noqa: PLR0913
+    def get_entries_query(  # noqa: PLR0913, PLR0917
             self,
             metadata_type: int | None = None,
             channel_pk: bytes | None = None,
