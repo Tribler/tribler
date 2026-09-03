@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from unittest.mock import Mock
 
 from ipv8.taskmanager import TaskManager
 from ipv8.test.base import TestBase
@@ -75,9 +76,7 @@ class TestAugmentedSearch(TestBase):
         """
         Test if learning is actually taking place. Warning: id assignment and exact vocabulary are non-deterministic!
         """
-        self.augmenter.title_window = ["test" + chr(i) for i in range(65, 96)]
-
-        await self.augmenter.study()
+        await self.augmenter.study(["test" + chr(i) for i in range(65, 96)])
         encoded = self.augmenter.processor.Encode("test")
 
         self.assertEqual(1, len(encoded))
@@ -102,9 +101,8 @@ class TestAugmentedSearch(TestBase):
         Test if an initialized augmenter signals no need for a kickstart.
         """
         self.augmenter.initialized = True
-        self.augmenter.title_window = ["test" + chr(i) for i in range(65, 96)]
 
-        await self.augmenter.study()
+        await self.augmenter.study(["test" + chr(i) for i in range(65, 96)])
 
         self.assertFalse(self.augmenter.needs_kickstart())
 
@@ -148,3 +146,18 @@ class TestAugmentedSearch(TestBase):
             "%s%", "%i%",
             "%ing!%", "%test%"
         ], parameters)
+
+    def test_schedule_study_double(self) -> None:
+        """
+        Scheduling a study should not cause two trainings to happen at once.
+        """
+        mock_register_task = Mock()
+        self.augmenter.task_manager = Mock(register_task=mock_register_task, get_task=Mock(return_value=(
+            mock_register_task.call_args[0] if mock_register_task.call_args else None
+        )))
+        self.augmenter.title_window = ["test"] * 51
+
+        self.augmenter.schedule_study()
+        self.augmenter.schedule_study()
+
+        self.assertEqual(1, mock_register_task.call_count)
