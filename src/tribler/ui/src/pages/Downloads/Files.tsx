@@ -21,6 +21,13 @@ import {Slider} from "@/components/ui/slider";
 import {filesToTree, formatBytes, getSelectedFilesFromTree} from "@/lib/utils";
 import {useTranslation} from "react-i18next";
 
+function toggleRowExpansion(e: React.MouseEvent<HTMLElement>, row: Row<FileTreeItem>) {
+    (row.getToggleExpandedHandler() as (e: React.MouseEvent<HTMLElement>) => void)(e);
+    // After this, the event is forwarded to the selection toggling logic.
+    // We don't want to change the selection when expanding/collapsing. So, we stop it here.
+    e.stopPropagation();
+}
+
 const getFileColumns = ({
     headers,
     onSelectedFiles,
@@ -42,7 +49,7 @@ const getFileColumns = ({
                         paddingLeft: `${row.depth * 2}rem`,
                     }}>
                     {row.original.subRows && row.original.subRows.length > 0 && (
-                        <button onClick={row.getToggleExpandedHandler()}>
+                        <button onClick={(e) => {toggleRowExpansion(e, row)}}>
                             {row.getIsExpanded() ? (
                                 <ChevronDown size="16" color="#777"></ChevronDown>
                             ) : (
