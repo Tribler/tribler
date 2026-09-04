@@ -91,7 +91,11 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
         cell: ({row}) => {
             if (row.original.all_time_ratio == 0) return <span>-</span>;
-            return <span className="text-nowrap">{row.original.all_time_ratio < 0 ? String(`∞`) : row.original.all_time_ratio.toFixed(2)}</span>;
+            return (
+                <span className="text-nowrap">
+                    {row.original.all_time_ratio < 0 ? String(`∞`) : row.original.all_time_ratio.toFixed(2)}
+                </span>
+            );
         },
     },
     {
@@ -251,7 +255,12 @@ function Progress({progress, color}: {progress: number; color: string}) {
         <canvas
             ref={ref}
             className={`rounded-sm ${color}`}
-            style={{height: "calc(var(--user-font-size, 16px) + 7px)", width: "100%", background: "white", border: "1px solid #2f2f2f"}}
+            style={{
+                height: "calc(var(--user-font-size, 16px) + 7px)",
+                width: "100%",
+                background: "white",
+                border: "1px solid #2f2f2f",
+            }}
         />
     );
 }
