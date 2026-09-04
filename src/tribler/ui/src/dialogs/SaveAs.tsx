@@ -444,7 +444,11 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                             <label className="whitespace-pre-line text-xs self-center">{warning}</label>
                         </div>
                     )}
-                    <Button variant="outline" type="submit" onClick={() => OnDownloadClicked(moveCompleted)} disabled={exists}>
+                    <Button
+                        variant="outline"
+                        type="submit"
+                        onClick={() => OnDownloadClicked(moveCompleted)}
+                        disabled={exists}>
                         {t("Download")}
                     </Button>
                     <DialogClose asChild>

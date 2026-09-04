@@ -6,7 +6,7 @@ import {Dispatch, MutableRefObject, SetStateAction, useEffect, useMemo, useRef, 
 import {isErrorDict} from "@/services/reporting";
 import {triblerService} from "@/services/tribler.service";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
-import {ChevronDown, ChevronRight, Gauge, Pause, Play} from "lucide-react";
+import {ChevronDown, ChevronRight, Download as DownloadIcon, Gauge, Pause, Play} from "lucide-react";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
     ContextMenu,
@@ -49,7 +49,10 @@ const getFileColumns = ({
                         paddingLeft: `${row.depth * 2}rem`,
                     }}>
                     {row.original.subRows && row.original.subRows.length > 0 && (
-                        <button onClick={(e) => {toggleRowExpansion(e, row)}}>
+                        <button
+                            onClick={(e) => {
+                                toggleRowExpansion(e, row);
+                            }}>
                             {row.getIsExpanded() ? (
                                 <ChevronDown size="16" color="#777"></ChevronDown>
                             ) : (
@@ -103,11 +106,11 @@ async function updateFiles(
 
 function selectPaused(files: FileTreeItem[], selectedIndices: number[]): FileTreeItem[] {
     // A select change occurred while paused: only update the tree cache without syncing with the Tribler core!
-    return files.map(fti => {
+    return files.map((fti) => {
         return {
             ...fti,
             included: selectedIndices.includes(fti.index),
-            subRows: selectPaused(fti.subRows || [], selectedIndices)
+            subRows: selectPaused(fti.subRows || [], selectedIndices),
         };
     });
 }
@@ -119,6 +122,7 @@ export default function Files({download, style}: {download: Download; style?: Re
     const [changedWhilePaused, setChangedWhilePaused] = useState<boolean>(false);
     const [selectedFile, setSelectedFile] = useState<FileTreeItem | undefined>(undefined);
     const initialized = useRef(false);
+    const downloadFileRef = useRef<HTMLAnchorElement | null>(null);
 
     function OnSelectedFilesChange(row: Row<FileTreeItem>) {
         // Are we including or excluding files?
@@ -129,7 +133,7 @@ export default function Files({download, style}: {download: Download; style?: Re
         if (shouldInclude) var selectedIndices = [...new Set(currentIndices).union(new Set(toggleIndices))];
         else var selectedIndices = [...new Set(currentIndices).difference(new Set(toggleIndices))];
 
-        if (!paused){
+        if (!paused) {
             triblerService.setDownloadFiles(download.infohash, selectedIndices).then((response) => {
                 if (response === undefined) {
                     toast.error(`${t("ToastErrorDownloadSetFiles")} ${t("ToastErrorGenNetworkErr")}`);
@@ -188,19 +192,28 @@ export default function Files({download, style}: {download: Download; style?: Re
             <ContextMenu modal={false}>
                 <ContextMenuTrigger>
                     <svg className="w-0 h-0">
-                      <filter id="noise">
-                        <feTurbulence type="turbulence" baseFrequency=".04" numOctaves="3" result="rawNoise">
-                            <animate attributeName="seed" begin="0s" dur="8s" from="0" to="80" repeatCount="indefinite" />
-                        </feTurbulence>
-                        <feColorMatrix
-                          in="rawNoise" result="colNoise"
-                          type="matrix"
-                          values="1 1 1 1 0
+                        <filter id="noise">
+                            <feTurbulence type="turbulence" baseFrequency=".04" numOctaves="3" result="rawNoise">
+                                <animate
+                                    attributeName="seed"
+                                    begin="0s"
+                                    dur="8s"
+                                    from="0"
+                                    to="80"
+                                    repeatCount="indefinite"
+                                />
+                            </feTurbulence>
+                            <feColorMatrix
+                                in="rawNoise"
+                                result="colNoise"
+                                type="matrix"
+                                values="1 1 1 1 0
                                   .1 .1 .1 .1 0
                                   0 0 0 0 0
-                                  0 0 0 .3 0" />
-                        <feComposite in="SourceGraphic" in2="colNoise" mode="soft-light" />
-                      </filter>
+                                  0 0 0 .3 0"
+                            />
+                            <feComposite in="SourceGraphic" in2="colNoise" mode="soft-light" />
+                        </filter>
                     </svg>
                     <SimpleTable
                         data={files}
@@ -213,10 +226,10 @@ export default function Files({download, style}: {download: Download; style?: Re
                         allowMultiSelect={false}
                         selectOnRightClick={true}
                         onSelectedRowsChange={(a) => {
-                            if ((a.length == 1) && (a[0].included)) {
+                            if (a.length == 1 && a[0].included) {
                                 setSelectedFile(a[0]);
                             } else {
-                                setSelectedFile(undefined);  // Can happen if we select a tree node instead of a file.
+                                setSelectedFile(undefined); // Can happen if we select a tree node instead of a file.
                             }
                         }}
                     />
@@ -226,6 +239,25 @@ export default function Files({download, style}: {download: Download; style?: Re
                         {paused ? <Play className="w-4 mx-2" /> : <Pause className="w-4 mx-2" />}
                         {paused ? t("UnpauseSelect") : t("PauseSelect")}
                     </ContextMenuItem>
+                    {location.hostname !== "localhost" && location.hostname !== "127.0.0.1" && (
+                        <ContextMenuItem
+                            inset
+                            disabled={
+                                selectedFile === undefined ||
+                                (selectedFile.progress !== undefined && selectedFile.progress < 1)
+                            }
+                            onClick={() => {
+                                const element = downloadFileRef.current;
+                                if (element !== null && selectedFile !== undefined && selectedFile.progress == 1) {
+                                    element.download = selectedFile.name;
+                                    element.href = `/api/downloads/${download.infohash}/stream/${selectedFile.index}`;
+                                    element.click();
+                                }
+                            }}>
+                            <a className="hidden" ref={downloadFileRef} />
+                            <DownloadIcon className="w-4 mx-2" /> {t("Download")}
+                        </ContextMenuItem>
+                    )}
                     <ContextMenuSub>
                         <ContextMenuSubTrigger
                             inset
@@ -235,15 +267,22 @@ export default function Files({download, style}: {download: Download; style?: Re
                             {t("Priority")}
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-48 bg-neutral-50 dark:bg-neutral-950 p-4">
-                            <Slider defaultValue={[selectedFile?.priority || 4]} min={1} max={7} step={1}
-                            onValueCommit={(v) => {
-                                if (selectedFile !== undefined) {
-                                    triblerService.setDownloadFilePriority(download.infohash, selectedFile.index, v[0]);
-                                    setSelectedFile({...selectedFile, priority: v[0]});
-                                    updateFiles(setFiles, download, initialized);
-                                }
-                            }}>
-                            </Slider>
+                            <Slider
+                                defaultValue={[selectedFile?.priority || 4]}
+                                min={1}
+                                max={7}
+                                step={1}
+                                onValueCommit={(v) => {
+                                    if (selectedFile !== undefined) {
+                                        triblerService.setDownloadFilePriority(
+                                            download.infohash,
+                                            selectedFile.index,
+                                            v[0]
+                                        );
+                                        setSelectedFile({...selectedFile, priority: v[0]});
+                                        updateFiles(setFiles, download, initialized);
+                                    }
+                                }}></Slider>
                         </ContextMenuSubContent>
                     </ContextMenuSub>
                 </ContextMenuContent>

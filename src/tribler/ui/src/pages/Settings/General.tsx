@@ -145,11 +145,11 @@ export default function General() {
                 <Label
                     htmlFor="trackers_file_sync_url"
                     className="whitespace-nowrap pr-5 ml-2"
-                    hidden={!(settings?.libtorrent?.download_defaults?.trackers_file)}>
+                    hidden={!settings?.libtorrent?.download_defaults?.trackers_file}>
                     Sync URL:
                 </Label>
                 <Input
-                    hidden={!(settings?.libtorrent?.download_defaults?.trackers_file)}
+                    hidden={!settings?.libtorrent?.download_defaults?.trackers_file}
                     value={settings?.libtorrent?.download_defaults?.trackers_file_sync_url}
                     placeholder={"http://website.com/trackers_file.txt"}
                     onChange={(event) => {

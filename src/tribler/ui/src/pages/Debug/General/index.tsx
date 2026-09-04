@@ -82,23 +82,37 @@ export default function General() {
             <SimpleTable data={stats} columns={generalColumns} />
             <div className="flex-none bg-neutral-100 dark:bg-neutral-900 border-y pl-3 py-2 text-sm font-medium flex items-center">
                 <span className="text-muted-foreground flex-none">Logs</span>
-                <Button variant="ghost" className="h-4 w-4 ml-2 p-0 text-muted-foreground flex-none" onClick={() => setPauseLogs((pl) => !pl)}>
+                <Button
+                    variant="ghost"
+                    className="h-4 w-4 ml-2 p-0 text-muted-foreground flex-none"
+                    onClick={() => setPauseLogs((pl) => !pl)}>
                     {pauseLogs ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
                 </Button>
                 <div className="flex-grow"></div>
-                <input type="text" className="flex-none bg-background mr-2 border" placeholder="&#128269;" value={logSearch} onChange={(event) => {setLogSearch(event.target.value);}} />
+                <input
+                    type="text"
+                    className="flex-none bg-background mr-2 border"
+                    placeholder="&#128269;"
+                    value={logSearch}
+                    onChange={(event) => {
+                        setLogSearch(event.target.value);
+                    }}
+                />
             </div>
             <ScrollArea
                 className="whitespace-pre-wrap break-all overflow-x-auto text-xs pl-3 h-96 flex-grow overflow-scroll overflow-hidden scroll-smooth"
                 ref={logContainerRef}>
-                {
-                    (logSearch === "" || !logs.includes(logSearch)) ?
-                        logs :
-                    (logs.split(logSearch).map((part, i, parts) => {
-                        if (i == parts.length - 1) return (<>{part}</>);
-                        return (<>{part}<mark>{logSearch}</mark></>);
-                    }))
-                }
+                {logSearch === "" || !logs.includes(logSearch)
+                    ? logs
+                    : logs.split(logSearch).map((part, i, parts) => {
+                          if (i == parts.length - 1) return <>{part}</>;
+                          return (
+                              <>
+                                  {part}
+                                  <mark>{logSearch}</mark>
+                              </>
+                          );
+                      })}
             </ScrollArea>
         </div>
     );
