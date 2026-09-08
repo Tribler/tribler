@@ -27,6 +27,19 @@ import CreateTorrent from "@/dialogs/CreateTorrent";
 import {useTranslation} from "react-i18next";
 import SelectRemotePath from "@/dialogs/SelectRemotePath";
 
+/**
+ * This Promise throttles the number of SaveAs dialogs [Warning: this is where it gets weird.]
+ * React state changes cause component re-renders. If we were to store this in the AddTorrent component, updating the
+ * promise with the new entry in the callback chain would re-render the component. This does work within a callback
+ * chain that is managed within the component itself. However, when mixing with an event (OnCoreAskDownload), this would
+ * cause a re-render that voids the previous state (deleting the previous queue of SaveAs dialogs). That's not what
+ * we want.
+ * So, we have to store saveAsOpenQueue outside of AddTorrent. This causes its own set of weird stuff, as you will now
+ * be stuck with "old" Promises that have to complete their unrendered setters. Thankfully, React cleans this up through
+ * its own internal black magic.
+ */
+let saveAsOpenQueue = new Promise<void>((resolve, reject) => resolve());
+
 export function AddTorrent() {
     const {t} = useTranslation();
     const navigate = useNavigate();
@@ -39,13 +52,22 @@ export function AddTorrent() {
     const [remoteTorrentDialogOpen, setRemoteTorrentDialogOpen] = useState<boolean>(false);
 
     const [saveAsDialogOpen, setSaveAsDialogOpen] = useState<boolean>(false);
-    const [saveAsClosed, setSaveAsClosed] = useState<{callback: ((value: unknown) => void) | null}>({
+    const [saveAsClosed, setSaveAsClosed] = useState<{callback: ((value: void | PromiseLike<void>) => void) | null}>({
         callback: null,
     });
 
     const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false);
 
     const [torrent, setTorrent] = useState<File | undefined>();
+
+    async function addSaveAsQueue(uri: string, file: File | undefined) {
+        saveAsOpenQueue = saveAsOpenQueue.then(async () => new Promise((resolve, reject) => {
+            setUriInput(uri);
+            setTorrent(file);
+            setSaveAsClosed({callback: resolve});
+            setSaveAsDialogOpen(true);
+        }));
+    }
 
     useEffect(() => {
         (async () => {
@@ -58,12 +80,10 @@ export function AddTorrent() {
         };
     }, []);
 
-    const OnCoreAskDownload = (event: MessageEvent) => {
+    const OnCoreAskDownload = async (event: MessageEvent) => {
         const message = JSON.parse(event.data);
         if (message.uri) {
-            setUriInput(message.uri);
-            setTorrent(undefined);
-            setSaveAsDialogOpen(true);
+            await addSaveAsQueue(message.uri, undefined);
         }
     };
 
@@ -218,12 +238,7 @@ export function AddTorrent() {
                     if (settings?.libtorrent?.ask_download_settings === true) {
                         (async () => {
                             for (let file of files) {
-                                // Open SaveAs dialog for 1 torrent at a time
-                                await new Promise(function (resolve, reject) {
-                                    setTorrent(file);
-                                    setSaveAsDialogOpen(true);
-                                    setSaveAsClosed({callback: resolve});
-                                });
+                                await addSaveAsQueue("", file);
                             }
                         })();
                     } else {
