@@ -362,9 +362,12 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuCheckboxItem
-                    onClick={() =>
-                        setAutoManaged(selectedDownloads, !selectedDownloads.every((d) => d.auto_managed), t)
-                    }
+                    onClick={(e) => {
+                        if (!(e.target instanceof HTMLDivElement)) {
+                            return;
+                        }
+                        setAutoManaged(selectedDownloads, e.target.dataset.state == "unchecked", t);
+                    }}
                     disabled={selectedDownloads.length < 1}
                     checked={
                         selectedDownloads.every((d) => d.auto_managed)
