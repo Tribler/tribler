@@ -390,6 +390,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                             {defaultLimits.map((limit) => (
                                 <ContextMenuRadioItem
                                     value={limit.toString()}
+                                    key={"downlimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "down", t)}>
                                     <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>
@@ -437,6 +438,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                             {defaultLimits.map((limit) => (
                                 <ContextMenuRadioItem
                                     value={limit.toString()}
+                                    key={"uplimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "up", t)}>
                                     <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>
