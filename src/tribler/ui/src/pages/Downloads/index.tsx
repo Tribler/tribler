@@ -17,7 +17,7 @@ import {usePrevious} from "@/hooks/usePrevious";
 import {useResizeObserver} from "@/hooks/useResizeObserver";
 import {ContextMenu, ContextMenuTrigger} from "@/components/ui/context-menu";
 import {Button} from "@/components/ui/button";
-import {XIcon} from "lucide-react";
+import {Bot, XIcon} from "lucide-react";
 import {EasyTooltip} from "@/components/ui/tooltip";
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -35,14 +35,17 @@ const downloadColumns: ColumnDef<Download>[] = [
         sortingFn: (rowA, rowB) => {
             if (rowA.original.hops < rowB.original.hops) return -1;
             if (rowA.original.hops > rowB.original.hops) return 1;
+            if (rowA.original.queue_position == rowB.original.queue_position)
+                return (+rowA.original.auto_managed) - (+rowB.original.auto_managed);
             return rowA.original.queue_position - rowB.original.queue_position;
         },
         cell: ({row}) => {
             const {t} = useTranslation();
             if (row.original.queue_position < 0) {
                 return (
-                    <EasyTooltip content={t("NotInQueue")}>
-                        <span>*</span>
+                    <EasyTooltip
+                        content={t("NotInQueue") + (row.original.auto_managed ? (" (" + t("AutoManaged") + ")") : "")}>
+                        {row.original.auto_managed ? <Bot /> : <span>*</span>}
                     </EasyTooltip>
                 );
             }
@@ -51,7 +54,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                     content={t("InQueue", {
                         hops: row.original.hops,
                         queue_position: row.original.queue_position + 1,
-                    })}>
+                    }) + (row.original.auto_managed ? (" (" + t("AutoManaged") + ")") : "")}>
                     <span className="text-nowrap">{`${row.original.hops}-${row.original.queue_position + 1}`}</span>
                 </EasyTooltip>
             );
