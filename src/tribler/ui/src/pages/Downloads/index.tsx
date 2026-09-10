@@ -17,7 +17,7 @@ import {usePrevious} from "@/hooks/usePrevious";
 import {useResizeObserver} from "@/hooks/useResizeObserver";
 import {ContextMenu, ContextMenuTrigger} from "@/components/ui/context-menu";
 import {Button} from "@/components/ui/button";
-import {XIcon} from "lucide-react";
+import {Bot, XIcon} from "lucide-react";
 import {EasyTooltip} from "@/components/ui/tooltip";
 
 export const filterAll = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
@@ -35,14 +35,17 @@ const downloadColumns: ColumnDef<Download>[] = [
         sortingFn: (rowA, rowB) => {
             if (rowA.original.hops < rowB.original.hops) return -1;
             if (rowA.original.hops > rowB.original.hops) return 1;
+            if (rowA.original.queue_position == rowB.original.queue_position)
+                return (+rowA.original.auto_managed) - (+rowB.original.auto_managed);
             return rowA.original.queue_position - rowB.original.queue_position;
         },
         cell: ({row}) => {
             const {t} = useTranslation();
             if (row.original.queue_position < 0) {
                 return (
-                    <EasyTooltip content={t("NotInQueue")}>
-                        <span>*</span>
+                    <EasyTooltip
+                        content={t("NotInQueue") + (row.original.auto_managed ? (" (" + t("AutoManaged") + ")") : "")}>
+                        {row.original.auto_managed ? <Bot /> : <span>*</span>}
                     </EasyTooltip>
                 );
             }
@@ -51,7 +54,7 @@ const downloadColumns: ColumnDef<Download>[] = [
                     content={t("InQueue", {
                         hops: row.original.hops,
                         queue_position: row.original.queue_position + 1,
-                    })}>
+                    }) + (row.original.auto_managed ? (" (" + t("AutoManaged") + ")") : "")}>
                     <span className="text-nowrap">{`${row.original.hops}-${row.original.queue_position + 1}`}</span>
                 </EasyTooltip>
             );
@@ -272,6 +275,8 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
     const [filters, setFilters] = useState<{id: string; value: string}[]>([]);
     const [downloads, setDownloads] = useState<Download[]>([]);
     const [selectedDownloads, _setSelectedDownloads] = useState<Download[]>([]);
+    const [debouncedSelectedDownload, setDebouncedSelectedDownload] = useState<Download | undefined>(undefined);
+    const [delayedNameValidityUpdate, setDelayedNameValidityUpdate] = useState<ReturnType<typeof setTimeout>>(setTimeout(() => {}, 0));
 
     const prevSelectedDownloads = usePrevious(selectedDownloads);
     const selectedDownloadsRef = useRef<Download[]>(selectedDownloads);
@@ -294,15 +299,27 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
 
     useEffect(() => {
         // Refresh to avoid stale peers/pieces in the details panel.
+        // No need to refresh if we have more than one selection (no details panel).
         // We only refresh if the selection has changed due to a user action.
         if (
             !prevSelectedDownloads ||
+            selectedDownloads.length > 1 ||
             (selectedDownloads.length === prevSelectedDownloads.length &&
                 selectedDownloads.every((d, index) => d.infohash === prevSelectedDownloads[index].infohash))
         ) {
             return;
         }
-        updateDownloads();
+
+        clearTimeout(delayedNameValidityUpdate);
+        setDelayedNameValidityUpdate(
+            setTimeout(() => {
+                const newValue = selectedDownloads.length > 0 ? selectedDownloads[0] : undefined;
+                if (newValue?.infohash != debouncedSelectedDownload?.infohash) {
+                    setDebouncedSelectedDownload(newValue);
+                    updateDownloads();
+                }
+            }, 250)
+        );
     }, [selectedDownloads]);
 
     useEffect(() => {
@@ -418,7 +435,7 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
             </ResizablePanel>
             <ResizableHandle className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`} />
             <ResizablePanel defaultSize={25} className={`${selectedDownloads.length == 1 ? "flex" : "hidden"}`}>
-                <DownloadDetails download={selectedDownloads.length > 0 ? selectedDownloads[0] : undefined} />
+                <DownloadDetails download={debouncedSelectedDownload} />
             </ResizablePanel>
         </ResizablePanelGroup>
     );

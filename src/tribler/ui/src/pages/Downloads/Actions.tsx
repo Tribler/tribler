@@ -53,40 +53,40 @@ function handleError(response: undefined | ErrorDict | boolean, errorMsg: string
 }
 
 function resumeDownloads(selectedDownloads: Download[], t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .resumeDownload(download.infohash)
             .then((response) => handleError(response, t("ToastErrorDownloadStart"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function stopDownloads(selectedDownloads: Download[], t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .stopDownload(download.infohash)
             .then((response) => handleError(response, t("ToastErrorDownloadStop"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function removeDownloads(selectedDownloads: Download[], removeData: boolean, t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .removeDownload(download.infohash, removeData)
             .then((response) => handleError(response, t("ToastErrorDownloadRemove"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function updateQueuePosition(selectedDownloads: Download[], queueChange: QueueOperation, t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .updateQueuePosition(download.infohash, queueChange)
             .then((response) => handleError(response, t("ToastErrorDownloadQueue"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function setAutoManaged(selectedDownloads: Download[], value: boolean, t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .setAutoManaged(download.infohash, value)
             .then((response) =>
                 handleError(response, t("ToastErrorDownloadAutoManaged"), t("ToastErrorGenNetworkErr"))
@@ -95,8 +95,8 @@ function setAutoManaged(selectedDownloads: Download[], value: boolean, t: TFunct
 }
 
 function recheckDownloads(selectedDownloads: Download[], t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .recheckDownload(download.infohash)
             .then((response) => handleError(response, t("ToastErrorDownloadCheck"), t("ToastErrorGenNetworkErr")));
     });
@@ -118,16 +118,16 @@ function moveDownloads(
     completedLocation: string,
     t: TFunction
 ) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .moveDownload(download.infohash, storageLocation, completedLocation)
             .then((response) => handleError(response, t("ToastErrorDownloadMove"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function setHops(selectedDownloads: Download[], hops: number, t: TFunction) {
-    selectedDownloads.forEach((download) => {
-        triblerService
+    selectedDownloads.forEach(async (download) => {
+        await triblerService
             .setDownloadHops(download.infohash, hops)
             .then((response) => handleError(response, t("ToastErrorDownloadSetHops"), t("ToastErrorGenNetworkErr")));
     });
@@ -140,7 +140,7 @@ function setBandwidthLimit(
     t: TFunction
 ) {
     if (value === undefined) return;
-    selectedDownloads.forEach((download) => {
+    selectedDownloads.forEach(async (download) => {
         let result;
         if (direction === "up") {
             download.upload_limit = value;
@@ -149,7 +149,7 @@ function setBandwidthLimit(
             download.download_limit = value;
             result = triblerService.setDownloadLimit(download.infohash, value);
         }
-        result.then((response) =>
+        await result.then((response) =>
             handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr"))
         );
     });
@@ -170,18 +170,18 @@ function getBandwidthLimit(
 
 function setSeedingRatio(selectedDownloads: Download[], value: number | undefined, t: TFunction) {
     if (value === undefined) return;
-    selectedDownloads.forEach((download) => {
+    selectedDownloads.forEach(async (download) => {
         download.seeding_ratio = value;
-        triblerService
+        await triblerService
             .setSeedingRatio(download.infohash, value)
             .then((response) => handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr")));
     });
 }
 
 function resetSeedingRatio(selectedDownloads: Download[], t: TFunction) {
-    selectedDownloads.forEach((download) => {
+    selectedDownloads.forEach(async (download) => {
         download.seeding_ratio = undefined;
-        triblerService
+        await triblerService
             .resetSeedingRatio(download.infohash)
             .then((response) => handleError(response, t("ToastErrorSetBandwidthLimit"), t("ToastErrorGenNetworkErr")));
     });
@@ -362,9 +362,12 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuCheckboxItem
-                    onClick={() =>
-                        setAutoManaged(selectedDownloads, !selectedDownloads.every((d) => d.auto_managed), t)
-                    }
+                    onClick={(e) => {
+                        if (!(e.target instanceof HTMLDivElement)) {
+                            return;
+                        }
+                        setAutoManaged(selectedDownloads, e.target.dataset.state == "unchecked", t);
+                    }}
                     disabled={selectedDownloads.length < 1}
                     checked={
                         selectedDownloads.every((d) => d.auto_managed)
@@ -390,6 +393,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                             {defaultLimits.map((limit) => (
                                 <ContextMenuRadioItem
                                     value={limit.toString()}
+                                    key={"downlimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "down", t)}>
                                     <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>
@@ -437,6 +441,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                             {defaultLimits.map((limit) => (
                                 <ContextMenuRadioItem
                                     value={limit.toString()}
+                                    key={"uplimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "up", t)}>
                                     <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>

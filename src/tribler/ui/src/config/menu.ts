@@ -37,7 +37,7 @@ export const sideMenu: NavItemWithChildren[] = [
                 to: "/downloads/completedorinactive",
             },
             {
-                title: "Completed",
+                title: "Seeding",
                 to: "/downloads/completed",
             },
             {
