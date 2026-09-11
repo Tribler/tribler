@@ -39,19 +39,20 @@ class WebUIEndpoint(RESTEndpoint):
                 return RESTResponse(body=await client_response.read(), content_type=client_response.content_type)
         else:
             resource = self.webui_root / "dist" / path
-            response = web.FileResponse(resource)
+            headers = {}
             if path.endswith(".tsx"):
-                response.content_type = "application/javascript"
+                headers["Content-Type"] = "application/javascript"
             elif path.endswith(".js"):
                 # https://github.com/Tribler/tribler/issues/8279
-                response.content_type = "application/javascript"
+                headers["Content-Type"] = "application/javascript"
             elif path.endswith(".html"):
-                response.content_type = "text/html"
+                headers["Content-Type"] = "text/html"
+                headers["Cache-Control"] = "no-store"
             elif (guessed_type := mimetypes.guess_type(path)[0]) is not None:
-                response.content_type = guessed_type
+                headers["Content-Type"] = guessed_type
             else:
-                response.content_type = "application/octet-stream"
-            return response
+                headers["Content-Type"] = "application/octet-stream"
+            return web.FileResponse(resource, headers=headers)
 
     async def shutdown_task_manager(self) -> None:
         """
