@@ -861,3 +861,43 @@ class TestDownloadManager(TestBase):
 
         # Secondary test: rate limits should always be in whole bytes per second ((7+42)/2 is rounded down)
         self.assertEqual(call({"upload_rate_limit": 24, "download_rate_limit": 24}), session.apply_settings.call_args)
+
+    def test_create_session_sets_outgoing_interface(self) -> None:
+        """
+        Test that the hops==0 session pins outgoing_interfaces from libtorrent/outgoing_interface.
+        """
+        self.manager.config.set("libtorrent/outgoing_interface", "wg0")
+        self.manager.config.set("libtorrent/listen_interface", "0.0.0.0")
+        captured = {}
+
+        def fake_apply(lt_session: object, new_settings: dict) -> None:
+            captured.update(new_settings)
+
+        with patch.object(self.manager, "set_session_settings", Mock(side_effect=fake_apply)), \
+                patch.object(self.manager, "get_libtorrent_proxy_settings", Mock(return_value=(0, None, None))), \
+                patch.object(self.manager, "set_proxy_settings", Mock()), \
+                patch.object(self.manager, "set_session_limits", Mock()), \
+                patch("tribler.core.libtorrent.download_manager.download_manager.lt.session", Mock()):
+            self.manager.create_session(hops=0)
+
+        self.assertEqual("wg0", captured["outgoing_interfaces"])
+
+    def test_create_session_outgoing_interface_default_empty(self) -> None:
+        """
+        Test that an unset outgoing_interface passes libtorrent's default (the empty string).
+        """
+        self.manager.config.set("libtorrent/outgoing_interface", "")
+        self.manager.config.set("libtorrent/listen_interface", "wg0")
+        captured = {}
+
+        def fake_apply(lt_session: object, new_settings: dict) -> None:
+            captured.update(new_settings)
+
+        with patch.object(self.manager, "set_session_settings", Mock(side_effect=fake_apply)), \
+                patch.object(self.manager, "get_libtorrent_proxy_settings", Mock(return_value=(0, None, None))), \
+                patch.object(self.manager, "set_proxy_settings", Mock()), \
+                patch.object(self.manager, "set_session_limits", Mock()), \
+                patch("tribler.core.libtorrent.download_manager.download_manager.lt.session", Mock()):
+            self.manager.create_session(hops=0)
+
+        self.assertEqual("", captured["outgoing_interfaces"])
