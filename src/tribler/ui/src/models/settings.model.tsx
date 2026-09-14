@@ -52,6 +52,8 @@ export interface Settings {
         socks_listen_ports: number[];
         listen_interface: string;
         port: number;
+        listen_interface_v6: string;
+        port_v6: number;
         proxy_type: number;
         proxy_server: string;
         proxy_auth: string;
