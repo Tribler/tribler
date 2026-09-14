@@ -483,6 +483,10 @@ export default function General() {
                 </Label>
                 <Textarea
                     defaultValue={settings?.rss?.urls?.join?.("\n") ?? ""}
+                    onKeyDown={(elem) => {
+                        const target = elem.target as HTMLTextAreaElement;
+                        target.value += "";
+                    }}
                     onChange={(elem) => {
                         var urls = elem.target.value.split("\n");
                         if (settings) {

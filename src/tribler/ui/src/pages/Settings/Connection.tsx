@@ -246,24 +246,93 @@ export default function Connection() {
 
                 <div className="pt-5 py-2 font-semibold col-span-2">{t("BittorrentFeatures")}</div>
 
-                <Label htmlFor="libtorrent_ip" className="whitespace-nowrap pr-5">
-                    {t("LocalListeningInterface")}
+                <Label htmlFor="libtorrent_ipv4" className="whitespace-nowrap pr-5">
+                    {t("LocalListeningInterface") + " IPv4 (" + t("ZeroHops") + ")"}
                 </Label>
-                <Input
-                    id="libtorrent_ip"
-                    value={settings?.libtorrent ? settings.libtorrent.listen_interface : ""}
-                    onChange={(event) => {
-                        if (settings) {
-                            setSettings({
-                                ...settings,
-                                libtorrent: {
-                                    ...settings.libtorrent,
-                                    listen_interface: event.target.value,
-                                },
-                            });
-                        }
-                    }}
-                />
+                <div className="flex items-center">
+                    <Input
+                        id="libtorrent_ipv4"
+                        placeholder="0.0.0.0"
+                        value={settings?.libtorrent ? settings.libtorrent.listen_interface : ""}
+                        onChange={(event) => {
+                            if (settings) {
+                                setSettings({
+                                    ...settings,
+                                    libtorrent: {
+                                        ...settings.libtorrent,
+                                        listen_interface: event.target.value,
+                                    },
+                                });
+                            }
+                        }}
+                    />
+                    <Label htmlFor="libtorrent_ipv4_port" className="whitespace-nowrap px-5 flex-none">
+                        {t("Port")}
+                    </Label>
+                    <Input
+                        id="libtorrent_ipv4_port"
+                        type="number"
+                        placeholder="0"
+                        min="0" max="65535"
+                        className="w-23 flex-none"
+                        value={settings?.libtorrent ? settings.libtorrent.port : 0}
+                        onChange={(event) => {
+                            if (settings) {
+                                setSettings({
+                                    ...settings,
+                                    libtorrent: {
+                                        ...settings.libtorrent,
+                                        port: +event.target.value,
+                                    },
+                                });
+                            }
+                        }}
+                    />
+                </div>
+
+                <Label htmlFor="libtorrent_ipv6" className="whitespace-nowrap pr-5">
+                    {t("LocalListeningInterface") + " IPv6 (" + t("ZeroHops") + ")"}
+                </Label>
+                <div className="flex items-center">
+                    <Input
+                        id="libtorrent_ipv6"
+                        placeholder="::"
+                        value={settings?.libtorrent ? settings.libtorrent.listen_interface_v6 : ""}
+                        onChange={(event) => {
+                            if (settings) {
+                                setSettings({
+                                    ...settings,
+                                    libtorrent: {
+                                        ...settings.libtorrent,
+                                        listen_interface_v6: event.target.value,
+                                    },
+                                });
+                            }
+                        }}
+                    />
+                    <Label htmlFor="libtorrent_ipv6_port" className="whitespace-nowrap px-5 flex-none">
+                        {t("Port")}
+                    </Label>
+                    <Input
+                        id="libtorrent_ipv6_port"
+                        type="number"
+                        placeholder="0"
+                        min="0" max="65535"
+                        className="w-23 flex-none"
+                        value={settings?.libtorrent ? settings.libtorrent.port_v6 : 0}
+                        onChange={(event) => {
+                            if (settings) {
+                                setSettings({
+                                    ...settings,
+                                    libtorrent: {
+                                        ...settings.libtorrent,
+                                        port_v6: +event.target.value,
+                                    },
+                                });
+                            }
+                        }}
+                    />
+                </div>
 
                 <Label htmlFor="utp" className="whitespace-nowrap pr-5">
                     {t("EnableUTP")}

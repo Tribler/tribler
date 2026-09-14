@@ -171,6 +171,8 @@ class LibtorrentConfig(TypedDict):
     socks_listen_ports: list[int]
     listen_interface: str
     port: int
+    listen_interface_v6: str
+    port_v6: int
     proxy_type: int
     proxy_server: str
     proxy_auth: str
@@ -313,6 +315,8 @@ DEFAULT_CONFIG = {
         socks_listen_ports=[0, 0, 0, 0, 0],
         listen_interface="0.0.0.0",
         port=0,
+        listen_interface_v6="",
+        port_v6=0,
         proxy_type=0,
         proxy_server="",
         proxy_auth="",
