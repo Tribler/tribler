@@ -570,6 +570,7 @@ class Download(TaskManager):
         if self.handle is not None:  # Ditto, but we prefer ``lt_status`` info because the handle has function calls.
             self.tdef.atp.download_limit = self.handle.download_limit()
             self.tdef.atp.file_priorities = self.handle.get_file_priorities()
+            self.tdef.atp.flags = self.handle.flags()
             self.tdef.atp.http_seeds = self.handle.http_seeds()
             self.tdef.atp.piece_priorities = self.handle.get_piece_priorities()
             self.tdef.atp.upload_limit = self.handle.upload_limit()
