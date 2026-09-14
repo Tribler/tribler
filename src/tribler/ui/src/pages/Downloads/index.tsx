@@ -196,6 +196,26 @@ const downloadColumns: ColumnDef<Download>[] = [
         },
     },
     {
+        accessorKey: "destination",
+        header: getHeader("Destination"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            return <span>{row.original.destination}</span>;
+        },
+    },
+    {
+        accessorKey: "completed_dir",
+        header: getHeader("MoveAfterCompletion"),
+        meta: {
+            hide_by_default: true,
+        },
+        cell: ({row}) => {
+            return <span>{row.original.completed_dir}</span>;
+        },
+    },
+    {
         accessorKey: "last_download",
         header: getHeader("LastDownload"),
         meta: {
