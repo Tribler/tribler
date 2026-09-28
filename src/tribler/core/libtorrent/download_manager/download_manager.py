@@ -765,6 +765,9 @@ class DownloadManager(TaskManager):
         atp.download_limit = download.config.get_download_limit()
         if download.config.get_upload_mode():
             atp.flags |= lt.torrent_flags.upload_mode
+        atp.flags |= lt.torrent_flags.auto_managed  # This should be true by default, but just to be safe.
+        if not download.config.get_auto_managed():
+            atp.flags -= lt.torrent_flags.auto_managed
 
         if infohash in self.metainfo_requests and self.metainfo_requests[infohash].download != download:
             logger.info("Cancelling metainfo request(s) for infohash:%s", hexlify(infohash))
