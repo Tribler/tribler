@@ -78,18 +78,6 @@ class MetainfoLookupResult(TypedDict):
     leechers: int
 
 
-def encode_atp(atp: dict) -> dict:
-    """
-    Encode the "Add Torrent Params" dictionary to only include bytes, instead of strings and Paths.
-    """
-    for k, v in atp.items():
-        if isinstance(v, str):
-            atp[k] = v.encode()
-        elif isinstance(v, Path):
-            atp[k] = str(v)
-    return atp
-
-
 def upgrade_checkpoint(config: DownloadConfig) -> None:
     """
     Upgrade checkpoint and write it to disk.
@@ -158,12 +146,6 @@ class DownloadManager(TaskManager):
         for session in self.ltsessions.values():
             if session.done():
                 session.result().post_session_stats()
-
-    def is_shutting_down(self) -> bool:
-        """
-        Whether the download manager is currently shutting down.
-        """
-        return self._shutdown
 
     async def _check_dht_ready(self, hops: int, timeout: int, min_dht_peers: int = 60) -> None:
         """
@@ -816,15 +798,6 @@ class DownloadManager(TaskManager):
         # Ensure the update_subscribe flag is set. This may not be the case when updating the hop count.
         atp.flags |= lt.torrent_flags.update_subscribe
         ltsession.async_add_torrent(atp)
-
-    def get_libtorrent_version(self) -> str:
-        """
-        Get the libtorrent version.
-        """
-        try:
-            return lt.__version__
-        except AttributeError:
-            return lt.version
 
     def set_session_settings(self, lt_session: lt.session, new_settings: lt.settings_pack) -> None:
         """
