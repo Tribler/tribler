@@ -137,9 +137,10 @@ class TestAugmentedSearch(TestBase):
 
         self.assertEqual(
             "SELECT rowid FROM ChannelNode WHERE"
-            " (title LIKE ? OR title LIKE ? OR title LIKE ? OR title LIKE ? OR title LIKE ? OR title LIKE ?)"
-            " AND (title LIKE ? OR title LIKE ?)"
-            " AND (title LIKE ? OR title LIKE ?)"
+            " (lower(title) LIKE lower(?) OR lower(title) LIKE lower(?) OR lower(title) LIKE lower(?)"
+            " OR lower(title) LIKE lower(?) OR lower(title) LIKE lower(?) OR lower(title) LIKE lower(?))"
+            " AND (lower(title) LIKE lower(?) OR lower(title) LIKE lower(?))"
+            " AND (lower(title) LIKE lower(?) OR lower(title) LIKE lower(?))"
             " LIMIT 42 OFFSET 1337", sql)
         self.assertListEqual([
             "%_augment%", "%test%augment%", "%test_%ent%", "%test_augm%nt%", "%test_augme%t%", "%test_augmen%",

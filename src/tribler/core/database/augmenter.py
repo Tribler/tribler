@@ -169,7 +169,7 @@ class AugmentedSearch:
         """
         pieces: list[str] = self.processor.encode(search, out_type=str)
         if len(pieces) == 0:
-            return ("title LIKE ?", ["%"])
+            return ("lower(title) LIKE lower(?)", ["%"])
 
         phrases = self.to_phrases(pieces)
         conjunction: list[str] = []
@@ -180,7 +180,7 @@ class AugmentedSearch:
             if len(phrase) == 1:
                 # Raw conjunction
                 parameters.append(f"%{phrase[0]}%")
-                conjunction.append("title LIKE ?")
+                conjunction.append("lower(title) LIKE lower(?)")
             else:
                 # Disjunction
                 disjunction_len = 0
@@ -192,11 +192,11 @@ class AugmentedSearch:
                     if phrase_permutation:
                         disjunction_len += 1
                         parameters.append("%" + phrase_permutation + ("" if phrase_permutation.endswith("%") else "%"))
-                conjunction.append(f"({' OR '.join(['title LIKE ?'] * disjunction_len)})")
+                conjunction.append(f"({' OR '.join(['lower(title) LIKE lower(?)'] * disjunction_len)})")
 
         conjunction_str = " AND ".join(conjunction)
         if len(conjunction_str) <= 2:  # Single item: "()"
-            conjunction_str = "title LIKE ?"
+            conjunction_str = "lower(title) LIKE lower(?)"
             parameters = [f"%{''.join(phrases[0])}%"]
         query = f"SELECT rowid FROM ChannelNode WHERE {conjunction_str} LIMIT {limit} OFFSET {offset}"  # noqa: S608
         logger.debug("Augmented '%s' to '%s', with params %s", search, query, str(parameters))
