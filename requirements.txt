@@ -8,4 +8,4 @@ pony
 pystray
 pywin32;sys_platform=="win32"
 sentencepiece
-libtorrent==2.0.13
+libtorrent==2.1.1
