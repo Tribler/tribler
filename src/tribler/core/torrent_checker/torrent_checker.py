@@ -347,6 +347,7 @@ class TorrentChecker(TaskManager):
         health = aggregate_responses_for_infohash(infohash, cast("list[TrackerResponse]", successful_responses))
 
         if health.seeders == 0 and health.leechers == 0:
+            self.notify(health)  # Notify the user of our current results, but don't commit anything to the database.
             self._logger.info("Contacting trackers yielded no results, joining swarm %s", infohash_hex)
             if metainfo := await self.download_manager.get_metainfo(infohash,timeout=SWARM_HEALTH_CHECK_TIMEOUT,
                                                                     health_check=True):

@@ -214,11 +214,53 @@ class TestDownloadManager(TestBase):
         self.manager.dht_ready_task = Future()
         self.manager.dht_readiness_timeout = 10
 
-        task = ensure_future(self.manager.start_handle(download, Mock(save_path="")))
+        task = ensure_future(self.manager.start_handle(download, Mock(save_path="", flags=0)))
         self.manager.dht_ready_task.set_result(None)
         await task
 
         self.assertTrue(task.done())
+
+    async def test_start_handle_copy_dcfg_to_atp_defaults(self) -> None:
+        """
+        Test if the default values from the download config are correctly written to the atp.
+        """
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
+                            checkpoint_disabled=True, config=self.create_mock_download_config())
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        self.manager.dht_ready_task = succeed(None)
+        atp = libtorrent.add_torrent_params()
+
+        await self.manager.start_handle(download, atp)
+
+        self.assertEqual(".", atp.save_path)
+        self.assertEqual(-1, atp.upload_limit)
+        self.assertEqual(-1, atp.download_limit)
+        self.assertFalse(atp.flags & libtorrent.torrent_flags.auto_managed)
+        self.assertFalse(atp.flags & libtorrent.torrent_flags.upload_mode)
+
+    async def test_start_handle_copy_dcfg_to_atp_custom(self) -> None:
+        """
+        Test if custom values from the download config are correctly written to the atp.
+        """
+        config = self.create_mock_download_config()
+        config.set_dest_dir("testdir")
+        config.set_upload_limit(42)
+        config.set_download_limit(1337)
+        config.set_upload_mode(True)
+        config.set_auto_managed(True)
+        download = Download(TorrentDef.load_from_memory(TORRENT_WITH_DIRS_CONTENT), self.manager,
+                            checkpoint_disabled=True, config=config)
+        download.handle = Mock(is_valid=Mock(return_value=True))
+        self.manager.dht_ready_task = succeed(None)
+        atp = libtorrent.add_torrent_params()
+
+        await self.manager.start_handle(download, atp)
+
+        self.assertEqual("testdir", atp.save_path)
+        self.assertEqual(42, atp.upload_limit)
+        self.assertEqual(1337, atp.download_limit)
+        self.assertTrue(atp.flags & libtorrent.torrent_flags.auto_managed)
+        self.assertTrue(atp.flags & libtorrent.torrent_flags.upload_mode)
 
     async def test_start_download_existing_handle(self) -> None:
         """
