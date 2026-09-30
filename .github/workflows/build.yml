@@ -168,7 +168,8 @@ jobs:
           python3 -m venv ./.venv --system-site-packages
           . ./.venv/bin/activate 
           python3 -m pip install -r build/requirements.txt
-          python3 build/setup.py build > /dev/null 2>&1
+          python3 -m pip install --upgrade freeze-core==0.7.5
+          python3 build/setup.py build
           
           cd build/alpine
           ./build.sh

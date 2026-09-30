@@ -475,12 +475,8 @@ class MetadataStore:
                 # we want to guarantee that at least something
                 # will go through, but not too much
                 self.batch_size = min(max(self.batch_size, MIN_BATCH_SIZE), MAX_BATCH_SIZE)
-            self._logger.debug(
-                (
-                    "Added payload batch to DB (entries, seconds): %i %f",
-                    (self.batch_size, float(batch_end_time.total_seconds())),
-                )
-            )
+            self._logger.debug("Added payload batch to DB (entries, seconds): %i %f",
+                               self.batch_size, float(batch_end_time.total_seconds()))
             start = end
             if self._shutting_down:
                 break
