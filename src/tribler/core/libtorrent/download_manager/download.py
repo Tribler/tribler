@@ -158,7 +158,7 @@ class Download(TaskManager):
 
         # Libtorrent status
         self.lt_status: lt.torrent_status | None = None
-        self.error = None
+        self.error: str | None = None
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status: dict[str, tuple[int, str]] = {}  # {url: (num_peers, status_str)}
