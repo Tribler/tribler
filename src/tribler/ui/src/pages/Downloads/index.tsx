@@ -297,7 +297,7 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
     const [downloads, setDownloads] = useState<Download[]>([]);
     const [selectedDownloads, _setSelectedDownloads] = useState<Download[]>([]);
     const [debouncedSelectedDownload, setDebouncedSelectedDownload] = useState<Download | undefined>(undefined);
-    const [delayedNameValidityUpdate, setDelayedNameValidityUpdate] = useState<ReturnType<typeof setTimeout>>(setTimeout(() => {}, 0));
+    const [debounceTimeout, setDebounceTimeout] = useState<ReturnType<typeof setTimeout>>(setTimeout(() => {}, 0));
 
     const prevSelectedDownloads = usePrevious(selectedDownloads);
     const selectedDownloadsRef = useRef<Download[]>(selectedDownloads);
@@ -319,28 +319,27 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
     }, [location]);
 
     useEffect(() => {
-        // Refresh to avoid stale peers/pieces in the details panel.
-        // No need to refresh if we have more than one selection (no details panel).
-        // We only refresh if the selection has changed due to a user action.
-        if (
-            !prevSelectedDownloads ||
-            selectedDownloads.length > 1 ||
-            (selectedDownloads.length === prevSelectedDownloads.length &&
-                selectedDownloads.every((d, index) => d.infohash === prevSelectedDownloads[index].infohash))
-        ) {
+        if (selectedDownloads.length != 1){
+            clearTimeout(debounceTimeout);
+            setDebouncedSelectedDownload(undefined);
             return;
         }
 
-        clearTimeout(delayedNameValidityUpdate);
-        setDelayedNameValidityUpdate(
-            setTimeout(() => {
-                const newValue = selectedDownloads.length > 0 ? selectedDownloads[0] : undefined;
-                if (newValue?.infohash != debouncedSelectedDownload?.infohash) {
-                    setDebouncedSelectedDownload(newValue);
-                    updateDownloads();
-                }
-            }, 250)
-        );
+        clearTimeout(debounceTimeout);
+        if (debouncedSelectedDownload?.infohash != selectedDownloads[0].infohash) {
+            // We might be moving through the list, wait for a little bit before sending a network request.
+            setDebounceTimeout(
+                setTimeout(() => {
+                    if (debouncedSelectedDownload?.infohash != selectedDownloads[0].infohash) {
+                        setDebouncedSelectedDownload(selectedDownloads.length > 0 ? selectedDownloads[0] : undefined);
+                        updateDownloads([selectedDownloads[0].infohash]);
+                    }
+                }, 250)
+            );
+        } else {
+            // Something other than the user caused the currently selected download to change, update immediately.
+            setDebouncedSelectedDownload(selectedDownloads[0]);
+        }
     }, [selectedDownloads]);
 
     useEffect(() => {
