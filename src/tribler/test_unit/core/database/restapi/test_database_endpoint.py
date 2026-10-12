@@ -173,7 +173,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint = DatabaseEndpoint()
         endpoint.tribler_db = Mock()
         endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(), get_max_rowid=Mock(),
-                            query_with_augmenter=Mock(return_value=[
+                            get_entries=Mock(return_value=[]), query_with_augmenter=Mock(return_value=[
                                 Mock(to_simple_dict=Mock(return_value={"test": "test", "type": -1}))
                             ]))
         request = MockRequest("/api/metadata/search/local", query={"fts_text": ""})
@@ -197,7 +197,7 @@ class TestDatabaseEndpoint(TestBase):
         endpoint.tribler_db = Mock()
         endpoint.mds = Mock(run_threaded=self.mds_run_now, get_total_count=Mock(return_value=1),
                             get_max_rowid=Mock(return_value=7),
-                            query_with_augmenter=Mock(return_value=[
+                            get_entries=Mock(return_value=[]), query_with_augmenter=Mock(return_value=[
                                 Mock(to_simple_dict=Mock(return_value={"test": "test", "type": -1}))
                             ]))
         request = MockRequest("/api/metadata/search/local", query={"fts_text": "",
