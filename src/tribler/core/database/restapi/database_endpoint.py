@@ -311,8 +311,12 @@ class DatabaseEndpoint(RESTEndpoint):
 
         def search_db() -> tuple[list[dict], int, int]:
             with db_session:
+                # We get two sets of results here:
+                #  1. Fast results with exact matches.
+                #  2. Auto-corrected results with probable matches.
+                pony_query_fts = mds.get_entries(**sanitized)
                 pony_query = mds.query_with_augmenter(request.query.get("fts_text"), self.augmenter)
-                search_results = [r.to_simple_dict() for r in pony_query]
+                search_results = [r.to_simple_dict() for r in pony_query_fts] + [r.to_simple_dict() for r in pony_query]
                 if include_total:
                     total = mds.get_total_count(**sanitized)
                     max_rowid = mds.get_max_rowid()
