@@ -6,7 +6,8 @@ import {Dispatch, MutableRefObject, SetStateAction, useEffect, useMemo, useRef, 
 import {isErrorDict} from "@/services/reporting";
 import {triblerService} from "@/services/tribler.service";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
-import {ChevronDown, ChevronRight, Download as DownloadIcon, Gauge, Pause, Play} from "lucide-react";
+import {ChevronDown, ChevronRight, Download as DownloadIcon, Gauge, Pause, Pencil, Play} from "lucide-react";
+import {Button} from "@/components/ui/button";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
     ContextMenu,
@@ -17,6 +18,8 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
 import {Slider} from "@/components/ui/slider";
 import {filesToTree, formatBytes, getSelectedFilesFromTree} from "@/lib/utils";
 import {useTranslation} from "react-i18next";
@@ -121,6 +124,8 @@ export default function Files({download, style}: {download: Download; style?: Re
     const [paused, setPaused] = useState<boolean>(false);
     const [changedWhilePaused, setChangedWhilePaused] = useState<boolean>(false);
     const [selectedFile, setSelectedFile] = useState<FileTreeItem | undefined>(undefined);
+    const [renameDialogOpen, setRenameDialogOpen] = useState<boolean>(false);
+    const [renameInput, setRenameInput] = useState<string>("");
     const initialized = useRef(false);
     const downloadFileRef = useRef<HTMLAnchorElement | null>(null);
 
@@ -258,6 +263,13 @@ export default function Files({download, style}: {download: Download; style?: Re
                             <DownloadIcon className="w-4 mx-2" /> {t("Download")}
                         </ContextMenuItem>
                     )}
+                    <ContextMenuItem
+                        inset
+                        disabled={selectedFile === undefined}
+                        onClick={() => setRenameDialogOpen(true)}>
+                        <Pencil className="w-4 mx-2"  />
+                        {t("Rename")}
+                    </ContextMenuItem>
                     <ContextMenuSub>
                         <ContextMenuSubTrigger
                             inset
@@ -287,6 +299,54 @@ export default function Files({download, style}: {download: Download; style?: Re
                     </ContextMenuSub>
                 </ContextMenuContent>
             </ContextMenu>
+            <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t("RenameDialogHeader")}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-1 py-4 text-sm">
+                        {t("RenameDialogInputLabel")}
+                        <div className="grid grid-cols-6 items-center gap-4">
+                            <Input
+                                id="renameFile"
+                                className="col-span-5 pt-0"
+                                value={renameInput}
+                                onChange={(event) => setRenameInput(event.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            type="submit"
+                            onClick={() => {
+                                if (renameInput && selectedFile !== undefined) {
+                                    triblerService
+                                        .renameFile(download.infohash, selectedFile.index, renameInput)
+                                        .then((response) => {
+                                            if (response === undefined) {
+                                                toast.error(
+                                                    `${t("ToastErrorFileRename")} ${t("ToastErrorGenNetworkErr")}`
+                                                );
+                                            } else if (isErrorDict(response)) {
+                                                toast.error(`${t("ToastErrorFileRename")} ${response.error.message}`);
+                                            } else {
+                                                updateFiles(setFiles, download, initialized);
+                                            }
+                                        });
+                                    setRenameDialogOpen(false);
+                                }
+                            }}>
+                            {t("Rename")}
+                        </Button>
+                        <DialogClose asChild>
+                            <Button variant="outline" type="button">
+                                {t("Cancel")}
+                            </Button>
+                        </DialogClose>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

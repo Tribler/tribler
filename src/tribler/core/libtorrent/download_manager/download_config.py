@@ -48,6 +48,7 @@ class StateConfigSection(TypedDict):
     metainfo: NotRequired[str]
     engineresumedata: NotRequired[str]
     post_handle_ops: NotRequired[int]
+    renamed_files: NotRequired[str]
 
 
 class DownloadConfigSection(TypedDict):
@@ -300,6 +301,13 @@ class DownloadConfig:
         Set the engine resume data dict for this download.
         """
         self.config["state"]["engineresumedata"] = base64.b64encode(lt.write_resume_data_buf(engineresumedata)).decode()
+        if engineresumedata.renamed_files:
+            # The renamed_files are not (yet?) part of write_resume_data_buf, we store these manually.
+            self.config["state"]["renamed_files"] = base64.b64encode(
+                lt.bencode({  # type:ignore[arg-type]
+                    bytes([k]): v.encode() for k, v in engineresumedata.renamed_files.items()
+                })
+            ).decode()
 
     def get_engineresumedata(self) -> lt.add_torrent_params | None:
         """
@@ -308,9 +316,19 @@ class DownloadConfig:
         resume_data = self.config["state"].get("engineresumedata")
         if resume_data:
             try:
-                return lt.read_resume_data(base64.b64decode(resume_data))
+                atp = lt.read_resume_data(base64.b64decode(resume_data))
             except RuntimeError:
                 return None
+            renamed_files = self.config["state"].get("renamed_files")
+            if renamed_files:
+                try:
+                    atp.renamed_files = {
+                        k[0]: v.decode() for k, v
+                        in cast("dict[bytes, bytes]", lt.bdecode(base64.b64decode(renamed_files))).items()
+                    }
+                except RuntimeError:
+                    return atp
+            return atp
         return None
 
     def set_stop_after_metainfo(self, value: bool) -> None:

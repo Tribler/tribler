@@ -281,5 +281,9 @@
     "AdvancedSettings": "Use advanced settings",
     "Priority": "Priority",
     "UnpauseSelect": "Unpause selection updates",
-    "PauseSelect": "Pause selection updates"
+    "PauseSelect": "Pause selection updates",
+    "Rename": "Rename",
+    "RenameDialogHeader": "Rename file",
+    "RenameDialogInputLabel": "Set the new name for this file",
+    "ToastErrorFileRename": "Failed to set new name for file!"
 }

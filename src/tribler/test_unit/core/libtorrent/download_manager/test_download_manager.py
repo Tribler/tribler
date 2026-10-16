@@ -202,7 +202,7 @@ class TestDownloadManager(TestBase):
         self.manager.dht_ready_task = Future()
         self.manager.dht_readiness_timeout = 0.001
 
-        self.assertIsNone(await self.manager.start_handle(download, Mock(save_path="", flags=0)))
+        self.assertIsNone(await self.manager.start_handle(download, Mock(save_path="", flags=0, renamed_files={})))
 
     async def test_start_handle_wait_for_dht(self) -> None:
         """
@@ -214,7 +214,7 @@ class TestDownloadManager(TestBase):
         self.manager.dht_ready_task = Future()
         self.manager.dht_readiness_timeout = 10
 
-        task = ensure_future(self.manager.start_handle(download, Mock(save_path="", flags=0)))
+        task = ensure_future(self.manager.start_handle(download, Mock(save_path="", flags=0, renamed_files={})))
         self.manager.dht_ready_task.set_result(None)
         await task
 

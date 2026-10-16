@@ -281,5 +281,9 @@
     "AdvancedSettings": "使用高级设置",
     "Priority": "优先事项",
     "UnpauseSelect": "取消暂停选择更新",
-    "PauseSelect": "暂停选择更新"
+    "PauseSelect": "暂停选择更新",
+    "Rename": "重命名",
+    "RenameDialogHeader": "重命名文件",
+    "RenameDialogInputLabel": "设置该文件的新名称",
+    "ToastErrorFileRename": "无法为文件设置新名称！"
 }
