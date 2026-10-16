@@ -281,5 +281,9 @@
     "AdvancedSettings": "उन्नत सेटिंग्स का उपयोग करें",
     "Priority": "प्राथमिकता",
     "UnpauseSelect": "चयन अद्यतनों को रोकें",
-    "PauseSelect": "चयन अद्यतन रोकें"
+    "PauseSelect": "चयन अद्यतन रोकें",
+    "Rename": "नाम बदलें",
+    "RenameDialogHeader": "फ़ाइल का नाम बदलें",
+    "RenameDialogInputLabel": "इस फ़ाइल के लिए नया नाम सेट करें",
+    "ToastErrorFileRename": "फ़ाइल के लिए नया नाम सेट करने में विफल!"
 }

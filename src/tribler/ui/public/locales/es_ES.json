@@ -281,5 +281,9 @@
     "AdvancedSettings": "Usar configuración avanzada",
     "Priority": "Prioridad",
     "UnpauseSelect": "Reanudar actualizaciones de selección",
-    "PauseSelect": "Pausar actualizaciones de selección"
+    "PauseSelect": "Pausar actualizaciones de selección",
+    "Rename": "Rebautizar",
+    "RenameDialogHeader": "Cambiar nombre de archivo",
+    "RenameDialogInputLabel": "Establecer el nuevo nombre para este archivo",
+    "ToastErrorFileRename": "¡No se pudo establecer un nuevo nombre para el archivo!"
 }

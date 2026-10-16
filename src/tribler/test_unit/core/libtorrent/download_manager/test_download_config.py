@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock, mock_open, patch
 
+import libtorrent
 from ipv8.test.base import TestBase
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
@@ -104,3 +105,27 @@ class TestDownloadConfig(TestBase):
         self.download_config.set_seeding_ratio(None)
 
         self.assertIsNone(self.download_config.get_seeding_ratio())
+
+    def test_set_engineresumedata(self) -> None:
+        """
+        Test if engineresumedata is set correctly.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.name = "test"
+
+        self.download_config.set_engineresumedata(atp)
+
+        self.assertEqual("test", self.download_config.get_engineresumedata().name)
+
+    def test_set_engineresumedata_with_renamed(self) -> None:
+        """
+        Test if engineresumedata is set correctly with renamed files.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.name = "test"
+        atp.renamed_files = {0: "test/test_file", 42: "test/other_test_file"}
+
+        self.download_config.set_engineresumedata(atp)
+
+        self.assertEqual("test/test_file", self.download_config.get_engineresumedata().renamed_files[0])
+        self.assertEqual("test/other_test_file", self.download_config.get_engineresumedata().renamed_files[42])

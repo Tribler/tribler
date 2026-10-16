@@ -88,6 +88,7 @@ class DownloadsEndpoint(RESTEndpoint):
             web.delete("/{infohash}/trackers", self.remove_tracker),
             web.put("/{infohash}/tracker_force_announce", self.tracker_force_announce),
             web.get("/{infohash}/files", self.get_files),
+            web.put("/{infohash}/rename/{fileindex}", self.rename_file),
             web.get("/{infohash}/stream/{fileindex}", self.stream, allow_head=False)
         ])
 
@@ -970,6 +971,58 @@ class DownloadsEndpoint(RESTEndpoint):
             return DownloadStatus.LOADING
 
         return status
+
+    @docs(
+        tags=["Libtorrent"],
+        summary="Locally rename a file in a download.",
+        parameters=[
+            {
+                "in": "path",
+                "name": "infohash",
+                "description": "Infohash of the download that has the file to rename",
+                "type": "string",
+                "required": True,
+            },
+            {
+                "in": "path",
+                "name": "fileindex",
+                "description": "The fileindex to rename",
+                "type": "string",
+                "required": True,
+            },
+        ],
+        responses={200: {"success": True}},
+    )
+    @json_schema(schema(RenameFileRequest={"name": (String, "The new name of the file")}))
+    async def rename_file(self, request: Request) -> web.StreamResponse:
+        """
+        Locally rename a file in a download.
+        """
+        infohash = unhexlify(request.match_info["infohash"])
+        download = self.download_manager.get_download(infohash)
+        if not download:
+            return DownloadsEndpoint.return_404()
+
+        tinfo = download.tdef.torrent_info
+        if tinfo is None:
+            return RESTResponse({"error": {"handled": True, "message": "no torrent info"}}, status=HTTP_BAD_REQUEST)
+
+        file_index = int(request.match_info["fileindex"])
+        if not 0 <= file_index <= max(download.tdef.get_file_indices()):
+            return DownloadsEndpoint.return_404()
+
+        parameters = await request.json()
+        name = parameters.get("name")
+        if not name:
+            return RESTResponse({"error": {"handled": True, "message": "no rename supplied"}}, status=HTTP_BAD_REQUEST)
+
+        new_name = "/".join([*Path(tinfo.file_at(file_index).path).parts[:-1], name])
+        download.tdef.atp.renamed_files = {**download.tdef.atp.renamed_files, file_index: new_name}
+        if download.tdef.atp.ti is not None:
+            download.tdef.atp.ti.files().rename_file(file_index, new_name)
+        if download.handle is not None and download.handle.is_valid():
+            download.handle.rename_file(file_index, new_name)
+        return RESTResponse({"success": True})
 
     @docs(
         tags=["Libtorrent"],

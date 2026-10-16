@@ -1208,3 +1208,101 @@ class TestDownloadsEndpoint(TestBase):
         self.assertEqual(16, included_files[0]["size"])
         self.assertTrue(included_files[0]["included"])
         self.assertTrue(atp.ti.info_hashes().has_v2())
+
+    async def test_rename_file(self) -> None:
+        """
+        Test if a file can be renamed.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha1_hash(b"\x01" * 20))
+        atp.ti.files().add_file("d/a.txt", 16)
+        atp.ti.files().add_file("d/b.txt", 16)
+        download = self.create_mock_download()
+        download.tdef = TorrentDef(atp)
+        self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(
+            f"/api/downloads/{'01' * 20}/rename_file/1", "PUT",
+            {"name": "c.txt"}, {"infohash": "01" * 20, "fileindex": "1"}
+        )
+
+        response = await self.endpoint.rename_file(request)
+        response_body_json = await response_to_json(response)
+
+        self.assertEqual(200, response.status)
+        self.assertTrue(response_body_json["success"])
+        self.assertEqual("d/c.txt", atp.renamed_files[1])
+
+    async def test_rename_file_no_download(self) -> None:
+        """
+        Test if a file rename fails when it refers to a non-existent download.
+        """
+        self.download_manager.get_download = Mock(return_value=None)
+        request = MockRequest(
+            f"/api/downloads/{'01' * 20}/rename_file/1", "PUT",
+            {"name": "c.txt"}, {"infohash": "01" * 20, "fileindex": "1"}
+        )
+
+        response = await self.endpoint.rename_file(request)
+
+        self.assertEqual(404, response.status)
+
+    async def test_rename_file_no_file(self) -> None:
+        """
+        Test if a file rename fails when it refers to a non-existent file.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha1_hash(b"\x01" * 20))
+        atp.ti.files().add_file("d/a.txt", 16)
+        download = self.create_mock_download()
+        download.tdef = TorrentDef(atp)
+        self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(
+            f"/api/downloads/{'01' * 20}/rename_file/1", "PUT",
+            {"name": "c.txt"}, {"infohash": "01" * 20, "fileindex": "1"}
+        )
+
+        response = await self.endpoint.rename_file(request)
+
+        self.assertEqual(404, response.status)
+
+    async def test_rename_file_no_name(self) -> None:
+        """
+        Test if a file rename fails when no name is specified.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = libtorrent.torrent_info(libtorrent.sha1_hash(b"\x01" * 20))
+        atp.ti.files().add_file("d/a.txt", 16)
+        atp.ti.files().add_file("d/b.txt", 16)
+        download = self.create_mock_download()
+        download.tdef = TorrentDef(atp)
+        self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(
+            f"/api/downloads/{'01' * 20}/rename_file/1",
+            "PUT",
+            {},
+            {"infohash": "01" * 20, "fileindex": "1"},
+        )
+
+        response = await self.endpoint.rename_file(request)
+
+        self.assertEqual(400, response.status)
+
+    async def test_rename_file_no_info(self) -> None:
+        """
+        Test if a file rename fails when no torrent info is available for the download.
+        """
+        atp = libtorrent.add_torrent_params()
+        atp.ti = None
+        download = self.create_mock_download()
+        download.tdef = TorrentDef(atp)
+        self.download_manager.get_download = Mock(return_value=download)
+        request = MockRequest(
+            f"/api/downloads/{'01' * 20}/rename_file/1",
+            "PUT",
+            {"name": "c.txt"},
+            {"infohash": "01" * 20, "fileindex": "1"},
+        )
+
+        response = await self.endpoint.rename_file(request)
+
+        self.assertEqual(400, response.status)

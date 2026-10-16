@@ -88,6 +88,14 @@ export class TriblerService {
         }
     }
 
+    async renameFile(infohash: string, file_index: number, name: string): Promise<undefined | ErrorDict | boolean> {
+        try {
+            return (await this.http.put(`/downloads/${infohash}/rename/${file_index}`, {name: name})).data.success;
+        } catch (error) {
+            return formatAxiosError(error as Error | AxiosError);
+        }
+    }
+
     async startDownload(uri: string, params: DownloadConfig = {}): Promise<undefined | ErrorDict | boolean> {
         try {
             return (await this.http.put("/downloads", {...params, uri: uri})).data.started;

@@ -281,5 +281,9 @@
     "AdvancedSettings": "고급 설정 사용",
     "Priority": "우선 사항",
     "UnpauseSelect": "선택 업데이트 일시중지 해제",
-    "PauseSelect": "선택 업데이트 일시중지"
+    "PauseSelect": "선택 업데이트 일시중지",
+    "Rename": "이름 바꾸기",
+    "RenameDialogHeader": "파일 이름 바꾸기",
+    "RenameDialogInputLabel": "이 파일의 새 이름을 설정하세요.",
+    "ToastErrorFileRename": "파일의 새 이름을 설정하지 못했습니다!"
 }
