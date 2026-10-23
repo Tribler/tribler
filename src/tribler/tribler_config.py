@@ -9,11 +9,14 @@ import os
 from importlib.metadata import PackageNotFoundError, version
 from json import JSONDecodeError
 from pathlib import Path
-from typing import NotRequired, TypedDict
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from ipv8.configuration import default as ipv8_default_config
 
 from tribler.upgrade_script import TO
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -289,29 +292,29 @@ class TriblerConfig(TypedDict):
     ui: dict
 
 
-DEFAULT_CONFIG = {
-    "api": {
-        "http_enabled": True,
-        "http_port": 0,
-        "http_host": "127.0.0.1",
-        "https_enabled": False,
-        "https_host": "127.0.0.1",
-        "https_port": 0,
-        "https_certfile": "https_certfile",
+DEFAULT_CONFIG = TriblerConfig(
+    api=ApiConfig(
+        http_enabled=True,
+        http_port=0,
+        http_host="127.0.0.1",
+        https_enabled=False,
+        https_host="127.0.0.1",
+        https_port=0,
+        https_certfile="https_certfile",
         # Ports currently in-use. Used by run_tribler.py to detect duplicate sessions.
-        "http_port_running": 0,
-        "https_port_running": 0,
-    },
-    "headless": False,
-    "start_minimized": False,
+        http_port_running=0,
+        https_port_running=0,
+    ),
+    headless=False,
+    start_minimized=False,
 
-    "ipv8": ipv8_default_config,
-    "statistics": False,
+    ipv8=ipv8_default_config,
+    statistics=False,
 
-    "content_discovery_community": ContentDiscoveryCommunityConfig(enabled=True),
-    "database": DatabaseConfig(enabled=True),
-    "dht_discovery": DHTDiscoveryCommunityConfig(enabled=True),
-    "libtorrent": LibtorrentConfig(
+    content_discovery_community=ContentDiscoveryCommunityConfig(enabled=True),
+    database=DatabaseConfig(enabled=True),
+    dht_discovery=DHTDiscoveryCommunityConfig(enabled=True),
+    libtorrent=LibtorrentConfig(
         socks_listen_ports=[0, 0, 0, 0, 0],
         listen_interface="0.0.0.0",
         port=0,
@@ -362,19 +365,19 @@ DEFAULT_CONFIG = {
         clear_orphaned_parts=False,
         allow_mmap=True
         ),
-    "recommender": RecommenderConfig(enabled=True),
-    "rendezvous": RendezvousConfig(enabled=True),
-    "rss": RSSConfig(enabled=True, urls=[]),
-    "torrent_checker": TorrentCheckerConfig(enabled=True),
-    "tunnel_community": TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
-    "versioning": VersioningConfig(enabled=True, allow_pre=False),
-    "watch_folder": WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
+    recommender=RecommenderConfig(enabled=True),
+    rendezvous=RendezvousConfig(enabled=True),
+    rss=RSSConfig(enabled=True, urls=[]),
+    torrent_checker=TorrentCheckerConfig(enabled=True),
+    tunnel_community=TunnelCommunityConfig(enabled=True, min_circuits=3, max_circuits=8),
+    versioning=VersioningConfig(enabled=True, allow_pre=False),
+    watch_folder=WatchFolderConfig(enabled=False, directory="", check_interval=10.0),
 
-    "state_dir": str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
-    "memory_db": False,
-    "tray_icon_color": "",
-    "ui": {}
-}
+    state_dir=str((Path(os.environ.get("APPDATA", "~")) / ".Tribler").expanduser().absolute()),
+    memory_db=False,
+    tray_icon_color="",
+    ui={}
+)
 
 # Changes to IPv8 default config
 DEFAULT_CONFIG["ipv8"]["interfaces"].append({
@@ -412,6 +415,9 @@ class TriblerConfigManager:
         """
         super().__init__()
         self.config_file = config_file
+        self.triggers: dict[str, list[Callable[[str,
+                                                dict | list | str | float | bool | None,
+                                                dict | list | str | float | bool | None], None]]] = {}
 
         logger.info("Load: %s.", self.config_file)
         self.configuration = TriblerConfig()
@@ -477,7 +483,29 @@ class TriblerConfigManager:
                         else:
                             current[part] = out
                         break
+        old_value = current.get(Path(option).parts[-1])  # `None` if the value didn't exist before.
         current[Path(option).parts[-1]] = value
+        if old_value != value:
+            # Adding a trigger for `a/b` will get called for all options `a/b/c`, `a/b/c/d` etc.
+            for callbacks in [c for t, c in self.triggers.items() if option.startswith(t)]:
+                for callback in callbacks:
+                    callback(option, old_value, value)
+
+    def add_trigger(self, option: str,
+                    callback: Callable[[str,
+                                        dict | list | str | float | bool | None,
+                                        dict | list | str | float | bool | None], None]) -> None:
+        """
+        Add a change trigger for a certain option.
+
+            - Setting the same value twice does not count as a change.
+            - Callbacks are called after setting the config to the new value.
+        """
+        if option in self.triggers:
+            self.triggers[option].append(callback)
+        else:
+            self.triggers[option] = [callback]
+
 
 if __name__ == "__main__":
     # Run this file to generate ``tribler_config.pyi`` type stubs.
@@ -499,6 +527,12 @@ if __name__ == "__main__":
     def _produce_get_overload(key: str, value_type: str) -> str:
         return f"""    @overload
     def get(self, option: Literal["{key}"]) -> {value_type}: ...
+"""
+
+    def _produce_trigger_overload(key: str, value_type: str) -> str:
+        return f"""    @overload
+    def add_trigger(self, option: Literal["{key}"],
+                    callback: Callable[[Literal["{key}"], {value_type}, {value_type}], None]) -> None: ...
 """
 
     global_keys = {}
@@ -527,9 +561,6 @@ if __name__ == "__main__":
                 typed_dicts.append((getattr(key_type, "__name__", str(key_type)), abs_key))
         index += 1
 
-    set_annotations = inspect.get_annotations(TriblerConfigManager.set)
-    get_annotations = inspect.get_annotations(TriblerConfigManager.get)
-
     typed_dicts_sources = []
     unsourced = {v[0] for v in typed_dicts}
     from linecache import getlines
@@ -548,14 +579,17 @@ if __name__ == "__main__":
     conv = ASTConverter(mypy_opts, True, Errors(mypy_opts), strip_function_bodies=True, path="")
     mypy_file = conv.visit(ast_tcm)
     cdef, = mypy_file.defs
-    stubgen = ASTStubGenerator([key for key in TriblerConfigManager.__dict__
-                                if key not in ["__module__", "__doc__", "get", "set", "__dict__", "__weakref__"]])
+    stubgen = ASTStubGenerator([
+        key for key in TriblerConfigManager.__dict__
+        if key not in ["__module__", "__doc__", "get", "set", "add_trigger", "__dict__", "__weakref__"]]
+    )
     stubgen.indent()
     for fdef in cdef.defs.body:
-        if isinstance(fdef, FuncDef) and fdef.name not in ["get", "set"]:
+        if isinstance(fdef, FuncDef) and fdef.name not in ["get", "set", "add_trigger"]:
             stubgen.visit_func_def(fdef)
 
-    stub = f"""from pathlib import Path
+    stub = f"""from collections.abc import Callable
+from pathlib import Path
 from typing import Literal, NotRequired, TypedDict, overload
 
 # ruff: noqa: PYI021
@@ -568,10 +602,16 @@ class TriblerConfigManager:
 
     configuration: TriblerConfig
     config_file: Path
+    triggers: dict[str, list[Callable[[str,
+                                       dict | list | str | float | bool | None,
+                                       dict | list | str | float | bool | None], None]]]
 
 {"".join(l for l in stubgen._output if l.startswith("    def"))}
 {"".join(_produce_set_overload(k, v) for k, v in global_keys.items())}
-{"".join(_produce_get_overload(k, v) for k, v in global_keys.items())}"""  # noqa: SLF001
+{"".join(_produce_get_overload(k, v) for k, v in global_keys.items())}
+{"".join(_produce_trigger_overload(k, v) for k, v in global_keys.items())}
+DEFAULT_CONFIG: TriblerConfig
+"""  # noqa: SLF001
 
     with open("tribler_config.pyi", "w") as stub_file:
         stub_file.write(stub)
