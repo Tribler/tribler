@@ -26,4 +26,5 @@ export interface Peer {
     from_dht: boolean;
     from_pex: boolean;
     from_lsd: boolean;
+    flags: number;
 }
