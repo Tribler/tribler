@@ -890,7 +890,8 @@ class Download(TaskManager):
                 "upload_only": bool(peer_info.flags & peer_info.upload_only),
                 "from_dht": bool(peer_info.source & peer_info.dht),
                 "from_pex": bool(peer_info.source & peer_info.pex),
-                "from_lsd": bool(peer_info.source & peer_info.lsd)
+                "from_lsd": bool(peer_info.source & peer_info.lsd),
+                "flags": peer_info.flags
             })
             if include_have:
                 peer_dict = cast("PeerDictHave", peer_dict)

@@ -66,6 +66,29 @@ const peerFlags = (peer: Peer): [string, string[]] => {
     return [state, stateDescription];
 };
 
+const connectionTypeStr = (connection_type: number, flags: number): string => {
+    let ctypes = [];
+    if (connection_type & 1) {
+        ctypes.push("BitTorrent");
+    }
+    if (connection_type & 2) {
+        ctypes.push("Web");
+    }
+    if (connection_type & 4) {
+        ctypes.push("HTTP");
+    }
+    if (flags & 65536) {
+        ctypes.push("I2P");
+    }
+    if (flags & 131072) {
+        ctypes.push("μTP");
+    }
+    if (flags & 262144) {
+        ctypes.push("SSL");
+    }
+    return ctypes.join(", ");
+};
+
 const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
@@ -112,6 +135,12 @@ const peerColumns: ColumnDef<Peer>[] = [
         },
     },
     {
+        accessorKey: "connection_type",
+        header: getHeader("Connection"),
+        cell: ({row}) => {
+            return <span>{connectionTypeStr(row.original.connection_type, row.original.connection_type)}</span>;
+        },
+    },{
         accessorKey: "extended_version",
         header: getHeader("Client"),
     },
