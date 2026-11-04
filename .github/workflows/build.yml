@@ -13,7 +13,7 @@ jobs:
             architecture: x64
           - os: ubuntu-latest
             architecture: aarch64
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             architecture: x64
           - os: windows-latest
             architecture: x64
@@ -150,7 +150,7 @@ jobs:
           mv tribler_${GITHUB_TAG}_all.deb tribler_${GITHUB_TAG}_${{ matrix.architecture }}.deb
 
       - name: Setup latest Alpine Linux (Alpine musl x86_64)
-        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        if: matrix.os == 'ubuntu-24.04' && matrix.architecture == 'x64'
         uses: jirutka/setup-alpine@v1
         id: alpine-target
         with:
@@ -160,7 +160,7 @@ jobs:
           packages: python3-dev py3-pip py3-gobject3 py3-lz4 build-base abuild doas sudo shadow-login cmake protobuf-dev pkgconf git
 
       - name: Build musl Executables (Alpine musl x86_64)
-        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        if: matrix.os == 'ubuntu-24.04' && matrix.architecture == 'x64'
         env:
           GITHUB_BUILD_NUMBER: ${{ github.run_number }}
         shell: alpine-x86_64.sh {0}
@@ -175,7 +175,7 @@ jobs:
           
           cp /home/runner/packages/build/x86_64/tribler-*.apk .
       - name: Move musl artifact (Alpine musl x86_64)
-        if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'x64'
+        if: matrix.os == 'ubuntu-24.04' && matrix.architecture == 'x64'
         run: |
           mkdir -p dist
           mv ${{ steps.alpine-target.outputs.root-path }}/home/runner/work/tribler/tribler/build/alpine/tribler-*.apk ./dist/
