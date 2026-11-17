@@ -317,6 +317,7 @@ class TunnelComponent(BaseLauncher["TriblerTunnelCommunity"]):
         When we are done launching, register our REST API.
         """
         cast("DownloadsEndpoint", session.rest_manager.get_endpoint("/api/downloads")).tunnel_community = community
+        cast("StatisticsEndpoint", session.rest_manager.get_endpoint("/api/statistics")).tunnel_community = community
         ipv8_root_ep = cast("IPv8RootEndpoint", session.rest_manager.get_endpoint("/api/ipv8"))
         cast("TunnelEndpoint", ipv8_root_ep.endpoints["/tunnel"]).tunnels = community
 
