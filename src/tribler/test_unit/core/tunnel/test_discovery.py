@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 from ipv8.community import Community, CommunitySettings
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.test.base import TestBase
+
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
 
 from tribler.core.tunnel.discovery import GoldenRatioStrategy
 

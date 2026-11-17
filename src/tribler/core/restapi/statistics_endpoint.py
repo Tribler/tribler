@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.session import Session
+    from tribler.core.tunnel.community import TriblerTunnelCommunity
 
 
 class Socks5StatsDict(TypedDict):
@@ -83,6 +84,7 @@ class StatisticsEndpoint(RESTEndpoint):
         super().__init__(middlewares, client_max_size)
         self.session: Session | None = None
         self.content_discovery_community: ContentDiscoveryCommunity | None = None
+        self.tunnel_community: TriblerTunnelCommunity | None = None
 
         self.app.add_routes([web.get("/tribler", self.get_tribler_stats),
                              web.get("/ipv8", self.get_ipv8_stats),
@@ -145,10 +147,10 @@ class StatisticsEndpoint(RESTEndpoint):
             lt_stats["total_sent_bytes"] = sum([s["sent_bytes"] for s in lt_stats["sessions"]])
             stats_dict["libtorrent"] = lt_stats
 
-        if self.session and self.session.rust_endpoint:
+        if self.tunnel_community and self.tunnel_community.engine:
             stats_dict["socks5_sessions"] = cast(
                 "list[Socks5StatsDict]",
-                self.session.rust_endpoint.get_socks5_statistics()
+                self.tunnel_community.engine.get_socks5_statistics()
             )
 
         version = ipv8_rust_tunnels.__version__
@@ -176,10 +178,10 @@ class StatisticsEndpoint(RESTEndpoint):
         """
         stats_dict = {}
         if self.session and self.session.ipv8:
-            stats_ep = cast("IPv8StatsEndpoint", self.session.ipv8.endpoint)
+            (_, bytes_up, _, bytes_down, _) = self.session.rust_endpoint.get_socket_statistics()
             stats_dict = {
-                "total_up": stats_ep.bytes_up,
-                "total_down": stats_ep.bytes_down
+                "total_up": bytes_up,
+                "total_down": bytes_down
             }
         return RESTResponse({"ipv8_statistics": stats_dict})
 
