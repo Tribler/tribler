@@ -33,6 +33,7 @@ import Asyncio from "./pages/Debug/Asyncio";
 import AutoCorrect from "./pages/Debug/AutoCorrect";
 import Popularity from "./pages/Debug/Popularity";
 import Interface from "./pages/Settings/Interface";
+import VideoPlayer from "./pages/Videoplayer";
 
 var raiseUnhandledError: (reason?: any) => void;
 const errorPromise = new Promise(function (resolve, reject) {
@@ -131,6 +132,10 @@ export const router = createHashRouter([
             {
                 path: "settings/interface",
                 element: <Interface />,
+            },
+            {
+                path: "stream/:infohash/:file?",
+                element: <VideoPlayer />,
             },
             {
                 path: "debug/general",

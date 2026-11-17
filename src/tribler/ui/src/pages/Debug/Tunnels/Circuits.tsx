@@ -136,7 +136,7 @@ export default function Circuits() {
                         onClick={() => {
                             setSpeeds([]);
                             if (selectedCircuit) {
-                                ipv8Service.testCircuit(selectedCircuit?.circuit_id, (event) => {
+                                ipv8Service.testCircuit(selectedCircuit?.circuit_id, undefined, undefined, (event) => {
                                     setSpeeds((prevState) => [...prevState, {speed: event.down.toFixed(2)}]);
                                 });
                             }
