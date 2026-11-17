@@ -126,10 +126,19 @@ export class IPv8Service {
         }
     }
 
-    async testCircuit(circuitId: number, callback: (data: any) => void): Promise<undefined | ErrorDict> {
+    async testCircuit(
+        circuitId: number,
+        requestSize: number = 25,
+        responseSize: number = 1300,
+        callback: (data: any) => void
+    ): Promise<undefined | ErrorDict> {
         try {
             await this.http
                 .get(`/tunnel/circuits/${circuitId}/test`, {
+                    params: {
+                        request_size: requestSize,
+                        response_size: responseSize,
+                    },
                     headers: {
                         Accept: "text/event-stream",
                     },
