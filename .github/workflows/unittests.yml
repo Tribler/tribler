@@ -33,7 +33,7 @@ jobs:
           cd src
           python run_unit_tests.py -a
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v6
