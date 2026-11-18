@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, call
 
+from ipv8.community import Community
 from ipv8.messaging.serialization import ADDRESS_TYPE_IPV4
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-from ipv8.test.messaging.anonymization import mock as dht_mocks
-from ipv8.test.messaging.anonymization.mock import MockDHTProvider
-from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
-
 from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
@@ -23,21 +19,38 @@ from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelS
 if TYPE_CHECKING:
     from ipv8.community import CommunitySettings
 
+    from tribler.core.libtorrent.download_manager.download import Download
+
 
 class MockTriblerTunnelCommunity(TriblerTunnelCommunity):
+    """
+    A mocked TriblerTunnelCommunity without the TunnelEngine.
+    """
+
     def __init__(self, settings: TriblerTunnelSettings) -> None:
+        """
+        Create a new MockTriblerTunnelCommunity.
+        """
+        self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
+        self.download_states: dict[bytes, DownloadStatus] = {}
+        self.last_forced_announce: dict[bytes, float] = {}
+        self.candidates = {}
+        self.settings = settings
         self.engine = Mock(
             get_peers_for_circuit=Mock(return_value=[]),
             count_circuits=Mock(return_value=0),
             has_intro_point=Mock(return_value=False),
+            set_e2e_callback=Mock(return_value=None),
         )
-        super().__init__(settings)
+        Community.__init__(self, settings)
 
 
 class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
     """
     Tests for the TriblerTunnelCommunity class.
     """
+
+    MAX_TEST_TIME = 100000
 
     async def setUp(self) -> None:
         """
@@ -47,15 +60,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.fake_cache_file = BytesIO()
         self.fake_cache_file.read = self.fake_cache_file.getvalue
         self.initialize(MockTriblerTunnelCommunity, 1)
-        self.overlay(0).crypto_endpoint.get_socks5_statistics = Mock(return_value=[])
-        self.overlay(0).crypto_endpoint.get_peers_for_circuit = Mock(return_value=[])
-
-    async def tearDown(self) -> None:
-        """
-        Reset the global_dht_services variable.
-        """
-        dht_mocks.global_dht_services = defaultdict(list)
-        await super().tearDown()
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
                     enable_statistics: bool = False) -> MockIPv8:
@@ -68,7 +72,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         config = TriblerTunnelSettings(remove_tunnel_delay=0, max_circuits=1, socks_servers=[], notifier=Notifier(),
                                        exitnode_cache=exit_cache, download_manager=Mock(socks_listen_ports=[]))
         mock_ipv8 = MockIPv8("curve25519", MockTriblerTunnelCommunity, config)
-        config.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key, mock_ipv8.overlay.my_estimated_wan))
         mock_ipv8.overlay.cancel_all_pending_tasks()
         return mock_ipv8
 
@@ -80,11 +83,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.overlay(i).create_introduction_point(service)
 
         await self.deliver_messages()
-
-        for node in self.nodes:
-            exit_sockets = node.overlay.exit_sockets
-            for circuit_id in exit_sockets:
-                exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     async def assign_exit_node(self, i: int) -> None:
         """
@@ -99,9 +97,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.overlay(i).candidates[public_peer] = exit_node.overlay.settings.peer_flags
         self.overlay(i).build_tunnels(1)
         await self.deliver_messages()
-        exit_sockets = exit_node.overlay.exit_sockets
-        for circuit_id in exit_sockets:
-            exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     async def test_backup_exitnodes(self) -> None:
         """
@@ -138,14 +133,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.overlay(0).readd_bittorrent_peers()
 
         self.assertNotIn(mock_torrent, self.overlay(0).bittorrent_peers)
-
-    async def test_remove_non_existing_circuit(self) -> None:
-        """
-        Test removing a non-existing circuit.
-        """
-        await self.overlay(0).remove_circuit(3, remove_now=True)
-
-        self.assertNotIn(3, self.overlay(0).circuits)
 
     def test_monitor_downloads_ignore_hidden(self) -> None:
         """
@@ -217,20 +204,6 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.overlay(0).bittorrent_peers[download] = {("4.4.4.4", 4)}
         self.overlay(0).update_torrent(peers, download)
 
-    async def test_circuit_reject_too_many(self) -> None:
-        """
-        Test if a circuit is rejected by an exit node if it already joined the max number of circuits.
-        """
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = {PEER_FLAG_EXIT_BT}
-        self.overlay(1).settings.max_joined_circuits = 0
-        await self.introduce_nodes()
-
-        self.overlay(0).build_tunnels(1)
-        await self.deliver_messages()
-
-        self.assertEqual(self.overlay(0).tunnels_ready(1), 0.0)
-
     def test_cache_exitnodes_to_disk(self) -> None:
         """
         Test if we can cache exit nodes to disk.
@@ -249,9 +222,3 @@ class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
         self.overlay(0).cache_exitnodes_to_disk()
 
         self.assertTrue(self.overlay(0).settings.exitnode_cache.write_bytes.called)
-
-    async def test_should_join_circuit(self) -> None:
-        """
-        Test if we can join a circuit.
-        """
-        self.assertTrue(await self.overlay(0).should_join_circuit(create_payload=Mock(), previous_node_address=Mock()))

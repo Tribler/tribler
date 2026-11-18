@@ -4,15 +4,14 @@ import asyncio
 import hashlib
 import time
 from binascii import hexlify, unhexlify
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import ipv8_rust_tunnels
-
 from ipv8.messaging.anonymization.community import TunnelCommunity, TunnelSettings
 from ipv8.peerdiscovery.network import Network
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadState, DownloadStatus
-from tribler.core.notifier import Notification, Notifier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -21,10 +20,10 @@ if TYPE_CHECKING:
     from ipv8.messaging.payload import IntroductionResponsePayload, NewIntroductionResponsePayload
     from ipv8.messaging.payload_headers import GlobalTimeDistributionPayload
     from ipv8.peer import Peer
-    from ipv8_rust_tunnels import Endpoint as RustEndpoint
 
     from tribler.core.libtorrent.download_manager.download import Download
     from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
+    from tribler.core.notifier import Notifier
 
 DESTROY_REASON_BALANCE = 65535
 PEER_FLAG_EXIT_HTTP = 32768
@@ -61,26 +60,14 @@ class TriblerTunnelCommunity(TunnelCommunity):
         super().__init__(settings)
 
         if settings.exitnode_enabled:
-            self.settings.peer_flags |= {ipv8_rust_tunnels.PEER_FLAG_EXIT_BT, ipv8_rust_tunnels.PEER_FLAG_EXIT_IPV8, ipv8_rust_tunnels.PEER_FLAG_EXIT_HTTP}
+            self.settings.peer_flags |= {PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_IPV8, PEER_FLAG_EXIT_HTTP}
 
         self.logger.info("Using %s with flags %s", self.endpoint.__class__.__name__, self.settings.peer_flags)
 
         self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
         self.download_states: dict[bytes, DownloadStatus] = {}
         self.last_forced_announce: dict[bytes, float] = {}
-
-        try:
-            self.settings.download_manager.socks_listen_ports = [
-                self.engine.create_socks5_server(port, index+1)
-                for index, port in enumerate(self.settings.download_manager.socks_listen_ports)
-            ]
-        except ipv8_rust_tunnels.NotOpenError:
-            self.logger.warning("Failed to start SOCKS5 servers")
-
-        loop = asyncio.get_running_loop()
-        self.engine.set_circuit_state_callback(
-            lambda cid, state: loop.call_soon_threadsafe(self.on_circuit_state_changed, cid, state)
-        )
+        self._loop = asyncio.get_running_loop()
 
         if settings.exitnode_cache is not None:
             self.register_task("Load cached exitnodes", self.restore_exitnodes_from_disk, delay=0.5)
@@ -88,16 +75,37 @@ class TriblerTunnelCommunity(TunnelCommunity):
         self.register_task("Poll download manager for new or changed downloads", self._poll_download_manager,
                            interval=1.0)
 
+    def on_endpoint_open(self) -> None:
+        """
+        Create the TunnelEngine once the RustEndpoint has been opened.
+        """
+        super().on_endpoint_open()
+        if self.engine is not None:
+            try:
+                self.settings.download_manager.socks_listen_ports = [
+                    self.engine.create_socks5_server(port, index+1)
+                    for index, port in enumerate(self.settings.download_manager.socks_listen_ports)
+                ]
+            except ipv8_rust_tunnels.NotOpenError:
+                self.logger.warning("Failed to start SOCKS5 servers")
+
+            self.engine.set_e2e_callback(self.on_e2e_finished)
+            self.engine.set_circuit_state_callback(
+                lambda cid, state: self._loop.call_soon_threadsafe(self.on_circuit_state_changed, cid, state)
+            )
+
     def on_circuit_state_changed(self, circuit_id: int, state: str) -> None:
-        self.logger.info(f"Circuit {circuit_id} state changed to {state}"),
+        """
+        Callback for circuit state change.
+        """
+        self.logger.info("Circuit %d state changed to %s", circuit_id, state)
         if state == "Ready":
             self.readd_bittorrent_peers()
-        elif state == "Closing":
-            if self.engine and self.settings.download_manager:
-                affected_peers = set(self.engine.get_peers_for_circuit(circuit_id))
-                if affected_peers:
-                    for download in self.settings.download_manager.get_downloads():
-                        self.update_torrent(affected_peers, download)
+        elif state == "Closing" and self.engine and self.settings.download_manager:
+            affected_peers = set(self.engine.get_peers_for_circuit(circuit_id))
+            if affected_peers:
+                for download in self.settings.download_manager.get_downloads():
+                    self.update_torrent(affected_peers, download)
 
     async def _poll_download_manager(self) -> None:
         """
@@ -115,7 +123,7 @@ class TriblerTunnelCommunity(TunnelCommunity):
         Write a copy of the exit_candidates to the file self.settings.exitnode_cache.
         """
         exit_nodes = Network()
-        for peer in self.get_candidates(ipv8_rust_tunnels.PEER_FLAG_EXIT_BT):
+        for peer in self.get_candidates(PEER_FLAG_EXIT_BT):
             exit_nodes.add_verified_peer(peer)
         snapshot = exit_nodes.snapshot()
         self.logger.info("Writing exit nodes to cache file: %s", str(self.settings.exitnode_cache))
@@ -209,7 +217,10 @@ class TriblerTunnelCommunity(TunnelCommunity):
         self.monitor_hidden_swarms(new_states, hops)
         self.download_states = new_states
 
-    def count_circuits(self, hops=None):
+    def count_circuits(self, hops: int | None = None) -> int:
+        """
+        Return the number of circuits that are ready and have the correct hop count.
+        """
         if self.engine:
             return self.engine.count_circuits(hops=hops)
         return 0
@@ -219,7 +230,7 @@ class TriblerTunnelCommunity(TunnelCommunity):
         Update the known swarms based on the changed states.
         """
         if (engine := self.engine) is None:
-            return None
+            return
 
         intro_points_todo = self.settings.max_intro_points - engine.count_circuits(ctype="IP_SEEDER", state=None)
         active = {DownloadStatus.DOWNLOADING, DownloadStatus.SEEDING, DownloadStatus.METADATA}
@@ -231,7 +242,8 @@ class TriblerTunnelCommunity(TunnelCommunity):
 
             # Join/leave hidden swarm as needed.
             if state_changed and new_state in active:
-                if new_state == DownloadStatus.SEEDING and intro_points_todo <= 0 and not engine.has_intro_point(info_hash):
+                if (new_state == DownloadStatus.SEEDING and intro_points_todo <= 0
+                        and not engine.has_intro_point(info_hash)):
                     engine.leave_swarm(info_hash)
                 elif old_state != DownloadStatus.METADATA or new_state != DownloadStatus.DOWNLOADING:
                     engine.join_swarm(
@@ -250,15 +262,18 @@ class TriblerTunnelCommunity(TunnelCommunity):
                 if intro_points_todo <= 0:
                     return
 
-    def on_e2e_finished(self, address: Address, info_hash: bytes) -> None:
+    def on_e2e_finished(self, info_hash: bytes, address: Address) -> None:
         """
         Callback for when an end-to-end connection has been established.
         """
-        dl = self.get_download(info_hash)
-        if dl:
-            dl.add_peer(address)
-        else:
-            self.logger.error("Could not find download for adding hidden services peer %s:%d!", *address)
+        def _add_peer() -> None:
+            dl = self.get_download(info_hash)
+            if dl:
+                dl.add_peer(address)
+            else:
+                self.logger.error("Could not find download for adding hidden services peer %s:%d!", *address)
+
+        self._loop.call_soon_threadsafe(_add_peer)
 
     def get_download(self, lookup_info_hash: bytes) -> Download | None:
         """

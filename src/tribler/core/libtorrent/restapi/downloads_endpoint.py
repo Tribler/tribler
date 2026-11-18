@@ -76,7 +76,7 @@ class DownloadsEndpoint(RESTEndpoint):
         self.unhandled_cli_log: list[str] = []
         self.download_manager = download_manager
         self.tunnel_community = tunnel_community
-        self.transcoder = None
+        self.transcoder: TranscodeServer | None = None
         self.app.add_routes([
             web.get("", self.get_downloads),
             web.put("", self.add_download),
@@ -96,12 +96,18 @@ class DownloadsEndpoint(RESTEndpoint):
         ])
 
     async def get_transcoder(self, request: web.Request) -> TranscodeServer:
+        """
+        Get the current TranscodeServer instance or create one if needed.
+        """
         if self.transcoder is None:
             self.transcoder = TranscodeServer(f"{request.url.scheme}://{request.url.host}:{request.url.port}")
             await to_thread(self.transcoder.start_server, 0)
         return self.transcoder
 
     async def get_metadata(self, request: web.Request) -> RESTResponse:
+        """
+        Get the metadata for given multimedia file.
+        """
         transcoder = await self.get_transcoder(request)
         infohash = request.match_info["infohash"]
         fileindex = request.match_info["fileindex"]
@@ -116,10 +122,13 @@ class DownloadsEndpoint(RESTEndpoint):
         return RESTResponse(metadata.to_json())
 
     async def transcode(self, request: web.Request) -> web.StreamResponse:
+        """
+        Transcode a download stream.
+        """
         transcoder = await self.get_transcoder(request)
 
-        infohash = request.match_info['infohash']
-        fileindex = request.match_info['fileindex']
+        infohash = request.match_info["infohash"]
+        fileindex = request.match_info["fileindex"]
         query = f"?{request.query_string}" if request.query_string else ""
 
         stream_url = (
@@ -148,9 +157,9 @@ class DownloadsEndpoint(RESTEndpoint):
         if not video_supported or not audio_supported:
             base_url = f"http://{request.url.host}:{transcoder.get_port()}"
             transcoder_url = base_url + f"/api/downloads/{infohash}/stream/{fileindex}{query}"
-            logger.info(f"Transcoding needed, redirecting to {transcoder_url}")
+            logger.info("Transcoding needed, redirecting to %s", transcoder_url)
             return web.HTTPTemporaryRedirect(location=transcoder_url)
-        logger.info(f"Transcoding not needed, redirecting to {stream_url}")
+        logger.info("Transcoding not needed, redirecting to %s", stream_url)
         return web.HTTPTemporaryRedirect(location=stream_url)
 
     @staticmethod

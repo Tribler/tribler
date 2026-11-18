@@ -46,8 +46,6 @@ from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 if TYPE_CHECKING:
     from types import TracebackType
 
-    from ipv8.REST.overlays_endpoint import OverlaysEndpoint
-
     from tribler.core.database.store import MetadataStore
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
     from tribler.tribler_config import TriblerConfigManager
@@ -215,8 +213,8 @@ class Session:
         self.attach_exception_handler()
 
         # IPv8
-        await self.ipv8.start()
         self.loader.load(self.ipv8, self)
+        await self.ipv8.start()
 
         # Libtorrent
         await self.download_manager.initialize()
