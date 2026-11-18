@@ -14,7 +14,6 @@ from marshmallow.fields import Integer, String
 from tribler.core.restapi.rest_endpoint import HTTP_NOT_FOUND, MAX_REQUEST_SIZE, RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
-    from ipv8.messaging.interfaces.statistics_endpoint import StatisticsEndpoint as IPv8StatsEndpoint
 
     from tribler.core.content_discovery.community import ContentDiscoveryCommunity
     from tribler.core.session import Session
@@ -177,7 +176,7 @@ class StatisticsEndpoint(RESTEndpoint):
         Return general statistics of IPv8.
         """
         stats_dict = {}
-        if self.session and self.session.ipv8:
+        if self.session and self.session.ipv8 and self.session.rust_endpoint:
             (_, bytes_up, _, bytes_down, _) = self.session.rust_endpoint.get_socket_statistics()
             stats_dict = {
                 "total_up": bytes_up,

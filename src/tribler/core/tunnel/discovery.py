@@ -4,9 +4,8 @@ import time
 from random import choice
 from typing import TYPE_CHECKING
 
-from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
-
 from ipv8.peerdiscovery.discovery import DiscoveryStrategy
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
 
 if TYPE_CHECKING:
     from ipv8.peer import Peer

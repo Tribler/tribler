@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 from asyncio import CancelledError, Event, Future, Queue
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
