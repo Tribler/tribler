@@ -1,7 +1,7 @@
 -r pyipv8/requirements.txt
 
 aiohttp
-ipv8-rust-tunnels==0.1.53
+ipv8-rust-tunnels
 lz4
 pillow
 pony
