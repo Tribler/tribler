@@ -44,6 +44,7 @@ const LanguageSelect = () => {
                 <DropdownMenuItem onClick={() => changeLanguage("ko_KR")}>ko</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("pt_BR")}>pt</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("ru_RU")}>ru</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage("sv_SE")}>sv</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("zh_CN")}>zh</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
