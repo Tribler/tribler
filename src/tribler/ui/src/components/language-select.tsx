@@ -32,7 +32,7 @@ const LanguageSelect = () => {
         <DropdownMenu>
             <EasyTooltip content={t("SelectLanguage")}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0" aria-label={t("SelectLanguage")}>
                         {language.slice(0, 2)}
                     </Button>
                 </DropdownMenuTrigger>

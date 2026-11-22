@@ -11,7 +11,7 @@ import {ChevronDown, ChevronRight} from "lucide-react";
 const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     {
         accessorKey: "name",
-        header: getHeader("Name", false, true, true),
+        header: getHeader("Name", true, true, true),
         cell: ({row}) => {
             return (
                 <div
@@ -35,7 +35,7 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     },
     {
         accessorKey: "identifier",
-        header: "Message identifier",
+        header: getHeader("MessageIdentifier", true, false),
         cell: ({row}) => {
             if (row.original.identifier < 0) {
                 return;
@@ -45,32 +45,32 @@ const statisticColumns: ColumnDef<OverlayMsgStats>[] = [
     },
     {
         accessorKey: "handler",
-        header: "Handler",
+        header: getHeader("MessageHandler", true, false),
     },
     {
         accessorKey: "bytes_up",
-        header: getHeader("Upload", false),
+        header: getHeader("TrafficUpload"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>;
         },
     },
     {
         accessorKey: "bytes_down",
-        header: getHeader("Download", false),
+        header: getHeader("TrafficDownload"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },
     },
     {
         accessorKey: "num_up",
-        header: getHeader("# Msgs sent", false),
+        header: getHeader("MessagesSent"),
         cell: ({row}) => {
             return <span>{row.original.num_up}</span>;
         },
     },
     {
         accessorKey: "num_down",
-        header: getHeader("# Msgs received", false),
+        header: getHeader("MessagesReceived"),
         cell: ({row}) => {
             return <span>{row.original.num_down}</span>;
         },

@@ -1,3 +1,4 @@
+import BooleanCell from "../BooleanCell";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {useState} from "react";
 import {ipv8Service} from "@/services/ipv8.service";
@@ -10,23 +11,24 @@ import {useInterval} from "@/hooks/useInterval";
 const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
-        header: getHeader("IP", false),
+        header: getHeader("IPAddress"),
     },
     {
         accessorKey: "port",
-        header: getHeader("Port", false),
+        header: getHeader("Port"),
     },
     {
         accessorKey: "mid",
-        header: getHeader("Mid", false),
+        header: getHeader("MemberID"),
     },
     {
         accessorKey: "is_key_compatible",
-        header: getHeader("Key compatible?", false),
+        header: getHeader("KeyCompatible"),
+        cell: BooleanCell,
     },
     {
         accessorKey: "flags",
-        header: getHeader("Flags", false),
+        header: getHeader("Flags"),
         cell: ({row}) => {
             return <span>{formatFlags(row.original.flags)}</span>;
         },

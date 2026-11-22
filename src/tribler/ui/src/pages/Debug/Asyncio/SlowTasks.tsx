@@ -53,7 +53,7 @@ export default function SlowTasks() {
             <ScrollArea>
                 <div className="p-4 pb-0 grid grid-cols-3 gap-2 items-center w-fit">
                     <Label htmlFor="slowness" className="whitespace-nowrap pr-5">
-                        Slowness threshold (s)
+                        {t("SlownessThreshold")}
                     </Label>
                     <Input
                         id="slowness"
@@ -74,7 +74,7 @@ export default function SlowTasks() {
                                 }
                             });
                         }}>
-                        OK
+                        {t("OK")}
                     </Button>
                 </div>
                 {debug.messages &&

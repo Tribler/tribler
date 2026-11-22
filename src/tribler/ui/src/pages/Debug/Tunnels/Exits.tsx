@@ -1,3 +1,4 @@
+import BooleanCell from "../BooleanCell";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {useState} from "react";
 import {ipv8Service} from "@/services/ipv8.service";
@@ -10,29 +11,30 @@ import {useInterval} from "@/hooks/useInterval";
 const exitColumns: ColumnDef<Exit>[] = [
     {
         accessorKey: "circuit_from",
-        header: getHeader("From circuit", false),
+        header: getHeader("FromCircuit"),
     },
     {
         accessorKey: "enabled",
-        header: getHeader("Enabled?", false),
+        header: getHeader("ExitEnabled"),
+        cell: BooleanCell,
     },
     {
         accessorKey: "bytes_up",
-        header: getHeader("Up", false),
+        header: getHeader("TrafficUp"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>;
         },
     },
     {
         accessorKey: "bytes_down",
-        header: getHeader("Down", false),
+        header: getHeader("TrafficDown"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },
     },
     {
         accessorKey: "uptime",
-        header: getHeader("Uptime", false),
+        header: getHeader("Uptime"),
         cell: ({row}) => {
             return <span>{formatTimeRelativeISO(row.original.creation_time)}</span>;
         },

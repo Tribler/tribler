@@ -12,9 +12,9 @@ export default function SaveButton(props: SaveButtonProps) {
     const save = () => {
         (async () => {
             toast.promise(props.onClick(), {
-                loading: "Saving...",
-                success: <b>Settings saved!</b>,
-                error: <b>Couldn't save settings.</b>,
+                loading: t("SettingsSaving"),
+                success: <b>{t("SettingsSaved")}</b>,
+                error: <b>{t("SettingsSaveFailed")}</b>,
             });
         })();
     };

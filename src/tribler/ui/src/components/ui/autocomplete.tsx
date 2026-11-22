@@ -74,6 +74,7 @@ export function Autocomplete({
                         <EasyTooltip content={t("Search")}>
                             <Button
                                 variant="ghost"
+                                aria-label={t("Search")}
                                 className="h-6 py-0 px-0 outline-offset-1
                                        hover:outline hover:outline-neutral-500 dark:hover:outline-neutral-400
                                        active:outline active:outline-neutral-900 dark:active:outline-neutral-100"

@@ -4,7 +4,7 @@ import {category} from "@/models/torrent.model";
 import {File, FileLink, FileTreeItem} from "@/models/file.model";
 import {CheckedState} from "@radix-ui/react-checkbox";
 import JSZip from "jszip";
-import {triblerService} from "@/services/tribler.service";
+import i18n from "i18next";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -55,7 +55,7 @@ export function categoryIcon(name: category): string {
 }
 
 export function formatDateTime(ts: number) {
-    const dtf = new Intl.DateTimeFormat(undefined, {
+    const dtf = new Intl.DateTimeFormat(i18n.language?.replace("_", "-"), {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -82,8 +82,7 @@ export function formatTimeRelative(ts: number, epochTime: boolean = true) {
     const units: Intl.RelativeTimeFormatUnit[] = ["second", "minute", "hour", "day", "week", "month", "year"];
     const index = cutoffs.findIndex((cutoff) => cutoff > Math.abs(ts));
     const divisor = index ? cutoffs[index - 1] : 1;
-    let locale = triblerService.guiSettings.lang ?? "en_US";
-    const rtf = new Intl.RelativeTimeFormat(locale.replace("_", "-"), {numeric: "auto"});
+    const rtf = new Intl.RelativeTimeFormat(i18n.language?.replace("_", "-"), {numeric: "auto"});
     return divisor === Infinity ? "-" : rtf.format(Math.round(ts / divisor), units[index]);
 }
 

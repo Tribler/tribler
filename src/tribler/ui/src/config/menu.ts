@@ -92,7 +92,7 @@ export const sideMenu: NavItemWithChildren[] = [
                 to: "/settings/versions",
             },
             {
-                title: "User Interface",
+                title: "UserInterface",
                 to: "/settings/interface",
             },
         ],

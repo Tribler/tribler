@@ -1,3 +1,4 @@
+import {useTranslation} from "react-i18next";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {useEffect, useState} from "react";
 import {ipv8Service} from "@/services/ipv8.service";
@@ -15,11 +16,11 @@ import {usePrevious} from "@/hooks/usePrevious";
 const circuitColumns: ColumnDef<Circuit>[] = [
     {
         accessorKey: "circuit_id",
-        header: getHeader("Circuit ID", false),
+        header: getHeader("CircuitID"),
     },
     {
         accessorKey: "actual_hops",
-        header: getHeader("Hops", false),
+        header: getHeader("Hops"),
         cell: ({row}) => {
             return (
                 <span>
@@ -30,36 +31,36 @@ const circuitColumns: ColumnDef<Circuit>[] = [
     },
     {
         accessorKey: "type",
-        header: getHeader("Type", false),
+        header: getHeader("Type"),
     },
     {
         accessorKey: "state",
-        header: getHeader("State", false),
+        header: getHeader("CircuitState"),
     },
     {
         accessorKey: "bytes_up",
-        header: getHeader("Up", false),
+        header: getHeader("TrafficUp"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>;
         },
     },
     {
         accessorKey: "bytes_down",
-        header: getHeader("Down", false),
+        header: getHeader("TrafficDown"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },
     },
     {
         accessorKey: "uptime",
-        header: getHeader("Uptime", false),
+        header: getHeader("Uptime"),
         cell: ({row}) => {
             return <span>{formatTimeRelativeISO(row.original.creation_time)}</span>;
         },
     },
     {
         accessorKey: "exit_flags",
-        header: getHeader("Exit flags", false),
+        header: getHeader("ExitFlags"),
         cell: ({row}) => {
             return <span>{formatFlags(row.original.exit_flags)}</span>;
         },
@@ -67,6 +68,7 @@ const circuitColumns: ColumnDef<Circuit>[] = [
 ];
 
 export default function Circuits() {
+    const {t} = useTranslation();
     const [circuits, setCircuits] = useState<Circuit[]>([]);
     const [selectedCircuit, setSelectedCircuit] = useState<Circuit | undefined>();
     const prevSelectedCircuit = usePrevious(selectedCircuit);
@@ -121,7 +123,7 @@ export default function Circuits() {
                         <Legend />
                         <Line
                             type="monotone"
-                            name="Throughput MB/s"
+                            name={t("Throughput")}
                             dataKey="speed"
                             isAnimationActive={false}
                             stroke={`${window.document.documentElement.classList.contains("dark") ? "#38bdf8" : "#0369a1"}`}
@@ -139,7 +141,7 @@ export default function Circuits() {
                                 });
                             }
                         }}>
-                        Run test
+                        {t("RunTest")}
                     </Button>
                 </div>
             </ResizablePanel>

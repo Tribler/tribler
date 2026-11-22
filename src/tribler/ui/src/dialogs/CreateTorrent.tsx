@@ -431,7 +431,7 @@ export default function CreateTorrent(props: JSX.IntrinsicAttributes & DialogPro
                             </div>
                             <div className="mr-2 flex items-center">
                                 <RadioGroupItem value="hybrid" id="torrent_type_hybrid" className="mr-2" />
-                                <Label htmlFor="torrent_type_hybrid">hybrid</Label>
+                                <Label htmlFor="torrent_type_hybrid">{t("HybridTorrent")}</Label>
                             </div>
                         </RadioGroup>
 

@@ -505,7 +505,7 @@ function SimpleTable<T extends object>({
                                         key="toggleColumns"
                                         className="w-2 pl-1 pr-3 cursor-pointer hover:text-black dark:hover:text-white">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                            <DropdownMenuTrigger aria-label={t("ToggleColumns")}>
                                                 <DotsHorizontalIcon className="h-4 w-4" />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
@@ -670,17 +670,19 @@ function Pagination<T>({table}: React.PropsWithChildren<{table: ReactTable<T>}>)
                     }}>
                     <SelectPrimitive.Trigger>
                         <div className="px-1 py-0 hover:bg-inherit text-muted-foreground text-xs">
-                            {pageIndex * pageSize}&nbsp;-&nbsp;
-                            {Math.min((pageIndex + 1) * pageSize, rowCount)}&nbsp;of&nbsp;
-                            {rowCount}
+                            {t("TableRowRange", {
+                                start: pageIndex * pageSize,
+                                end: Math.min((pageIndex + 1) * pageSize, rowCount),
+                                total: rowCount,
+                            })}
                         </div>
                     </SelectPrimitive.Trigger>
                     <SelectContent side="top">
                         <SelectGroup>
-                            <SelectLabel>Rows per page</SelectLabel>
+                            <SelectLabel>{t("RowsPerPage")}</SelectLabel>
                             {[10, 20, 30, 40, 50, 0].map((pageSize) => (
                                 <SelectItem key={pageSize} value={`${pageSize}`}>
-                                    {pageSize > 0 ? pageSize : "disable pagination"}
+                                    {pageSize > 0 ? pageSize : t("DisablePagination")}
                                 </SelectItem>
                             ))}
                         </SelectGroup>

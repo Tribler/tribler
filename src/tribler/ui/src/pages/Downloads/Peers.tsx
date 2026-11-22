@@ -5,6 +5,7 @@ import {Peer} from "@/models/bittorrentpeer.model";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {EasyTooltip} from "@/components/ui/tooltip";
 import {useTranslation} from "react-i18next";
+import type {TFunction} from "i18next";
 
 const peerFlags = (peer: Peer): [string, string[]] => {
     const {t} = useTranslation();
@@ -66,13 +67,13 @@ const peerFlags = (peer: Peer): [string, string[]] => {
     return [state, stateDescription];
 };
 
-const connectionTypeStr = (connection_type: number, flags: number): string => {
+const connectionTypeStr = (connection_type: number, flags: number, t: TFunction): string => {
     let ctypes = [];
     if (connection_type & 1) {
         ctypes.push("BitTorrent");
     }
     if (connection_type & 2) {
-        ctypes.push("Web");
+        ctypes.push(t("PeerWebConnection"));
     }
     if (connection_type & 4) {
         ctypes.push("HTTP");
@@ -138,7 +139,8 @@ const peerColumns: ColumnDef<Peer>[] = [
         accessorKey: "connection_type",
         header: getHeader("Connection"),
         cell: ({row}) => {
-            return <span>{connectionTypeStr(row.original.connection_type, row.original.connection_type)}</span>;
+            const {t} = useTranslation();
+            return <span>{connectionTypeStr(row.original.connection_type, row.original.connection_type, t)}</span>;
         },
     },{
         accessorKey: "extended_version",

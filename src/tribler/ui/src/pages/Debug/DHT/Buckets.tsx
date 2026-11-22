@@ -10,18 +10,18 @@ import {useInterval} from "@/hooks/useInterval";
 const bucketColumns: ColumnDef<Bucket>[] = [
     {
         accessorKey: "prefix",
-        header: getHeader("Prefix", false),
+        header: getHeader("Prefix"),
     },
     {
         accessorKey: "last_changed",
-        header: getHeader("Last changed", false),
+        header: getHeader("LastChanged"),
         cell: ({row}) => {
             return <span>{formatTimeRelativeISO(row.original.last_changed)}</span>;
         },
     },
     {
         accessorKey: "peer",
-        header: getHeader("# Peers", false),
+        header: getHeader("PeerCount"),
         cell: ({row}) => {
             return <span>{row.original.peers.length}</span>;
         },

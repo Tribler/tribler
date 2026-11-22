@@ -9,6 +9,8 @@ import SaveAs from "@/dialogs/SaveAs";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {useSearchParams} from "react-router-dom";
 import {SwarmHealth} from "@/components/swarm-health";
+import type {TFunction} from "i18next";
+import {useTranslation} from "react-i18next";
 import {BloomFilter} from "bloomfilter";
 
 const bloom = BloomFilter.fromJSON(
@@ -28,7 +30,7 @@ function detect(text: string) {
     return matches / total > 0.8;
 }
 
-const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): ColumnDef<Torrent>[] => [
+const getColumns = (onDownload: (torrent: Torrent) => void, t: TFunction): ColumnDef<Torrent>[] => [
     {
         accessorKey: "category",
         header: "",
@@ -39,7 +41,9 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
                         <TooltipTrigger className="cursor-auto">
                             <span>{categoryIcon(row.original.category)}</span>
                         </TooltipTrigger>
-                        <TooltipContent>{row.original.category}</TooltipContent>
+                        <TooltipContent>
+                            {t(`TorrentCategory_${row.original.category}`, {defaultValue: row.original.category})}
+                        </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             );
@@ -71,7 +75,7 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
         cell: ({row}) => {
             return (
                 <span className="whitespace-nowrap">
-                    {row.original.created > 24 * 3600 ? formatTimeRelative(row.original.created) : "unknown"}
+                    {row.original.created > 24 * 3600 ? formatTimeRelative(row.original.created) : t("UnknownCreationDate")}
                 </span>
             );
         },
@@ -86,6 +90,7 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
 ];
 
 export default function Search() {
+    const {t} = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const query = searchParams.get("query");
 
@@ -173,7 +178,7 @@ export default function Search() {
         setOpen(true);
     }, []);
 
-    const torrentColumns = useMemo(() => getColumns({onDownload: handleDownload}), [handleDownload]);
+    const torrentColumns = useMemo(() => getColumns(handleDownload, t), [handleDownload, t]);
 
     return (
         <>
@@ -190,8 +195,7 @@ export default function Search() {
             )}
             <div className="grid grid-cols-1 w-full">
                 <div ref={extremeWarning} className="bg-red-700 border-2 border-black p-2 text-white font-mono">
-                    ⚠ You have triggered our extremist, violent, or terrorist content filter. Warning: law enforcement
-                    actively monitors Internet searches of this type. So Tribler does not support it. ⚠
+                    {t("SearchContentFilterWarning")}
                 </div>
                 <SimpleTable
                     className="[&>[data-radix-scroll-area-viewport]]:max-h-[calc(100vh-82px)]"

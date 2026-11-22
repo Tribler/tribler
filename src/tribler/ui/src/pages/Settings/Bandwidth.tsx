@@ -6,7 +6,7 @@ import {Slider} from "@/components/ui/slider";
 import {Settings} from "@/models/settings.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {useTranslation} from "react-i18next";
 import toast from "react-hot-toast";
 import SaveButton from "./SaveButton";
@@ -60,7 +60,11 @@ function formatRateLimits(data: {[key: string]: AdvancedRateLimit[]} | null) {
 }
 
 export default function Bandwith() {
-    const {t} = useTranslation();
+    const {t, i18n} = useTranslation();
+    const timeFormatter = useMemo(
+        () => new Intl.DateTimeFormat(i18n.language.replace("_", "-"), {hour: "numeric", minute: "2-digit", timeZone: "UTC"}),
+        [i18n.language]
+    );
     const [settings, setSettings] = useState<Settings>();
     const [data, setData] = useState<{[key: string]: AdvancedRateLimit[]} | null>(null);
     const [hops, setHops] = useState<number>(0);
@@ -311,9 +315,7 @@ export default function Bandwith() {
                                             color: "rgb(from hsl(var(--foreground)) r g b)",
                                         }}
                                         labelFormatter={(tick) =>
-                                            `${Math.floor((tick % 13) + (tick >= 13 ? 1 : 0) + (tick < 1 ? 12 : 0))}:` +
-                                            `${60 * (tick % 1)}`.padStart(2, "0") +
-                                            ` ${tick >= 12 ? "P" : "A"}M`
+                                            timeFormatter.format(Date.UTC(2000, 0, 1, 0, Math.round(tick * 60)))
                                         }
                                         formatter={(rate, lineName, props) => [
                                             `${formatBytes(rate as number)}/s`,
@@ -358,7 +360,7 @@ export default function Bandwith() {
                                             }),
                                         });
                                 }}>
-                                MIN
+                                {t("MinimumRate")}
                             </Button>
                             <Button
                                 className="m-2"
@@ -375,7 +377,7 @@ export default function Bandwith() {
                                             }),
                                         });
                                 }}>
-                                MAX
+                                {t("MaximumRate")}
                             </Button>
                         </div>
                     </div>

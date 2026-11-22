@@ -20,7 +20,7 @@ import {
     VenetianMaskIcon,
 } from "lucide-react";
 import {MoveIcon} from "@radix-ui/react-icons";
-import {useRef, useState} from "react";
+import {lazy, Suspense, useRef, useState} from "react";
 import {useTranslation} from "react-i18next";
 import {downloadFile, downloadFilesAsZip, formatBytes} from "@/lib/utils";
 import {TFunction} from "i18next";
@@ -37,10 +37,11 @@ import {
 } from "@/components/ui/context-menu";
 import MoveStorage from "@/dialogs/MoveStorage";
 import ConfirmRemove from "@/dialogs/ConfirmRemove";
-import {VideoDialog} from "@/dialogs/Videoplayer";
 import {filterActive, filterInactive} from ".";
 import {EasyTooltip} from "@/components/ui/tooltip";
 import DisableAnonymity from "@/dialogs/DisableAnonymity";
+
+const VideoDialog = lazy(() => import("@/dialogs/Videoplayer").then(({VideoDialog}) => ({default: VideoDialog})));
 
 const defaultLimits = [5 * 1024, 15 * 1024, 50 * 1024, 100 * 1024, 150 * 1024, -1];
 
@@ -395,7 +396,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                     value={limit.toString()}
                                     key={"downlimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "down", t)}>
-                                    <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
+                                    <span>{limit === -1 ? t("Unlimited") : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>
                             ))}
                             <ContextMenuRadioItem
@@ -422,7 +423,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                             );
                                         }
                                     }}>
-                                    Set
+                                    {t("SetLimit")}
                                 </Button>
                             </ContextMenuRadioItem>
                         </ContextMenuRadioGroup>
@@ -443,7 +444,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                     value={limit.toString()}
                                     key={"uplimit" + limit.toString()}
                                     onSelect={() => setBandwidthLimit(selectedDownloads, limit, "up", t)}>
-                                    <span>{limit === -1 ? "unlimited" : formatBytes(limit, 0)}</span>
+                                    <span>{limit === -1 ? t("Unlimited") : formatBytes(limit, 0)}</span>
                                 </ContextMenuRadioItem>
                             ))}
                             <ContextMenuRadioItem
@@ -470,7 +471,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                             );
                                         }
                                     }}>
-                                    Set
+                                    {t("SetLimit")}
                                 </Button>
                             </ContextMenuRadioItem>
                         </ContextMenuRadioGroup>
@@ -503,7 +504,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                             setSeedingRatio(selectedDownloads, +seedingRatioRef.current?.value, t);
                                         }
                                     }}>
-                                    Set
+                                    {t("SetLimit")}
                                 </Button>
                             </ContextMenuRadioItem>
                             <Button
@@ -514,7 +515,7 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                                         seedingRatioRef.current.value = "";
                                     }
                                 }}>
-                                Default
+                                {t("Default")}
                             </Button>
                         </ContextMenuRadioGroup>
                     </ContextMenuSubContent>
@@ -613,7 +614,11 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                 selectedDownloads={selectedDownloads}
                 onRemove={removeDownloads}
             />
-            <VideoDialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen} download={videoDownload} />
+            {videoDownload && (
+                <Suspense fallback={null}>
+                    <VideoDialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen} download={videoDownload} />
+                </Suspense>
+            )}
         </>
     );
 }

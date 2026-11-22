@@ -10,6 +10,7 @@ import {Button} from "@/components/ui/button";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {useTranslation} from "react-i18next";
+import type {TFunction} from "i18next";
 import {Icons} from "@/components/icons";
 import {ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger} from "@/components/ui/context-menu";
 import {ListPlus, Plus, RefreshCw, Trash} from "lucide-react";
@@ -17,6 +18,22 @@ import {ListPlus, Plus, RefreshCw, Trash} from "lucide-react";
 interface TrackerRow extends Tracker {
     recheckButton: typeof Button;
     removeButton: typeof Button;
+}
+
+const trackerStatuses: Record<string, string> = {
+    Working: "TrackerWorking",
+    "Not working": "TrackerNotWorking",
+    "Not contacted yet": "TrackerNotContacted",
+    Disabled: "TrackerDisabled",
+    Timeout: "TrackerTimeout",
+};
+
+function trackerStatusLabel(status: string, t: TFunction) {
+    if (Object.hasOwn(trackerStatuses, status)) return t(trackerStatuses[status]);
+    if (status.startsWith("Error: ")) return t("ErrorMessage", {message: status.slice(7)});
+    if (status.startsWith("Warning: ")) return t("TrackerWarning", {message: status.slice(9)});
+    const httpStatus = /^HTTP status code (\d+)$/.exec(status);
+    return httpStatus ? t("TrackerHTTPStatus", {code: httpStatus[1]}) : status;
 }
 
 export default function Trackers({download, style}: {download: Download; style?: React.CSSProperties}) {
@@ -34,6 +51,7 @@ export default function Trackers({download, style}: {download: Download; style?:
         {
             accessorKey: "status",
             header: getHeader("Status"),
+            cell: ({row}) => trackerStatusLabel(row.original.status, t),
         },
         {
             accessorKey: "peers",

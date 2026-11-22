@@ -193,7 +193,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                             />
                         </div>
                         {newFolderError !== undefined && (
-                            <span className="text-center text-tribler text-sm">Error: {newFolderError}</span>
+                            <span className="text-center text-tribler text-sm">{t("ErrorMessage", {message: newFolderError})}</span>
                         )}
                         <DialogFooter>
                             <Button
@@ -204,7 +204,7 @@ export default function SelectRemotePath(props: SelectRemotePathProps & JSX.Intr
                                     const newPath = [currentPath, newFolderName].join(separator);
                                     const response = await triblerService.createDirectory(newPath, true);
                                     if (!response || isErrorDict(response)) {
-                                        setNewFolderError(!response ? "Unknown error" : response.error.message);
+                                        setNewFolderError(!response ? t("UnknownError") : response.error.message);
                                         return;
                                     }
                                     setNewFolderError(undefined);

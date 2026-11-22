@@ -1,4 +1,5 @@
-import {capitalize, formatBytes} from "@/lib/utils";
+import {downloadStatusLabel} from "./status";
+import {formatBytes} from "@/lib/utils";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import Files from "./Files";
 import Peers from "./Peers";
@@ -54,10 +55,12 @@ export default function DownloadDetails({download}: {download: Download | undefi
                         <div className="flex flex-row">
                             <div className="basis-1/4">{t("Status")}</div>
                             {download.status_code == StatusCode.STOPPED_ON_ERROR && (
-                                <div className="basis-3/4 text-red-600">Error: {download.error}</div>
+                                <div className="basis-3/4 text-red-600">
+                                    {t("ErrorMessage", {message: download.error})}
+                                </div>
                             )}
                             {download.status_code != StatusCode.STOPPED_ON_ERROR && (
-                                <div className="basis-3/4">{capitalize(download.status)}</div>
+                                <div className="basis-3/4">{downloadStatusLabel(download.status, t)}</div>
                             )}
                         </div>
                         <div className="flex flex-row">

@@ -2,7 +2,8 @@ import {ActionButtons, ActionMenu} from "./Actions";
 import DownloadDetails from "./Details";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {Download, StatusCode} from "@/models/download.model";
-import {capitalize, formatBytes, formatDateTime, formatTimeRelative} from "@/lib/utils";
+import {downloadStatusLabel} from "./status";
+import {formatBytes, formatDateTime, formatTimeRelative} from "@/lib/utils";
 import {isErrorDict} from "@/services/reporting";
 import {triblerService} from "@/services/tribler.service";
 import {ColumnDef} from "@tanstack/react-table";
@@ -106,14 +107,16 @@ const downloadColumns: ColumnDef<Download>[] = [
         accessorKey: "progress",
         header: getHeader("Status"),
         cell: ({row}) => {
-            let status = `${capitalize(row.original.status.replaceAll("_", " "))} ${Math.floor(
-                row.original.progress * 100
-            )}%`;
+            const {t} = useTranslation();
             let progress = row.original.progress * 100;
+            let status = t("DownloadStatusProgress", {
+                status: downloadStatusLabel(row.original.status, t),
+                progress: Math.floor(progress),
+            });
             let color = "text-tribler";
 
             if (row.original.status_code == StatusCode.STOPPED_ON_ERROR) {
-                status = "Error";
+                status = t("DownloadError");
                 progress = 100;
                 color = "text-red-600";
             }
@@ -424,7 +427,7 @@ export default function Downloads({statusFilter}: {statusFilter: number[]}) {
                                                    hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                                             onClick={() => setFilters([{id: "name", value: ""}])}>
                                             <XIcon className="h-4 w-4" />
-                                            <span className="sr-only">Clear</span>
+                                            <span className="sr-only">{t("Clear")}</span>
                                         </Button>
                                     )}
                                 </div>

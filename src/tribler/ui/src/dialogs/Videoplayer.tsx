@@ -1,7 +1,16 @@
 import {DialogProps} from "@radix-ui/react-dialog";
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import React, {JSX, useEffect, useState} from "react";
+import {useTranslation} from "react-i18next";
 import videojs from "video.js";
+import es from "video.js/dist/lang/es.json";
+import hi from "video.js/dist/lang/hi.json";
+import ko from "video.js/dist/lang/ko.json";
+import ptBR from "video.js/dist/lang/pt-BR.json";
+import ru from "video.js/dist/lang/ru.json";
+import sv from "video.js/dist/lang/sv.json";
+import svSupplement from "@/i18n/videojs-sv.json";
+import zhCN from "video.js/dist/lang/zh-CN.json";
 import "video.js/dist/video-js.css";
 import {Download} from "@/models/download.model";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
@@ -14,11 +23,14 @@ import {usePrevious} from "@/hooks/usePrevious";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 
+const playerLanguages = {es, hi, ko, "pt-BR": ptBR, ru, sv: {...sv, ...svSupplement}, "zh-CN": zhCN};
+
 export interface VideoDialogProps extends JSX.IntrinsicAttributes, DialogProps {
     download: Download | null;
 }
 
 export function VideoDialog(props: VideoDialogProps) {
+    const {t} = useTranslation();
     const [open, setOpen] = React.useState(false);
     const [selectedFile, setSelectedFile] = React.useState<File | undefined>();
     const prevDownload = usePrevious(props.download);
@@ -77,7 +89,7 @@ export function VideoDialog(props: VideoDialogProps) {
         <Dialog {...props}>
             <DialogContent className="sm:max-w-6xl">
                 <DialogHeader>
-                    <DialogTitle></DialogTitle>
+                    <DialogTitle className="sr-only">{t("VideoPlayer")}</DialogTitle>
                 </DialogHeader>
                 <div>
                     <Popover open={open} onOpenChange={setOpen}>
@@ -85,15 +97,15 @@ export function VideoDialog(props: VideoDialogProps) {
                             <Button variant="outline" role="combobox" aria-expanded={open} className="justify-between">
                                 {selectedFile
                                     ? videoFiles.find((videoFile) => videoFile.index === selectedFile.index)?.name
-                                    : "Select video file..."}
+                                    : t("SelectVideoFile")}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
-                                <CommandInput placeholder="Search video file..." />
+                                <CommandInput placeholder={t("SearchVideoFile")} />
                                 <CommandList>
-                                    <CommandEmpty>No video files found.</CommandEmpty>
+                                    <CommandEmpty>{t("NoVideoFilesFound")}</CommandEmpty>
                                     <CommandGroup>
                                         {videoFiles.map((videoFile) => (
                                             <CommandItem
@@ -132,8 +144,10 @@ export function VideoDialog(props: VideoDialogProps) {
 }
 
 export const VideoJS = (props: {options: any; onReady?: any; open?: boolean}) => {
-    const videoRef = React.useRef(null);
-    const playerRef = React.useRef(null);
+    const {i18n} = useTranslation();
+    const language = i18n.language.replace("_", "-");
+    const videoRef = React.useRef<HTMLDivElement>(null);
+    const playerRef = React.useRef<ReturnType<typeof videojs> | null>(null);
     const {options, onReady} = props;
     const prevOpen = usePrevious(props.open);
 
@@ -144,36 +158,33 @@ export const VideoJS = (props: {options: any; onReady?: any; open?: boolean}) =>
             const videoElement = document.createElement("video-js");
 
             videoElement.classList.add("vjs-big-play-centered");
-            // @ts-ignore
+            if (!videoRef.current) return;
             videoRef.current.appendChild(videoElement);
-            // @ts-ignore
-            const player = (playerRef.current = videojs(videoElement, options, () => {
-                onReady && onReady(player);
-            }));
+            const player = (playerRef.current = videojs(
+                videoElement,
+                {...options, language, languages: playerLanguages},
+                () => onReady && onReady(player)
+            ));
         } else {
             const player = playerRef.current;
-            // @ts-ignore
+            player.language(language);
             const src_curr = player.currentSrc();
             const src_next = options.sources[0].src;
 
             if ((src_curr !== src_next && props.open) || (props.open && !prevOpen)) {
                 console.log("Setting player source:" + src_next);
-                // @ts-ignore
                 player.autoplay(options.autoplay);
-                // @ts-ignore
                 player.src(options.sources);
             }
         }
-    }, [options, videoRef, props.open]);
+    }, [options, videoRef, props.open, language]);
 
     // Destroy the player when the dialog closes, or HTTP connections will remain open.
     // This prevents videofiles from being locked.
     useEffect(() => {
         if (!props.open) {
             const player = playerRef.current;
-            // @ts-ignore
             if (player && !player.isDisposed()) {
-                // @ts-ignore
                 player.dispose();
                 playerRef.current = null;
             }

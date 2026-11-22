@@ -1,3 +1,4 @@
+import {useTranslation} from "react-i18next";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
@@ -11,19 +12,19 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 export const popularityColumns: ColumnDef<Health>[] = [
     {
         accessorKey: "infohash",
-        header: getHeader("Infohash", false, true, true),
+        header: getHeader("Infohash", true, true, true),
         cell: ({row}) => <p className="font-mono select-text">{row.original.infohash}</p>,
     },
     {
         accessorKey: "seeders",
-        header: getHeader("Seeders", false),
+        header: getHeader("Seeders"),
         cell: ({row}) => (
             <p className={`${row.original.seeders > 0 ? "text-green-400" : "text-red-500"}`}>{row.original.seeders}</p>
         ),
     },
     {
         accessorKey: "leechers",
-        header: getHeader("Leechers", false),
+        header: getHeader("Leechers"),
         cell: ({row}) => (
             <p className={`${row.original.leechers > 0 ? "text-green-400" : "text-red-500"}`}>
                 {row.original.leechers}
@@ -32,15 +33,18 @@ export const popularityColumns: ColumnDef<Health>[] = [
     },
     {
         accessorKey: "tracker",
-        header: getHeader("Tracker", false, true, true),
+        header: getHeader("Tracker", true, true, true),
     },
     {
         accessorKey: "last_check",
-        header: getHeader("Last check", false),
-        cell: ({row}) => {
+        header: getHeader("LastCheck"),
+        cell: function LastCheckCell({row}) {
+            const {t} = useTranslation();
             return (
                 <span className="whitespace-nowrap">
-                    {row.original.last_check > 24 * 3600 ? formatTimeRelative(row.original.last_check) : "unknown"}
+                    {row.original.last_check > 24 * 3600
+                        ? formatTimeRelative(row.original.last_check)
+                        : t("UnknownLastCheck")}
                 </span>
             );
         },
@@ -48,6 +52,7 @@ export const popularityColumns: ColumnDef<Health>[] = [
 ];
 
 export default function Popularity() {
+    const {t} = useTranslation();
     const [healthChecks, setHealthChecks] = useState<{local: Health[]; remote: Health[]}>({local: [], remote: []});
 
     useInterval(
@@ -64,8 +69,8 @@ export default function Popularity() {
     return (
         <Tabs defaultValue="local" className="w-full flex flex-col flex-wrap">
             <TabsList className="flex-rows-4 border-b">
-                <TabsTrigger value="local">Local</TabsTrigger>
-                <TabsTrigger value="remote">Remote</TabsTrigger>
+                <TabsTrigger value="local">{t("LocalHealthChecks")}</TabsTrigger>
+                <TabsTrigger value="remote">{t("RemoteHealthChecks")}</TabsTrigger>
             </TabsList>
             <TabsContent value="local" className="contents">
                 <SimpleTable

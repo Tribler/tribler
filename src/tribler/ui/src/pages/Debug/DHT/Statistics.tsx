@@ -9,11 +9,11 @@ import {useInterval} from "@/hooks/useInterval";
 const statisticColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: getHeader("Key", false),
+        header: getHeader("Key"),
     },
     {
         accessorKey: "value",
-        header: getHeader("Value", false),
+        header: getHeader("Value"),
         cell: ({row}) => {
             return <span className="whitespace-pre">{row.original.value}</span>;
         },

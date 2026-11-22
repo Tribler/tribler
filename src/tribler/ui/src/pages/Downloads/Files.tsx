@@ -190,7 +190,7 @@ export default function Files({download, style}: {download: Download; style?: Re
     const fileColumns = getFileColumns({headers, onSelectedFiles: OnSelectedFilesChange});
 
     // The API call may not be finished yet or the download is still getting metainfo.
-    if (files.length === 0) return <span className="flex pl-4 pt-2 text-muted-foreground">No files available</span>;
+    if (files.length === 0) return <span className="flex pl-4 pt-2 text-muted-foreground">{t("NoFilesAvailable")}</span>;
 
     return (
         <>
