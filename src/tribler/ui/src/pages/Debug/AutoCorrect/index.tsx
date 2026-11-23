@@ -1,9 +1,11 @@
+import {useTranslation} from "react-i18next";
 import {useState} from "react";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {useInterval} from "@/hooks/useInterval";
 
 export default function AutoCorrect() {
+    const {t} = useTranslation();
     const [vocabularyPrefixes, setVocabularyPrefixes] = useState<string[]>([]);
     const [vocabularyContinuations, setVocabularyContinuations] = useState<string[]>([]);
 
@@ -26,7 +28,7 @@ export default function AutoCorrect() {
     return (
         <div className="w-full h-full p-2">
             <span className="flex flex-wrap justify-center pt-8 text-6xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-yellow-400 via-green-500 via-blue-500 to-purple-600 bg-[length:200%_auto] animate-rainbow-shift">
-                {"AutoCorrect Vocabulary".split("").map((char, index) => {
+                {Array.from(t("AutoCorrectVocabulary")).map((char, index) => {
                     if (char === " ") {
                         return <span key={index} className="w-6" aria-hidden="true" />;
                     }
@@ -42,7 +44,7 @@ export default function AutoCorrect() {
                     );
                 })}
             </span>
-            <p className="text-sm font-medium">Word stems:</p>
+            <p className="text-sm font-medium">{t("WordStems")}</p>
             {vocabularyPrefixes.map((elem, index) => {
                 return (
                     <span
@@ -53,7 +55,7 @@ export default function AutoCorrect() {
                 );
             })}
             <br />
-            <p className="text-sm font-medium mt-4">Suffixes:</p>
+            <p className="text-sm font-medium mt-4">{t("Suffixes")}</p>
             {vocabularyContinuations.map((elem, index) => {
                 return (
                     <span

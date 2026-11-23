@@ -298,7 +298,10 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                                 </EasyTooltip>
                             ) : (
                                 <EasyTooltip
-                                    content={`Torrent: ${formatBytes(torrentSize)} Free: ${formatBytes(dirspaceStatistics.used)}`}>
+                                    content={t("TorrentFreeSpace", {
+                                        size: formatBytes(torrentSize),
+                                        free: formatBytes(dirspaceStatistics.free),
+                                    })}>
                                     <Icons.diskusage
                                         disktotal={dirspaceStatistics.total}
                                         diskused={dirspaceStatistics.used}
@@ -353,7 +356,7 @@ export default function SaveAs(props: SaveAsProps & JSX.IntrinsicAttributes & Di
                         <Icons.spinner className="h-6 w-6 mx-3" />
                     </div>
                 )}
-                {error !== undefined && <span className="text-center text-tribler text-sm">Error: {error}</span>}
+                {error !== undefined && <span className="text-center text-tribler text-sm">{t("ErrorMessage", {message: error})}</span>}
 
                 <div className="flex items-center space-x-2 mt-5">
                     <Checkbox

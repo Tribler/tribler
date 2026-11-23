@@ -146,7 +146,7 @@ export default function General() {
                     htmlFor="trackers_file_sync_url"
                     className="whitespace-nowrap pr-5 ml-2"
                     hidden={!settings?.libtorrent?.download_defaults?.trackers_file}>
-                    Sync URL:
+                    {t("SyncURL")}
                 </Label>
                 <Input
                     hidden={!settings?.libtorrent?.download_defaults?.trackers_file}

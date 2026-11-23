@@ -1,5 +1,6 @@
 import {createHashRouter, Await, useRouteError} from "react-router-dom";
 import {Suspense} from "react";
+import {useTranslation} from "react-i18next";
 import {SideLayout} from "./components/layouts/SideLayout";
 import {
     filterActive,
@@ -39,8 +40,9 @@ const errorPromise = new Promise(function (resolve, reject) {
 });
 
 function ErrorBoundary() {
+    const {t} = useTranslation();
     handleHTTPError(useRouteError() as Error);
-    return <div>The GUI crashed beyond repair. Please report the error and refresh the page.</div>;
+    return <div>{t("InterfaceCrashed")}</div>;
 }
 
 export const router = createHashRouter([

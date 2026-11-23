@@ -1,3 +1,4 @@
+import BooleanCell from "../BooleanCell";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {ColumnDef} from "@tanstack/react-table";
 import {useState} from "react";
@@ -10,33 +11,34 @@ import {useInterval} from "@/hooks/useInterval";
 const relayColumns: ColumnDef<Relay>[] = [
     {
         accessorKey: "circuit_from",
-        header: getHeader("From circuit", false),
+        header: getHeader("FromCircuit"),
     },
     {
         accessorKey: "circuit_to",
-        header: getHeader("To circuit", false),
+        header: getHeader("ToCircuit"),
     },
     {
         accessorKey: "is_rendezvous",
-        header: getHeader("Rendezvous?", false),
+        header: getHeader("IsRendezvous"),
+        cell: BooleanCell,
     },
     {
         accessorKey: "bytes_up",
-        header: getHeader("Up", false),
+        header: getHeader("TrafficUp"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_up)}</span>;
         },
     },
     {
         accessorKey: "bytes_down",
-        header: getHeader("Down", false),
+        header: getHeader("TrafficDown"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },
     },
     {
         accessorKey: "uptime",
-        header: getHeader("Uptime", false),
+        header: getHeader("Uptime"),
         cell: ({row}) => {
             return <span>{formatTimeRelativeISO(row.original.creation_time)}</span>;
         },

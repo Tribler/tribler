@@ -9,8 +9,10 @@ import {categoryIcon, filterDuplicates, formatBytes, formatTimeRelative, getMagn
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip";
 import {useInterval} from "@/hooks/useInterval";
 import {SwarmHealth} from "@/components/swarm-health";
+import type {TFunction} from "i18next";
+import {useTranslation} from "react-i18next";
 
-const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): ColumnDef<Torrent>[] => [
+const getColumns = (onDownload: (torrent: Torrent) => void, t: TFunction): ColumnDef<Torrent>[] => [
     {
         accessorKey: "category",
         header: "",
@@ -21,7 +23,9 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
                         <TooltipTrigger>
                             <span>{categoryIcon(row.original.category)}</span>
                         </TooltipTrigger>
-                        <TooltipContent>{row.original.category}</TooltipContent>
+                        <TooltipContent>
+                            {t(`TorrentCategory_${row.original.category}`, {defaultValue: row.original.category})}
+                        </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
             );
@@ -53,7 +57,7 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
         cell: ({row}) => {
             return (
                 <span className="whitespace-nowrap">
-                    {row.original.created > 24 * 3600 ? formatTimeRelative(row.original.created) : "unknown"}
+                    {row.original.created > 24 * 3600 ? formatTimeRelative(row.original.created) : t("UnknownCreationDate")}
                 </span>
             );
         },
@@ -68,6 +72,7 @@ const getColumns = ({onDownload}: {onDownload: (torrent: Torrent) => void}): Col
 ];
 
 export default function Popular() {
+    const {t} = useTranslation();
     const [open, setOpen] = useState<boolean>(false);
     const [torrents, setTorrents] = useState<Torrent[]>([]);
     const [torrentClicked, setTorrentClicked] = useState<Torrent | undefined>();
@@ -94,7 +99,7 @@ export default function Popular() {
         setOpen(true);
     }, []);
 
-    const torrentColumns = useMemo(() => getColumns({onDownload: handleDownload}), [handleDownload]);
+    const torrentColumns = useMemo(() => getColumns(handleDownload, t), [handleDownload, t]);
 
     return (
         <>

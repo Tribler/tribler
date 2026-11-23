@@ -160,21 +160,29 @@ export default function Health() {
                   drifts[drifts.length - 2].timestamp -
                   drifts[drifts.length - 1].drift
               ).toFixed(2)
-            : "N/A";
+            : t("NotAvailable");
 
     return (
         <div className="flex flex-col h-full p-4 text-sm">
             <div className="flex flex-row">
-                <div className="basis-20">Target:</div>
+                <div className="basis-20">{t("DriftTarget")}</div>
                 <div>{target}</div>
             </div>
             <div className="flex flex-row">
-                <div className="basis-20">Mean:</div>
-                <div>{drifts.length !== 0 ? "+" + average(drifts.map((drift) => drift.drift)).toFixed(2) : "N/A"}</div>
+                <div className="basis-20">{t("DriftMean")}</div>
+                <div>
+                    {drifts.length !== 0
+                        ? "+" + average(drifts.map((drift) => drift.drift)).toFixed(2)
+                        : t("NotAvailable")}
+                </div>
             </div>
             <div className="flex flex-row">
-                <div className="basis-20">Median:</div>
-                <div>{drifts.length !== 0 ? "+" + median(drifts.map((drift) => drift.drift)).toFixed(2) : "N/A"}</div>
+                <div className="basis-20">{t("DriftMedian")}</div>
+                <div>
+                    {drifts.length !== 0
+                        ? "+" + median(drifts.map((drift) => drift.drift)).toFixed(2)
+                        : t("NotAvailable")}
+                </div>
             </div>
             <canvas ref={ref} />
         </div>

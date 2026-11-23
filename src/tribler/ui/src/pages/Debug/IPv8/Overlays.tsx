@@ -11,25 +11,25 @@ import {useResizeObserver} from "@/hooks/useResizeObserver";
 const overlayColumns: ColumnDef<Overlay>[] = [
     {
         accessorKey: "overlay_name",
-        header: getHeader("Name", false, true, true),
+        header: getHeader("Name", true, true, true),
     },
     {
         accessorKey: "id",
-        header: getHeader("Community ID", false),
+        header: getHeader("CommunityID"),
         cell: ({row}) => {
             return <span>{row.original.id.slice(0, 10)}</span>;
         },
     },
     {
         accessorKey: "my_peer",
-        header: getHeader("My peer", false),
+        header: getHeader("MyPeer"),
         cell: ({row}) => {
             return <span>{row.original.my_peer.slice(0, 10)}</span>;
         },
     },
     {
         accessorKey: "peers",
-        header: getHeader("Peers", false),
+        header: getHeader("Peers"),
         cell: ({row}) => {
             return (
                 <span
@@ -50,15 +50,15 @@ const overlayColumns: ColumnDef<Overlay>[] = [
 const peerColumns: ColumnDef<Peer>[] = [
     {
         accessorKey: "ip",
-        header: getHeader("IP", false),
+        header: getHeader("IPAddress"),
     },
     {
         accessorKey: "port",
-        header: getHeader("Port", false),
+        header: getHeader("Port"),
     },
     {
         accessorKey: "public_key",
-        header: getHeader("Public key", false),
+        header: getHeader("PublicKey"),
         cell: ({row}) => {
             return <p className="max-w-[700px] text-ellipsis overflow-hidden">{row.original.public_key}</p>;
         },

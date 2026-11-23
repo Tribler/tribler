@@ -32,7 +32,7 @@ const LanguageSelect = () => {
         <DropdownMenu>
             <EasyTooltip content={t("SelectLanguage")}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <Button variant="ghost" className="h-8 w-8 p-0" aria-label={t("SelectLanguage")}>
                         {language.slice(0, 2)}
                     </Button>
                 </DropdownMenuTrigger>
@@ -44,6 +44,7 @@ const LanguageSelect = () => {
                 <DropdownMenuItem onClick={() => changeLanguage("ko_KR")}>ko</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("pt_BR")}>pt</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("ru_RU")}>ru</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage("sv_SE")}>sv</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("zh_CN")}>zh</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

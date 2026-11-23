@@ -1,3 +1,4 @@
+import {useTranslation} from "react-i18next";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import Circuits from "./Circuits";
 import Relays from "./Relays";
@@ -6,14 +7,15 @@ import Swarms from "./Swarms";
 import Peers from "./Peers";
 
 export default function Tunnels() {
+    const {t} = useTranslation();
     return (
         <Tabs defaultValue="circuits" className="w-full flex flex-col">
             <TabsList className="flex-cols-5 border-b">
-                <TabsTrigger value="circuits">Circuits</TabsTrigger>
-                <TabsTrigger value="relays">Relays</TabsTrigger>
-                <TabsTrigger value="exits">Exit sockets</TabsTrigger>
-                <TabsTrigger value="swarms">Hidden swarms</TabsTrigger>
-                <TabsTrigger value="peers">Peers</TabsTrigger>
+                <TabsTrigger value="circuits">{t("Circuits")}</TabsTrigger>
+                <TabsTrigger value="relays">{t("Relays")}</TabsTrigger>
+                <TabsTrigger value="exits">{t("ExitSockets")}</TabsTrigger>
+                <TabsTrigger value="swarms">{t("HiddenSwarms")}</TabsTrigger>
+                <TabsTrigger value="peers">{t("Peers")}</TabsTrigger>
             </TabsList>
             <TabsContent value="circuits" className="contents">
                 <Circuits />

@@ -1,15 +1,17 @@
+import {useTranslation} from "react-i18next";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import Tasks from "./Tasks";
 import Health from "./Health";
 import SlowTasks from "./SlowTasks";
 
 export default function IPv8() {
+    const {t} = useTranslation();
     return (
         <Tabs defaultValue="tasks" className="w-full flex flex-col flex-wrap">
             <TabsList className="flex-rows-3 border-b">
-                <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                <TabsTrigger value="slow">Slow tasks</TabsTrigger>
-                <TabsTrigger value="health">Health</TabsTrigger>
+                <TabsTrigger value="tasks">{t("Tasks")}</TabsTrigger>
+                <TabsTrigger value="slow">{t("SlowTasks")}</TabsTrigger>
+                <TabsTrigger value="health">{t("EventLoopHealth")}</TabsTrigger>
             </TabsList>
             <TabsContent value="tasks" className="contents">
                 <Tasks />

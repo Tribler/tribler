@@ -15,9 +15,43 @@ import toast, {Toaster, ToastBar} from "react-hot-toast";
 import Cookies from "js-cookie";
 import {DialogDescription} from "@radix-ui/react-dialog";
 import {Ban, Loader} from "lucide-react";
+import type {TFunction} from "i18next";
 import {useTranslation} from "react-i18next";
 import {ScrollArea} from "../ui/scroll-area";
 import {EasyTooltip} from "../ui/tooltip";
+
+// Shutdown events carry human-readable messages from the core.
+const shutdownMessages = new Map([
+    ["Shutting down torrent checker.", "ShutdownTorrentChecker"],
+    ["Shutting down IPv8 peer-to-peer overlays.", "ShutdownIPv8Overlays"],
+    ["Shutting down download manager.", "ShutdownDownloadManager"],
+    ["Shutting down local SOCKS5 interface.", "ShutdownSOCKS5"],
+    ["Shutting down metadata database.", "ShutdownMetadataDatabase"],
+    ["Shutting down GUI connection. Going dark.", "ShutdownGUIConnection"],
+    ["Checkpointing Downloads...", "ShutdownCheckpointDownloads"],
+    ["Shutting down Downloads...", "ShutdownDownloads"],
+    ["Shutting down LibTorrent Manager...", "ShutdownLibtorrent"],
+    ["Writing session state to disk.", "ShutdownWriteSession"],
+    ["Stopping UPnP.", "ShutdownStopUPnP"],
+    ["Removing temporary download files.", "ShutdownRemoveTempFiles"],
+    ["Finished shutting down download manager.", "ShutdownDownloadManagerStopped"],
+]);
+
+function formatShutdownState(state: string, t: TFunction) {
+    const key = shutdownMessages.get(state);
+    if (key) return t(key);
+
+    const waiting =
+        /^Waiting for (\d+) downloads to finish\.(?:\.\.| (\d+) bytes left to write\.) (\d+\.\d{2}) seconds left until forced shutdown\.$/.exec(state);
+    if (!waiting) return state;
+    const [, downloads, bytes, seconds] = waiting;
+    return t(bytes === undefined ? "ShutdownWaiting" : "ShutdownWaitingWithBytes", {
+        downloads,
+        bytes,
+        seconds: Number(seconds),
+        formatParams: {seconds: {minimumFractionDigits: 2}},
+    });
+}
 
 export function Header() {
     const [online, setOnline] = useState<boolean>(true);
@@ -93,17 +127,15 @@ export function Header() {
                                 <Ban className="inline mr-3" />
                             )}
                             {online
-                                ? "Tribler is shutting down"
+                                ? t("TriblerShuttingDown")
                                 : shutdownLogs.length > 0
-                                  ? "Tribler has shutdown"
-                                  : "Failed to connect to Tribler"}
+                                  ? t("TriblerShutDown")
+                                  : t("ConnectionFailed")}
                         </DialogTitle>
 
                         {!online && shutdownLogs.length === 0 ? (
-                            <DialogDescription className="text-center text-xs">
-                                Tribler may not be running or your browser is missing a cookie.
-                                <br />
-                                In latter case please re-open Tribler from the system tray
+                            <DialogDescription className="whitespace-pre-line text-center text-xs">
+                                {t("ConnectionFailedHelp")}
                             </DialogDescription>
                         ) : (
                             <ScrollArea className="max-h-[380px]">
@@ -111,7 +143,7 @@ export function Header() {
                                     <div>
                                         {shutdownLogs.map((log, idx) => (
                                             <div key={`shutdown-log-line-${idx}`}>
-                                                {log}
+                                                {formatShutdownState(log, t)}
                                                 <br />
                                             </div>
                                         ))}
@@ -147,6 +179,7 @@ export function Header() {
                             <ModeToggle />
                             <EasyTooltip content={t("Restart")}>
                                 <Button
+                                    aria-label={t("Restart")}
                                     variant="ghost"
                                     className="w-9 px-0"
                                     onClick={() => {
@@ -165,6 +198,7 @@ export function Header() {
                             </EasyTooltip>
                             <EasyTooltip content={t("Shutdown")}>
                                 <Button
+                                    aria-label={t("Shutdown")}
                                     variant="ghost"
                                     className="w-9 px-0"
                                     onClick={() => {
@@ -193,14 +227,15 @@ export function Header() {
                     duration: 15000
                 }}
             >
-            {(t) => (
-            <ToastBar toast={t}>
+            {(notification) => (
+            <ToastBar toast={notification}>
               {({ icon, message }) => (
                 <>
                   {icon}
                   {message}
                   <button
-                     onClick={() => toast.dismiss(t.id)}
+                     aria-label={t("Close")}
+                     onClick={() => toast.dismiss(notification.id)}
                      className="text-muted-foreground hover:text-destructive">
                      <sup>✖</sup>
                   </button>

@@ -1,3 +1,4 @@
+import BooleanCell from "../BooleanCell";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {useState} from "react";
 import {ipv8Service} from "@/services/ipv8.service";
@@ -10,41 +11,42 @@ import {useInterval} from "@/hooks/useInterval";
 const swarmColumns: ColumnDef<Swarm>[] = [
     {
         accessorKey: "info_hash",
-        header: getHeader("Infohash", false),
+        header: getHeader("Infohash"),
     },
     {
         accessorKey: "num_seeders",
-        header: getHeader("# Seeders", false),
+        header: getHeader("SeederCount"),
     },
     {
         accessorKey: "num_connections",
-        header: getHeader("# Connections", false),
+        header: getHeader("ConnectionCount"),
     },
     {
         accessorKey: "num_connections_incomplete",
-        header: getHeader("# Pending", false),
+        header: getHeader("PendingCount"),
     },
     {
         accessorKey: "seeding",
-        header: getHeader("Seeding?", false),
+        header: getHeader("IsSeeding"),
+        cell: BooleanCell,
     },
     {
         accessorKey: "last_lookup",
-        header: getHeader("Last lookup", false),
+        header: getHeader("LastLookup"),
         cell: ({row}) => {
             return <span>{formatTimeRelativeISO(row.original.last_lookup)}</span>;
         },
     },
     {
         accessorKey: "bytes_up",
-        header: getHeader("Up", false),
+        header: getHeader("TrafficUp"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },
     },
     {
         accessorKey: "bytes_down",
-        header: getHeader("Down", false),
+        header: getHeader("TrafficDown"),
         cell: ({row}) => {
             return <span>{formatBytes(row.original.bytes_down)}</span>;
         },

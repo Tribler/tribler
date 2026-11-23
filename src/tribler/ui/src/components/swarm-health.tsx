@@ -26,10 +26,12 @@ export function SwarmHealth({torrent}: {torrent: Torrent}) {
                 : `bg-red-500`;
     };
 
+    const counts = {seeders: torrent.num_seeders, leechers: torrent.num_leechers};
+
     return (
         <TooltipProvider>
             <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger aria-label={t("SeedersLeechers", counts)}>
                     <div
                         className="flex flex-nowrap items-center whitespace-nowrap cursor-button"
                         onClick={() => {
@@ -49,16 +51,14 @@ export function SwarmHealth({torrent}: {torrent: Torrent}) {
                         ) : (
                             <div className={`w-3 h-3 ${bgColor(torrent)} rounded-full mr-2`} />
                         )}
-                        <span>
-                            S{torrent.num_seeders} L{torrent.num_leechers}
-                        </span>
+                        <span>{t("SwarmCountsCompact", counts)}</span>
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
                     <span>
                         {torrent.last_tracker_check === 0
-                            ? "Not checked"
-                            : `Checked ${formatTimeRelative(torrent.last_tracker_check)}`}
+                            ? t("SwarmNotChecked")
+                            : t("SwarmLastChecked", {time: formatTimeRelative(torrent.last_tracker_check)})}
                     </span>
                 </TooltipContent>
             </Tooltip>

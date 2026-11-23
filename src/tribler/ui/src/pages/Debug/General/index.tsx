@@ -1,10 +1,11 @@
+import {useTranslation} from "react-i18next";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {formatBytes} from "@/lib/utils";
 import {KeyValue} from "@/models/keyvalue.model";
 import {triblerService} from "@/services/tribler.service";
 import {isErrorDict} from "@/services/reporting";
 import {ColumnDef} from "@tanstack/react-table";
-import {useCallback, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useInterval} from "@/hooks/useInterval";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Pause, Play} from "lucide-react";
@@ -13,16 +14,18 @@ import {Button} from "@/components/ui/button";
 const generalColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: getHeader("Key", false, true, true),
+        header: getHeader("Key", true, true, true),
     },
     {
         accessorKey: "value",
-        header: getHeader("Value", false),
+        header: getHeader("Value"),
     },
 ];
 
 export default function General() {
+    const {t} = useTranslation();
     const [stats, setStats] = useState<KeyValue[]>([]);
+    const translatedStats = useMemo(() => stats.map(({key, value}) => ({key: t(key), value})), [stats, t]);
     const [logs, setLogs] = useState<string>("");
     const [logSearch, setLogSearch] = useState<string>("");
 
@@ -54,11 +57,11 @@ export default function General() {
                 !isErrorDict(ipv8Stats)
             ) {
                 const newStats = new Array<KeyValue>();
-                newStats.push({key: "Database size", value: formatBytes(triblerStats.db_size)});
-                newStats.push({key: "Number of torrents collected", value: "" + triblerStats.num_torrents});
-                newStats.push({key: "Endpoint version", value: "" + triblerStats.endpoint_version});
-                newStats.push({key: "Total IPv8 bytes up", value: formatBytes(ipv8Stats.total_up)});
-                newStats.push({key: "Total IPv8 bytes down", value: formatBytes(ipv8Stats.total_down)});
+                newStats.push({key: "DatabaseSize", value: formatBytes(triblerStats.db_size)});
+                newStats.push({key: "TorrentsCollected", value: "" + triblerStats.num_torrents});
+                newStats.push({key: "EndpointVersion", value: "" + triblerStats.endpoint_version});
+                newStats.push({key: "IPv8BytesUp", value: formatBytes(ipv8Stats.total_up)});
+                newStats.push({key: "IPv8BytesDown", value: formatBytes(ipv8Stats.total_down)});
                 setStats(newStats);
             }
 
@@ -79,9 +82,9 @@ export default function General() {
 
     return (
         <div className="w-full h-full flex flex-col">
-            <SimpleTable data={stats} columns={generalColumns} />
+            <SimpleTable data={translatedStats} columns={generalColumns} />
             <div className="flex-none bg-neutral-100 dark:bg-neutral-900 border-y pl-3 py-2 text-sm font-medium flex items-center">
-                <span className="text-muted-foreground flex-none">Logs</span>
+                <span className="text-muted-foreground flex-none">{t("Logs")}</span>
                 <Button
                     variant="ghost"
                     className="h-4 w-4 ml-2 p-0 text-muted-foreground flex-none"

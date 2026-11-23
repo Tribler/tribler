@@ -1,3 +1,4 @@
+import {useTranslation} from "react-i18next";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {
     Select,
@@ -19,15 +20,16 @@ import {useInterval} from "@/hooks/useInterval";
 export const libtorrentColumns: ColumnDef<KeyValue>[] = [
     {
         accessorKey: "key",
-        header: getHeader("Key", false, true, true),
+        header: getHeader("Key", true, true, true),
     },
     {
         accessorKey: "value",
-        header: getHeader("Value", false),
+        header: getHeader("Value"),
     },
 ];
 
 export default function Libtorrent() {
+    const {t} = useTranslation();
     const [hops, setHops] = useState<number>(0);
     const [settings, setSettings] = useState<KeyValue[]>([]);
     const [session, setSession] = useState<KeyValue[]>([]);
@@ -61,8 +63,8 @@ export default function Libtorrent() {
     return (
         <Tabs defaultValue="settings" className="w-full flex flex-col flex-wrap">
             <TabsList className="flex-rows-4 border-b">
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-                <TabsTrigger value="session">Session</TabsTrigger>
+                <TabsTrigger value="settings">{t("Settings")}</TabsTrigger>
+                <TabsTrigger value="session">{t("Session")}</TabsTrigger>
                 <div className="flex items-center flex-1"></div>
                 <div className="flex items-center pr-2">
                     <Select defaultValue="0" onValueChange={(hops) => setHops(Number(hops))}>
@@ -71,12 +73,13 @@ export default function Libtorrent() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectLabel>Libtorrent session</SelectLabel>
-                                <SelectItem value="0">Hops = 0</SelectItem>
-                                <SelectItem value="1">Hops = 1</SelectItem>
-                                <SelectItem value="2">Hops = 2</SelectItem>
-                                <SelectItem value="3">Hops = 3</SelectItem>
-                                <SelectItem value="-1">Background tasks</SelectItem>
+                                <SelectLabel>{t("LibtorrentSession")}</SelectLabel>
+                                {[0, 1, 2, 3].map((hops) => (
+                                    <SelectItem key={hops} value={String(hops)}>
+                                        {t("SessionHops", {hops})}
+                                    </SelectItem>
+                                ))}
+                                <SelectItem value="-1">{t("BackgroundTasks")}</SelectItem>
                             </SelectGroup>
                         </SelectContent>
                     </Select>

@@ -44,7 +44,7 @@ export function SideLayout() {
                             onClick={() => setShowNav((old) => !old)}
                             className="w-full justify-start">
                             <HamburgerMenuIcon className="mr-2.5" />
-                            Navigation
+                            {t("Navigation")}
                         </Button>
                     </div>
                     <aside

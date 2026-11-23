@@ -1,3 +1,4 @@
+import BooleanCell from "../BooleanCell";
 import SimpleTable, {getHeader} from "@/components/ui/simple-table";
 import {ColumnDef} from "@tanstack/react-table";
 import {useState} from "react";
@@ -10,26 +11,27 @@ import {formatTimeRelativeISO} from "@/lib/utils";
 const taskColumns: ColumnDef<Task>[] = [
     {
         accessorKey: "taskmanager",
-        header: getHeader("Taskmanager", false, true, true),
+        header: getHeader("TaskManager", true, true, true),
     },
     {
         accessorKey: "name",
-        header: getHeader("Name", false, true, true),
+        header: getHeader("Name", true, true, true),
         cell: ({row}) => {
             return <span className="line-clamp-1">{row.original.name}</span>;
         },
     },
     {
         accessorKey: "running",
-        header: getHeader("Running?", false),
+        header: getHeader("TaskRunning"),
+        cell: BooleanCell,
     },
     {
         accessorKey: "interval",
-        header: getHeader("Interval", false),
+        header: getHeader("Interval"),
     },
     {
         accessorKey: "start_time",
-        header: getHeader("Started", false),
+        header: getHeader("TaskStarted"),
         cell: ({row}) => {
             return row.original.start_time && <span>{formatTimeRelativeISO(row.original.start_time)}</span>;
         },

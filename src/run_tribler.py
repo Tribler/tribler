@@ -254,6 +254,28 @@ def recolor_tray_icon(pil_icon: Image, rgb_code: str) -> Image:
         return pil_icon
 
 
+def get_tray_labels(config: TriblerConfigManager) -> dict[str, str]:
+    """
+    Read tray labels from the web UI catalogs, with an English fallback.
+    """
+    directory = tribler.get_webui_root() / "public" / "locales"
+    english = directory / "en_US.json"
+    settings = config.get("ui")
+    language = settings.get("lang") if isinstance(settings, dict) else None
+    selected = next((path for path in directory.glob("*.json") if path.stem == language), english)
+    labels = {"Open": "Open", "Quit": "Quit"}
+    for path in dict.fromkeys((english, selected)):
+        try:
+            catalog = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(catalog, dict):
+            for key in labels:
+                if isinstance(text := catalog.get(key), str) and text:
+                    labels[key] = text
+    return labels
+
+
 def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
     """
     Create the tray icon.
@@ -273,9 +295,18 @@ def spawn_tray_icon(session: Session, config: TriblerConfigManager) -> Icon:
         image = recolor_tray_icon(image, custom_image_col)
     api_port = session.rest_manager.get_api_port()
     url = f"http://{config.get('api/http_host')}:{api_port}/ui/#/downloads/all?key={config.get('api/key')}"
-    menu = (pystray.MenuItem("Open", lambda: open_webbrowser_tab(url)),
-            pystray.MenuItem("Quit", session.shutdown_event.set))
+    labels = get_tray_labels(config)
+    menu = (pystray.MenuItem(lambda _: labels["Open"], lambda: open_webbrowser_tab(url)),
+            pystray.MenuItem(lambda _: labels["Quit"], session.shutdown_event.set))
     icon = pystray.Icon("Tribler", icon=image, title="Tribler", menu=menu)
+
+    def update_language(option: str, _old: object, _new: object) -> None:
+        nonlocal labels
+        if option in {"ui/lang", "ui"}:
+            labels = get_tray_labels(config)
+            icon.update_menu()
+
+    config.add_trigger("ui", update_language)
     if not config.get("start_minimized"):
         open_webbrowser_tab(url)
     if sys.platform == "darwin":
