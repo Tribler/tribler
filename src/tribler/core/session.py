@@ -14,7 +14,6 @@ from ipv8.loader import IPv8CommunityLoader
 from ipv8.messaging.interfaces.dispatcher.endpoint import DispatcherEndpoint
 from ipv8.messaging.interfaces.udp.endpoint import UDPv6Endpoint
 from ipv8_rust_tunnels import Endpoint as RustEndpoint
-from ipv8_rust_tunnels import EndpointNotOpenError
 from ipv8_service import IPv8
 
 from tribler.core.components import (
@@ -46,8 +45,6 @@ from tribler.core.restapi.webui_endpoint import WebUIEndpoint
 
 if TYPE_CHECKING:
     from types import TracebackType
-
-    from ipv8.REST.overlays_endpoint import OverlaysEndpoint
 
     from tribler.core.database.store import MetadataStore
     from tribler.core.torrent_checker.torrent_checker import TorrentChecker
@@ -121,8 +118,7 @@ class Session:
         self.rust_endpoint: RustEndpoint | None = None
         dpep = IPv8Endpoint([])
         if ipv4ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv4"]:
-            dpep.interfaces["UDPIPv4"] = self.rust_endpoint = RustEndpoint(ipv4ifs[0]["port"], ipv4ifs[0]["ip"],
-                                                                           ipv4ifs[0].get("worker_threads", 4))
+            dpep.interfaces["UDPIPv4"] = self.rust_endpoint = RustEndpoint(ipv4ifs[0]["port"], ipv4ifs[0]["ip"])
             dpep.interface_order.append("UDPIPv4")
         if ipv6ifs := [e for e in self.config.get("ipv8")["interfaces"] if e["interface"] == "UDPIPv6"]:
             dpep.interfaces["UDPIPv6"] = UDPv6Endpoint(ipv6ifs[0]["port"], ipv6ifs[0]["ip"])
@@ -221,14 +217,6 @@ class Session:
         await self.ipv8.start()
 
         # Libtorrent
-        if self.rust_endpoint:
-            try:
-                self.download_manager.socks_listen_ports = [
-                    self.rust_endpoint.create_socks5_server(port, index+1)
-                    for index, port in enumerate(self.config.get("libtorrent/socks_listen_ports"))
-                ]
-            except EndpointNotOpenError:
-                logger.warning("Failed to start SOCKS5 servers")
         await self.download_manager.initialize()
         self.download_manager.start()
 
@@ -238,14 +226,6 @@ class Session:
         # REST (2/2)
         ipv8_root_endpoint = cast("IPv8RootEndpoint", self.rest_manager.get_endpoint("/api/ipv8"))
         ipv8_root_endpoint.initialize(self.ipv8)
-
-        overlays_endpoint = cast("OverlaysEndpoint", ipv8_root_endpoint.endpoints["/overlays"])
-        # Enable statistics for IPv8 StatisticsEndpoint
-        if overlays_endpoint.statistics_supported:
-            overlays_endpoint.enable_overlay_statistics(True, None, True)
-        # When using RustEndpoint, statistics are also reported. However, since RustEndpoint
-        # does not inherit from StatisticsEndpoint, we need to manually set statistics_supported.
-        overlays_endpoint.statistics_supported = True
 
     async def find_api_server(self) -> tuple[str | None, bytes | None]:
         """

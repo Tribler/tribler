@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 from asyncio import CancelledError, Event, Future, Queue
 from contextlib import suppress
 from importlib.metadata import PackageNotFoundError, version
@@ -18,11 +17,9 @@ from tribler.core.restapi.rest_endpoint import RESTEndpoint, RESTResponse
 
 if TYPE_CHECKING:
     from aiohttp.web_request import Request
-    from ipv8.messaging.anonymization.tunnel import Circuit
 
 topics_to_send_to_gui = [
     Notification.torrent_status_changed,
-    Notification.tunnel_removed,
     Notification.tribler_new_version,
     Notification.tribler_exception,
     Notification.torrent_finished,
@@ -66,7 +63,6 @@ class EventsEndpoint(RESTEndpoint):
         self.queue: Queue[MessageDict] = Queue()
         self.register_task("Process queue", self.process_queue)
 
-        notifier.add(Notification.circuit_removed, self.on_circuit_removed)
         notifier.delegates.add(self.on_notification)
 
         self.app.add_routes([web.get("", self.get_events),
@@ -87,20 +83,6 @@ class EventsEndpoint(RESTEndpoint):
         """
         if topic in topics_to_send_to_gui:
             self.send_event({"topic": topic.value.name, "kwargs": kwargs})
-
-    def on_circuit_removed(self, circuit: Circuit, additional_info: str) -> None:
-        """
-        Special handler for circuit removal notifications.
-
-        The original notification contains non-JSON-serializable argument, so we send another one to GUI.
-        """
-        self.notifier.notify(Notification.tunnel_removed,
-                             circuit_id=circuit.circuit_id,
-                             circuit_class=circuit.__class__.__name__,
-                             bytes_up=circuit.bytes_up,
-                             bytes_down=circuit.bytes_down,
-                             uptime=time.time() - circuit.creation_time,
-                             additional_info=additional_info)
 
     def initial_message(self) -> MessageDict:
         """

@@ -20,7 +20,7 @@ import {
     VenetianMaskIcon,
 } from "lucide-react";
 import {MoveIcon} from "@radix-ui/react-icons";
-import {lazy, Suspense, useRef, useState} from "react";
+import {useRef, useState} from "react";
 import {useTranslation} from "react-i18next";
 import {downloadFile, downloadFilesAsZip, formatBytes} from "@/lib/utils";
 import {TFunction} from "i18next";
@@ -40,8 +40,7 @@ import ConfirmRemove from "@/dialogs/ConfirmRemove";
 import {filterActive, filterInactive} from ".";
 import {EasyTooltip} from "@/components/ui/tooltip";
 import DisableAnonymity from "@/dialogs/DisableAnonymity";
-
-const VideoDialog = lazy(() => import("@/dialogs/Videoplayer").then(({VideoDialog}) => ({default: VideoDialog})));
+import { useLocation, useNavigate } from "react-router-dom";
 
 const defaultLimits = [5 * 1024, 15 * 1024, 50 * 1024, 100 * 1024, 150 * 1024, -1];
 
@@ -296,6 +295,8 @@ export function ActionButtons({selectedDownloads, onClick}: {selectedDownloads: 
 
 export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Download[]; onClick?: () => void}) {
     const {t} = useTranslation();
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const uploadLimitRef = useRef<HTMLInputElement | null>(null);
     const downloadLimitRef = useRef<HTMLInputElement | null>(null);
@@ -304,8 +305,6 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
     const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
     const [storageDialogOpen, setStorageDialogOpen] = useState(false);
     const [anonymityDialogOpen, setAnonymityDialogOpen] = useState(false);
-    const [videoDialogOpen, setVideoDialogOpen] = useState<boolean>(false);
-    const [videoDownload, setVideoDownload] = useState<Download | null>(null);
 
     return (
         <>
@@ -336,22 +335,21 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                     <Pause className="w-4 mx-2" />
                     {t("Stop")}
                 </ContextMenuItem>
-                {triblerService.guiSettings.dev_mode && navigator.userAgent.includes("Chrome") && (
-                    <ContextMenuItem
-                        inset
-                        className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
-                        onClick={() => {
-                            console.log("Streaming...", selectedDownloads[0]);
-                            if (selectedDownloads.length == 1) {
-                                setVideoDialogOpen(true);
-                                setVideoDownload(selectedDownloads[0]);
-                            }
-                        }}
-                        disabled={selectedDownloads.length !== 1 || selectedDownloads[0].streamable !== true}>
-                        <Clapperboard className="w-4 mx-2" />
-                        {t("Stream")}
-                    </ContextMenuItem>
-                )}
+                <ContextMenuItem
+                    inset
+                    className="hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                    onClick={() => {
+                        console.log("Streaming...", selectedDownloads[0]);
+                        if (selectedDownloads.length == 1) {
+                            navigate(`/stream/${selectedDownloads[0].infohash}`, {
+                                state: {override_menu: location.pathname},
+                            });
+                        }
+                    }}
+                    disabled={selectedDownloads.length !== 1 || selectedDownloads[0].streamable !== true}>
+                    <Clapperboard className="w-4 mx-2" />
+                    {t("Stream")}
+                </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem
                     inset
@@ -614,11 +612,6 @@ export function ActionMenu({selectedDownloads, onClick}: {selectedDownloads: Dow
                 selectedDownloads={selectedDownloads}
                 onRemove={removeDownloads}
             />
-            {videoDownload && (
-                <Suspense fallback={null}>
-                    <VideoDialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen} download={videoDownload} />
-                </Suspense>
-            )}
         </>
     );
 }

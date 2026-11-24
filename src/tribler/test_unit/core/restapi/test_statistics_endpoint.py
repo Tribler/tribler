@@ -58,7 +58,10 @@ class TestStatisticsEndpoint(TestBase):
         Test if getting IPv8 stats forwards the known IPv8 endpoint statistics.
         """
         endpoint = StatisticsEndpoint()
-        endpoint.session = Mock(ipv8=Mock(endpoint=Mock(bytes_up=7, bytes_down=42)))
+        endpoint.session = Mock(
+            ipv8=Mock(),
+            rust_endpoint=Mock(get_socket_statistics=Mock(return_value=(0, 7, 0, 42, 0))),
+        )
         request = MockRequest("/api/statistics/ipv8")
 
         response = endpoint.get_ipv8_stats(request)

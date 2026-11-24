@@ -1,18 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 from asyncio import sleep
 from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
 from ipv8.community import CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-from ipv8.test.messaging.anonymization.mock import MockDHTProvider
-from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
-from ipv8.test.mocking.ipv8 import MockIPv8
-from ipv8_rust_tunnels import Endpoint as RustEndpoint
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
 from tribler.core.libtorrent.download_manager.download_manager import DownloadManager
@@ -21,10 +18,13 @@ from tribler.core.libtorrent.torrentdef import TorrentDef
 from tribler.core.libtorrent.torrents import create_torrent_file
 from tribler.core.notifier import Notifier
 from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelSettings
+from tribler.test_integration.test_anon_download import MockTunnelsWithRust
 from tribler.test_unit.core.libtorrent.mocks import FakeTDef
 from tribler.test_unit.mocks import MockTriblerConfigManager
 
 if TYPE_CHECKING:
+    from ipv8.test.mocking.ipv8 import MockIPv8
+
     from tribler.core.libtorrent.download_manager.download import Download
 
 DOWNLOADER = 0  # Node 0 tries to download through the tunnels.
@@ -53,19 +53,6 @@ class MockDownloadManager(DownloadManager):
         return True
 
 
-class MockExitDict(dict):
-    """
-    Wrap all exit sockets in a mock.
-    """
-
-    def __getitem__(self, key: int) -> MockTunnelExitSocket:
-        """
-        Get the exit socket belonging to a given circuit id.
-        """
-        value = super().__getitem__(key)
-        return value if isinstance(value, MockTunnelExitSocket) else MockTunnelExitSocket(value)
-
-
 class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
     """
     An integration test for anonymous downloads.
@@ -73,7 +60,7 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
 
     MAX_TEST_TIME = 90
 
-    def setUp(self) -> None:
+    async def setUp(self) -> None:
         """
         Create the necessary tunnel communities.
         """
@@ -92,16 +79,16 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
 
         self.initialize(TriblerTunnelCommunity, 7, GlobalTestSettings())
 
+        for n in self.nodes:
+            n.overlay.on_endpoint_open()
+            n.overlay.engine.set_exit_address(("127.0.0.1", 0))
+
     async def tearDown(self) -> None:
         """
         Tear down all communities and the download managers.
         """
         await self.download_manager_downloader.shutdown()
         await self.download_manager_seeder.shutdown()
-        for n in self.nodes:
-            n.overlay.circuits = {}
-            n.overlay.relay_from_to = {}
-            n.overlay.exit_sockets = {}
         await super().tearDown()
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
@@ -136,28 +123,17 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
             tunnel_settings.download_manager = MockDownloadManager(MockTriblerConfigManager(), tunnel_settings.notifier)
             tunnel_settings.download_manager.checkpoint_directory = Mock()
 
-        out = MockIPv8(node_peer, TriblerTunnelCommunity, tunnel_settings)
-        out.overlay.dht_provider = MockDHTProvider(node_peer)
-        out.overlay.settings.remove_tunnel_delay = 0
-        out.overlay.exit_sockets = MockExitDict(out.overlay.crypto_endpoint.exit_sockets)
-        out.overlay.crypto_endpoint.exit_sockets = out.overlay.exit_sockets
-        out.overlay.min_dht_lookup_interval = 0
+        return MockTunnelsWithRust(node_peer, TriblerTunnelCommunity, tunnel_settings)
 
-        return out
-
-    async def start_socks_servers(self) -> None:
+    def connect_dhts(self) -> None:
         """
-        Start the socks servers.
+        Add nodes to the DHTs.
         """
-        self.download_manager_downloader.socks_listen_ports = [
-            self.node(DOWNLOADER).endpoint.create_socks5_server(0, index+1)
-            for index, port in enumerate(self.download_manager_downloader.config.get("libtorrent/socks_listen_ports"))
-        ]
-
-        self.download_manager_seeder.socks_listen_ports = [
-            self.node(SEEDER).endpoint.create_socks5_server(0, index+1)
-            for index, port in enumerate(self.download_manager_seeder.config.get("libtorrent/socks_listen_ports"))
-        ]
+        infos = [node.overlay.engine.get_dht_info() for node in self.nodes]
+        for i, node in enumerate(self.nodes):
+            for j, (peer_id, port) in enumerate(infos):
+                if i != j:
+                    node.overlay.engine.add_dht_node(peer_id, "127.0.0.1", port)
 
     async def add_mock_download_config(self, manager: DownloadManager, hops: int) -> DownloadConfig:
         """
@@ -206,35 +182,13 @@ class TestHiddenServicesDownload(TestBase[TriblerTunnelCommunity]):
 
         return await self.download_manager_downloader.start_download(tdef=FakeTDef(info_hash=infohash), config=config)
 
-    def start_rust(self) -> None:
-        """
-        Add Rust endpoints to all IPv8 nodes. Should be called after the event loop has started.
-        """
-        RustEndpoint.wan_address = property(RustEndpoint.get_address)
-        for node in self.nodes:
-            node.overlay.endpoint = node.endpoint = RustEndpoint(ip="127.0.0.1")
-            node.endpoint.open()
-            node.endpoint.set_exit_address(("127.0.0.1", 0))
-            node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
-
-            node.overlay.crypto_endpoint = node.endpoint
-            node.endpoint.setup_tunnels(node.overlay, node.overlay.settings)
-
-            node.overlay.circuits = node.endpoint.circuits
-            node.overlay.relay_from_to = node.endpoint.relays
-            node.overlay.exit_sockets = node.endpoint.exit_sockets
-
     async def test_hidden_services(self) -> None:
         """
         Test an e2e anonymous download.
         """
-        self.start_rust()
-        await self.start_socks_servers()
         await self.introduce_nodes()
+        self.connect_dhts()
         infohash = await self.start_seeding()
-        await self.overlay(1).do_peer_discovery()
-
+        await asyncio.sleep(1)
         download = await self.start_anon_download(infohash)
-        await self.overlay(0).do_peer_discovery()
-
         await download.wait_for_status(DownloadStatus.SEEDING)

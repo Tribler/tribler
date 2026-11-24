@@ -1,27 +1,16 @@
 from __future__ import annotations
 
-from asyncio import gather, sleep
-from collections import defaultdict
 from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, call
 
-from ipv8.messaging.anonymization.tunnel import (
-    CIRCUIT_STATE_CLOSING,
-    CIRCUIT_TYPE_IP_SEEDER,
-    CIRCUIT_TYPE_RP_DOWNLOADER,
-    PEER_FLAG_EXIT_BT,
-    Circuit,
-)
+from ipv8.community import Community
 from ipv8.messaging.serialization import ADDRESS_TYPE_IPV4
 from ipv8.peer import Peer
 from ipv8.test.base import TestBase
-from ipv8.test.messaging.anonymization import mock as dht_mocks
-from ipv8.test.messaging.anonymization.mock import MockDHTProvider
-from ipv8.test.mocking.endpoint import AutoMockEndpoint
-from ipv8.test.mocking.exit_socket import MockTunnelExitSocket
 from ipv8.test.mocking.ipv8 import MockIPv8
 from ipv8.util import succeed
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT
 
 from tribler.core.libtorrent.download_manager.download_state import DownloadStatus
 from tribler.core.notifier import Notifier
@@ -30,29 +19,47 @@ from tribler.core.tunnel.community import TriblerTunnelCommunity, TriblerTunnelS
 if TYPE_CHECKING:
     from ipv8.community import CommunitySettings
 
+    from tribler.core.libtorrent.download_manager.download import Download
 
-class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
+
+class MockTriblerTunnelCommunity(TriblerTunnelCommunity):
+    """
+    A mocked TriblerTunnelCommunity without the TunnelEngine.
+    """
+
+    def __init__(self, settings: TriblerTunnelSettings) -> None:
+        """
+        Create a new MockTriblerTunnelCommunity.
+        """
+        self.bittorrent_peers: dict[Download, set[tuple[str, int]]] = {}
+        self.download_states: dict[bytes, DownloadStatus] = {}
+        self.last_forced_announce: dict[bytes, float] = {}
+        self.candidates = {}
+        self.settings = settings
+        self.engine = Mock(
+            get_peers_for_circuit=Mock(return_value=[]),
+            count_circuits=Mock(return_value=0),
+            has_intro_point=Mock(return_value=False),
+            set_e2e_callback=Mock(return_value=None),
+        )
+        Community.__init__(self, settings)
+
+
+class TestTriblerTunnelCommunity(TestBase[MockTriblerTunnelCommunity]):
     """
     Tests for the TriblerTunnelCommunity class.
     """
 
-    def setUp(self) -> None:
+    MAX_TEST_TIME = 100000
+
+    async def setUp(self) -> None:
         """
         Create a new TriblerTunnelCommunity.
         """
         super().setUp()
         self.fake_cache_file = BytesIO()
         self.fake_cache_file.read = self.fake_cache_file.getvalue
-        self.initialize(TriblerTunnelCommunity, 1)
-        self.overlay(0).crypto_endpoint.get_socks5_statistics = Mock(return_value=[])
-        self.overlay(0).crypto_endpoint.get_peers_for_circuit = Mock(return_value=[])
-
-    async def tearDown(self) -> None:
-        """
-        Reset the global_dht_services variable.
-        """
-        dht_mocks.global_dht_services = defaultdict(list)
-        await super().tearDown()
+        self.initialize(MockTriblerTunnelCommunity, 1)
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
                     enable_statistics: bool = False) -> MockIPv8:
@@ -63,9 +70,8 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
                                                       __exit__=Mock())),
                           write_bytes=self.fake_cache_file.write)
         config = TriblerTunnelSettings(remove_tunnel_delay=0, max_circuits=1, socks_servers=[], notifier=Notifier(),
-                                       exitnode_cache=exit_cache, download_manager=None)
-        mock_ipv8 = MockIPv8("curve25519", TriblerTunnelCommunity, config)
-        config.dht_provider = MockDHTProvider(Peer(mock_ipv8.overlay.my_peer.key, mock_ipv8.overlay.my_estimated_wan))
+                                       exitnode_cache=exit_cache, download_manager=Mock(socks_listen_ports=[]))
+        mock_ipv8 = MockIPv8("curve25519", MockTriblerTunnelCommunity, config)
         mock_ipv8.overlay.cancel_all_pending_tasks()
         return mock_ipv8
 
@@ -77,11 +83,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(i).create_introduction_point(service)
 
         await self.deliver_messages()
-
-        for node in self.nodes:
-            exit_sockets = node.overlay.exit_sockets
-            for circuit_id in exit_sockets:
-                exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     async def assign_exit_node(self, i: int) -> None:
         """
@@ -96,9 +97,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(i).candidates[public_peer] = exit_node.overlay.settings.peer_flags
         self.overlay(i).build_tunnels(1)
         await self.deliver_messages()
-        exit_sockets = exit_node.overlay.exit_sockets
-        for circuit_id in exit_sockets:
-            exit_sockets[circuit_id] = MockTunnelExitSocket(exit_sockets[circuit_id])
 
     async def test_backup_exitnodes(self) -> None:
         """
@@ -136,39 +134,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
 
         self.assertNotIn(mock_torrent, self.overlay(0).bittorrent_peers)
 
-    async def test_remove_non_existing_circuit(self) -> None:
-        """
-        Test removing a non-existing circuit.
-        """
-        await self.overlay(0).remove_circuit(3, remove_now=True)
-
-        self.assertNotIn(3, self.overlay(0).circuits)
-
-    async def test_remove_existing_circuit(self) -> None:
-        """
-        Test removing an existing circuit.
-        """
-        self.overlay(0).circuits[3] = Circuit(3)
-
-        await self.overlay(0).remove_circuit(3, remove_now=True)
-
-        self.assertNotIn(3, self.overlay(0).circuits)
-
-    async def test_remove_existing_circuit_later(self) -> None:
-        """
-        Test removing an existing circuit.
-        """
-        circuit = Circuit(3)
-        circuit.add_hop(Mock())
-        self.overlay(0).circuits[3] = circuit
-        self.overlay(0).settings.remove_tunnel_delay = 5.0
-
-        _ = self.overlay(0).remove_circuit(3, remove_now=False)
-        await sleep(0)
-
-        self.assertIn(3, self.overlay(0).circuits)
-        self.assertEqual(CIRCUIT_STATE_CLOSING, circuit.state)
-
     def test_monitor_downloads_ignore_hidden(self) -> None:
         """
         Test if hidden downloads get ignored by monitor_downloads.
@@ -176,6 +141,7 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         mock_state = Mock()
         mock_download = Mock(hidden=True, get_state=Mock(return_value=mock_state))
         mock_state.get_download = lambda: mock_download
+        self.overlay(0).engine.count_circuits.return_value = 0
 
         self.overlay(0).monitor_downloads([mock_state])
 
@@ -185,21 +151,12 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we stop building IPs when a download doesn't exist anymore.
         """
-        self.overlay(0).settings.download_manager = Mock(get_last_download_states=Mock(return_value=[]),
-                                                         get_downloads=Mock(return_value=[]))
-        circuit = Circuit(0, 1, CIRCUIT_TYPE_IP_SEEDER, info_hash=b"a")
-        remote_endpoint = AutoMockEndpoint()
-        circuit.add_hop(Mock(address=remote_endpoint.get_address()))
-        circuit.last_activity = 0
-
-        self.overlay(0).circuits[0] = circuit
-        self.overlay(0).join_swarm(b"a", 1)
-        self.overlay(0).download_states[b"a"] = 3
+        self.overlay(0).engine.count_circuits.return_value = 1
+        self.overlay(0).download_states[b"a"] = DownloadStatus.SEEDING
 
         self.overlay(0).monitor_downloads([])
-        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
 
-        self.assertNotIn(0, self.overlay(0).circuits)
+        self.overlay(0).engine.leave_swarm.assert_called_once_with(b"a")
 
     def test_monitor_downloads_recreate_ip(self) -> None:
         """
@@ -210,6 +167,8 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         mock_download = Mock(get_def=Mock(return_value=mock_tdef), add_peer=Mock(return_value=succeed(None)),
                              get_state=Mock(return_value=mock_state), config=Mock(get_hops=Mock(return_value=1)))
         mock_state.get_download = Mock(return_value=mock_download)
+        self.overlay(0).engine.count_circuits.return_value = 0
+        self.overlay(0).engine.has_intro_point.return_value = False
         self.overlay(0).create_introduction_point = Mock()
         self.overlay(0).download_states[b"a"] = DownloadStatus.DOWNLOADING
 
@@ -222,52 +181,12 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         """
         Test if we leave the swarm when a download is stopped.
         """
-        self.overlay(0).swarms[b"a"] = None
+        self.overlay(0).engine.count_circuits.return_value = 1
         self.overlay(0).download_states[b"a"] = 3
 
         self.overlay(0).monitor_downloads([])
 
-        self.assertNotIn(b"a", self.overlay(0).swarms)
-
-    async def test_monitor_downloads_intro(self) -> None:
-        """
-        Test if rendezvous points are removed when a download is stopped.
-        """
-        self.overlay(0).settings.download_manager = Mock(get_last_download_states=Mock(return_value=[]),
-                                                         get_downloads=Mock(return_value=[]))
-        circuit = Circuit(0, 1, CIRCUIT_TYPE_RP_DOWNLOADER, info_hash=b"a")
-        remote_endpoint = AutoMockEndpoint()
-        circuit.add_hop(Mock(address=remote_endpoint.get_address()))
-        circuit.last_activity = 0
-
-        self.overlay(0).circuits[0] = circuit
-        self.overlay(0).join_swarm(b"a", 1)
-        self.overlay(0).swarms[b"a"].add_connection(circuit, None)
-        self.overlay(0).download_states[b"a"] = 3
-
-        self.overlay(0).monitor_downloads([])
-        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
-
-        self.assertNotIn(0, self.overlay(0).circuits)
-
-    async def test_monitor_downloads_stop_all(self) -> None:
-        """
-        Test if circuits are removed when all downloads are stopped.
-        """
-        self.overlay(0).settings.download_manager = Mock(get_last_download_states=Mock(return_value=[]),
-                                                         get_downloads=Mock(return_value=[]))
-        circuit = Circuit(0, 1, CIRCUIT_TYPE_RP_DOWNLOADER, info_hash=b"a")
-        remote_endpoint = AutoMockEndpoint()
-        circuit.add_hop(Mock(address=remote_endpoint.get_address()))
-
-        self.overlay(0).circuits[0] = circuit
-        self.overlay(0).join_swarm(b"a", 1)
-        self.overlay(0).download_states[b"a"] = 3
-
-        self.overlay(0).monitor_downloads([])
-        await gather(*self.overlay(0).get_anonymous_tasks("remove_circuit"))
-
-        self.assertNotIn(0, self.overlay(0).circuits)
+        self.overlay(0).engine.leave_swarm.assert_called_once_with(b"a")
 
     def test_update_torrent(self) -> None:
         """
@@ -284,20 +203,6 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         # Test adding peers
         self.overlay(0).bittorrent_peers[download] = {("4.4.4.4", 4)}
         self.overlay(0).update_torrent(peers, download)
-
-    async def test_circuit_reject_too_many(self) -> None:
-        """
-        Test if a circuit is rejected by an exit node if it already joined the max number of circuits.
-        """
-        self.add_node_to_experiment(self.create_node())
-        self.overlay(1).settings.peer_flags = {PEER_FLAG_EXIT_BT}
-        self.overlay(1).settings.max_joined_circuits = 0
-        await self.introduce_nodes()
-
-        self.overlay(0).build_tunnels(1)
-        await self.deliver_messages()
-
-        self.assertEqual(self.overlay(0).tunnels_ready(1), 0.0)
 
     def test_cache_exitnodes_to_disk(self) -> None:
         """
@@ -317,9 +222,3 @@ class TestTriblerTunnelCommunity(TestBase[TriblerTunnelCommunity]):
         self.overlay(0).cache_exitnodes_to_disk()
 
         self.assertTrue(self.overlay(0).settings.exitnode_cache.write_bytes.called)
-
-    async def test_should_join_circuit(self) -> None:
-        """
-        Test if we can join a circuit.
-        """
-        self.assertTrue(await self.overlay(0).should_join_circuit(create_payload=Mock(), previous_node_address=Mock()))

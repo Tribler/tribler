@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, cast
 from unittest.mock import Mock
 
 from aiohttp import ClientSession, web
-from ipv8.community import CommunitySettings
+from ipv8.community import Community, CommunitySettings
 from ipv8.keyvault.crypto import default_eccrypto
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT, PEER_FLAG_RELAY
 from ipv8.peer import Peer
+from ipv8.peerdiscovery.network import Network
 from ipv8.test.base import TestBase
-from ipv8.test.messaging.anonymization.mock import MockDHTProvider
+from ipv8.test.mocking.discovery import MockWalk
 from ipv8.test.mocking.ipv8 import MockIPv8
+from ipv8_rust_tunnels import PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_HTTP, PEER_FLAG_RELAY
 from ipv8_rust_tunnels import Endpoint as RustEndpoint
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig
@@ -53,6 +54,42 @@ class MockDownloadManager(DownloadManager):
         return True
 
 
+class MockTunnelsWithRust(MockIPv8):
+    """
+    Mock the tunnel community, but with a real localhost endpoint.
+    """
+
+    def __init__(self,
+                 crypto_curve_or_peer: str | Peer,
+                 overlay_class: type[Community],
+                 settings: CommunitySettings | None = None) -> None:
+        """
+        Create a new MockIPv8 instance.
+        """
+        self.endpoint = RustEndpoint(ip="127.0.0.1")
+        self.endpoint.inner.open(self.endpoint.datagram_received)
+        self.endpoint.wan_address = self.endpoint.lan_address = self.endpoint.get_address()
+
+        self.network = Network()
+        self.my_peer = crypto_curve_or_peer
+        self.my_peer.address = self.endpoint.wan_address
+
+        fwd_settings = overlay_class.settings_class(my_peer=self.my_peer, endpoint=self.endpoint, network=self.network)
+        if settings is not None:
+            settings.__dict__.update(fwd_settings.__dict__)
+            fwd_settings = settings
+
+        self.overlay = overlay_class(fwd_settings)
+        self.discovery = MockWalk(self.overlay)
+
+        self.overlay.my_estimated_wan = self.endpoint.wan_address
+        self.overlay.my_estimated_lan = self.endpoint.lan_address
+
+        self.overlays = []
+        self.strategies = []
+        self.dht = None
+
+
 async def start_http_server(port: int, response: str) -> web.AppRunner:
     """
     Start an HTTP server using the given port and response.
@@ -76,7 +113,7 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
     MAX_TEST_TIME = 30
 
-    def setUp(self) -> None:
+    async def setUp(self) -> None:
         """
         Create the necessary tunnel communities.
         """
@@ -95,16 +132,16 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         self.initialize(TriblerTunnelCommunity, 3, GlobalTestSettings())
 
+        for n in self.nodes:
+            n.overlay.on_endpoint_open()
+            n.overlay.engine.set_exit_address(("127.0.0.1", 0))
+
     async def tearDown(self) -> None:
         """
         Tear down all communities and the download managers.
         """
         await self.download_manager_downloader.shutdown()
         await self.download_manager_seeder.shutdown()
-        for n in self.nodes:
-            n.overlay.circuits = {}
-            n.overlay.relay_from_to = {}
-            n.overlay.exit_sockets = {}
         await super().tearDown()
 
     def create_node(self, settings: CommunitySettings | None = None, create_dht: bool = False,
@@ -130,24 +167,11 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
             tunnel_settings.download_manager.checkpoint_directory = Mock()
         elif my_node_id == EXIT:
             tunnel_settings.exitnode_enabled = True
-            tunnel_settings.peer_flags = {PEER_FLAG_RELAY, PEER_FLAG_EXIT_BT}
+            tunnel_settings.peer_flags = {PEER_FLAG_RELAY, PEER_FLAG_EXIT_BT, PEER_FLAG_EXIT_HTTP}
             tunnel_settings.download_manager = MockDownloadManager(MockTriblerConfigManager(), tunnel_settings.notifier)
             tunnel_settings.download_manager.checkpoint_directory = Mock()
 
-        out = MockIPv8(node_peer, TriblerTunnelCommunity, tunnel_settings)
-        out.overlay.dht_provider = MockDHTProvider(node_peer)
-        out.overlay.settings.remove_tunnel_delay = 0
-
-        return out
-
-    async def start_socks_servers(self) -> None:
-        """
-        Start the socks servers.
-        """
-        self.download_manager_downloader.socks_listen_ports = [
-            self.node(DOWNLOADER).endpoint.create_socks5_server(port, index+1)
-            for index, port in enumerate(self.download_manager_downloader.config.get("libtorrent/socks_listen_ports"))
-        ]
+        return MockTunnelsWithRust(node_peer, TriblerTunnelCommunity, tunnel_settings)
 
     async def add_mock_download_config(self, manager: DownloadManager, hops: int) -> DownloadConfig:
         """
@@ -207,30 +231,10 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
 
         return download
 
-    def start_rust(self) -> None:
-        """
-        Add Rust endpoints to all IPv8 nodes. Should be called after the event loop has started.
-        """
-        RustEndpoint.wan_address = property(RustEndpoint.get_address)
-        for node in self.nodes:
-            node.overlay.endpoint = node.endpoint = RustEndpoint(ip="127.0.0.1")
-            node.endpoint.open()
-            node.endpoint.set_exit_address(("127.0.0.1", 0))
-            node.endpoint.add_prefix_listener(node.overlay, node.overlay.get_prefix())
-
-            node.overlay.crypto_endpoint = node.endpoint
-            node.endpoint.setup_tunnels(node.overlay, node.overlay.settings)
-
-            node.overlay.circuits = node.endpoint.circuits
-            node.overlay.relay_from_to = node.endpoint.relays
-            node.overlay.exit_sockets = node.endpoint.exit_sockets
-
     async def test_anon_download(self) -> None:
         """
         Test a plain anonymous download with an exit node.
         """
-        self.start_rust()
-        await self.start_socks_servers()
         await self.introduce_nodes()
         infohash = await self.start_seeding()
         download = await self.start_anon_download(infohash)
@@ -240,10 +244,8 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         Test an anonymous HTTP request.
         """
-        self.start_rust()
-        await self.start_socks_servers()
         await self.introduce_nodes()
-        await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
+        await self.overlay(DOWNLOADER).set_tunnel_peers()
 
         bencoded = "d6:status2:oke"
         runner = await start_http_server(0, bencoded)
@@ -262,10 +264,8 @@ class TestAnonymousDownload(TestBase[TriblerTunnelCommunity]):
         """
         Test an anonymous HTTP request when the response is large enough to require sending multiple packets.
         """
-        self.start_rust()
-        await self.start_socks_servers()
         await self.introduce_nodes()
-        await self.nodes[DOWNLOADER].overlay.create_circuit(1).ready
+        await self.overlay(DOWNLOADER).set_tunnel_peers()
 
         bencoded = "d4:data2000:" + ("0" * 2000) + "e"
         runner = await start_http_server(0, bencoded)

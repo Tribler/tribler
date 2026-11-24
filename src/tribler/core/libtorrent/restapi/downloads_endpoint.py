@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import mimetypes
-from asyncio import get_event_loop, shield
+from asyncio import get_event_loop, shield, to_thread
 from binascii import hexlify, unhexlify
 from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict, cast
@@ -12,8 +12,8 @@ from aiohttp import web
 from aiohttp.web_exceptions import HTTPPartialContent, HTTPRequestRangeNotSatisfiable
 from aiohttp.web_response import StreamResponse
 from aiohttp_apispec import docs, json_schema
-from ipv8.messaging.anonymization.tunnel import PEER_FLAG_EXIT_BT
 from ipv8.REST.schema import schema
+from ipv8_rust_tunnels import TranscodeServer
 from marshmallow.fields import Boolean, Float, Integer, List, String
 
 from tribler.core.libtorrent.download_manager.download_config import DownloadConfig, PostHandleOp
@@ -76,6 +76,7 @@ class DownloadsEndpoint(RESTEndpoint):
         self.unhandled_cli_log: list[str] = []
         self.download_manager = download_manager
         self.tunnel_community = tunnel_community
+        self.transcoder: TranscodeServer | None = None
         self.app.add_routes([
             web.get("", self.get_downloads),
             web.put("", self.add_download),
@@ -89,8 +90,77 @@ class DownloadsEndpoint(RESTEndpoint):
             web.put("/{infohash}/tracker_force_announce", self.tracker_force_announce),
             web.get("/{infohash}/files", self.get_files),
             web.put("/{infohash}/rename/{fileindex}", self.rename_file),
-            web.get("/{infohash}/stream/{fileindex}", self.stream, allow_head=False)
+            web.get("/{infohash}/stream/{fileindex}", self.stream),
+            web.get("/{infohash}/transcode/{fileindex}", self.transcode),
+            web.get("/{infohash}/metadata/{fileindex}", self.get_metadata),
         ])
+
+    async def get_transcoder(self, request: web.Request) -> TranscodeServer:
+        """
+        Get the current TranscodeServer instance or create one if needed.
+        """
+        if self.transcoder is None:
+            self.transcoder = TranscodeServer(f"{request.url.scheme}://{request.url.host}:{request.url.port}")
+            await to_thread(self.transcoder.start_server, 0)
+        return self.transcoder
+
+    async def get_metadata(self, request: web.Request) -> RESTResponse:
+        """
+        Get the metadata for given multimedia file.
+        """
+        transcoder = await self.get_transcoder(request)
+        infohash = request.match_info["infohash"]
+        fileindex = request.match_info["fileindex"]
+        query = f"?{request.query_string}" if request.query_string else ""
+
+        stream_url = (
+            f"http://{request.url.host_port_subcomponent}"
+            f"/api/downloads/{infohash}/stream/{fileindex}{query}"
+        )
+
+        metadata = await to_thread(transcoder.get_metadata, stream_url)
+        return RESTResponse(metadata.to_json())
+
+    async def transcode(self, request: web.Request) -> web.StreamResponse:
+        """
+        Transcode a download stream.
+        """
+        transcoder = await self.get_transcoder(request)
+
+        infohash = request.match_info["infohash"]
+        fileindex = request.match_info["fileindex"]
+        query = f"?{request.query_string}" if request.query_string else ""
+
+        stream_url = (
+            f"http://{request.url.host_port_subcomponent}"
+            f"/api/downloads/{infohash}/stream/{fileindex}{query}"
+        )
+        # The stream endpoint already runs on the mainthread, so getting the
+        # metadata needs to run on a separate thread, or we'll deadlock.
+        metadata = await to_thread(transcoder.get_metadata, stream_url)
+
+        raw_video = request.query.get("video_codecs", "")
+        raw_audio = request.query.get("audio_codecs", "")
+
+        video_codecs = [c.strip() for c in raw_video.split(",") if c.strip()]
+        audio_codecs = [c.strip() for c in raw_audio.split(",") if c.strip()]
+
+        video_supported = (
+                not metadata.has_video
+                or metadata.video_codec.lower() in video_codecs
+        )
+        audio_supported = (
+                not metadata.has_audio
+                or metadata.audio_codec.lower() in audio_codecs
+        )
+
+        if not video_supported or not audio_supported:
+            base_url = f"http://{request.url.host}:{transcoder.get_port()}"
+            transcoder_url = base_url + f"/api/downloads/{infohash}/stream/{fileindex}{query}"
+            logger.info("Transcoding needed, redirecting to %s", transcoder_url)
+            return web.HTTPTemporaryRedirect(location=transcoder_url)
+        logger.info("Transcoding not needed, redirecting to %s", stream_url)
+        return web.HTTPTemporaryRedirect(location=stream_url)
 
     @staticmethod
     def return_404(message: str = "this download does not exist") -> RESTResponse:
@@ -962,10 +1032,6 @@ class DownloadsEndpoint(RESTEndpoint):
         if status == DownloadStatus.STOPPED and not stopped_by_user:
             if download.config.get_hops() == 0:
                 return DownloadStatus.STOPPED
-
-            # Are we waiting for exit nodes?
-            if self.tunnel_community and not self.tunnel_community.get_candidates(PEER_FLAG_EXIT_BT):
-                return DownloadStatus.EXIT_NODES
 
             # We're probably waiting for the DHT to be ready. See DownloadManager.dht_ready_task.
             return DownloadStatus.LOADING
